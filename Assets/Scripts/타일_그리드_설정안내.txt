@@ -1,0 +1,39 @@
+■ Tile 프리팹 만들기 (한 번만 설정)
+
+[자동 생성 권장]
+  메뉴: Tools > Puzzle > Create Tile Prefab
+  → Assets/Prefabs/Tile.prefab + Assets/Materials/TileNeon.mat 자동 생성
+  → 숫자는 월드 스페이스 TextMeshPro로 표시되어 2D에서 잘 보임
+  → 필요: Assets/Sprites/tile.png, TMP Essential Resources (Window > TextMeshPro > Import TMP Essential Resources)
+
+[네온 미니멀리즘]
+  - 타일: URP Sprite-Lit 머티리얼(TileNeon.mat) 적용. 발광은 런타임에 SpriteRenderer.color HDR로 적용.
+  - 숫자별 색: 5~4 핑크, 3~2 민트, 1 하늘색 (HDR). Tile 스크립트에서 자동 적용.
+  - TMP Glow: 숫자도 타일과 같은 HDR 색으로 빛나게 설정 (폰트 머티리얼에 Glow 지원 시).
+  - 터치 애니메이션: 0.9x 수축 후 1.0x 복귀 (코루틴, LeanTween/DOTween 미사용).
+
+[수동 설정]
+  - Tile: SpriteRenderer(tile.png) + BoxCollider2D + Tile.cs. Material: Assets/Materials/TileNeon.mat 또는 URP 2D Sprite-Lit.
+  - 자식 NumberText: TextMeshPro (월드 스페이스, Mesh/TextMeshPro - Text). sortingOrder = 1. Tile 스크립트 Number Text에 연결.
+
+■ 씬 설정
+
+1. [Tools > Puzzle > Create Tile Prefab] 실행 → Tile 프리팹 생성
+2. 씬에서 "GridManager" 선택 → Tile Prefab에 Assets/Prefabs/Tile.prefab 할당
+3. Main Camera 비워두면 Camera.main 사용. Grid Rows/Columns, Padding, Initial Tile Number 설정
+
+■ 터치/숫자 감소
+
+- EventSystem + Physics2DRaycaster(카메라)가 있으면 IPointerDownHandler로 처리.
+- 없어도 GridManager.Update()에서 터치/클릭 시 Physics2D.Raycast로 타일을 찾아 TryDecreaseNumber() 호출 (폴백).
+
+■ 텍스트가 안 보일 때
+
+- Tile 프리팹의 NumberText가 TextMeshPro (월드 스페이스)인지 확인. TextMeshProUGUI(Canvas)는 2D 월드 타일과 함께 쓰면 안 보일 수 있음.
+- [Tools > Puzzle > Create Tile Prefab]으로 프리팹을 다시 만들면 월드 스페이스 TMP로 생성됨.
+- NumberText의 sortingOrder가 타일(0)보다 크게(예: 1) 설정되어 있는지 확인.
+- TMP Essential Resources 임포트: Window > TextMeshPro > Import TMP Essential Resources.
+
+■ 해상도
+
+- GridManager가 Orthographic Size를 조절해 그리드가 화면에 Fit 되도록 함.
