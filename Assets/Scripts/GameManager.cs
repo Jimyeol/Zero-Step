@@ -26,6 +26,8 @@ public class GameManager : MonoBehaviour
     [Header("라인 렌더러")]
     [SerializeField] private float lineWidth = 0.15f;
     [SerializeField] private Color lineColor = new Color(1f, 0.5f, 1f, 1f);
+    [Tooltip("손 뗀 후 그려진 라인이 사라지기까지 대기 시간(초)")]
+    [SerializeField] private float lineClearDelay = 1f;
 
     [Header("스테이지")]
     [SerializeField] private int startStageIndex = 1;
@@ -39,10 +41,19 @@ public class GameManager : MonoBehaviour
     private int stageWidth;
     private int stageHeight;
     private Tile[,] tiles;
+    /// <summary>드래그를 시작할 수 있는 타일(JSON 시작점 → 손 떼면 마지막 도달 타일).</summary>
+    private Tile currentStartTile;
+    /// <summary>게임오버 리셋 시 시작점 복원용. tiles[row, col] 인덱스.</summary>
+    private int initialStartTileRow;
+    private int initialStartTileCol;
     private List<Tile> currentPath = new List<Tile>();
+    /// <summary>이전 이동 경로 포함 누적 라인 위치(네온 선 유지).</summary>
+    private List<Vector3> linePoints = new List<Vector3>();
     private bool isDragging;
     private LineRenderer lineRenderer;
     private bool stageCleared;
+    /// <summary>손 뗀 후 1초 뒤 라인 제거용 코루틴.</summary>
+    private Coroutine lineClearRoutine;
 
     private void Start()
     {
@@ -61,11 +72,13 @@ public class GameManager : MonoBehaviour
         CacheTileSizeFromPrefab();
 
         currentStageIndex = startStageIndex;
+        linePoints.Clear();
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data != null)
             CreateGridFromStageData(data);
         else
             CreateGridFallback();
+        SetCurrentStartTileFromStageData(data);
         AdjustCameraToFitGrid();
     }
 
@@ -96,28 +109,34 @@ public class GameManager : MonoBehaviour
         if (pointerDown)
         {
             Tile hit = GetTileAtScreen(screenPoint);
-            if (hit != null && hit.IsActive)
-            {
-                isDragging = true;
-                currentPath.Clear();
-                currentPath.Add(hit);
-            }
+            if (hit != currentStartTile || hit == null || !hit.IsActive)
+                return;
+            currentStartTile.ClearScaleOverride();
+            isDragging = true;
+            currentPath.Clear();
+            currentPath.Add(hit);
         }
         else if (isDragging && (pointerHeld || pointerUp))
         {
             Tile hit = GetTileAtScreen(screenPoint);
-            if (hit != null && hit.IsActive && !currentPath.Contains(hit))
+            // 숫자가 남아 있으면 이미 라인이 그려진 타일이라도 재방문(중복 밟기) 허용.
+            // 숫자는 '들어갈 때'가 아니라 '지나쳐 나갈 때' 감소 → 멈춘 타일이 0이 되어 다음 드래그를 못 시작하는 문제 방지.
+            if (hit != null && hit.IsActive)
             {
                 Tile last = currentPath[currentPath.Count - 1];
                 if (IsAdjacent(last, hit))
+                {
+                    last.DecreaseNumber(); // 떠나는 타일에서 숫자 감소
                     currentPath.Add(hit);
+                }
             }
 
             if (pointerUp)
             {
                 isDragging = false;
-                ApplyPathAndUpdateLine();
-                CheckStageClear();
+                CommitPathAndSetCurrentPosition();
+                if (!CheckAndHandleDeadlock())
+                    CheckStageClear();
             }
         }
 
@@ -182,33 +201,120 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 경로에 있는 타일마다 숫자 1 감소, 라인 초기화 후 경로 비우기.
+    /// 손 떼면: 경로를 누적 라인에 추가, 마지막 타일을 새 시작점으로 설정하고 1.1x 유지. 1초 후 라인 제거 코루틴 시작.
     /// </summary>
-    private void ApplyPathAndUpdateLine()
+    private void CommitPathAndSetCurrentPosition()
     {
         foreach (Tile t in currentPath)
-            t.DecreaseNumber();
+        {
+            Vector3 p = t.transform.position;
+            p.z = -0.5f;
+            linePoints.Add(p);
+        }
+        if (currentPath.Count > 0)
+        {
+            currentStartTile = currentPath[currentPath.Count - 1];
+            currentStartTile.SetCurrentPositionMarker(true);
+        }
         currentPath.Clear();
         UpdateLineRendererPositions();
+
+        // 그려진 라인은 lineClearDelay(기본 1초) 후 제거
+        if (lineClearRoutine != null)
+            StopCoroutine(lineClearRoutine);
+        lineClearRoutine = StartCoroutine(LineClearAfterDelayRoutine(lineClearDelay));
+    }
+
+    private IEnumerator LineClearAfterDelayRoutine(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        linePoints.Clear();
+        UpdateLineRendererPositions();
+        lineClearRoutine = null;
     }
 
     private void UpdateLineRendererPositions()
     {
         if (lineRenderer == null) return;
 
-        if (currentPath.Count == 0)
+        int total = linePoints.Count + currentPath.Count;
+        if (total == 0)
         {
             lineRenderer.positionCount = 0;
             return;
         }
 
-        lineRenderer.positionCount = currentPath.Count;
+        lineRenderer.positionCount = total;
+        int idx = 0;
+        foreach (Vector3 p in linePoints)
+        {
+            lineRenderer.SetPosition(idx++, p);
+        }
         for (int i = 0; i < currentPath.Count; i++)
         {
             Vector3 p = currentPath[i].transform.position;
             p.z = -0.5f;
-            lineRenderer.SetPosition(i, p);
+            lineRenderer.SetPosition(idx++, p);
         }
+    }
+
+    /// <summary>
+    /// 데드락(게임오버) 여부: 현재 위치에서 인접(상하좌우) 중 이동 가능(숫자 1 이상) 타일이 하나도 없으면 true.
+    /// </summary>
+    private bool IsDeadlock()
+    {
+        if (currentStartTile == null || tiles == null) return false;
+        int x = currentStartTile.X;
+        int y = currentStartTile.Y;
+        int[] dx = { -1, 1, 0, 0 };
+        int[] dy = { 0, 0, -1, 1 };
+        for (int i = 0; i < 4; i++)
+        {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+            if (ny >= 0 && ny < stageHeight && nx >= 0 && nx < stageWidth)
+            {
+                Tile t = tiles[ny, nx];
+                if (t != null && t.IsActive)
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 데드락이면 Game Over 로그 후 타일 숫자·라인 리셋. 리셋 시 true 반환(Stage Clear 검사 생략).
+    /// </summary>
+    private bool CheckAndHandleDeadlock()
+    {
+        if (!IsDeadlock()) return false;
+
+        Debug.Log("Game Over");
+        if (lineClearRoutine != null)
+        {
+            StopCoroutine(lineClearRoutine);
+            lineClearRoutine = null;
+        }
+        linePoints.Clear();
+        UpdateLineRendererPositions();
+
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                    tiles[row, col].ResetToInitial();
+
+        // 시작점을 JSON startPoint(또는 폴백 첫 칸)로 복원
+        if (tiles != null && initialStartTileRow >= 0 && initialStartTileRow < stageHeight &&
+            initialStartTileCol >= 0 && initialStartTileCol < stageWidth)
+        {
+            Tile initialStart = tiles[initialStartTileRow, initialStartTileCol];
+            if (initialStart != null)
+            {
+                currentStartTile = initialStart;
+                currentStartTile.SetInitialStartTile(true);
+            }
+        }
+        return true;
     }
 
     /// <summary>
@@ -242,8 +348,10 @@ public class GameManager : MonoBehaviour
                 yield break;
             }
         }
+        linePoints.Clear();
         ClearTiles();
         CreateGridFromStageData(data);
+        SetCurrentStartTileFromStageData(data);
         stageCleared = false;
     }
 
@@ -375,11 +483,39 @@ public class GameManager : MonoBehaviour
             if (tile != null)
             {
                 tile.SetGridPosition(cell.x, cell.y);
+                tile.SetInitialNumber(cell.count);
                 tile.SetNumber(cell.count);
                 if (data.startPoint.x == cell.x && data.startPoint.y == cell.y)
                     tile.SetAsStartPoint(true);
                 tiles[cell.y, cell.x] = tile;
             }
+        }
+    }
+
+    /// <summary>
+    /// JSON startPoint 또는 폴백 첫 칸을 현재 시작 타일로 설정하고 1.2x 적용.
+    /// </summary>
+    private void SetCurrentStartTileFromStageData(StageData data)
+    {
+        if (data != null && data.startPoint != null && tiles != null)
+        {
+            int sx = data.startPoint.x;
+            int sy = data.startPoint.y;
+            if (sy >= 0 && sy < stageHeight && sx >= 0 && sx < stageWidth && tiles[sy, sx] != null)
+            {
+                initialStartTileRow = sy;
+                initialStartTileCol = sx;
+                currentStartTile = tiles[sy, sx];
+                currentStartTile.SetInitialStartTile(true);
+                return;
+            }
+        }
+        if (tiles != null && stageHeight > 0 && stageWidth > 0 && tiles[0, 0] != null)
+        {
+            initialStartTileRow = 0;
+            initialStartTileCol = 0;
+            currentStartTile = tiles[0, 0];
+            currentStartTile.SetInitialStartTile(true);
         }
     }
 
@@ -412,10 +548,18 @@ public class GameManager : MonoBehaviour
                 if (tile != null)
                 {
                     tile.SetGridPosition(col, row);
+                    tile.SetInitialNumber(fallbackInitialNumber);
                     tile.SetNumber(fallbackInitialNumber);
                     tiles[row, col] = tile;
                 }
             }
+        }
+        if (currentStartTile == null && tiles != null && fallbackRows > 0 && fallbackCols > 0 && tiles[0, 0] != null)
+        {
+            initialStartTileRow = 0;
+            initialStartTileCol = 0;
+            currentStartTile = tiles[0, 0];
+            currentStartTile.SetInitialStartTile(true);
         }
     }
 }

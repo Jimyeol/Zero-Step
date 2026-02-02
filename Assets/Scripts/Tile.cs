@@ -29,6 +29,8 @@ public class Tile : MonoBehaviour
     private int gridX;
     private int gridY;
     private int currentNumber;
+    /// <summary>게임오버 리셋 시 복원할 초기 숫자 (그리드 생성 시 GameManager가 설정).</summary>
+    private int initialNumber;
     private SpriteRenderer spriteRenderer;
     private BoxCollider2D boxCollider2D;
     private Vector3 baseScale;
@@ -47,6 +49,11 @@ public class Tile : MonoBehaviour
 
     private bool isStartPoint;
     private static readonly Color StartPointTint = new Color(0.9f, 1f, 0.9f, 1f);
+
+    /// <summary>스케일 배율: 1=기본, 1.2=초기 시작 타일, 1.1=현재 위치(멈춘 지점).</summary>
+    private float scaleOverride = 1f;
+    private const float InitialStartScale = 1.2f;
+    private const float CurrentPositionScale = 1.1f;
 
     private void Awake()
     {
@@ -78,6 +85,56 @@ public class Tile : MonoBehaviour
         isStartPoint = isStart;
         if (startLabel != null)
             startLabel.gameObject.SetActive(isStart);
+    }
+
+    /// <summary>
+    /// JSON 시작 타일: Scale 1.2배 + Emission 강화로 '여기서 시작' 시각적 힌트.
+    /// </summary>
+    public void SetInitialStartTile(bool isInitial)
+    {
+        scaleOverride = isInitial ? InitialStartScale : 1f;
+        ApplyScaleOverride();
+    }
+
+    /// <summary>
+    /// 멈춘 지점 = 다음 드래그의 시작점. 1.1x 스케일 유지(다시 터치하기 전까지).
+    /// </summary>
+    public void SetCurrentPositionMarker(bool isCurrent)
+    {
+        scaleOverride = isCurrent ? CurrentPositionScale : 1f;
+        ApplyScaleOverride();
+    }
+
+    /// <summary>
+    /// 드래그 시작 시 호출: 스케일 오버라이드 해제(1.0으로 복귀).
+    /// </summary>
+    public void ClearScaleOverride()
+    {
+        scaleOverride = 1f;
+        ApplyScaleOverride();
+    }
+
+    private void ApplyScaleOverride()
+    {
+        transform.localScale = baseScale * scaleOverride;
+    }
+
+    /// <summary>
+    /// 리셋 시 복원할 초기 숫자 설정 (그리드 생성 시 GameManager가 호출).
+    /// </summary>
+    public void SetInitialNumber(int value)
+    {
+        initialNumber = Mathf.Max(0, value);
+    }
+
+    /// <summary>
+    /// 게임오버 리셋: 초기 숫자로 복원하고 표시/컬라이더 재활성화.
+    /// </summary>
+    public void ResetToInitial()
+    {
+        SetNumber(initialNumber);
+        if (initialNumber > 0)
+            SetActiveState(true);
     }
 
     /// <summary>
@@ -119,7 +176,10 @@ public class Tile : MonoBehaviour
     private void ApplyNumberColor()
     {
         Color baseColor = GetBaseColorForNumber(currentNumber);
-        Color hdrColor = currentNumber > 0 ? baseColor * hdrIntensity : baseColor;
+        float emissionMult = hdrIntensity;
+        if (isStartPoint && currentNumber > 0)
+            emissionMult *= 1.3f; // 시작 타일 Emission 강화
+        Color hdrColor = currentNumber > 0 ? baseColor * emissionMult : baseColor;
         if (isStartPoint && currentNumber > 0)
             hdrColor *= StartPointTint;
 
@@ -186,13 +246,14 @@ public class Tile : MonoBehaviour
 
     private IEnumerator ScaleTensionRoutine()
     {
-        Vector3 small = baseScale * shrinkScale;
+        Vector3 targetScale = baseScale * scaleOverride;
+        Vector3 small = targetScale * shrinkScale;
         float elapsed = 0f;
 
         while (elapsed < shrinkDuration)
         {
             elapsed += Time.deltaTime;
-            transform.localScale = Vector3.Lerp(baseScale, small, elapsed / shrinkDuration);
+            transform.localScale = Vector3.Lerp(targetScale, small, elapsed / shrinkDuration);
             yield return null;
         }
         transform.localScale = small;
@@ -203,10 +264,10 @@ public class Tile : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = elapsed / restoreDuration;
             t = 1f - (1f - t) * (1f - t);
-            transform.localScale = Vector3.Lerp(small, baseScale, t);
+            transform.localScale = Vector3.Lerp(small, targetScale, t);
             yield return null;
         }
-        transform.localScale = baseScale;
+        transform.localScale = baseScale * scaleOverride;
         scaleRoutine = null;
     }
 }
