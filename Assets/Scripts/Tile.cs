@@ -1,40 +1,59 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using TMPro;
 
 /// <summary>
-/// 퍼즐 타일. 터치 시 숫자가 1씩 줄어들고 0이 되면 비활성화됨.
-/// 숫자별 HDR 색상(5~4 핑크, 3~2 민트, 1 하늘색) 및 터치 시 스케일 애니메이션.
+/// 네온 퍼즐 타일. 그리드 좌표(x,y), 숫자별 색상(4+ 핑크, 2~3 민트, 1 하늘색), HDR 발광, 0 시 꺼짐.
+/// 숫자 감소 시 코루틴으로 0.9x → 1.0x 텐션 애니메이션.
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
 [RequireComponent(typeof(BoxCollider2D))]
-public class Tile : MonoBehaviour, IPointerDownHandler
+public class Tile : MonoBehaviour
 {
     [Header("참조")]
     [SerializeField] private TMP_Text numberText;
+    [SerializeField] private SpriteRenderer tileImage;
+    [Tooltip("시작점일 때 표시할 텍스트(선택). 없으면 테두리 색으로만 표시")]
+    [SerializeField] private TMP_Text startLabel;
 
-    [Header("터치 애니메이션")]
+    [Header("발광")]
+    [Tooltip("색상에 곱해 HDR 발광(Emission) 강도")]
+    [SerializeField] private float hdrIntensity = 2f;
+
+    [Header("텐션 애니메이션")]
     [SerializeField] private float shrinkScale = 0.9f;
     [SerializeField] private float shrinkDuration = 0.05f;
     [SerializeField] private float restoreDuration = 0.08f;
 
+    // 그리드 좌표 (GameManager가 설정)
+    private int gridX;
+    private int gridY;
     private int currentNumber;
     private SpriteRenderer spriteRenderer;
     private BoxCollider2D boxCollider2D;
     private Vector3 baseScale;
     private Coroutine scaleRoutine;
-    private float lastDecreaseTime = -1f;
-    private const float DecreaseCooldown = 0.2f;
 
-    // 숫자별 HDR 색상 (Intensity > 1 로 발광 느낌): 5~4 핑크, 3~2 민트, 1 하늘색
-    private static readonly Color Color5to4 = new Color(2f, 0.4f, 0.8f, 1f);   // 핑크
-    private static readonly Color Color3to2 = new Color(0.2f, 2f, 1.2f, 1f);   // 민트
-    private static readonly Color Color1 = new Color(0.3f, 0.8f, 2f, 1f);      // 하늘색
+    // 요구 색상: 4+ 핑크(#FF00FF), 2~3 민트(#00FFCC), 1 하늘색(#87CEFA), 0 어두운 회색
+    private static readonly Color Pink = new Color(1f, 0f, 1f, 1f);           // #FF00FF
+    private static readonly Color Mint = new Color(0f, 1f, 0.8f, 1f);         // #00FFCC
+    private static readonly Color SkyBlue = new Color(0.53f, 0.81f, 0.98f, 1f); // #87CEFA
+    private static readonly Color DarkGrayOff = new Color(0.2f, 0.2f, 0.2f, 1f);
+
+    public int X => gridX;
+    public int Y => gridY;
+    public int CurrentNumber => currentNumber;
+    public bool IsActive => currentNumber > 0;
+
+    private bool isStartPoint;
+    private static readonly Color StartPointTint = new Color(0.9f, 1f, 0.9f, 1f);
 
     private void Awake()
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
+        if (tileImage == null)
+            tileImage = spriteRenderer;
         boxCollider2D = GetComponent<BoxCollider2D>();
         baseScale = transform.localScale;
 
@@ -43,7 +62,26 @@ public class Tile : MonoBehaviour, IPointerDownHandler
     }
 
     /// <summary>
-    /// 타일 숫자 설정. 0이면 비활성화. 숫자에 따라 HDR 색상 자동 적용.
+    /// 그리드 좌표 설정 (GameManager가 생성 시 호출).
+    /// </summary>
+    public void SetGridPosition(int x, int y)
+    {
+        gridX = x;
+        gridY = y;
+    }
+
+    /// <summary>
+    /// 시작점 표시: 'Start' 텍스트 표시 또는 테두리(스프라이트 틴트) 적용.
+    /// </summary>
+    public void SetAsStartPoint(bool isStart)
+    {
+        isStartPoint = isStart;
+        if (startLabel != null)
+            startLabel.gameObject.SetActive(isStart);
+    }
+
+    /// <summary>
+    /// 숫자 설정. 0이면 어두운 회색으로 꺼짐. 색상은 숫자별 + HDR 발광.
     /// </summary>
     public void SetNumber(int value)
     {
@@ -56,28 +94,14 @@ public class Tile : MonoBehaviour, IPointerDownHandler
     }
 
     /// <summary>
-    /// 현재 숫자 반환.
+    /// 숫자 1 감소 (드래그 경로 적용 시 GameManager가 호출). 텐션 애니메이션 재생.
     /// </summary>
-    public int GetNumber() => currentNumber;
-
-    /// <summary>
-    /// 숫자가 0보다 큰지(활성 상태인지) 반환.
-    /// </summary>
-    public bool IsActive() => currentNumber > 0;
-
-    /// <summary>
-    /// 터치/클릭 시 숫자 1 감소 + 스케일 애니메이션. (EventSystem 또는 GridManager 폴백에서 호출)
-    /// </summary>
-    public void TryDecreaseNumber()
+    public void DecreaseNumber()
     {
         if (currentNumber <= 0)
             return;
-        if (Time.time - lastDecreaseTime < DecreaseCooldown)
-            return;
-
-        lastDecreaseTime = Time.time;
         SetNumber(currentNumber - 1);
-        PlayTapAnimation();
+        PlayTensionAnimation();
     }
 
     private void UpdateNumberDisplay()
@@ -90,41 +114,43 @@ public class Tile : MonoBehaviour, IPointerDownHandler
     }
 
     /// <summary>
-    /// 숫자 구간별 HDR 색상을 타일(SpriteRenderer)과 텍스트(TMP face + glow)에 적용.
+    /// 숫자별 색상 적용: 4+ 핑크, 2~3 민트, 1 하늘색. HDR 발광(Color * 2.0). 0이면 어두운 회색 후 꺼짐.
     /// </summary>
     private void ApplyNumberColor()
     {
-        Color hdr = GetColorForNumber(currentNumber);
+        Color baseColor = GetBaseColorForNumber(currentNumber);
+        Color hdrColor = currentNumber > 0 ? baseColor * hdrIntensity : baseColor;
+        if (isStartPoint && currentNumber > 0)
+            hdrColor *= StartPointTint;
 
         if (spriteRenderer != null)
-            spriteRenderer.color = hdr;
+            spriteRenderer.color = hdrColor;
+        if (tileImage != null && tileImage != spriteRenderer)
+            tileImage.color = hdrColor;
 
         if (numberText != null)
         {
-            numberText.color = hdr;
-            ApplyTMPGlow(numberText, hdr);
+            numberText.color = hdrColor;
+            ApplyTMPGlow(numberText, hdrColor);
         }
     }
 
-    private static Color GetColorForNumber(int n)
+    private static Color GetBaseColorForNumber(int n)
     {
-        if (n >= 4) return Color5to4;
-        if (n >= 2) return Color3to2;
-        if (n >= 1) return Color1;
-        return Color.gray;
+        if (n >= 4) return Pink;
+        if (n >= 2) return Mint;
+        if (n >= 1) return SkyBlue;
+        return DarkGrayOff;
     }
 
     /// <summary>
-    /// TMP Glow 활성화 및 Glow 색상을 타일과 동일한 HDR로 설정.
+    /// TMP Glow Color를 타일 색상과 동기화 (Orbitron SDF 등).
     /// </summary>
     private static void ApplyTMPGlow(TMP_Text tmp, Color hdrColor)
     {
-        if (tmp == null)
-            return;
-
+        if (tmp == null) return;
         Material mat = tmp.fontSharedMaterial;
-        if (mat == null || !mat.HasProperty(ShaderUtilities.ID_GlowColor))
-            return;
+        if (mat == null || !mat.HasProperty(ShaderUtilities.ID_GlowColor)) return;
 
         Material instanceMat = tmp.fontMaterial;
         if (instanceMat != null)
@@ -149,16 +175,16 @@ public class Tile : MonoBehaviour, IPointerDownHandler
     }
 
     /// <summary>
-    /// 코루틴: 0.9x 수축 후 1.0x로 복귀 (LeanTween/DOTween 없이).
+    /// 코루틴: 0.9x 수축 후 1.0x로 빠르게 복구 (텐션 애니메이션). 외부 라이브러리 없음.
     /// </summary>
-    private void PlayTapAnimation()
+    private void PlayTensionAnimation()
     {
         if (scaleRoutine != null)
             StopCoroutine(scaleRoutine);
-        scaleRoutine = StartCoroutine(ScaleBounceRoutine());
+        scaleRoutine = StartCoroutine(ScaleTensionRoutine());
     }
 
-    private IEnumerator ScaleBounceRoutine()
+    private IEnumerator ScaleTensionRoutine()
     {
         Vector3 small = baseScale * shrinkScale;
         float elapsed = 0f;
@@ -176,19 +202,11 @@ public class Tile : MonoBehaviour, IPointerDownHandler
         {
             elapsed += Time.deltaTime;
             float t = elapsed / restoreDuration;
-            t = 1f - (1f - t) * (1f - t); // EaseOutQuad
+            t = 1f - (1f - t) * (1f - t);
             transform.localScale = Vector3.Lerp(small, baseScale, t);
             yield return null;
         }
         transform.localScale = baseScale;
         scaleRoutine = null;
-    }
-
-    /// <summary>
-    /// 터치/클릭 시 숫자 1 감소 (IPointerDownHandler).
-    /// </summary>
-    public void OnPointerDown(PointerEventData eventData)
-    {
-        TryDecreaseNumber();
     }
 }

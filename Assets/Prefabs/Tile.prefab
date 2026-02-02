@@ -334,6 +334,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tile
   numberText: {fileID: 7218430053397499735}
+  tileImage: {fileID: 0}
+  hdrIntensity: 2
   shrinkScale: 0.9
   shrinkDuration: 0.05
   restoreDuration: 0.08

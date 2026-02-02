@@ -59,8 +59,8 @@ public class GridManager : MonoBehaviour
         // 터치/클릭 폴백: EventSystem 미동작 시에도 타일 감소 처리
         if (!DetectTileTap(out Tile hitTile))
             return;
-        if (hitTile != null && hitTile.IsActive())
-            hitTile.TryDecreaseNumber();
+        if (hitTile != null && hitTile.IsActive)
+            hitTile.DecreaseNumber();
     }
 
     /// <summary>
