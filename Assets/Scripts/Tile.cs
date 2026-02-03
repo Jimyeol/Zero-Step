@@ -155,23 +155,114 @@ public class Tile : MonoBehaviour
     }
 
     /// <summary>
+    /// 게임오버 암전: 색상을 검정으로, 숫자 텍스트 비활성화.
+    /// </summary>
+    public void SetBlackout(bool blackout)
+    {
+        if (blackout)
+        {
+            if (spriteRenderer != null) spriteRenderer.color = Color.black;
+            if (tileImage != null && tileImage != spriteRenderer) tileImage.color = Color.black;
+            if (numberText != null) numberText.gameObject.SetActive(false);
+            if (startLabel != null) startLabel.gameObject.SetActive(false);
+        }
+        else
+        {
+            ApplyNumberColor();
+            if (numberText != null && initialNumber > 0) numberText.gameObject.SetActive(true);
+            if (startLabel != null && isStartPoint) startLabel.gameObject.SetActive(true);
+        }
+    }
+
+    /// <summary>
+    /// 게임오버 연출 후 네온 색 복구 (깜빡임 사이).
+    /// </summary>
+    public void RestoreNeonColor()
+    {
+        ApplyNumberColor();
+    }
+
+    /// <summary>
+    /// 게임오버 연출: 지정 색으로 변경 (깜빡임·암전용).
+    /// </summary>
+    public void SetGlitchColor(Color c)
+    {
+        if (spriteRenderer != null) spriteRenderer.color = c;
+        if (tileImage != null && tileImage != spriteRenderer) tileImage.color = c;
+        if (numberText != null) { numberText.color = c; ApplyTMPGlow(numberText, c); }
+    }
+
+    /// <summary>
+    /// 리셋 연출: 스케일을 0으로 (순차 등장 전).
+    /// </summary>
+    public void SetScaleZero()
+    {
+        if (startPointPulseRoutine != null) { StopCoroutine(startPointPulseRoutine); startPointPulseRoutine = null; }
+        if (scaleRoutine != null) { StopCoroutine(scaleRoutine); scaleRoutine = null; }
+        transform.localScale = Vector3.zero;
+    }
+
+    /// <summary>
+    /// 리셋 연출: 나타나는 순간 네온 컬러·텍스트 복구 후 0 → 1.2 → 1.0 Bounce 코루틴.
+    /// </summary>
+    public void PlayBounceAppearance()
+    {
+        if (scaleRoutine != null) StopCoroutine(scaleRoutine);
+        if (startPointPulseRoutine != null) { StopCoroutine(startPointPulseRoutine); startPointPulseRoutine = null; }
+        scaleOverride = 1f;
+        ApplyNumberColor();
+        if (initialNumber > 0) SetActiveState(true);
+        if (numberText != null) numberText.gameObject.SetActive(true);
+        if (startLabel != null && isStartPoint) startLabel.gameObject.SetActive(true);
+        scaleRoutine = StartCoroutine(BounceAppearanceRoutine());
+    }
+
+    private IEnumerator BounceAppearanceRoutine()
+    {
+        Vector3 zero = Vector3.zero;
+        Vector3 peak = baseScale * 1.2f;
+        float expandDur = 0.18f;
+        float contractDur = 0.12f;
+        float elapsed = 0f;
+        while (elapsed < expandDur)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / expandDur;
+            t = 1f - (1f - t) * (1f - t);
+            transform.localScale = Vector3.Lerp(zero, peak, t);
+            yield return null;
+        }
+        transform.localScale = peak;
+        elapsed = 0f;
+        while (elapsed < contractDur)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / contractDur;
+            t = t * t;
+            transform.localScale = Vector3.Lerp(peak, baseScale, t);
+            yield return null;
+        }
+        transform.localScale = baseScale;
+        scaleRoutine = null;
+    }
+
+    /// <summary>
     /// 하트비트: restMult ~ peakMult 구간에서 살짝 커졌다 줄었다 반복. (시작점·현재 위치 공용)
     /// </summary>
     private IEnumerator HeartbeatPulseRoutine(float restMult, float peakMult)
     {
         Vector3 restScale = baseScale * restMult;
         Vector3 peakScale = baseScale * Mathf.Max(restMult, peakMult);
-        WaitForEndOfFrame w = new WaitForEndOfFrame();
+        WaitForSeconds pulseWait = new WaitForSeconds(pulseInterval);
 
         while (true)
         {
-            // 첫 번째 박동: 커졌다 줄었다
             float elapsed = 0f;
             while (elapsed < pulseExpandDuration)
             {
                 elapsed += Time.deltaTime;
                 transform.localScale = Vector3.Lerp(restScale, peakScale, elapsed / pulseExpandDuration);
-                yield return w;
+                yield return null;
             }
             transform.localScale = peakScale;
             elapsed = 0f;
@@ -179,16 +270,15 @@ public class Tile : MonoBehaviour
             {
                 elapsed += Time.deltaTime;
                 transform.localScale = Vector3.Lerp(peakScale, restScale, elapsed / pulseContractDuration);
-                yield return w;
+                yield return null;
             }
             transform.localScale = restScale;
-            // 두 번째 박동 (하트 느낌)
             elapsed = 0f;
             while (elapsed < pulseExpandDuration)
             {
                 elapsed += Time.deltaTime;
                 transform.localScale = Vector3.Lerp(restScale, peakScale, elapsed / pulseExpandDuration);
-                yield return w;
+                yield return null;
             }
             transform.localScale = peakScale;
             elapsed = 0f;
@@ -196,10 +286,10 @@ public class Tile : MonoBehaviour
             {
                 elapsed += Time.deltaTime;
                 transform.localScale = Vector3.Lerp(peakScale, restScale, elapsed / pulseContractDuration);
-                yield return w;
+                yield return null;
             }
             transform.localScale = restScale;
-            yield return new WaitForSeconds(pulseInterval);
+            yield return pulseWait;
         }
     }
 

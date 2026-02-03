@@ -33,6 +33,18 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int startStageIndex = 1;
     [SerializeField] private float nextStageDelay = 1.5f;
 
+    [Header("성능 (모바일 FPS)")]
+    [Tooltip("목표 FPS. 60 권장, -1이면 디바이스 기본값")]
+    [SerializeField] private int targetFrameRate = 60;
+
+    [Header("게임오버·리셋 연출")]
+    [Tooltip("깜빡임 한 번당 간격(초). 0.1초에 2번 깜빡임 = 0.025")]
+    [SerializeField] private float blinkInterval = 0.025f;
+    [Tooltip("암전 후 리셋 전 대기 시간(초)")]
+    [SerializeField] private float blackoutWait = 1.5f;
+    [Tooltip("순차 등장 시 타일 간 간격(초). 작을수록 빠름")]
+    [SerializeField] private float tileAppearInterval = 0.02f;
+
     private int currentStageIndex;
     private float tileWidth;
     private float tileHeight;
@@ -54,6 +66,8 @@ public class GameManager : MonoBehaviour
     private bool stageCleared;
     /// <summary>손 뗀 후 1초 뒤 라인 제거용 코루틴.</summary>
     private Coroutine lineClearRoutine;
+    /// <summary>게임오버·리셋 연출 진행 중이면 입력 차단.</summary>
+    private bool isGameOverSequencePlaying;
 
     private void Start()
     {
@@ -80,17 +94,14 @@ public class GameManager : MonoBehaviour
             CreateGridFallback();
         SetCurrentStartTileFromStageData(data);
         AdjustCameraToFitGrid();
-    }
 
-    private void LateUpdate()
-    {
-        if (mainCamera != null && totalGridWidth > 0f && totalGridHeight > 0f)
-            AdjustCameraToFitGrid();
+        if (targetFrameRate > 0)
+            Application.targetFrameRate = targetFrameRate;
     }
 
     private void Update()
     {
-        if (stageCleared)
+        if (stageCleared || isGameOverSequencePlaying)
             return;
 
         UpdateDragAndPath();
@@ -287,7 +298,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 데드락이면 Game Over 로그 후 타일 숫자·라인 리셋. 리셋 시 true 반환(Stage Clear 검사 생략).
+    /// 데드락이면 Game Over 로그 후 글리치·암전·리셋 연출 코루틴 시작. true 반환(Stage Clear 검사 생략).
     /// </summary>
     private bool CheckAndHandleDeadlock()
     {
@@ -299,19 +310,69 @@ public class GameManager : MonoBehaviour
             StopCoroutine(lineClearRoutine);
             lineClearRoutine = null;
         }
+        isGameOverSequencePlaying = true;
+        StartCoroutine(GameOverAndResetSequence());
+        return true;
+    }
+
+    /// <summary>
+    /// 게임오버: 글리치(0.5초) → 암전 → 1.5초 대기 → 리셋: 숫자·스케일0 → 순차 등장(위→아래 0.1초 간격, Bounce). 라인 즉시 삭제.
+    /// </summary>
+    private IEnumerator GameOverAndResetSequence()
+    {
         linePoints.Clear();
         UpdateLineRendererPositions();
 
         for (int row = 0; row < stageHeight; row++)
             for (int col = 0; col < stageWidth; col++)
                 if (tiles[row, col] != null)
-                    tiles[row, col].ResetToInitial();
+                    tiles[row, col].SetGlitchColor(Color.black);
+        yield return new WaitForSeconds(blinkInterval);
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                    tiles[row, col].RestoreNeonColor();
+        yield return new WaitForSeconds(blinkInterval);
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                    tiles[row, col].SetGlitchColor(Color.black);
+        yield return new WaitForSeconds(blinkInterval);
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                    tiles[row, col].RestoreNeonColor();
+        yield return new WaitForSeconds(blinkInterval);
 
-        // 이전 시작점(마지막 위치)의 하트비트·스케일 해제 → 두 타일 모두 하트비트 나오는 버그 방지
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                    tiles[row, col].SetBlackout(true);
+
+        yield return new WaitForSeconds(blackoutWait);
+
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                {
+                    tiles[row, col].ResetToInitial();
+                    tiles[row, col].SetScaleZero();
+                }
+
+        for (int row = stageHeight - 1; row >= 0; row--)
+        {
+            for (int col = 0; col < stageWidth; col++)
+            {
+                if (tiles[row, col] != null)
+                {
+                    yield return new WaitForSeconds(tileAppearInterval);
+                    tiles[row, col].PlayBounceAppearance();
+                }
+            }
+        }
+
         if (currentStartTile != null)
             currentStartTile.ClearScaleOverride();
-
-        // 시작점을 JSON startPoint(또는 폴백 첫 칸)로 복원
         if (tiles != null && initialStartTileRow >= 0 && initialStartTileRow < stageHeight &&
             initialStartTileCol >= 0 && initialStartTileCol < stageWidth)
         {
@@ -322,7 +383,8 @@ public class GameManager : MonoBehaviour
                 currentStartTile.SetInitialStartTile(true);
             }
         }
-        return true;
+
+        isGameOverSequencePlaying = false;
     }
 
     /// <summary>
@@ -360,6 +422,7 @@ public class GameManager : MonoBehaviour
         ClearTiles();
         CreateGridFromStageData(data);
         SetCurrentStartTileFromStageData(data);
+        AdjustCameraToFitGrid();
         stageCleared = false;
     }
 
