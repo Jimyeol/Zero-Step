@@ -364,12 +364,21 @@ public class Tile : MonoBehaviour
 
     private void UpdateNumberDisplay()
     {
-        if (numberText != null)
+        if (numberText == null) return;
+        // Blackout 타일은 실제 숫자 노출 금지, "?"만 표시
+        if (GetComponent<BlackoutTile>() != null)
+        {
+            numberText.text = "?";
+        }
+        else
         {
             numberText.text = currentNumber.ToString();
-            numberText.ForceMeshUpdate(true, true);
         }
+        numberText.ForceMeshUpdate(true, true);
     }
+
+    /// <summary>BlackoutTile 등에서 물음표 텍스트 참조용.</summary>
+    public TMP_Text GetNumberText() => numberText;
 
     /// <summary>
     /// 숫자별 색상 적용: 4+ 핑크, 2~3 민트, 1 하늘색. HDR 발광(Color * 2.0). 0이면 어두운 회색 후 꺼짐.

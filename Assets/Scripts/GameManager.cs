@@ -179,6 +179,9 @@ public class GameManager : MonoBehaviour
                     var crossBlast = last.GetComponent<CrossBlastTile>();
                     if (crossBlast != null)
                         crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
+                    var blackout = last.GetComponent<BlackoutTile>();
+                    if (blackout != null)
+                        blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
                     currentPath.Add(hit);
                 }
             }
@@ -630,17 +633,19 @@ public class GameManager : MonoBehaviour
             {
                 tile.SetGridPosition(cell.x, cell.y);
                 tile.SetInitialNumber(cell.count);
-                tile.SetNumber(cell.count);
                 if (data.startPoint.x == cell.x && data.startPoint.y == cell.y)
                     tile.SetAsStartPoint(true);
-                tiles[cell.y, cell.x] = tile;
-
+                // CrossBlast/Blackout는 SetNumber 전에 추가 (Blackout은 초기화 시 숫자 노출 방지)
                 if (cell.type == "CrossBlast")
                 {
                     var crossBlast = tileObj.AddComponent<CrossBlastTile>();
                     if (cell.properties != null)
                         crossBlast.SetProperties(cell.properties.pulseSpeed, cell.properties.pulseRange, cell.properties.beamColor);
                 }
+                if (cell.type == "Blackout")
+                    tileObj.AddComponent<BlackoutTile>();
+                tile.SetNumber(cell.count);
+                tiles[cell.y, cell.x] = tile;
             }
         }
 
