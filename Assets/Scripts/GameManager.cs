@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.UI;
 
 /// <summary>
 /// 네온 퍼즐 게임 매니저: JSON 스테이지 로드, 그리드 생성(count==0 스킵), 드래그 경로, Line Renderer, Stage Clear 시 다음 스테이지.
@@ -97,6 +98,36 @@ public class GameManager : MonoBehaviour
 
         if (targetFrameRate > 0)
             Application.targetFrameRate = targetFrameRate;
+    }
+
+    /// <summary>
+    /// 다음 스테이지로 전환. 다음이 없으면 1스테이지로 반복.
+    /// </summary>
+    public void LoadNextStageImmediate()
+    {
+        if (isGameOverSequencePlaying)
+            return;
+        if (lineClearRoutine != null)
+        {
+            StopCoroutine(lineClearRoutine);
+            lineClearRoutine = null;
+        }
+        currentStageIndex++;
+        StageData data = StageManager.LoadStage(currentStageIndex);
+        if (data == null)
+        {
+            currentStageIndex = 1;
+            data = StageManager.LoadStage(1);
+            if (data == null)
+                return;
+        }
+        linePoints.Clear();
+        UpdateLineRendererPositions();
+        ClearTiles();
+        CreateGridFromStageData(data);
+        SetCurrentStartTileFromStageData(data);
+        AdjustCameraToFitGrid();
+        stageCleared = false;
     }
 
     private void Update()
