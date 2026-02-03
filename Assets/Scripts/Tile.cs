@@ -17,13 +17,24 @@ public class Tile : MonoBehaviour
     [SerializeField] private TMP_Text startLabel;
 
     [Header("발광")]
-    [Tooltip("색상에 곱해 HDR 발광(Emission) 강도")]
-    [SerializeField] private float hdrIntensity = 2f;
+    [Tooltip("색상에 곱해 HDR 발광(Emission) 강도 (기본 1.4 = 기존 대비 30% 감소)")]
+    [SerializeField] private float hdrIntensity = 1.4f;
 
     [Header("텐션 애니메이션")]
     [SerializeField] private float shrinkScale = 0.9f;
     [SerializeField] private float shrinkDuration = 0.05f;
     [SerializeField] private float restoreDuration = 0.08f;
+
+    [Header("이펙트")]
+    [Tooltip("숫자 감소 시 재생할 네온 스파크 파티클 (타일 색상과 동기화)")]
+    public ParticleSystem hitEffect;
+
+    [Header("시작점 하트비트")]
+    [Tooltip("펄스 시 최대 스케일 배율 (기본 1.2에서 이 값까지 커졌다 줄었다)")]
+    [SerializeField] private float pulsePeakScale = 1.26f;
+    [SerializeField] private float pulseExpandDuration = 0.1f;
+    [SerializeField] private float pulseContractDuration = 0.15f;
+    [SerializeField] private float pulseInterval = 0.65f;
 
     // 그리드 좌표 (GameManager가 설정)
     private int gridX;
@@ -35,6 +46,8 @@ public class Tile : MonoBehaviour
     private BoxCollider2D boxCollider2D;
     private Vector3 baseScale;
     private Coroutine scaleRoutine;
+    /// <summary>시작점 하트비트(펄스) 애니메이션 코루틴.</summary>
+    private Coroutine startPointPulseRoutine;
 
     // 요구 색상: 4+ 핑크(#FF00FF), 2~3 민트(#00FFCC), 1 하늘색(#87CEFA), 0 어두운 회색
     private static readonly Color Pink = new Color(1f, 0f, 1f, 1f);           // #FF00FF
@@ -88,28 +101,50 @@ public class Tile : MonoBehaviour
     }
 
     /// <summary>
-    /// JSON 시작 타일: Scale 1.2배 + Emission 강화로 '여기서 시작' 시각적 힌트.
+    /// JSON 시작 타일: Scale 1.2배 + 하트비트 펄스로 '여기서 시작' 시각적 힌트.
     /// </summary>
     public void SetInitialStartTile(bool isInitial)
     {
+        if (startPointPulseRoutine != null)
+        {
+            StopCoroutine(startPointPulseRoutine);
+            startPointPulseRoutine = null;
+        }
         scaleOverride = isInitial ? InitialStartScale : 1f;
         ApplyScaleOverride();
+        if (isInitial)
+            startPointPulseRoutine = StartCoroutine(HeartbeatPulseRoutine(InitialStartScale, pulsePeakScale));
     }
 
     /// <summary>
-    /// 멈춘 지점 = 다음 드래그의 시작점. 1.1x 스케일 유지(다시 터치하기 전까지).
+    /// 멈춘 지점 = 다음 드래그의 시작점. 1.1x 스케일 + 하트비트로 현재 위치 표시.
     /// </summary>
     public void SetCurrentPositionMarker(bool isCurrent)
     {
+        if (startPointPulseRoutine != null)
+        {
+            StopCoroutine(startPointPulseRoutine);
+            startPointPulseRoutine = null;
+        }
         scaleOverride = isCurrent ? CurrentPositionScale : 1f;
         ApplyScaleOverride();
+        if (isCurrent)
+        {
+            float peakMult = CurrentPositionScale * (pulsePeakScale / InitialStartScale);
+            startPointPulseRoutine = StartCoroutine(HeartbeatPulseRoutine(CurrentPositionScale, peakMult));
+        }
     }
 
     /// <summary>
-    /// 드래그 시작 시 호출: 스케일 오버라이드 해제(1.0으로 복귀).
+    /// 드래그 시작 시 호출: 스케일 오버라이드 해제(1.0으로 복귀). 시작점 펄스도 중단.
     /// </summary>
     public void ClearScaleOverride()
     {
+        if (startPointPulseRoutine != null)
+        {
+            StopCoroutine(startPointPulseRoutine);
+            startPointPulseRoutine = null;
+        }
         scaleOverride = 1f;
         ApplyScaleOverride();
     }
@@ -117,6 +152,55 @@ public class Tile : MonoBehaviour
     private void ApplyScaleOverride()
     {
         transform.localScale = baseScale * scaleOverride;
+    }
+
+    /// <summary>
+    /// 하트비트: restMult ~ peakMult 구간에서 살짝 커졌다 줄었다 반복. (시작점·현재 위치 공용)
+    /// </summary>
+    private IEnumerator HeartbeatPulseRoutine(float restMult, float peakMult)
+    {
+        Vector3 restScale = baseScale * restMult;
+        Vector3 peakScale = baseScale * Mathf.Max(restMult, peakMult);
+        WaitForEndOfFrame w = new WaitForEndOfFrame();
+
+        while (true)
+        {
+            // 첫 번째 박동: 커졌다 줄었다
+            float elapsed = 0f;
+            while (elapsed < pulseExpandDuration)
+            {
+                elapsed += Time.deltaTime;
+                transform.localScale = Vector3.Lerp(restScale, peakScale, elapsed / pulseExpandDuration);
+                yield return w;
+            }
+            transform.localScale = peakScale;
+            elapsed = 0f;
+            while (elapsed < pulseContractDuration)
+            {
+                elapsed += Time.deltaTime;
+                transform.localScale = Vector3.Lerp(peakScale, restScale, elapsed / pulseContractDuration);
+                yield return w;
+            }
+            transform.localScale = restScale;
+            // 두 번째 박동 (하트 느낌)
+            elapsed = 0f;
+            while (elapsed < pulseExpandDuration)
+            {
+                elapsed += Time.deltaTime;
+                transform.localScale = Vector3.Lerp(restScale, peakScale, elapsed / pulseExpandDuration);
+                yield return w;
+            }
+            transform.localScale = peakScale;
+            elapsed = 0f;
+            while (elapsed < pulseContractDuration)
+            {
+                elapsed += Time.deltaTime;
+                transform.localScale = Vector3.Lerp(peakScale, restScale, elapsed / pulseContractDuration);
+                yield return w;
+            }
+            transform.localScale = restScale;
+            yield return new WaitForSeconds(pulseInterval);
+        }
     }
 
     /// <summary>
@@ -129,12 +213,24 @@ public class Tile : MonoBehaviour
 
     /// <summary>
     /// 게임오버 리셋: 초기 숫자로 복원하고 표시/컬라이더 재활성화.
+    /// 리셋 시 색상이 쌓이지 않도록 렌더러를 먼저 초기화한 뒤 적용.
+    /// 시작점은 첫 플레이와 동일한 발광만 적용(리셋 후 1.3x 중복 적용 방지).
     /// </summary>
     public void ResetToInitial()
     {
+        if (spriteRenderer != null)
+            spriteRenderer.color = Color.white;
+        if (tileImage != null && tileImage != spriteRenderer)
+            tileImage.color = Color.white;
+        if (numberText != null)
+            numberText.color = Color.white;
+
         SetNumber(initialNumber);
         if (initialNumber > 0)
             SetActiveState(true);
+
+        if (isStartPoint && initialNumber > 0)
+            ApplyNumberColorWithoutStartBoost();
     }
 
     /// <summary>
@@ -151,14 +247,29 @@ public class Tile : MonoBehaviour
     }
 
     /// <summary>
-    /// 숫자 1 감소 (드래그 경로 적용 시 GameManager가 호출). 텐션 애니메이션 재생.
+    /// 타일을 밟았을 때(숫자 감소) 호출. 숫자 감소 + 텐션 애니메이션 + 네온 스파크 이펙트.
     /// </summary>
-    public void DecreaseNumber()
+    public void OnStep()
     {
         if (currentNumber <= 0)
             return;
         SetNumber(currentNumber - 1);
         PlayTensionAnimation();
+
+        if (hitEffect != null)
+        {
+            var main = hitEffect.main;
+            main.startColor = spriteRenderer != null ? new ParticleSystem.MinMaxGradient(spriteRenderer.color) : new ParticleSystem.MinMaxGradient(Color.white);
+            hitEffect.Play();
+        }
+    }
+
+    /// <summary>
+    /// 숫자 1 감소 (GameManager가 호출). OnStep()으로 처리.
+    /// </summary>
+    public void DecreaseNumber()
+    {
+        OnStep();
     }
 
     private void UpdateNumberDisplay()
@@ -182,6 +293,26 @@ public class Tile : MonoBehaviour
         Color hdrColor = currentNumber > 0 ? baseColor * emissionMult : baseColor;
         if (isStartPoint && currentNumber > 0)
             hdrColor *= StartPointTint;
+
+        if (spriteRenderer != null)
+            spriteRenderer.color = hdrColor;
+        if (tileImage != null && tileImage != spriteRenderer)
+            tileImage.color = hdrColor;
+
+        if (numberText != null)
+        {
+            numberText.color = hdrColor;
+            ApplyTMPGlow(numberText, hdrColor);
+        }
+    }
+
+    /// <summary>
+    /// 시작점 부스트(1.3x) 없이 색상만 적용. 리셋 시 첫 플레이와 동일한 발광으로 맞출 때 사용.
+    /// </summary>
+    private void ApplyNumberColorWithoutStartBoost()
+    {
+        Color baseColor = GetBaseColorForNumber(currentNumber);
+        Color hdrColor = baseColor * hdrIntensity;
 
         if (spriteRenderer != null)
             spriteRenderer.color = hdrColor;

@@ -213,7 +213,11 @@ public class GameManager : MonoBehaviour
         }
         if (currentPath.Count > 0)
         {
-            currentStartTile = currentPath[currentPath.Count - 1];
+            Tile lastTile = currentPath[currentPath.Count - 1];
+            // 이전 시작 타일에서 하트비트 해제 (다른 타일로 이동한 경우)
+            if (currentStartTile != null && currentStartTile != lastTile)
+                currentStartTile.ClearScaleOverride();
+            currentStartTile = lastTile;
             currentStartTile.SetCurrentPositionMarker(true);
         }
         currentPath.Clear();
@@ -302,6 +306,10 @@ public class GameManager : MonoBehaviour
             for (int col = 0; col < stageWidth; col++)
                 if (tiles[row, col] != null)
                     tiles[row, col].ResetToInitial();
+
+        // 이전 시작점(마지막 위치)의 하트비트·스케일 해제 → 두 타일 모두 하트비트 나오는 버그 방지
+        if (currentStartTile != null)
+            currentStartTile.ClearScaleOverride();
 
         // 시작점을 JSON startPoint(또는 폴백 첫 칸)로 복원
         if (tiles != null && initialStartTileRow >= 0 && initialStartTileRow < stageHeight &&
