@@ -69,6 +69,13 @@ public class GameManager : MonoBehaviour
     private Coroutine lineClearRoutine;
     /// <summary>게임오버·리셋 연출 진행 중이면 입력 차단.</summary>
     private bool isGameOverSequencePlaying;
+    /// <summary>인접 타일 사이 Link 배치·경로/체인 점등.</summary>
+    private LinkSystem linkSystem;
+
+    /// <summary>CrossBlastTile·LinkSystem 등에서 그리드 크기 참조용.</summary>
+    public int StageWidth => stageWidth;
+    public int StageHeight => stageHeight;
+    public LinkSystem GetLinkSystem() => linkSystem;
 
     private void Start()
     {
@@ -169,6 +176,9 @@ public class GameManager : MonoBehaviour
                 if (IsAdjacent(last, hit))
                 {
                     last.DecreaseNumber(); // 떠나는 타일에서 숫자 감소
+                    var crossBlast = last.GetComponent<CrossBlastTile>();
+                    if (crossBlast != null)
+                        crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
                     currentPath.Add(hit);
                 }
             }
@@ -183,7 +193,10 @@ public class GameManager : MonoBehaviour
         }
 
         if (isDragging)
+        {
             UpdateLineRendererPositions();
+            linkSystem?.SetPathLit(currentPath, lineColor);
+        }
     }
 
     private Vector2 GetPointerScreenPosition()
@@ -233,6 +246,28 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
+    /// CrossBlast 폭발 시 인접(상하좌우) 타일 숫자 1씩 감소. excludeX, excludeY는 제외(밟고 이동한 다음 타일).
+    /// </summary>
+    public void DecreaseAdjacentTiles(int centerX, int centerY, int excludeX = -999, int excludeY = -999)
+    {
+        if (tiles == null) return;
+        int[] dx = { -1, 1, 0, 0 };
+        int[] dy = { 0, 0, -1, 1 };
+        for (int i = 0; i < 4; i++)
+        {
+            int nx = centerX + dx[i];
+            int ny = centerY + dy[i];
+            if (nx == excludeX && ny == excludeY) continue; // 다음 타일은 CrossBlast 효과 제외
+            if (ny >= 0 && ny < stageHeight && nx >= 0 && nx < stageWidth)
+            {
+                Tile t = tiles[ny, nx];
+                if (t != null && t.IsActive)
+                    t.DecreaseNumber();
+            }
+        }
+    }
+
+    /// <summary>
     /// 상하좌우 인접 여부 (대각선 불가).
     /// </summary>
     private bool IsAdjacent(Tile a, Tile b)
@@ -276,6 +311,7 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(delay);
         linePoints.Clear();
         UpdateLineRendererPositions();
+        linkSystem?.ClearPathLit();
         lineClearRoutine = null;
     }
 
@@ -354,6 +390,9 @@ public class GameManager : MonoBehaviour
         linePoints.Clear();
         UpdateLineRendererPositions();
 
+        // 리셋 시 link.png도 같이 리셋 (기존 링크 제거 → 타일 재등장 후 다시 생성)
+        linkSystem?.ClearLinks();
+
         for (int row = 0; row < stageHeight; row++)
             for (int col = 0; col < stageWidth; col++)
                 if (tiles[row, col] != null)
@@ -415,6 +454,10 @@ public class GameManager : MonoBehaviour
             }
         }
 
+        // 타일들이 다시 생성(등장)된 뒤 CrossBlast 기준 link.png 다시 생성
+        if (linkSystem != null && tiles != null)
+            linkSystem.CreateLinksForCrossBlastOnly(tiles, stageWidth, stageHeight);
+
         isGameOverSequencePlaying = false;
     }
 
@@ -459,6 +502,7 @@ public class GameManager : MonoBehaviour
 
     private void ClearTiles()
     {
+        linkSystem?.ClearLinks();
         if (tiles != null)
         {
             for (int row = 0; row < stageHeight; row++)
@@ -590,8 +634,23 @@ public class GameManager : MonoBehaviour
                 if (data.startPoint.x == cell.x && data.startPoint.y == cell.y)
                     tile.SetAsStartPoint(true);
                 tiles[cell.y, cell.x] = tile;
+
+                if (cell.type == "CrossBlast")
+                {
+                    var crossBlast = tileObj.AddComponent<CrossBlastTile>();
+                    if (cell.properties != null)
+                        crossBlast.SetProperties(cell.properties.pulseSpeed, cell.properties.pulseRange, cell.properties.beamColor);
+                }
             }
         }
+
+        if (linkSystem == null)
+        {
+            GameObject go = new GameObject("LinkSystem");
+            go.transform.SetParent(transform);
+            linkSystem = go.AddComponent<LinkSystem>();
+        }
+        linkSystem.CreateLinksForCrossBlastOnly(tiles, data.width, data.height);
     }
 
     /// <summary>
