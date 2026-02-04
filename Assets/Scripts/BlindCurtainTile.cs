@@ -13,7 +13,7 @@ public class BlindCurtainTile : MonoBehaviour
     [Tooltip("아이콘 스케일 (타일 중앙에 맞게)")]
     [SerializeField] private float iconScale = 0.5f;
     [Tooltip("발광(HDR) 강도 배율. 1.5~2.0 권장 — 타일과 동일 머티리얼 사용 시 Emission으로 빛남")]
-    [SerializeField] private float glowMult = 1.8f;
+    [SerializeField] private float glowMult = 0.9f;
 
     private Tile tile;
     private SpriteRenderer tileSpriteRenderer;
@@ -53,9 +53,15 @@ public class BlindCurtainTile : MonoBehaviour
         iconRenderer.color = Color.white;
     }
 
-    /// <summary>타일 배경 HDR 색상과 동기화해 아이콘에 발광(Emission) 효과 적용.</summary>
+    /// <summary>타일 배경 HDR 색상과 동기화해 아이콘에 발광(Emission) 효과 적용. 타일 비활성(count 0)이면 아이콘도 숨김.</summary>
     private void LateUpdate()
     {
+        if (iconObject != null && tile != null)
+        {
+            bool shouldShow = tile.IsActive;
+            if (iconObject.activeSelf != shouldShow)
+                iconObject.SetActive(shouldShow);
+        }
         if (iconRenderer == null || tileSpriteRenderer == null) return;
         Color tileColor = tileSpriteRenderer.color;
         // HDR 색상(1 초과)으로 설정 시 URP Sprite-Lit 머티리얼에서 발광

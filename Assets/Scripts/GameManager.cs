@@ -314,17 +314,67 @@ public class GameManager : MonoBehaviour
     private void TryTriggerBlindCurtain(Tile steppedTile)
     {
         if (steppedTile == null || steppedTile.GetComponent<BlindCurtainTile>() == null) return;
-        HideAllTilesNumbers();
+        StartCoroutine(HideAllTilesNumbersWithAnimation());
     }
 
-    /// <summary>모든 타일 숫자를 ?로 표시 (BlindCurtain 밟을 때). 리셋 시 Tile.ResetToInitial()에서 복원.</summary>
-    private void HideAllTilesNumbers()
+    [Header("BlindCurtain 물음표 전환 연출")]
+    [Tooltip("한 줄당 Y축 한 바퀴 회전 시간(초). 50% 지점에서 ?로 전환")]
+    [SerializeField] private float blindCurtainFlipDuration = 0.35f;
+    [Tooltip("윗줄→아랫줄 순서로 줄 간격(초)")]
+    [SerializeField] private float blindCurtainRowInterval = 0.05f;
+
+    /// <summary>윗줄부터 아랫줄까지 0.05초 간격으로 Y축 한 바퀴 회전, 50% 지점에서 ?로 전환.</summary>
+    private IEnumerator HideAllTilesNumbersWithAnimation()
     {
-        if (tiles == null) return;
+        if (tiles == null) yield break;
+        float rowDuration = Mathf.Max(0.01f, blindCurtainFlipDuration);
+        float rowDelay = Mathf.Max(0f, blindCurtainRowInterval);
+        float totalDuration = (stageHeight - 1) * rowDelay + rowDuration;
+        bool[] rowSwitched = new bool[stageHeight];
+        float elapsed = 0f;
+
+        while (elapsed < totalDuration)
+        {
+            elapsed += Time.deltaTime;
+
+            for (int r = stageHeight - 1; r >= 0; r--)
+            {
+                float rowStart = (stageHeight - 1 - r) * rowDelay;
+                float localElapsed = elapsed - rowStart;
+                float progress = localElapsed / rowDuration;
+
+                float yAngle = progress < 0f ? 0f : (progress > 1f ? 360f : 360f * progress);
+
+                for (int col = 0; col < stageWidth; col++)
+                {
+                    Tile t = tiles[r, col];
+                    if (t == null) continue;
+                    var numberText = t.GetNumberText();
+                    if (numberText != null)
+                        numberText.transform.localEulerAngles = new Vector3(0f, yAngle, 0f);
+                    if (progress >= 0.5f && !rowSwitched[r])
+                    {
+                        rowSwitched[r] = true;
+                        t.SetDisplayAsQuestion(true);
+                    }
+                }
+            }
+
+            yield return null;
+        }
+
         for (int row = 0; row < stageHeight; row++)
+        {
             for (int col = 0; col < stageWidth; col++)
-                if (tiles[row, col] != null)
-                    tiles[row, col].SetDisplayAsQuestion(true);
+            {
+                Tile t = tiles[row, col];
+                if (t == null) continue;
+                t.SetDisplayAsQuestion(true);
+                var numberText = t.GetNumberText();
+                if (numberText != null)
+                    numberText.transform.localEulerAngles = Vector3.zero;
+            }
+        }
     }
 
     /// <summary>
