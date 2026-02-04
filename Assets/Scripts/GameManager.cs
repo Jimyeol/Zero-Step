@@ -188,6 +188,7 @@ public class GameManager : MonoBehaviour
                     {
                         last.DecreaseNumber();
                         currentPath.Add(hit);
+                        TryTriggerBlindCurtain(hit);
                     }
                 }
                 else if (shortCircuitHit != null)
@@ -203,6 +204,7 @@ public class GameManager : MonoBehaviour
                         if (blackout != null)
                             blackout.OnStepped();
                         currentPath.Add(hit);
+                        TryTriggerBlindCurtain(hit);
                     }
                 }
                 else
@@ -217,6 +219,7 @@ public class GameManager : MonoBehaviour
                         if (blackout != null)
                             blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
                         currentPath.Add(hit);
+                        TryTriggerBlindCurtain(hit);
                     }
                 }
             }
@@ -303,6 +306,25 @@ public class GameManager : MonoBehaviour
                     t.DecreaseNumber();
             }
         }
+    }
+
+    /// <summary>
+    /// BlindCurtain 타일을 밟으면 즉시 모든 타일 숫자를 ?로 표시.
+    /// </summary>
+    private void TryTriggerBlindCurtain(Tile steppedTile)
+    {
+        if (steppedTile == null || steppedTile.GetComponent<BlindCurtainTile>() == null) return;
+        HideAllTilesNumbers();
+    }
+
+    /// <summary>모든 타일 숫자를 ?로 표시 (BlindCurtain 밟을 때). 리셋 시 Tile.ResetToInitial()에서 복원.</summary>
+    private void HideAllTilesNumbers()
+    {
+        if (tiles == null) return;
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                    tiles[row, col].SetDisplayAsQuestion(true);
     }
 
     /// <summary>
@@ -692,12 +714,17 @@ public class GameManager : MonoBehaviour
                 }
                 if (cell.type == "Blackout")
                     tileObj.AddComponent<BlackoutTile>();
+                if (cell.type == "BlindCurtain")
+                {
+                    tile.SetInitialNumber(1);
+                    tileObj.AddComponent<BlindCurtainTile>();
+                }
                 if (cell.type == "ShortCircuit")
                 {
                     var shortCircuit = tileObj.AddComponent<ShortCircuitTile>();
                     shortCircuit.Setup(cell.direction, data.width, data.height, startX, startY, tileWidth, tileHeight, padding);
                 }
-                tile.SetNumber(cell.count);
+                tile.SetNumber(cell.type == "BlindCurtain" ? 1 : cell.count);
                 tiles[cell.y, cell.x] = tile;
             }
         }

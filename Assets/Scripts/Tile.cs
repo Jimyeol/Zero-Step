@@ -67,6 +67,8 @@ public class Tile : MonoBehaviour
     private float scaleOverride = 1f;
     private const float InitialStartScale = 1.2f;
     private const float CurrentPositionScale = 1.1f;
+    /// <summary>BlindCurtain 밟은 후: 모든 타일 숫자를 ?로만 표시. 리셋 시 false로 복원.</summary>
+    private bool displayAsQuestion;
 
     private void Awake()
     {
@@ -308,6 +310,7 @@ public class Tile : MonoBehaviour
     /// </summary>
     public void ResetToInitial()
     {
+        displayAsQuestion = false;
         if (spriteRenderer != null)
             spriteRenderer.color = Color.white;
         if (tileImage != null && tileImage != spriteRenderer)
@@ -365,8 +368,8 @@ public class Tile : MonoBehaviour
     private void UpdateNumberDisplay()
     {
         if (numberText == null) return;
-        // Blackout 타일은 실제 숫자 노출 금지, "?"만 표시
-        if (GetComponent<BlackoutTile>() != null)
+        // Blackout 타일 또는 BlindCurtain으로 인한 전체 ? 모드: 숫자 노출 금지
+        if (displayAsQuestion || GetComponent<BlackoutTile>() != null)
         {
             numberText.text = "?";
         }
@@ -375,6 +378,14 @@ public class Tile : MonoBehaviour
             numberText.text = currentNumber.ToString();
         }
         numberText.ForceMeshUpdate(true, true);
+    }
+
+    /// <summary>BlindCurtain 밟을 때: 모든 타일 숫자를 ?로 표시. 리셋 시 GameManager가 false로 복원.</summary>
+    public void SetDisplayAsQuestion(bool showAsQuestion)
+    {
+        if (displayAsQuestion == showAsQuestion) return;
+        displayAsQuestion = showAsQuestion;
+        UpdateNumberDisplay();
     }
 
     /// <summary>BlackoutTile 등에서 물음표 텍스트 참조용.</summary>
