@@ -164,8 +164,10 @@ public class GameManager : MonoBehaviour
             isDragging = true;
             currentPath.Clear();
             currentPath.Add(hit);
+            // 터치만 할 땐 카운트다운 갱신 안 함 — 타일을 떠날 때만 -1
         }
-        else if (isDragging && (pointerHeld || pointerUp))
+        // pointerUp일 때는 타일 추가하지 않음 — 손 뗀 위치로 잘못 판정되어 터치만 해도 DecreaseNumber 되는 버그 방지
+        else if (isDragging && pointerHeld)
         {
             Tile hit = GetTileAtScreen(screenPoint);
             // 숫자가 남아 있으면 이미 라인이 그려진 타일이라도 재방문(중복 밟기) 허용.
@@ -173,10 +175,43 @@ public class GameManager : MonoBehaviour
             if (hit != null && hit.IsActive)
             {
                 Tile last = currentPath[currentPath.Count - 1];
+                if (hit != last)
+                {
+                int nextStepNumber = linePoints.Count + currentPath.Count + 1;
+                var fixedKnotHit = hit.GetComponent<FixedKnotTile>();
                 var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
                 var shortCircuitHit = hit.GetComponent<ShortCircuitTile>();
 
-                if (shortCircuitLast != null)
+                // FixedKnot: targetOrder 번째 스텝에만 진입 가능. 잘못된 순서면 경로에 넣지 않고, isAbsolute면 암전·재시작
+                bool fixedKnotWrongOrder = fixedKnotHit != null && IsAdjacent(last, hit) && !fixedKnotHit.CanEnter(nextStepNumber);
+                if (fixedKnotWrongOrder)
+                {
+                    fixedKnotHit.PlayWrongOrderShake();
+                    if (fixedKnotHit.IsAbsolute)
+                    {
+                        isDragging = false;
+                        currentPath.Clear();
+                        UpdateLineRendererPositions();
+                        linkSystem?.ClearPathLit();
+                        isGameOverSequencePlaying = true;
+                        StartCoroutine(GameOverAndResetSequence());
+                    }
+                }
+                else if (fixedKnotHit != null && IsAdjacent(last, hit))
+                {
+                    // FixedKnot 정확한 순서로만 진입 허용 (기어는 다음 타일 밟을 때 사라짐)
+                    last.DecreaseNumber();
+                    NotifyFixedKnotLeft(last);
+                    var crossBlast = last.GetComponent<CrossBlastTile>();
+                    if (crossBlast != null) crossBlast.TriggerExplosion(this, hit);
+                    var blackout = last.GetComponent<BlackoutTile>();
+                    if (blackout != null) blackout.OnStepped();
+                    currentPath.Add(hit);
+                    NotifyFixedKnotsOnStep(linePoints.Count + currentPath.Count - 1);
+                    fixedKnotHit.OnSteppedCorrectly();
+                    TryTriggerBlindCurtain(hit);
+                }
+                else if (shortCircuitLast != null)
                 {
                     // ShortCircuit 위: 화살표 방향(출구) 셀로만 이동 가능
                     if (!IsAdjacent(last, hit)) { /* 다른 타일 아님 */ }
@@ -186,17 +221,42 @@ public class GameManager : MonoBehaviour
                     }
                     else
                     {
-                        last.DecreaseNumber();
-                        currentPath.Add(hit);
-                        TryTriggerBlindCurtain(hit);
+                        // FixedKnot이면 반드시 올바른 순서에서만 추가 (다른 분기에서 실수로 추가 방지)
+                        if (fixedKnotHit != null && !fixedKnotHit.CanEnter(nextStepNumber)) { /* 진입 불가 */ }
+                        else
+                        {
+                            last.DecreaseNumber();
+                            NotifyFixedKnotLeft(last);
+                            currentPath.Add(hit);
+                            int stepsAfter = linePoints.Count + currentPath.Count;
+                            int tilesLeftCount = stepsAfter - 1;
+                            if (fixedKnotHit == null && CheckFixedKnotMissed(stepsAfter))
+                            {
+                                currentPath.RemoveAt(currentPath.Count - 1);
+                                last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
+                                isDragging = false;
+                                currentPath.Clear();
+                                UpdateLineRendererPositions();
+                                linkSystem?.ClearPathLit();
+                                isGameOverSequencePlaying = true;
+                                StartCoroutine(GameOverAndResetSequence());
+                            }
+                            else
+                            {
+                                NotifyFixedKnotsOnStep(tilesLeftCount);
+                                if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
+                                TryTriggerBlindCurtain(hit);
+                            }
+                        }
                     }
                 }
                 else if (shortCircuitHit != null)
                 {
-                    // ShortCircuit으로 들어감: 인접하면 어느 방향에서든 진입 가능 (제한은 나갈 때만)
-                    if (IsAdjacent(last, hit))
+                    // ShortCircuit으로 들어감: 인접하면 어느 방향에서든 진입 가능 (제한은 나갈 때만). FixedKnot이면 올바른 순서에서만 추가
+                    if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
                         last.DecreaseNumber();
+                        NotifyFixedKnotLeft(last);
                         var crossBlast = last.GetComponent<CrossBlastTile>();
                         if (crossBlast != null)
                             crossBlast.TriggerExplosion(this, hit);
@@ -204,14 +264,34 @@ public class GameManager : MonoBehaviour
                         if (blackout != null)
                             blackout.OnStepped();
                         currentPath.Add(hit);
-                        TryTriggerBlindCurtain(hit);
+                        int stepsAfterSc = linePoints.Count + currentPath.Count;
+                        int tilesLeftSc = stepsAfterSc - 1;
+                        if (fixedKnotHit == null && CheckFixedKnotMissed(stepsAfterSc))
+                        {
+                            currentPath.RemoveAt(currentPath.Count - 1);
+                            last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
+                            isDragging = false;
+                            currentPath.Clear();
+                            UpdateLineRendererPositions();
+                            linkSystem?.ClearPathLit();
+                            isGameOverSequencePlaying = true;
+                            StartCoroutine(GameOverAndResetSequence());
+                        }
+                        else
+                        {
+                            NotifyFixedKnotsOnStep(tilesLeftSc);
+                            if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
+                            TryTriggerBlindCurtain(hit);
+                        }
                     }
                 }
                 else
                 {
-                    if (IsAdjacent(last, hit))
+                    // 일반 타일 이동 (FixedKnot이면 올바른 순서에서만 추가)
+                    if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
                         last.DecreaseNumber(); // 떠나는 타일에서 숫자 감소
+                        NotifyFixedKnotLeft(last);
                         var crossBlast = last.GetComponent<CrossBlastTile>();
                         if (crossBlast != null)
                             crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
@@ -219,18 +299,38 @@ public class GameManager : MonoBehaviour
                         if (blackout != null)
                             blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
                         currentPath.Add(hit);
-                        TryTriggerBlindCurtain(hit);
+                        int stepsAfterEl = linePoints.Count + currentPath.Count;
+                        int tilesLeftEl = stepsAfterEl - 1;
+                        if (fixedKnotHit == null && CheckFixedKnotMissed(stepsAfterEl))
+                        {
+                            currentPath.RemoveAt(currentPath.Count - 1);
+                            last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
+                            isDragging = false;
+                            currentPath.Clear();
+                            UpdateLineRendererPositions();
+                            linkSystem?.ClearPathLit();
+                            isGameOverSequencePlaying = true;
+                            StartCoroutine(GameOverAndResetSequence());
+                        }
+                        else
+                        {
+                            NotifyFixedKnotsOnStep(tilesLeftEl);
+                            if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
+                            TryTriggerBlindCurtain(hit);
+                        }
                     }
                 }
+                }
             }
+        }
 
-            if (pointerUp)
-            {
-                isDragging = false;
-                CommitPathAndSetCurrentPosition();
-                if (!CheckAndHandleDeadlock())
-                    CheckStageClear();
-            }
+        // 손 뗄 때는 항상 커밋(터치만 해도 하트비트·라인 갱신). 타일 추가는 pointerHeld일 때만 해서 터치만 할 때 DecreaseNumber 방지.
+        if (pointerUp)
+        {
+            isDragging = false;
+            CommitPathAndSetCurrentPosition();
+            if (!CheckAndHandleDeadlock())
+                CheckStageClear();
         }
 
         if (isDragging)
@@ -380,6 +480,55 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 상하좌우 인접 여부 (대각선 불가).
     /// </summary>
+    /// <summary>타일을 떠날 때(last) 그 타일이 FixedKnot이면 기어 사라짐 연출.</summary>
+    private void NotifyFixedKnotLeft(Tile lastTile)
+    {
+        if (lastTile == null) return;
+        var fk = lastTile.GetComponent<FixedKnotTile>();
+        if (fk != null) fk.OnLeftByPlayer();
+    }
+
+    /// <summary>타일을 밟고 사라졌을 때만 카운트다운 -1. tilesLeftCount = 지금까지 떠난 타일 수(추가 후 경로 길이 - 1).</summary>
+    private void NotifyFixedKnotsOnStep(int tilesLeftCount)
+    {
+        if (tiles == null) return;
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                {
+                    var fk = tiles[row, col].GetComponent<FixedKnotTile>();
+                    if (fk != null) fk.OnAnyTileStepped(tilesLeftCount);
+                }
+    }
+
+    /// <summary>다른 타일을 밟아서 targetOrder(남은 수)가 0 이하가 된 FixedKnot이 있으면 true → 게임오버.</summary>
+    private bool CheckFixedKnotMissed(int stepsTaken)
+    {
+        if (tiles == null) return false;
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                {
+                    var fk = tiles[row, col].GetComponent<FixedKnotTile>();
+                    if (fk != null && fk.IsMissedAtStepCount(stepsTaken))
+                        return true;
+                }
+        return false;
+    }
+
+    /// <summary>FixedKnot 카운트다운만 갱신 (회전 없음). 스테이지 로드·커밋 시 tilesLeftCount(떠난 타일 수) 전달.</summary>
+    private void NotifyFixedKnotsUpdateCountdown(int tilesLeftCount)
+    {
+        if (tiles == null) return;
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                {
+                    var fk = tiles[row, col].GetComponent<FixedKnotTile>();
+                    if (fk != null) fk.UpdateCountdownDisplay(tilesLeftCount);
+                }
+    }
+
     private bool IsAdjacent(Tile a, Tile b)
     {
         int dx = Mathf.Abs(a.X - b.X);
@@ -394,6 +543,7 @@ public class GameManager : MonoBehaviour
     {
         foreach (Tile t in currentPath)
         {
+            if (t == null) continue;
             Vector3 p = t.transform.position;
             p.z = -0.5f;
             linePoints.Add(p);
@@ -401,14 +551,18 @@ public class GameManager : MonoBehaviour
         if (currentPath.Count > 0)
         {
             Tile lastTile = currentPath[currentPath.Count - 1];
-            // 이전 시작 타일에서 하트비트 해제 (다른 타일로 이동한 경우)
-            if (currentStartTile != null && currentStartTile != lastTile)
-                currentStartTile.ClearScaleOverride();
-            currentStartTile = lastTile;
-            currentStartTile.SetCurrentPositionMarker(true);
+            if (lastTile != null)
+            {
+                // 이전 시작 타일에서 하트비트 해제 (다른 타일로 이동한 경우)
+                if (currentStartTile != null && currentStartTile != lastTile)
+                    currentStartTile.ClearScaleOverride();
+                currentStartTile = lastTile;
+                currentStartTile.SetCurrentPositionMarker(true);
+            }
         }
         currentPath.Clear();
         UpdateLineRendererPositions();
+        NotifyFixedKnotsUpdateCountdown(Mathf.Max(0, linePoints.Count - 1));
 
         // 그려진 라인은 lineClearDelay(기본 1초) 후 제거
         if (lineClearRoutine != null)
@@ -429,6 +583,13 @@ public class GameManager : MonoBehaviour
     {
         if (lineRenderer == null) return;
 
+        // 파괴된 타일 참조 제거 (리셋 등으로 Tile이 파괴된 경우 MissingReferenceException 방지)
+        for (int i = currentPath.Count - 1; i >= 0; i--)
+        {
+            if (currentPath[i] == null)
+                currentPath.RemoveAt(i);
+        }
+
         int total = linePoints.Count + currentPath.Count;
         if (total == 0)
         {
@@ -444,7 +605,9 @@ public class GameManager : MonoBehaviour
         }
         for (int i = 0; i < currentPath.Count; i++)
         {
-            Vector3 p = currentPath[i].transform.position;
+            Tile t = currentPath[i];
+            if (t == null) continue;
+            Vector3 p = t.transform.position;
             p.z = -0.5f;
             lineRenderer.SetPosition(idx++, p);
         }
@@ -549,6 +712,8 @@ public class GameManager : MonoBehaviour
                 if (tiles[row, col] != null)
                 {
                     tiles[row, col].ResetToInitial();
+                    var fixedKnot = tiles[row, col].GetComponent<FixedKnotTile>();
+                    if (fixedKnot != null) fixedKnot.ResetGearVisibility();
                     tiles[row, col].SetScaleZero();
                 }
 
@@ -774,6 +939,12 @@ public class GameManager : MonoBehaviour
                     var shortCircuit = tileObj.AddComponent<ShortCircuitTile>();
                     shortCircuit.Setup(cell.direction, data.width, data.height, startX, startY, tileWidth, tileHeight, padding);
                 }
+                if (cell.type == "FixedKnot")
+                {
+                    var fixedKnot = tileObj.AddComponent<FixedKnotTile>();
+                    bool isAbsolute = cell.properties != null && cell.properties.isAbsolute;
+                    fixedKnot.Setup(cell.targetOrder > 0 ? cell.targetOrder : 1, isAbsolute);
+                }
                 tile.SetNumber(cell.type == "BlindCurtain" ? 1 : cell.count);
                 tiles[cell.y, cell.x] = tile;
             }
@@ -786,6 +957,7 @@ public class GameManager : MonoBehaviour
             linkSystem = go.AddComponent<LinkSystem>();
         }
         linkSystem.CreateLinksForCrossBlastOnly(tiles, data.width, data.height);
+        NotifyFixedKnotsUpdateCountdown(0);
     }
 
     /// <summary>

@@ -27,6 +27,8 @@ public class GridManager : MonoBehaviour
     private float tileHeight;
     private float totalGridWidth;
     private float totalGridHeight;
+    /// <summary>경로(드래그) 모드일 때 탭 감소 비활성화용. Start에서 한 번만 검사.</summary>
+    private GameManager _cachedGameManager;
 
     private void Start()
     {
@@ -42,6 +44,7 @@ public class GridManager : MonoBehaviour
         EnsurePhysics2DRaycaster();
         EnsureCameraPostProcessingAndHDR();
 
+        _cachedGameManager = FindObjectOfType<GameManager>(true);
         CacheTileSize();
         AdjustCameraToFitGrid();
         CreateGrid();
@@ -56,7 +59,11 @@ public class GridManager : MonoBehaviour
 
     private void Update()
     {
-        // 터치/클릭 폴백: EventSystem 미동작 시에도 타일 감소 처리
+        // GameManager가 있으면 경로(드래그) 모드 — 타일 감소는 '다른 타일로 떠날 때'만 GameManager에서 처리.
+        // 여기서 탭 시 DecreaseNumber 하면, 같은 타일에서 터치만 해도 숫자/targetOrder가 줄어드는 버그 발생.
+        if (_cachedGameManager != null)
+            return;
+        // 터치/클릭 폴백: EventSystem 미동작 시에도 타일 감소 처리 (GameManager 없을 때만)
         if (!DetectTileTap(out Tile hitTile))
             return;
         if (hitTile != null && hitTile.IsActive)
