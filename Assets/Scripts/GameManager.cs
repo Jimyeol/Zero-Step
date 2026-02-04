@@ -173,16 +173,51 @@ public class GameManager : MonoBehaviour
             if (hit != null && hit.IsActive)
             {
                 Tile last = currentPath[currentPath.Count - 1];
-                if (IsAdjacent(last, hit))
+                var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
+                var shortCircuitHit = hit.GetComponent<ShortCircuitTile>();
+
+                if (shortCircuitLast != null)
                 {
-                    last.DecreaseNumber(); // 떠나는 타일에서 숫자 감소
-                    var crossBlast = last.GetComponent<CrossBlastTile>();
-                    if (crossBlast != null)
-                        crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
-                    var blackout = last.GetComponent<BlackoutTile>();
-                    if (blackout != null)
-                        blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
-                    currentPath.Add(hit);
+                    // ShortCircuit 위: 화살표 방향(출구) 셀로만 이동 가능
+                    if (!IsAdjacent(last, hit)) { /* 다른 타일 아님 */ }
+                    else if (!shortCircuitLast.IsExitCell(hit.X, hit.Y))
+                    {
+                        // 방향 위반 — 이동 불가, 경로에 추가하지 않음
+                    }
+                    else
+                    {
+                        last.DecreaseNumber();
+                        currentPath.Add(hit);
+                    }
+                }
+                else if (shortCircuitHit != null)
+                {
+                    // ShortCircuit으로 들어감: 인접하면 어느 방향에서든 진입 가능 (제한은 나갈 때만)
+                    if (IsAdjacent(last, hit))
+                    {
+                        last.DecreaseNumber();
+                        var crossBlast = last.GetComponent<CrossBlastTile>();
+                        if (crossBlast != null)
+                            crossBlast.TriggerExplosion(this, hit);
+                        var blackout = last.GetComponent<BlackoutTile>();
+                        if (blackout != null)
+                            blackout.OnStepped();
+                        currentPath.Add(hit);
+                    }
+                }
+                else
+                {
+                    if (IsAdjacent(last, hit))
+                    {
+                        last.DecreaseNumber(); // 떠나는 타일에서 숫자 감소
+                        var crossBlast = last.GetComponent<CrossBlastTile>();
+                        if (crossBlast != null)
+                            crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
+                        var blackout = last.GetComponent<BlackoutTile>();
+                        if (blackout != null)
+                            blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
+                        currentPath.Add(hit);
+                    }
                 }
             }
 
@@ -345,10 +380,23 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// 데드락(게임오버) 여부: 현재 위치에서 인접(상하좌우) 중 이동 가능(숫자 1 이상) 타일이 하나도 없으면 true.
+    /// ShortCircuit: 화살표 방향(출구) 셀만 검사.
     /// </summary>
     private bool IsDeadlock()
     {
         if (currentStartTile == null || tiles == null) return false;
+        var shortCircuit = currentStartTile.GetComponent<ShortCircuitTile>();
+        if (shortCircuit != null)
+        {
+            (int ex, int ey) = shortCircuit.ExitCell;
+            if (ey >= 0 && ey < stageHeight && ex >= 0 && ex < stageWidth)
+            {
+                Tile t = tiles[ey, ex];
+                if (t != null && t.IsActive)
+                    return false;
+            }
+            return true;
+        }
         int x = currentStartTile.X;
         int y = currentStartTile.Y;
         int[] dx = { -1, 1, 0, 0 };
@@ -644,6 +692,11 @@ public class GameManager : MonoBehaviour
                 }
                 if (cell.type == "Blackout")
                     tileObj.AddComponent<BlackoutTile>();
+                if (cell.type == "ShortCircuit")
+                {
+                    var shortCircuit = tileObj.AddComponent<ShortCircuitTile>();
+                    shortCircuit.Setup(cell.direction, data.width, data.height, startX, startY, tileWidth, tileHeight, padding);
+                }
                 tile.SetNumber(cell.count);
                 tiles[cell.y, cell.x] = tile;
             }

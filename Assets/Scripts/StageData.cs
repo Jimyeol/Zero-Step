@@ -25,7 +25,7 @@ public class StartPointData
 }
 
 /// <summary>
-/// 셀 정보: 좌표(x,y), count(0이면 빈 공간), type(Normal/CrossBlast 등). CrossBlast 시 properties 사용.
+/// 셀 정보: 좌표(x,y), count(0이면 빈 공간), type(Normal/CrossBlast/ShortCircuit 등). CrossBlast 시 properties 사용.
 /// </summary>
 [Serializable]
 public class CellData
@@ -37,6 +37,8 @@ public class CellData
     public string type = "Normal";
     /// <summary>CrossBlast 등 타입별 옵션. JSON에 없으면 null → 기본값 사용.</summary>
     public CellProperties properties;
+    /// <summary>ShortCircuit 타일용. "Up" / "Down" / "Left" / "Right" — 화살표 방향(이동 가능한 셀).</summary>
+    public string direction;
 }
 
 /// <summary>
