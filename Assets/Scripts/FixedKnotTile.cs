@@ -235,13 +235,15 @@ public class FixedKnotTile : MonoBehaviour
         }
     }
 
-    /// <summary>게임오버 리셋 시 기어 다시 표시. 타일 숫자(count)는 항상 숨김.</summary>
+    /// <summary>게임오버 리셋 시 기어 다시 표시. 타일 숫자(count)는 항상 숨김. 색은 무조건 옅은 빨강.</summary>
     public void ResetGearVisibility()
     {
         currentGearRotationZ = 0f;
         previousTotalPathCount = -1;
+        displayRemaining = targetOrderValue;
+        Color lightRed = new Color(1f, 0.35f, 0.35f, 1f) * 1.2f;
         if (tile != null && tile.GetNumberText() != null)
-            tile.GetNumberText().gameObject.SetActive(false); // 리셋 후에도 targetOrder 위에 count 안 나오게
+            tile.GetNumberText().gameObject.SetActive(false);
         if (gearObject != null)
         {
             gearObject.SetActive(true);
@@ -249,10 +251,14 @@ public class FixedKnotTile : MonoBehaviour
             gearObject.transform.localScale = Vector3.one * gearScale;
         }
         if (gearRenderer != null)
+        {
+            gearRenderer.color = lightRed;
             gearRenderer.DOFade(1f, 0f);
+        }
         if (orderText != null)
         {
             orderText.gameObject.SetActive(true);
+            orderText.color = lightRed;
             orderText.DOFade(1f, 0f);
             orderText.text = targetOrderValue.ToString();
             Transform numT = orderText.transform;
