@@ -62,6 +62,8 @@ public class GameManager : MonoBehaviour
     private List<Tile> currentPath = new List<Tile>();
     /// <summary>이전 이동 경로 포함 누적 라인 위치(네온 선 유지).</summary>
     private List<Vector3> linePoints = new List<Vector3>();
+    /// <summary>지금까지 커밋된 스텝 수. 라인 시각만 지워도 이 값은 유지 → 기어 숫자 이어가기.</summary>
+    private int totalStepsCommitted;
     private bool isDragging;
     private LineRenderer lineRenderer;
     private bool stageCleared;
@@ -95,6 +97,7 @@ public class GameManager : MonoBehaviour
 
         currentStageIndex = startStageIndex;
         linePoints.Clear();
+        totalStepsCommitted = 0;
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data != null)
             CreateGridFromStageData(data);
@@ -129,6 +132,7 @@ public class GameManager : MonoBehaviour
                 return;
         }
         linePoints.Clear();
+        totalStepsCommitted = 0;
         UpdateLineRendererPositions();
         ClearTiles();
         CreateGridFromStageData(data);
@@ -164,7 +168,7 @@ public class GameManager : MonoBehaviour
             isDragging = true;
             currentPath.Clear();
             currentPath.Add(hit);
-            // 터치만 할 땐 카운트다운 갱신 안 함 — 타일을 떠날 때만 -1
+            // 시작점 터치만으로는 기어 숫자 갱신 안 함 — 타일을 실제로 옮겼을 때만 -1
         }
         // pointerUp일 때는 타일 추가하지 않음 — 손 뗀 위치로 잘못 판정되어 터치만 해도 DecreaseNumber 되는 버그 방지
         else if (isDragging && pointerHeld)
@@ -175,9 +179,10 @@ public class GameManager : MonoBehaviour
             if (hit != null && hit.IsActive)
             {
                 Tile last = currentPath[currentPath.Count - 1];
-                if (hit != last)
+                // 이미 이번 드래그에서 밟은 타일로는 다시 들어가지 않음 → 타일 한 칸 옮길 때마다 정확히 -1만 적용 (흔들림/재진입 시 -2 방지)
+                if (hit != last && !currentPath.Contains(hit))
                 {
-                int nextStepNumber = linePoints.Count + currentPath.Count + 1;
+                int nextStepNumber = GetTotalPathCount() + 1;
                 var fixedKnotHit = hit.GetComponent<FixedKnotTile>();
                 var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
                 var shortCircuitHit = hit.GetComponent<ShortCircuitTile>();
@@ -207,7 +212,9 @@ public class GameManager : MonoBehaviour
                     var blackout = last.GetComponent<BlackoutTile>();
                     if (blackout != null) blackout.OnStepped();
                     currentPath.Add(hit);
-                    NotifyFixedKnotsOnStep(linePoints.Count + currentPath.Count - 1);
+                    int cFk = GetTotalPathCount();
+                    Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {cFk} — 원인: FixedKnot 타일 추가");
+                    NotifyFixedKnotsUpdateVisual(cFk);
                     fixedKnotHit.OnSteppedCorrectly();
                     TryTriggerBlindCurtain(hit);
                 }
@@ -228,9 +235,8 @@ public class GameManager : MonoBehaviour
                             last.DecreaseNumber();
                             NotifyFixedKnotLeft(last);
                             currentPath.Add(hit);
-                            int stepsAfter = linePoints.Count + currentPath.Count;
-                            int tilesLeftCount = stepsAfter - 1;
-                            if (fixedKnotHit == null && CheckFixedKnotMissed(stepsAfter))
+                            int totalPathCount = GetTotalPathCount();
+                            if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCount))
                             {
                                 currentPath.RemoveAt(currentPath.Count - 1);
                                 last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
@@ -243,7 +249,8 @@ public class GameManager : MonoBehaviour
                             }
                             else
                             {
-                                NotifyFixedKnotsOnStep(tilesLeftCount);
+                                Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalPathCount} — 원인: ShortCircuit(출구) 타일 추가");
+                                NotifyFixedKnotsUpdateVisual(totalPathCount);
                                 if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                                 TryTriggerBlindCurtain(hit);
                             }
@@ -264,9 +271,8 @@ public class GameManager : MonoBehaviour
                         if (blackout != null)
                             blackout.OnStepped();
                         currentPath.Add(hit);
-                        int stepsAfterSc = linePoints.Count + currentPath.Count;
-                        int tilesLeftSc = stepsAfterSc - 1;
-                        if (fixedKnotHit == null && CheckFixedKnotMissed(stepsAfterSc))
+                        int totalPathCountSc = GetTotalPathCount();
+                        if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountSc))
                         {
                             currentPath.RemoveAt(currentPath.Count - 1);
                             last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
@@ -279,7 +285,8 @@ public class GameManager : MonoBehaviour
                         }
                         else
                         {
-                            NotifyFixedKnotsOnStep(tilesLeftSc);
+                            Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalPathCountSc} — 원인: ShortCircuit(진입) 타일 추가");
+                            NotifyFixedKnotsUpdateVisual(totalPathCountSc);
                             if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                             TryTriggerBlindCurtain(hit);
                         }
@@ -299,9 +306,8 @@ public class GameManager : MonoBehaviour
                         if (blackout != null)
                             blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
                         currentPath.Add(hit);
-                        int stepsAfterEl = linePoints.Count + currentPath.Count;
-                        int tilesLeftEl = stepsAfterEl - 1;
-                        if (fixedKnotHit == null && CheckFixedKnotMissed(stepsAfterEl))
+                        int totalPathCountEl = GetTotalPathCount();
+                        if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountEl))
                         {
                             currentPath.RemoveAt(currentPath.Count - 1);
                             last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
@@ -314,7 +320,8 @@ public class GameManager : MonoBehaviour
                         }
                         else
                         {
-                            NotifyFixedKnotsOnStep(tilesLeftEl);
+                            Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalPathCountEl} — 원인: 일반 타일 추가");
+                            NotifyFixedKnotsUpdateVisual(totalPathCountEl);
                             if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                             TryTriggerBlindCurtain(hit);
                         }
@@ -488,21 +495,32 @@ public class GameManager : MonoBehaviour
         if (fk != null) fk.OnLeftByPlayer();
     }
 
-    /// <summary>타일을 밟고 사라졌을 때만 카운트다운 -1. tilesLeftCount = 지금까지 떠난 타일 수(추가 후 경로 길이 - 1).</summary>
-    private void NotifyFixedKnotsOnStep(int tilesLeftCount)
+    /// <summary>현재 경로 리스트 Count만 참조. 이어서 드래그할 때 이전 끝 타일 중복 제거(한 번 옮길 때마다 -1).</summary>
+    private int GetTotalPathCount()
     {
+        if (totalStepsCommitted == 0)
+            return currentPath.Count;
+        if (currentPath.Count == 0)
+            return totalStepsCommitted;
+        return totalStepsCommitted + currentPath.Count - 1;
+    }
+
+    /// <summary>FixedKnot 화면 갱신. 오직 CurrentPathList( linePoints + currentPath ) Count만 전달. 터치 떼기·백트래킹 시에도 이 값만으로 갱신.</summary>
+    private void NotifyFixedKnotsUpdateVisual(int totalPathCount)
+    {
+        Debug.Log($"[GameManager] NotifyFixedKnotsUpdateVisual 호출 → totalPathCount={totalPathCount} (모든 FixedKnot에 표시 = targetOrder - 이 값)");
         if (tiles == null) return;
         for (int row = 0; row < stageHeight; row++)
             for (int col = 0; col < stageWidth; col++)
                 if (tiles[row, col] != null)
                 {
                     var fk = tiles[row, col].GetComponent<FixedKnotTile>();
-                    if (fk != null) fk.OnAnyTileStepped(tilesLeftCount);
+                    if (fk != null) fk.UpdateVisual(totalPathCount);
                 }
     }
 
-    /// <summary>다른 타일을 밟아서 targetOrder(남은 수)가 0 이하가 된 FixedKnot이 있으면 true → 게임오버.</summary>
-    private bool CheckFixedKnotMissed(int stepsTaken)
+    /// <summary>totalPathCount가 targetOrder를 넘어갔는데 아직 밟지 않은 FixedKnot이 있으면 true → 게임오버.</summary>
+    private bool CheckFixedKnotMissed(int totalPathCount)
     {
         if (tiles == null) return false;
         for (int row = 0; row < stageHeight; row++)
@@ -510,23 +528,10 @@ public class GameManager : MonoBehaviour
                 if (tiles[row, col] != null)
                 {
                     var fk = tiles[row, col].GetComponent<FixedKnotTile>();
-                    if (fk != null && fk.IsMissedAtStepCount(stepsTaken))
+                    if (fk != null && fk.IsMissedAtStepCount(totalPathCount))
                         return true;
                 }
         return false;
-    }
-
-    /// <summary>FixedKnot 카운트다운만 갱신 (회전 없음). 스테이지 로드·커밋 시 tilesLeftCount(떠난 타일 수) 전달.</summary>
-    private void NotifyFixedKnotsUpdateCountdown(int tilesLeftCount)
-    {
-        if (tiles == null) return;
-        for (int row = 0; row < stageHeight; row++)
-            for (int col = 0; col < stageWidth; col++)
-                if (tiles[row, col] != null)
-                {
-                    var fk = tiles[row, col].GetComponent<FixedKnotTile>();
-                    if (fk != null) fk.UpdateCountdownDisplay(tilesLeftCount);
-                }
     }
 
     private bool IsAdjacent(Tile a, Tile b)
@@ -537,23 +542,39 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 손 떼면: 경로를 누적 라인에 추가, 마지막 타일을 새 시작점으로 설정하고 1.1x 유지. 1초 후 라인 제거 코루틴 시작.
+    /// 손 떼면: 실제로 타일을 옮겼을 때만 경로를 누적·카운트다운 갱신. 마지막 타일을 새 시작점으로 설정하고 하트비트 유지.
     /// </summary>
     private void CommitPathAndSetCurrentPosition()
     {
-        foreach (Tile t in currentPath)
+        // 실제로 다른 타일로 이동했을 때만 linePoints 추가 및 totalStepsCommitted 갱신 (시작점만 터치한 경우 제외)
+        bool actuallyMoved = currentPath.Count > 1;
+        if (actuallyMoved)
         {
-            if (t == null) continue;
-            Vector3 p = t.transform.position;
-            p.z = -0.5f;
-            linePoints.Add(p);
+            foreach (Tile t in currentPath)
+            {
+                if (t == null) continue;
+                Vector3 p = t.transform.position;
+                p.z = -0.5f;
+                linePoints.Add(p);
+            }
+            // 기어 스텝 수: 이전 구간 끝 타일과 겹치지 않게. 첫 구간이면 currentPath 전부, 이어서 하면 새로 밟은 타일만(currentPath.Count - 1)
+            if (totalStepsCommitted == 0)
+                totalStepsCommitted = currentPath.Count;
+            else
+                totalStepsCommitted += (currentPath.Count - 1);
+            Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalStepsCommitted} — 원인: CommitPath (손 뗀 후 경로 커밋)");
+            NotifyFixedKnotsUpdateVisual(totalStepsCommitted);
+
+            if (lineClearRoutine != null)
+                StopCoroutine(lineClearRoutine);
+            lineClearRoutine = StartCoroutine(LineClearAfterDelayRoutine(lineClearDelay));
         }
+
         if (currentPath.Count > 0)
         {
             Tile lastTile = currentPath[currentPath.Count - 1];
             if (lastTile != null)
             {
-                // 이전 시작 타일에서 하트비트 해제 (다른 타일로 이동한 경우)
                 if (currentStartTile != null && currentStartTile != lastTile)
                     currentStartTile.ClearScaleOverride();
                 currentStartTile = lastTile;
@@ -562,12 +583,6 @@ public class GameManager : MonoBehaviour
         }
         currentPath.Clear();
         UpdateLineRendererPositions();
-        NotifyFixedKnotsUpdateCountdown(Mathf.Max(0, linePoints.Count - 1));
-
-        // 그려진 라인은 lineClearDelay(기본 1초) 후 제거
-        if (lineClearRoutine != null)
-            StopCoroutine(lineClearRoutine);
-        lineClearRoutine = StartCoroutine(LineClearAfterDelayRoutine(lineClearDelay));
     }
 
     private IEnumerator LineClearAfterDelayRoutine(float delay)
@@ -576,6 +591,7 @@ public class GameManager : MonoBehaviour
         linePoints.Clear();
         UpdateLineRendererPositions();
         linkSystem?.ClearPathLit();
+        // totalStepsCommitted는 건드리지 않음 → 기어 숫자 그대로 이어감
         lineClearRoutine = null;
     }
 
@@ -674,6 +690,7 @@ public class GameManager : MonoBehaviour
     private IEnumerator GameOverAndResetSequence()
     {
         linePoints.Clear();
+        totalStepsCommitted = 0;
         UpdateLineRendererPositions();
 
         // 리셋 시 link.png도 같이 리셋 (기존 링크 제거 → 타일 재등장 후 다시 생성)
@@ -781,6 +798,7 @@ public class GameManager : MonoBehaviour
             }
         }
         linePoints.Clear();
+        totalStepsCommitted = 0;
         ClearTiles();
         CreateGridFromStageData(data);
         SetCurrentStartTileFromStageData(data);
@@ -957,7 +975,8 @@ public class GameManager : MonoBehaviour
             linkSystem = go.AddComponent<LinkSystem>();
         }
         linkSystem.CreateLinksForCrossBlastOnly(tiles, data.width, data.height);
-        NotifyFixedKnotsUpdateCountdown(0);
+        Debug.Log($"[GameManager] totalPathCount 갱신(기어 초기화): 0 — 원인: 스테이지 로드");
+        NotifyFixedKnotsUpdateVisual(0);
     }
 
     /// <summary>

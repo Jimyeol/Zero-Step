@@ -5,7 +5,7 @@ using DG.Tweening;
 
 /// <summary>
 /// 고정 매듭(FixedKnot) 타일: 반드시 targetOrder 번째 스텝에만 진입 가능.
-/// 타일 배경 없이 기어만 표시. 다른 타일을 밟을 때마다 기어 Z축 시계방향 회전.
+/// 표시·진입 판정은 GameManager의 단일 경로 리스트(CurrentPathList) Count만 참조. 별도 카운터 없음.
 /// </summary>
 [RequireComponent(typeof(Tile))]
 public class FixedKnotTile : MonoBehaviour
@@ -19,7 +19,7 @@ public class FixedKnotTile : MonoBehaviour
     [SerializeField] private float orderFontSize = 14f;
     [Tooltip("기어 안 숫자 로컬 스케일 (처음부터 동일 크기 유지)")]
     [SerializeField] private float orderTextScale = 1.2f;
-    [Tooltip("다른 타일을 밟을 때마다 기어 Z축 회전 각도(도, 시계방향)")]
+    [Tooltip("경로 타일 수가 늘어날 때마다 기어 Z축 회전 각도(도, 시계방향)")]
     [SerializeField] private float gearZRotationPerStep = 36f;
     [Tooltip("count 0 될 때 기어 흔들림 강도")]
     [SerializeField] private float unlockShakeStrength = 0.2f;
@@ -35,8 +35,10 @@ public class FixedKnotTile : MonoBehaviour
     private bool isAbsoluteValue;
     private float currentGearRotationZ;
     private Tween fadeTween;
-    /// <summary>현재 남은 스텝 수(1=다음에 밟을 수 있음). 기어 색상용. 처음엔 옅은 빨강.</summary>
-    private int lastRemaining = 99;
+    /// <summary>화면 표시용. targetOrder - totalPathCount. 1=진입 가능(초록), &gt;1=빨강, 0=이미 지남.</summary>
+    private int displayRemaining = 99;
+    /// <summary>기어 회전용. 직전 totalPathCount.</summary>
+    private int previousTotalPathCount = -1;
 
     /// <summary>반드시 이 스텝 수에만 진입 가능 (1-based).</summary>
     public int TargetOrder => targetOrderValue;
@@ -49,13 +51,14 @@ public class FixedKnotTile : MonoBehaviour
         targetOrderValue = Mathf.Max(1, targetOrder);
         isAbsoluteValue = isAbsolute;
         currentGearRotationZ = 0f;
+        Debug.Log($"[FixedKnot] Setup targetOrder={targetOrderValue} (기어 초기화)");
         CreateGearAndNumber();
         if (tile != null && tile.GetNumberText() != null)
             tile.GetNumberText().gameObject.SetActive(false);
         // 기어만 보이도록 타일 배경(스프라이트) 숨김
         if (tileSpriteRenderer != null)
             tileSpriteRenderer.enabled = false;
-        UpdateCountdownDisplay(0);
+        UpdateVisual(0);
     }
 
     private void Awake()
@@ -110,41 +113,52 @@ public class FixedKnotTile : MonoBehaviour
         orderText.ForceMeshUpdate(true, true);
     }
 
-    /// <summary>지금까지 떠난 타일 수(tilesLeftCount) 기준으로 남은 스텝 표시. 1=다음에 밟을 수 있음(초록), 0=이미 밟음/지남. remaining = (targetOrder-1) - tilesLeftCount.</summary>
-    public void UpdateCountdownDisplay(int tilesLeftCount)
+    /// <summary>
+    /// GameManager 단일 경로 리스트 Count만 참조. 표시 = targetOrder - (옮긴 횟수). 옮긴 횟수 = totalPathCount - 1.
+    /// 한 번 옮기면 5→4, 두 번 옮기면 4→3. 1 = 다음에 진입 가능(초록), &gt;1 = 아직(빨강), 0 = 이미 지남.
+    /// </summary>
+    public void UpdateVisual(int totalPathCount)
     {
-        int safe = Mathf.Max(0, tilesLeftCount);
-        // 1(초록) = 다음 스텝이 이 FixedKnot → 진입 가능. 2(빨강) = 아직 한 칸 더 있어야 함.
-        lastRemaining = Mathf.Max(0, (targetOrderValue - 1) - safe);
+        int moves = Mathf.Max(0, totalPathCount - 1);
+        int remaining = Mathf.Max(0, Mathf.Min(targetOrderValue, targetOrderValue - moves));
+        displayRemaining = remaining;
+
+        Debug.Log($"[FixedKnot] targetOrder={targetOrderValue}, totalPathCount={totalPathCount}, 옮긴횟수(moves)={moves}, 표시(remaining)={remaining}");
+
         if (orderText != null)
         {
-            orderText.text = lastRemaining.ToString();
-            orderText.gameObject.SetActive(lastRemaining > 0);
+            orderText.text = remaining.ToString();
+            orderText.gameObject.SetActive(remaining > 0);
         }
+
+        if (IsSolvedState()) return;
+        if (gearObject == null || !gearObject.activeSelf) return;
+
+        if (totalPathCount > previousTotalPathCount)
+        {
+            currentGearRotationZ -= gearZRotationPerStep;
+            gearObject.transform.DOLocalRotate(new Vector3(0f, 0f, currentGearRotationZ), 0.15f).SetEase(Ease.OutQuad).SetUpdate(true);
+        }
+        previousTotalPathCount = totalPathCount;
     }
 
-    /// <summary>현재까지 밟은 타일 수(stepCount)에서 이 FixedKnot을 건너뛰었는지 (아직 풀리지 않았는데 stepCount > targetOrder).</summary>
-    public bool IsMissedAtStepCount(int stepCount)
+    /// <summary>totalPathCount가 targetOrder를 넘어갔는데 아직 밟지 않았으면 건너뛴 것 → 게임오버.</summary>
+    public bool IsMissedAtStepCount(int totalPathCount)
     {
         if (tile == null || !tile.IsActive) return false;
-        return stepCount > targetOrderValue;
+        return totalPathCount > targetOrderValue;
     }
 
-    /// <summary>다음 스텝 번호(1-based)가 targetOrder와 일치할 때만 진입 허용.</summary>
+    /// <summary>진입 허용: (targetOrder - totalPathCount) == 1 일 때만. 즉 다음에 밟을 타일이 이 FixedKnot일 때만.</summary>
+    public bool CanEnterTile(int totalPathCount)
+    {
+        return (targetOrderValue - totalPathCount) == 1;
+    }
+
+    /// <summary>다음 스텝 번호(1-based)가 targetOrder와 일치할 때만 진입 허용. GameManager가 nextStepNumber = totalPathCount+1 로 호출.</summary>
     public bool CanEnter(int nextStepNumber)
     {
         return nextStepNumber == targetOrderValue;
-    }
-
-    /// <summary>다른 타일을 밟을 때마다 GameManager가 호출. 기어만 Z축 회전, 카운트다운 갱신. 풀린 상태면 아무것도 안 함(기어 다시 안 나옴).</summary>
-    public void OnAnyTileStepped(int currentStepCount)
-    {
-        if (IsSolvedState()) return;
-
-        if (gearObject == null || !gearObject.activeSelf) return;
-        currentGearRotationZ -= gearZRotationPerStep;
-        gearObject.transform.DOLocalRotate(new Vector3(0f, 0f, currentGearRotationZ), 0.15f).SetEase(Ease.OutQuad).SetUpdate(true);
-        UpdateCountdownDisplay(currentStepCount);
     }
 
     /// <summary>풀린 상태: 기어 숨김, count 0.</summary>
@@ -224,6 +238,7 @@ public class FixedKnotTile : MonoBehaviour
     public void ResetGearVisibility()
     {
         currentGearRotationZ = 0f;
+        previousTotalPathCount = -1;
         if (tile != null && tile.GetNumberText() != null)
             tile.GetNumberText().gameObject.SetActive(false); // 리셋 후에도 targetOrder 위에 count 안 나오게
         if (gearObject != null)
@@ -261,11 +276,11 @@ public class FixedKnotTile : MonoBehaviour
         if (gearRenderer == null) return;
         if (!tile.IsActive && gearObject != null && gearObject.activeSelf)
             gearObject.SetActive(false);
-        // 밟을 수 있을 때(remaining==1) 옅은 초록 발광, 밟지 못할 때 옅은 빨간색
+        // 2 = 다음에 진입 가능(초록), >2 = 아직(빨강), 0~1 = 이미 지남/밟음
         Color hdrGear;
-        if (lastRemaining == 1)
+        if (displayRemaining == 2)
             hdrGear = new Color(0.35f, 1f, 0.45f, 1f) * 1.4f;
-        else if (lastRemaining > 1)
+        else if (displayRemaining > 2)
             hdrGear = new Color(1f, 0.35f, 0.35f, 1f) * 1.2f;
         else
             hdrGear = Color.white;
