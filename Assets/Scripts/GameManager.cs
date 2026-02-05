@@ -93,6 +93,8 @@ public class GameManager : MonoBehaviour
     private LinkSystem linkSystem;
     /// <summary>TwinLink 타일: linkID별 그룹 (그리드 생성 후 파트너 등록용).</summary>
     private Dictionary<int, List<TwinLinkTile>> twinLinkGroups = new Dictionary<int, List<TwinLinkTile>>();
+    /// <summary>Hidden 타일: groupID별 그룹 (Igniter 트리거 시 활성화용).</summary>
+    private Dictionary<string, List<HiddenTile>> hiddenGroups = new Dictionary<string, List<HiddenTile>>();
 
     /// <summary>CrossBlastTile·LinkSystem 등에서 그리드 크기 참조용.</summary>
     public int StageWidth => stageWidth;
@@ -201,6 +203,17 @@ public class GameManager : MonoBehaviour
                 Tile last = currentPath[currentPath.Count - 1];
                 // 인접하고, (처음 밟는 타일이거나 / ShortCircuit만 재방문 불가, 나머지는 같은 드래그에서 다시 밟기 가능)
                 bool canStep = hit != last && (!currentPath.Contains(hit) || hit.GetComponent<ShortCircuitTile>() == null);
+                // Igniter 포함 이후에는 해당 지점 이전으로 백트래킹(되돌리기) 차단
+                if (canStep && currentPath.Contains(hit))
+                {
+                    int igniterIdx = -1;
+                    for (int i = 0; i < currentPath.Count; i++)
+                    {
+                        if (currentPath[i].GetComponent<IgniterTile>() != null) { igniterIdx = i; break; }
+                    }
+                    if (igniterIdx >= 0 && currentPath.IndexOf(hit) < igniterIdx)
+                        canStep = false;
+                }
                 if (canStep)
                 {
                 int nextStepNumber = GetTotalPathCount() + 1;
@@ -226,7 +239,7 @@ public class GameManager : MonoBehaviour
                 else if (fixedKnotHit != null && IsAdjacent(last, hit))
                 {
                     // FixedKnot 정확한 순서로만 진입 허용 (기어는 다음 타일 밟을 때 사라짐)
-                    last.DecreaseNumber();
+                    OnLeaveTileForNext(last, hit);
                     NotifyTwinLinkStepped(last);
                     NotifyFixedKnotLeft(last);
                     var crossBlast = last.GetComponent<CrossBlastTile>();
@@ -234,6 +247,7 @@ public class GameManager : MonoBehaviour
                     var blackout = last.GetComponent<BlackoutTile>();
                     if (blackout != null) blackout.OnStepped();
                     currentPath.Add(hit);
+                    TryTriggerIgniter(hit);
                     int cFk = GetTotalPathCount();
                     Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {cFk} — 원인: FixedKnot 타일 추가");
                     NotifyFixedKnotsUpdateVisual(cFk);
@@ -254,10 +268,11 @@ public class GameManager : MonoBehaviour
                         if (fixedKnotHit != null && !fixedKnotHit.CanEnter(nextStepNumber)) { /* 진입 불가 */ }
                         else
                         {
-                            last.DecreaseNumber();
+                            OnLeaveTileForNext(last, hit);
                             NotifyTwinLinkStepped(last);
                             NotifyFixedKnotLeft(last);
                             currentPath.Add(hit);
+                            TryTriggerIgniter(hit);
                             int totalPathCount = GetTotalPathCount();
                             if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCount))
                             {
@@ -285,7 +300,7 @@ public class GameManager : MonoBehaviour
                     // ShortCircuit으로 들어감: 인접하면 어느 방향에서든 진입 가능 (제한은 나갈 때만). FixedKnot이면 올바른 순서에서만 추가
                     if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
-                        last.DecreaseNumber();
+                        OnLeaveTileForNext(last, hit);
                         NotifyTwinLinkStepped(last);
                         NotifyFixedKnotLeft(last);
                         var crossBlast = last.GetComponent<CrossBlastTile>();
@@ -295,6 +310,7 @@ public class GameManager : MonoBehaviour
                         if (blackout != null)
                             blackout.OnStepped();
                         currentPath.Add(hit);
+                        TryTriggerIgniter(hit);
                         int totalPathCountSc = GetTotalPathCount();
                         if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountSc))
                         {
@@ -321,7 +337,7 @@ public class GameManager : MonoBehaviour
                     // 일반 타일 이동 (FixedKnot이면 올바른 순서에서만 추가)
                     if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
-                        last.DecreaseNumber(); // 떠나는 타일에서 숫자 감소
+                        OnLeaveTileForNext(last, hit); // 떠나는 타일: Igniter면 소멸 연출, 아니면 숫자 감소
                         NotifyTwinLinkStepped(last);
                         NotifyFixedKnotLeft(last);
                         var crossBlast = last.GetComponent<CrossBlastTile>();
@@ -331,6 +347,7 @@ public class GameManager : MonoBehaviour
                         if (blackout != null)
                             blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
                         currentPath.Add(hit);
+                        TryTriggerIgniter(hit);
                         int totalPathCountEl = GetTotalPathCount();
                         if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountEl))
                         {
@@ -529,6 +546,36 @@ public class GameManager : MonoBehaviour
         if (tile == null) return;
         var twin = tile.GetComponent<TwinLinkTile>();
         if (twin != null) twin.OnSteppedSyncPartners();
+    }
+
+    /// <summary>타일을 떠날 때: Igniter면 소멸 연출 후 0, 아니면 DecreaseNumber.</summary>
+    private void OnLeaveTileForNext(Tile last, Tile next)
+    {
+        if (last == null) return;
+        var igniter = last.GetComponent<IgniterTile>();
+        if (igniter != null)
+            igniter.OnLeftThenVanish();
+        else
+            last.DecreaseNumber();
+    }
+
+    /// <summary>타일을 밟은 직후: Igniter면 targetID에 해당하는 Hidden 그룹 릴레이 활성화 (Igniter에서 가까운 순).</summary>
+    private void TryTriggerIgniter(Tile steppedTile)
+    {
+        if (steppedTile == null || hiddenGroups == null) return;
+        var igniter = steppedTile.GetComponent<IgniterTile>();
+        if (igniter == null) return;
+        List<HiddenTile> list = null;
+        if (string.IsNullOrEmpty(igniter.TargetID) || !hiddenGroups.TryGetValue(igniter.TargetID, out list) || list == null) return;
+        Vector3 igniterPos = steppedTile.transform.position;
+        list.Sort((a, b) =>
+        {
+            if (a == null || b == null) return 0;
+            float da = (a.transform.position - igniterPos).sqrMagnitude;
+            float db = (b.transform.position - igniterPos).sqrMagnitude;
+            return da.CompareTo(db);
+        });
+        igniter.TriggerHiddenTiles(list, igniterPos);
     }
 
     /// <summary>옮긴 횟수만 반환. 첫 구간·이어서 드래그 모두 currentPath.Count - 1 로 통일 (한 번 옮길 때마다 -1).</summary>
@@ -754,24 +801,38 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(blackoutWait);
 
         for (int row = 0; row < stageHeight; row++)
+        {
             for (int col = 0; col < stageWidth; col++)
-                if (tiles[row, col] != null)
-                {
-                    tiles[row, col].ResetToInitial();
-                    var fixedKnot = tiles[row, col].GetComponent<FixedKnotTile>();
-                    if (fixedKnot != null) fixedKnot.ResetGearVisibility();
-                    tiles[row, col].SetScaleZero();
-                }
+            {
+                if (tiles[row, col] == null) continue;
+                Tile t = tiles[row, col];
+                t.ResetToInitial();
+                var hidden = t.GetComponent<HiddenTile>();
+                var igniter = t.GetComponent<IgniterTile>();
+                if (hidden != null)
+                    hidden.ResetToHiddenState();
+                else if (igniter != null)
+                    igniter.ResetToInitialState();
+                if (hidden == null)
+                    t.SetScaleZero();
+                var fixedKnot = t.GetComponent<FixedKnotTile>();
+                if (fixedKnot != null) fixedKnot.ResetGearVisibility();
+            }
+        }
 
         for (int row = stageHeight - 1; row >= 0; row--)
         {
             for (int col = 0; col < stageWidth; col++)
             {
-                if (tiles[row, col] != null)
-                {
-                    yield return new WaitForSeconds(tileAppearInterval);
-                    tiles[row, col].PlayBounceAppearance();
-                }
+                if (tiles[row, col] == null) continue;
+                var hidden = tiles[row, col].GetComponent<HiddenTile>();
+                if (hidden != null) continue; // Hidden은 등장 연출 없이 그대로 비표시 유지
+                yield return new WaitForSeconds(tileAppearInterval);
+                tiles[row, col].PlayBounceAppearance();
+                // Igniter는 count=1 고정이라 숫자 미표시; PlayBounceAppearance가 숫자를 켜므로 다시 숨김
+                var igniter = tiles[row, col].GetComponent<IgniterTile>();
+                if (igniter != null)
+                    igniter.EnsureNumberHidden();
             }
         }
 
@@ -1011,8 +1072,28 @@ public class GameManager : MonoBehaviour
                         twinLinkGroups[id] = new List<TwinLinkTile>();
                     twinLinkGroups[id].Add(twinLink);
                 }
-                tile.SetNumber(cell.type == "BlindCurtain" ? 1 : cell.count);
+                if (cell.type == "Hidden")
+                {
+                    var hidden = tileObj.AddComponent<HiddenTile>();
+                    hidden.Setup();
+                    string gid = !string.IsNullOrEmpty(cell.groupID) ? cell.groupID : "default";
+                    if (!hiddenGroups.ContainsKey(gid))
+                        hiddenGroups[gid] = new List<HiddenTile>();
+                    hiddenGroups[gid].Add(hidden);
+                }
+                if (cell.type == "Igniter")
+                {
+                    tile.SetInitialNumber(1);
+                    var igniter = tileObj.AddComponent<IgniterTile>();
+                    igniter.Setup(cell.targetID ?? "");
+                }
+                tile.SetNumber(cell.type == "BlindCurtain" ? 1 : (cell.type == "Igniter" ? 1 : cell.count));
                 tiles[cell.y, cell.x] = tile;
+                if (cell.type == "Hidden")
+                {
+                    var hidden = tileObj.GetComponent<HiddenTile>();
+                    if (hidden != null) hidden.ResetToHiddenState();
+                }
             }
         }
 

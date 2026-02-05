@@ -45,6 +45,10 @@ public class CellData
     public int linkID;
     /// <summary>TwinLink 타일용. 테두리 전기·숫자 발광색 (예: "#00FBFF"). 없으면 linkID로 코드에서 지정.</summary>
     public string color;
+    /// <summary>Igniter 타일용. 이 타일을 밟으면 targetID와 일치하는 Hidden 그룹을 활성화.</summary>
+    public string targetID;
+    /// <summary>Hidden 타일용. Igniter의 targetID와 일치하면 이 그룹이 릴레이 점등.</summary>
+    public string groupID;
 }
 
 /// <summary>
