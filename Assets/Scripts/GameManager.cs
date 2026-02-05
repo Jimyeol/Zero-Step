@@ -495,14 +495,10 @@ public class GameManager : MonoBehaviour
         if (fk != null) fk.OnLeftByPlayer();
     }
 
-    /// <summary>현재 경로 리스트 Count만 참조. 이어서 드래그할 때 이전 끝 타일 중복 제거(한 번 옮길 때마다 -1).</summary>
+    /// <summary>옮긴 횟수만 반환. 첫 구간·이어서 드래그 모두 currentPath.Count - 1 로 통일 (한 번 옮길 때마다 -1).</summary>
     private int GetTotalPathCount()
     {
-        if (totalStepsCommitted == 0)
-            return currentPath.Count;
-        if (currentPath.Count == 0)
-            return totalStepsCommitted;
-        return totalStepsCommitted + currentPath.Count - 1;
+        return totalStepsCommitted + Mathf.Max(0, currentPath.Count - 1);
     }
 
     /// <summary>FixedKnot 화면 갱신. 오직 CurrentPathList( linePoints + currentPath ) Count만 전달. 터치 떼기·백트래킹 시에도 이 값만으로 갱신.</summary>
@@ -557,11 +553,8 @@ public class GameManager : MonoBehaviour
                 p.z = -0.5f;
                 linePoints.Add(p);
             }
-            // 기어 스텝 수: 이전 구간 끝 타일과 겹치지 않게. 첫 구간이면 currentPath 전부, 이어서 하면 새로 밟은 타일만(currentPath.Count - 1)
-            if (totalStepsCommitted == 0)
-                totalStepsCommitted = currentPath.Count;
-            else
-                totalStepsCommitted += (currentPath.Count - 1);
+            // 기어 스텝 수: 옮긴 횟수만. 첫 구간도 이어서도 새로 밟은 타일 수 = currentPath.Count - 1 (시작점 제외)
+            totalStepsCommitted += (currentPath.Count - 1);
             Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalStepsCommitted} — 원인: CommitPath (손 뗀 후 경로 커밋)");
             NotifyFixedKnotsUpdateVisual(totalStepsCommitted);
 

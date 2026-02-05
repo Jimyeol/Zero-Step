@@ -87,7 +87,9 @@ public class FixedKnotTile : MonoBehaviour
         gearRenderer.sortingOrder = 1;
         if (tileSpriteRenderer != null && tileSpriteRenderer.sharedMaterial != null)
             gearRenderer.sharedMaterial = tileSpriteRenderer.sharedMaterial;
-        gearRenderer.color = new Color(1f, 0.35f, 0.35f, 1f) * 1.2f;
+        // 맨 처음부터 옅은 빨간색 (1일 때만 초록으로 바뀜)
+        Color lightRed = new Color(1f, 0.35f, 0.35f, 1f) * 1.2f;
+        gearRenderer.color = lightRed;
 
         // 숫자는 타일 자식으로 두어 기어만 돌아가고 숫자는 고정 (기어 위에 겹쳐 표시)
         GameObject numberObj = new GameObject("OrderNumber");
@@ -109,21 +111,20 @@ public class FixedKnotTile : MonoBehaviour
             var defaultFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
             if (defaultFont != null) orderText.font = defaultFont;
         }
-        orderText.color = Color.white;
+        orderText.color = lightRed;
         orderText.ForceMeshUpdate(true, true);
     }
 
     /// <summary>
-    /// GameManager 단일 경로 리스트 Count만 참조. 표시 = targetOrder - (옮긴 횟수). 옮긴 횟수 = totalPathCount - 1.
-    /// 한 번 옮기면 5→4, 두 번 옮기면 4→3. 1 = 다음에 진입 가능(초록), &gt;1 = 아직(빨강), 0 = 이미 지남.
+    /// GameManager 단일 경로 리스트 Count만 참조. 표시 = targetOrder - totalPathCount.
+    /// 1 = 다음에 진입 가능(초록·밟기 허용), &gt;1 = 아직(옅은 빨강), 0 = 이미 지남.
     /// </summary>
     public void UpdateVisual(int totalPathCount)
     {
-        int moves = Mathf.Max(0, totalPathCount - 1);
-        int remaining = Mathf.Max(0, Mathf.Min(targetOrderValue, targetOrderValue - moves));
+        int remaining = Mathf.Max(0, targetOrderValue - totalPathCount);
         displayRemaining = remaining;
 
-        Debug.Log($"[FixedKnot] targetOrder={targetOrderValue}, totalPathCount={totalPathCount}, 옮긴횟수(moves)={moves}, 표시(remaining)={remaining}");
+        Debug.Log($"[FixedKnot] targetOrder={targetOrderValue}, totalPathCount={totalPathCount}, 표시(remaining)={remaining}");
 
         if (orderText != null)
         {
@@ -142,11 +143,11 @@ public class FixedKnotTile : MonoBehaviour
         previousTotalPathCount = totalPathCount;
     }
 
-    /// <summary>totalPathCount가 targetOrder를 넘어갔는데 아직 밟지 않았으면 건너뛴 것 → 게임오버.</summary>
+    /// <summary>totalPathCount가 targetOrder에 도달했거나 넘었는데 아직 밟지 않았으면 건너뛴 것 → 즉시 게임오버 (숫자 1에서 다른 타일 밟은 경우 포함).</summary>
     public bool IsMissedAtStepCount(int totalPathCount)
     {
         if (tile == null || !tile.IsActive) return false;
-        return totalPathCount > targetOrderValue;
+        return totalPathCount >= targetOrderValue;
     }
 
     /// <summary>진입 허용: (targetOrder - totalPathCount) == 1 일 때만. 즉 다음에 밟을 타일이 이 FixedKnot일 때만.</summary>
@@ -276,11 +277,11 @@ public class FixedKnotTile : MonoBehaviour
         if (gearRenderer == null) return;
         if (!tile.IsActive && gearObject != null && gearObject.activeSelf)
             gearObject.SetActive(false);
-        // 2 = 다음에 진입 가능(초록), >2 = 아직(빨강), 0~1 = 이미 지남/밟음
+        // 1 = 다음에 진입 가능(초록·밟기 허용), >1 = 아직(옅은 빨강), 0 = 이미 지남/밟음
         Color hdrGear;
-        if (displayRemaining == 2)
+        if (displayRemaining == 1)
             hdrGear = new Color(0.35f, 1f, 0.45f, 1f) * 1.4f;
-        else if (displayRemaining > 2)
+        else if (displayRemaining > 1)
             hdrGear = new Color(1f, 0.35f, 0.35f, 1f) * 1.2f;
         else
             hdrGear = Color.white;
