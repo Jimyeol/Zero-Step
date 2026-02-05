@@ -69,6 +69,8 @@ public class Tile : MonoBehaviour
     private const float CurrentPositionScale = 1.1f;
     /// <summary>BlindCurtain 밟은 후: 모든 타일 숫자를 ?로만 표시. 리셋 시 false로 복원.</summary>
     private bool displayAsQuestion;
+    /// <summary>TwinLink 타일용. 설정 시 숫자 색상/발광을 이 색으로 고정.</summary>
+    private Color? numberColorOverride;
 
     private void Awake()
     {
@@ -391,18 +393,33 @@ public class Tile : MonoBehaviour
     /// <summary>BlackoutTile 등에서 물음표 텍스트 참조용.</summary>
     public TMP_Text GetNumberText() => numberText;
 
+    /// <summary>TwinLink 타일용. 숫자/발광 색상을 지정 색으로 고정. null이면 숫자별 기본 색상 사용.</summary>
+    public void SetNumberColorOverride(Color? color)
+    {
+        numberColorOverride = color;
+    }
+
     /// <summary>
     /// 숫자별 색상 적용: 4+ 핑크, 2~3 민트, 1 하늘색. HDR 발광(Color * 2.0). 0이면 어두운 회색 후 꺼짐.
     /// </summary>
     private void ApplyNumberColor()
     {
-        Color baseColor = GetBaseColorForNumber(currentNumber);
-        float emissionMult = hdrIntensity;
-        if (isStartPoint && currentNumber > 0)
-            emissionMult *= 1.3f; // 시작 타일 Emission 강화
-        Color hdrColor = currentNumber > 0 ? baseColor * emissionMult : baseColor;
-        if (isStartPoint && currentNumber > 0)
-            hdrColor *= StartPointTint;
+        Color hdrColor;
+        if (numberColorOverride.HasValue && currentNumber > 0)
+        {
+            hdrColor = numberColorOverride.Value * hdrIntensity;
+            if (isStartPoint) hdrColor *= 1.3f * StartPointTint;
+        }
+        else
+        {
+            Color baseColor = GetBaseColorForNumber(currentNumber);
+            float emissionMult = hdrIntensity;
+            if (isStartPoint && currentNumber > 0)
+                emissionMult *= 1.3f; // 시작 타일 Emission 강화
+            hdrColor = currentNumber > 0 ? baseColor * emissionMult : baseColor;
+            if (isStartPoint && currentNumber > 0)
+                hdrColor *= StartPointTint;
+        }
 
         if (spriteRenderer != null)
             spriteRenderer.color = hdrColor;
@@ -421,8 +438,17 @@ public class Tile : MonoBehaviour
     /// </summary>
     private void ApplyNumberColorWithoutStartBoost()
     {
+        Color hdrColor;
+        if (numberColorOverride.HasValue && currentNumber > 0)
+        {
+            hdrColor = numberColorOverride.Value * hdrIntensity;
+            if (spriteRenderer != null) spriteRenderer.color = hdrColor;
+            if (tileImage != null && tileImage != spriteRenderer) tileImage.color = hdrColor;
+            if (numberText != null) { numberText.color = hdrColor; ApplyTMPGlow(numberText, hdrColor); }
+            return;
+        }
         Color baseColor = GetBaseColorForNumber(currentNumber);
-        Color hdrColor = baseColor * hdrIntensity;
+        hdrColor = baseColor * hdrIntensity;
 
         if (spriteRenderer != null)
             spriteRenderer.color = hdrColor;

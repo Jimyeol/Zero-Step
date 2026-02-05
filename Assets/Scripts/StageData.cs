@@ -41,6 +41,10 @@ public class CellData
     public string direction;
     /// <summary>FixedKnot 타일용. 반드시 이 스텝 수에만 진입 가능 (예: 5면 5번째 스텝에 밟아야 함).</summary>
     public int targetOrder;
+    /// <summary>TwinLink 타일용. 같은 linkID를 가진 타일끼리 count 동기화·전기 테두리 연동.</summary>
+    public int linkID;
+    /// <summary>TwinLink 타일용. 테두리 전기·숫자 발광색 (예: "#00FBFF"). 없으면 linkID로 코드에서 지정.</summary>
+    public string color;
 }
 
 /// <summary>

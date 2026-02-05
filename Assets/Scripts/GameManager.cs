@@ -23,6 +23,24 @@ public class GameManager : MonoBehaviour
     [Header("참조")]
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private Camera mainCamera;
+    [Tooltip("TwinLink 타일 전기 효과용. Assets/LightningBolt/SimpleLightningBoltAnimatedPrefab 할당")]
+    [SerializeField] private GameObject twinLinkLightningPrefab;
+
+    [Header("TwinLink 전기 효과 (Inspector에서 여기서 조정)")]
+    [Tooltip("테두리 반폭. 1이면 타일 가장자리에 딱 맞게")]
+    [SerializeField] private float twinLinkBorderOffset = 0.98f;
+    [Tooltip("번개 갱신 간격(초). 짧을수록 끊김 없이 계속 흐르는 느낌 (권장 0.03~0.06)")]
+    [SerializeField] [Range(0.02f, 0.2f)] private float twinLinkBoltInterval = 0.04f;
+    [Tooltip("전기 꺾임(0~0.5). 낮을수록 직선에 가깝고 끊김 없이 흐름")]
+    [SerializeField] [Range(0f, 0.5f)] private float twinLinkChaosFactor = 0.03f;
+    [Tooltip("번개 세부 분할. 낮을수록 단순한 선, 끊김 감소")]
+    [SerializeField] [Range(2, 6)] private int twinLinkBoltGenerations = 3;
+    [Tooltip("전기 두께 배율. 타일 크기 기준")]
+    [SerializeField] private float twinLinkBoltWidthScale = 0.25f;
+    [Tooltip("밟을 때 번쩍임 지속 시간")]
+    [SerializeField] private float twinLinkFlashDuration = 0.2f;
+    [Tooltip("밟을 때 흔들림 강도")]
+    [SerializeField] private float twinLinkShakeStrength = 0.08f;
 
     [Header("라인 렌더러")]
     [SerializeField] private float lineWidth = 0.15f;
@@ -73,6 +91,8 @@ public class GameManager : MonoBehaviour
     private bool isGameOverSequencePlaying;
     /// <summary>인접 타일 사이 Link 배치·경로/체인 점등.</summary>
     private LinkSystem linkSystem;
+    /// <summary>TwinLink 타일: linkID별 그룹 (그리드 생성 후 파트너 등록용).</summary>
+    private Dictionary<int, List<TwinLinkTile>> twinLinkGroups = new Dictionary<int, List<TwinLinkTile>>();
 
     /// <summary>CrossBlastTile·LinkSystem 등에서 그리드 크기 참조용.</summary>
     public int StageWidth => stageWidth;
@@ -179,8 +199,9 @@ public class GameManager : MonoBehaviour
             if (hit != null && hit.IsActive)
             {
                 Tile last = currentPath[currentPath.Count - 1];
-                // 이미 이번 드래그에서 밟은 타일로는 다시 들어가지 않음 → 타일 한 칸 옮길 때마다 정확히 -1만 적용 (흔들림/재진입 시 -2 방지)
-                if (hit != last && !currentPath.Contains(hit))
+                // 인접하고, (처음 밟는 타일이거나 / ShortCircuit만 재방문 불가, 나머지는 같은 드래그에서 다시 밟기 가능)
+                bool canStep = hit != last && (!currentPath.Contains(hit) || hit.GetComponent<ShortCircuitTile>() == null);
+                if (canStep)
                 {
                 int nextStepNumber = GetTotalPathCount() + 1;
                 var fixedKnotHit = hit.GetComponent<FixedKnotTile>();
@@ -206,6 +227,7 @@ public class GameManager : MonoBehaviour
                 {
                     // FixedKnot 정확한 순서로만 진입 허용 (기어는 다음 타일 밟을 때 사라짐)
                     last.DecreaseNumber();
+                    NotifyTwinLinkStepped(last);
                     NotifyFixedKnotLeft(last);
                     var crossBlast = last.GetComponent<CrossBlastTile>();
                     if (crossBlast != null) crossBlast.TriggerExplosion(this, hit);
@@ -233,6 +255,7 @@ public class GameManager : MonoBehaviour
                         else
                         {
                             last.DecreaseNumber();
+                            NotifyTwinLinkStepped(last);
                             NotifyFixedKnotLeft(last);
                             currentPath.Add(hit);
                             int totalPathCount = GetTotalPathCount();
@@ -263,6 +286,7 @@ public class GameManager : MonoBehaviour
                     if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
                         last.DecreaseNumber();
+                        NotifyTwinLinkStepped(last);
                         NotifyFixedKnotLeft(last);
                         var crossBlast = last.GetComponent<CrossBlastTile>();
                         if (crossBlast != null)
@@ -298,6 +322,7 @@ public class GameManager : MonoBehaviour
                     if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
                         last.DecreaseNumber(); // 떠나는 타일에서 숫자 감소
+                        NotifyTwinLinkStepped(last);
                         NotifyFixedKnotLeft(last);
                         var crossBlast = last.GetComponent<CrossBlastTile>();
                         if (crossBlast != null)
@@ -410,7 +435,10 @@ public class GameManager : MonoBehaviour
             {
                 Tile t = tiles[ny, nx];
                 if (t != null && t.IsActive)
+                {
                     t.DecreaseNumber();
+                    NotifyTwinLinkStepped(t);
+                }
             }
         }
     }
@@ -493,6 +521,14 @@ public class GameManager : MonoBehaviour
         if (lastTile == null) return;
         var fk = lastTile.GetComponent<FixedKnotTile>();
         if (fk != null) fk.OnLeftByPlayer();
+    }
+
+    /// <summary>TwinLink 타일이 밟린 직후: 짝꿍 count 동기화·전기 테두리 번쩍임·DOShakePosition.</summary>
+    private void NotifyTwinLinkStepped(Tile tile)
+    {
+        if (tile == null) return;
+        var twin = tile.GetComponent<TwinLinkTile>();
+        if (twin != null) twin.OnSteppedSyncPartners();
     }
 
     /// <summary>옮긴 횟수만 반환. 첫 구간·이어서 드래그 모두 currentPath.Count - 1 로 통일 (한 번 옮길 때마다 -1).</summary>
@@ -956,6 +992,25 @@ public class GameManager : MonoBehaviour
                     bool isAbsolute = cell.properties != null && cell.properties.isAbsolute;
                     fixedKnot.Setup(cell.targetOrder > 0 ? cell.targetOrder : 1, isAbsolute);
                 }
+                if (cell.type == "TwinLink")
+                {
+                    var twinLink = tileObj.AddComponent<TwinLinkTile>();
+                    int id = cell.linkID != 0 ? cell.linkID : 101;
+                    string colorHex = !string.IsNullOrEmpty(cell.color) ? cell.color : "#00FBFF";
+                    twinLink.Setup(id, colorHex, twinLinkLightningPrefab, new TwinLinkTile.TwinLinkSettings
+                    {
+                        borderOffset = twinLinkBorderOffset,
+                        boltInterval = twinLinkBoltInterval,
+                        chaosFactor = twinLinkChaosFactor,
+                        boltGenerations = twinLinkBoltGenerations,
+                        boltWidthScale = twinLinkBoltWidthScale,
+                        flashDuration = twinLinkFlashDuration,
+                        shakeStrength = twinLinkShakeStrength
+                    });
+                    if (!twinLinkGroups.ContainsKey(id))
+                        twinLinkGroups[id] = new List<TwinLinkTile>();
+                    twinLinkGroups[id].Add(twinLink);
+                }
                 tile.SetNumber(cell.type == "BlindCurtain" ? 1 : cell.count);
                 tiles[cell.y, cell.x] = tile;
             }
@@ -968,6 +1023,13 @@ public class GameManager : MonoBehaviour
             linkSystem = go.AddComponent<LinkSystem>();
         }
         linkSystem.CreateLinksForCrossBlastOnly(tiles, data.width, data.height);
+        // TwinLink: 같은 linkID끼리 파트너 등록
+        foreach (var list in twinLinkGroups.Values)
+        {
+            foreach (var twin in list)
+                if (twin != null) twin.SetPartners(list);
+        }
+        twinLinkGroups.Clear();
         Debug.Log($"[GameManager] totalPathCount 갱신(기어 초기화): 0 — 원인: 스테이지 로드");
         NotifyFixedKnotsUpdateVisual(0);
     }

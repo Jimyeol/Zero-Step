@@ -815,6 +815,14 @@ MonoBehaviour:
   fallbackInitialNumber: 3
   tilePrefab: {fileID: 8120545388594159894, guid: 0ecde5a9ff8764db4b7090b4fa7f85b8, type: 3}
   mainCamera: {fileID: 0}
+  twinLinkLightningPrefab: {fileID: 178460, guid: 2736bbc2f2c78a949957b0719c2992bd, type: 3}
+  twinLinkBorderOffset: 0.98
+  twinLinkBoltInterval: 0.2
+  twinLinkChaosFactor: 0.05
+  twinLinkBoltGenerations: 3
+  twinLinkBoltWidthScale: 0.25
+  twinLinkFlashDuration: 0.2
+  twinLinkShakeStrength: 0.08
   lineWidth: 0.15
   lineColor: {r: 1, g: 0.5, b: 1, a: 1}
   lineClearDelay: 1
