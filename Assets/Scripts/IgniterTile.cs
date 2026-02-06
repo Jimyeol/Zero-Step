@@ -50,7 +50,7 @@ public class IgniterTile : MonoBehaviour
     /// <summary>
     /// 플레이어가 이 타일을 밟은 순간 호출. targetID에 해당하는 Hidden 그룹 활성화 (GameManager에서 호출).
     /// </summary>
-    public void TriggerHiddenTiles(System.Collections.Generic.List<HiddenTile> hiddenTiles, Vector3 igniterWorldPos)
+    public void TriggerHiddenTiles(System.Collections.Generic.List<HiddenTile> hiddenTiles, Vector3 igniterWorldPos, float relayInterval = 0.08f)
     {
         if (hasTriggered || hiddenTiles == null) return;
         hasTriggered = true;
@@ -60,7 +60,7 @@ public class IgniterTile : MonoBehaviour
             if (h != null && !h.IsActivated)
             {
                 h.ActivateWithDelay(delay);
-                delay += 0.08f;
+                delay += relayInterval;
             }
         }
     }

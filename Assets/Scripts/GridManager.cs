@@ -44,7 +44,7 @@ public class GridManager : MonoBehaviour
         EnsurePhysics2DRaycaster();
         EnsureCameraPostProcessingAndHDR();
 
-        _cachedGameManager = FindObjectOfType<GameManager>(true);
+        _cachedGameManager = FindFirstObjectByType<GameManager>(FindObjectsInactive.Include);
         CacheTileSize();
         AdjustCameraToFitGrid();
         CreateGrid();

@@ -11,7 +11,25 @@ public class StageData
     public int width;
     public int height;
     public StartPointData startPoint;
+    /// <summary>스테이지별 모드·옵션 (Spotlight 등). 없으면 null.</summary>
+    public StageConfig config;
     public CellData[] cells;
+}
+
+/// <summary>
+/// 스테이지별 모드·세부 옵션. JSON config 객체.
+/// </summary>
+[Serializable]
+public class StageConfig
+{
+    /// <summary>"Spotlight" 등. 없으면 일반 플레이.</summary>
+    public string mode = "";
+    /// <summary>"Normal" 또는 "Hard". Normal=밟은 타일 영구 밝힘, Hard=드래그 중인 위치만 밝음.</summary>
+    public string difficulty = "Normal";
+    /// <summary>스포트라이트 반경 (월드 단위).</summary>
+    public float spotlightRadius = 2.5f;
+    /// <summary>어둠 속에서 그리드 선을 살짝 보여줄지.</summary>
+    public bool showGridLines = false;
 }
 
 /// <summary>

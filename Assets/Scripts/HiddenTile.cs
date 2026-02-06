@@ -10,8 +10,10 @@ using TMPro;
 public class HiddenTile : MonoBehaviour
 {
     [Header("점등 연출")]
-    [Tooltip("한 타일씩 점등 간격(초)")]
+    [Tooltip("한 타일씩 점등 간격(초). Igniter 트리거 시 GameManager에서 참조")]
     [SerializeField] private float relayInterval = 0.08f;
+    /// <summary>한 타일씩 점등 간격. GameManager/IgniterTile에서 사용.</summary>
+    public float RelayInterval => relayInterval;
     [Tooltip("페이드인 + 스케일 등장 시간")]
     [SerializeField] private float appearDuration = 0.2f;
 

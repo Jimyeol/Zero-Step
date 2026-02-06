@@ -1,11 +1,14 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
+using DG.Tweening;
 
 /// <summary>
 /// 네온 퍼즐 게임 매니저: JSON 스테이지 로드, 그리드 생성(count==0 스킵), 드래그 경로, Line Renderer, Stage Clear 시 다음 스테이지.
@@ -64,6 +67,18 @@ public class GameManager : MonoBehaviour
     [Tooltip("순차 등장 시 타일 간 간격(초). 작을수록 빠름")]
     [SerializeField] private float tileAppearInterval = 0.02f;
 
+    [Header("Spotlight 게임오버 Vignette")]
+    [Tooltip("암전 시 Vignette 강한 농도. 비어 있으면 씬의 Volume 자동 탐색")]
+    [SerializeField] private Volume postProcessVolume;
+    [Tooltip("암전 시 Vignette 순식간에 올리는 시간(초)")]
+    [SerializeField] private float vignetteRampUpDuration = 0.25f;
+    [Tooltip("암전 후 기본 암막으로 돌아오는 시간(초)")]
+    [SerializeField] private float vignetteReturnDuration = 0.6f;
+    [Tooltip("암전 시 Vignette 최대 강도 (0~1)")]
+    [SerializeField] [Range(0f, 1f)] private float vignetteMaxIntensity = 0.85f;
+    [Tooltip("평소 Vignette 강도 (기본 암막 크기). 0이면 효과 없음")]
+    [SerializeField] [Range(0f, 1f)] private float vignetteDefaultIntensity = 0f;
+
     private int currentStageIndex;
     private float tileWidth;
     private float tileHeight;
@@ -100,6 +115,20 @@ public class GameManager : MonoBehaviour
     public int StageWidth => stageWidth;
     public int StageHeight => stageHeight;
     public LinkSystem GetLinkSystem() => linkSystem;
+    /// <summary>Spotlight 모드: 현재 드래그 중인지.</summary>
+    public bool IsDragging => isDragging;
+    /// <summary>Spotlight 모드: 포인터(마우스/터치) 월드 좌표.</summary>
+    public Vector2 GetPointerWorldPosition()
+    {
+        if (mainCamera == null) return Vector2.zero;
+        Vector2 screen = GetPointerScreenPosition();
+        float camZ = mainCamera.transform.position.z;
+        Vector3 w = mainCamera.ScreenToWorldPoint(new Vector3(screen.x, screen.y, Mathf.Abs(camZ)));
+        return new Vector2(w.x, w.y);
+    }
+
+    /// <summary>Spotlight 모드 컨트롤러. config.mode == "Spotlight"일 때만 사용.</summary>
+    private SpotlightController spotlightController;
 
     private void Start()
     {
@@ -126,6 +155,7 @@ public class GameManager : MonoBehaviour
         else
             CreateGridFallback();
         SetCurrentStartTileFromStageData(data);
+        SetupSpotlight(data);
         AdjustCameraToFitGrid();
 
         if (targetFrameRate > 0)
@@ -159,6 +189,7 @@ public class GameManager : MonoBehaviour
         ClearTiles();
         CreateGridFromStageData(data);
         SetCurrentStartTileFromStageData(data);
+        SetupSpotlight(data);
         AdjustCameraToFitGrid();
         stageCleared = false;
     }
@@ -575,7 +606,8 @@ public class GameManager : MonoBehaviour
             float db = (b.transform.position - igniterPos).sqrMagnitude;
             return da.CompareTo(db);
         });
-        igniter.TriggerHiddenTiles(list, igniterPos);
+        float relayInterval = (list.Count > 0 && list[0] != null) ? list[0].RelayInterval : 0.08f;
+        igniter.TriggerHiddenTiles(list, igniterPos, relayInterval);
     }
 
     /// <summary>옮긴 횟수만 반환. 첫 구간·이어서 드래그 모두 currentPath.Count - 1 로 통일 (한 번 옮길 때마다 -1).</summary>
@@ -629,6 +661,15 @@ public class GameManager : MonoBehaviour
         bool actuallyMoved = currentPath.Count > 1;
         if (actuallyMoved)
         {
+            // Spotlight Normal 모드: 커밋된 경로 타일 위치를 영구 밝힘 목록에 추가
+            if (spotlightController != null)
+            {
+                foreach (Tile t in currentPath)
+                {
+                    if (t != null)
+                        spotlightController.AddRevealedPosition(t.transform.position);
+                }
+            }
             foreach (Tile t in currentPath)
             {
                 if (t == null) continue;
@@ -651,6 +692,9 @@ public class GameManager : MonoBehaviour
             Tile lastTile = currentPath[currentPath.Count - 1];
             if (lastTile != null)
             {
+                // Spotlight Hard: 손 뗀 뒤 새 시작점(하트비트 나오는 타일)도 밝혀 두어 다음 드래그 시 보이게
+                if (spotlightController != null)
+                    spotlightController.AddRevealedPositionForNewStart(lastTile.transform.position);
                 if (currentStartTile != null && currentStartTile != lastTile)
                     currentStartTile.ClearScaleOverride();
                 currentStartTile = lastTile;
@@ -761,44 +805,76 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 게임오버: 글리치(0.5초) → 암전 → 1.5초 대기 → 리셋: 숫자·스케일0 → 순차 등장(위→아래 0.1초 간격, Bounce). 라인 즉시 삭제.
+    /// 게임오버: 글리치(0.5초) → 암전 → 대기 → 리셋 → 순차 등장. Spotlight 모드면 실패 지점 Radar Pulse → Vignette → 완전 암흑 리셋.
     /// </summary>
     private IEnumerator GameOverAndResetSequence()
     {
         linePoints.Clear();
         totalStepsCommitted = 0;
         UpdateLineRendererPositions();
-
-        // 리셋 시 link.png도 같이 리셋 (기존 링크 제거 → 타일 재등장 후 다시 생성)
         linkSystem?.ClearLinks();
 
-        for (int row = 0; row < stageHeight; row++)
-            for (int col = 0; col < stageWidth; col++)
-                if (tiles[row, col] != null)
-                    tiles[row, col].SetGlitchColor(Color.black);
-        yield return new WaitForSeconds(blinkInterval);
-        for (int row = 0; row < stageHeight; row++)
-            for (int col = 0; col < stageWidth; col++)
-                if (tiles[row, col] != null)
-                    tiles[row, col].RestoreNeonColor();
-        yield return new WaitForSeconds(blinkInterval);
-        for (int row = 0; row < stageHeight; row++)
-            for (int col = 0; col < stageWidth; col++)
-                if (tiles[row, col] != null)
-                    tiles[row, col].SetGlitchColor(Color.black);
-        yield return new WaitForSeconds(blinkInterval);
-        for (int row = 0; row < stageHeight; row++)
-            for (int col = 0; col < stageWidth; col++)
-                if (tiles[row, col] != null)
-                    tiles[row, col].RestoreNeonColor();
-        yield return new WaitForSeconds(blinkInterval);
+        bool isSpotlight = spotlightController != null && spotlightController.IsSpotlightActive();
 
-        for (int row = 0; row < stageHeight; row++)
-            for (int col = 0; col < stageWidth; col++)
-                if (tiles[row, col] != null)
-                    tiles[row, col].SetBlackout(true);
+        if (isSpotlight)
+        {
+            // Spotlight: 전체 맵 밝히지 않음. 실패 지점(CurrentPosition)에서 Radar Pulse → Vignette 암전 → 완전 암흑 리셋
+            Vector2 failPos = currentStartTile != null ? (Vector2)currentStartTile.transform.position : Vector2.zero;
+            bool pulseDone = false;
+            spotlightController.TriggerGameOverPulse(failPos, () => pulseDone = true);
+            yield return new WaitUntil(() => pulseDone);
 
-        yield return new WaitForSeconds(blackoutWait);
+            // Vignette 순식간에 올렸다가 암전
+            Volume vol = postProcessVolume != null ? postProcessVolume : FindFirstObjectByType<Volume>();
+            if (vol != null && vol.profile != null && vol.profile.TryGet<Vignette>(out var vig))
+            {
+                vig.intensity.Override(vignetteDefaultIntensity);
+                yield return DOTween.To(() => vig.intensity.value, x => vig.intensity.Override(x), vignetteMaxIntensity, vignetteRampUpDuration).SetEase(Ease.OutQuad).WaitForCompletion();
+            }
+
+            for (int row = 0; row < stageHeight; row++)
+                for (int col = 0; col < stageWidth; col++)
+                    if (tiles[row, col] != null)
+                        tiles[row, col].SetBlackout(true);
+            if (spotlightController != null)
+                spotlightController.ClearAllRevealed();
+
+            yield return new WaitForSeconds(blackoutWait);
+
+            if (vol != null && vol.profile != null && vol.profile.TryGet<Vignette>(out vig))
+                yield return DOTween.To(() => vig.intensity.value, x => vig.intensity.Override(x), vignetteDefaultIntensity, vignetteReturnDuration).SetEase(Ease.OutQuad).WaitForCompletion();
+        }
+        else
+        {
+            // 일반: 글리치 → 암전
+            for (int row = 0; row < stageHeight; row++)
+                for (int col = 0; col < stageWidth; col++)
+                    if (tiles[row, col] != null)
+                        tiles[row, col].SetGlitchColor(Color.black);
+            yield return new WaitForSeconds(blinkInterval);
+            for (int row = 0; row < stageHeight; row++)
+                for (int col = 0; col < stageWidth; col++)
+                    if (tiles[row, col] != null)
+                        tiles[row, col].RestoreNeonColor();
+            yield return new WaitForSeconds(blinkInterval);
+            for (int row = 0; row < stageHeight; row++)
+                for (int col = 0; col < stageWidth; col++)
+                    if (tiles[row, col] != null)
+                        tiles[row, col].SetGlitchColor(Color.black);
+            yield return new WaitForSeconds(blinkInterval);
+            for (int row = 0; row < stageHeight; row++)
+                for (int col = 0; col < stageWidth; col++)
+                    if (tiles[row, col] != null)
+                        tiles[row, col].RestoreNeonColor();
+            yield return new WaitForSeconds(blinkInterval);
+
+            for (int row = 0; row < stageHeight; row++)
+                for (int col = 0; col < stageWidth; col++)
+                    if (tiles[row, col] != null)
+                        tiles[row, col].SetBlackout(true);
+
+            yield return new WaitForSeconds(blackoutWait);
+        }
 
         for (int row = 0; row < stageHeight; row++)
         {
@@ -826,10 +902,9 @@ public class GameManager : MonoBehaviour
             {
                 if (tiles[row, col] == null) continue;
                 var hidden = tiles[row, col].GetComponent<HiddenTile>();
-                if (hidden != null) continue; // Hidden은 등장 연출 없이 그대로 비표시 유지
+                if (hidden != null) continue;
                 yield return new WaitForSeconds(tileAppearInterval);
                 tiles[row, col].PlayBounceAppearance();
-                // Igniter는 count=1 고정이라 숫자 미표시; PlayBounceAppearance가 숫자를 켜므로 다시 숨김
                 var igniter = tiles[row, col].GetComponent<IgniterTile>();
                 if (igniter != null)
                     igniter.EnsureNumberHidden();
@@ -846,10 +921,12 @@ public class GameManager : MonoBehaviour
             {
                 currentStartTile = initialStart;
                 currentStartTile.SetInitialStartTile(true);
+                // 암막 모드 리셋 후에도 스테이지 새로 시작하듯 시작점만 밝혀서 다시 플레이 가능하게
+                if (spotlightController != null)
+                    spotlightController.ResetRevealedToStartOnly(initialStart.transform.position);
             }
         }
 
-        // 타일들이 다시 생성(등장)된 뒤 CrossBlast 기준 link.png 다시 생성
         if (linkSystem != null && tiles != null)
             linkSystem.CreateLinksForCrossBlastOnly(tiles, stageWidth, stageHeight);
 
@@ -892,6 +969,7 @@ public class GameManager : MonoBehaviour
         ClearTiles();
         CreateGridFromStageData(data);
         SetCurrentStartTileFromStageData(data);
+        SetupSpotlight(data);
         AdjustCameraToFitGrid();
         stageCleared = false;
     }
@@ -1140,6 +1218,32 @@ public class GameManager : MonoBehaviour
             currentStartTile = tiles[0, 0];
             currentStartTile.SetInitialStartTile(true);
         }
+    }
+
+    /// <summary>
+    /// config.mode == "Spotlight"일 때 포그 레이어·스포트라이트 설정. 아니면 비활성화.
+    /// </summary>
+    private void SetupSpotlight(StageData data)
+    {
+        if (spotlightController == null)
+        {
+            spotlightController = GetComponent<SpotlightController>();
+            if (spotlightController == null)
+                spotlightController = gameObject.AddComponent<SpotlightController>();
+        }
+        if (spotlightController == null) return;
+
+        if (data?.config != null && data.config.mode != null && data.config.mode.Equals("Spotlight", System.StringComparison.OrdinalIgnoreCase))
+        {
+            Vector2 startWorld = currentStartTile != null ? (Vector2)currentStartTile.transform.position : Vector2.zero;
+            float startRadius = data.config.spotlightRadius > 0f ? data.config.spotlightRadius : 2.5f;
+            spotlightController.Setup(data.config, startWorld, startRadius);
+            var cam = mainCamera != null ? mainCamera : Camera.main;
+            if (cam != null) spotlightController.SetCamera(cam);
+            spotlightController.SetGameManager(this);
+        }
+        else
+            spotlightController.Disable();
     }
 
     /// <summary>
