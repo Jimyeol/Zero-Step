@@ -308,7 +308,6 @@ public class GameManager : MonoBehaviour
                     TryTriggerIgniter(hit);
                     NotifyTrailTileStepped(hit);
                     int cFk = GetTotalPathCount();
-                    Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {cFk} — 원인: FixedKnot 타일 추가");
                     NotifyFixedKnotsUpdateVisual(cFk);
                     fixedKnotHit.OnSteppedCorrectly();
                     TryTriggerBlindCurtain(hit);
@@ -347,7 +346,6 @@ public class GameManager : MonoBehaviour
                             }
                             else
                             {
-                                Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalPathCount} — 원인: ShortCircuit(출구) 타일 추가");
                                 NotifyFixedKnotsUpdateVisual(totalPathCount);
                                 if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                                 TryTriggerBlindCurtain(hit);
@@ -386,7 +384,6 @@ public class GameManager : MonoBehaviour
                         }
                         else
                         {
-                            Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalPathCountSc} — 원인: ShortCircuit(진입) 타일 추가");
                             NotifyFixedKnotsUpdateVisual(totalPathCountSc);
                             if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                             TryTriggerBlindCurtain(hit);
@@ -424,7 +421,6 @@ public class GameManager : MonoBehaviour
                         }
                         else
                         {
-                            Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalPathCountEl} — 원인: 일반 타일 추가");
                             NotifyFixedKnotsUpdateVisual(totalPathCountEl);
                             if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                             TryTriggerBlindCurtain(hit);
@@ -671,7 +667,6 @@ public class GameManager : MonoBehaviour
     /// <summary>FixedKnot 화면 갱신. totalStepsCommitted + currentPath 기준 Count 전달.</summary>
     private void NotifyFixedKnotsUpdateVisual(int totalPathCount)
     {
-        Debug.Log($"[GameManager] NotifyFixedKnotsUpdateVisual 호출 → totalPathCount={totalPathCount} (모든 FixedKnot에 표시 = targetOrder - 이 값)");
         if (tiles == null) return;
         for (int row = 0; row < stageHeight; row++)
             for (int col = 0; col < stageWidth; col++)
@@ -724,7 +719,6 @@ public class GameManager : MonoBehaviour
             }
             // 기어 스텝 수: 옮긴 횟수만. 첫 구간도 이어서도 새로 밟은 타일 수 = currentPath.Count - 1 (시작점 제외)
             totalStepsCommitted += (currentPath.Count - 1);
-            Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalStepsCommitted} — 원인: CommitPath (손 뗀 후 경로 커밋)");
             NotifyFixedKnotsUpdateVisual(totalStepsCommitted);
 
             if (pathLitClearRoutine != null)
@@ -1004,7 +998,6 @@ public class GameManager : MonoBehaviour
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data == null)
         {
-            Debug.Log("All stages clear. 처음 스테이지부터 다시.");
             currentStageIndex = 1;
             data = StageManager.LoadStage(1);
             if (data == null)
@@ -1314,7 +1307,6 @@ public class GameManager : MonoBehaviour
                 if (twin != null) twin.SetPartners(list);
         }
         twinLinkGroups.Clear();
-        Debug.Log($"[GameManager] totalPathCount 갱신(기어 초기화): 0 — 원인: 스테이지 로드");
         NotifyFixedKnotsUpdateVisual(0);
     }
 
