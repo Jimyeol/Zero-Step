@@ -409,8 +409,10 @@ public class GameManager : MonoBehaviour
         {
             isDragging = false;
             CommitPathAndSetCurrentPosition();
-            if (!CheckAndHandleDeadlock())
-                CheckStageClear();
+            // 클리어를 먼저 검사. 모든 타일 0이면 데드락 검사와 겹치므로 클리어 우선 (그렇지 않으면 게임오버로 잘못 처리됨)
+            CheckStageClear();
+            if (!stageCleared && CheckAndHandleDeadlock())
+                ; // 데드락이면 GameOver 연출은 CheckAndHandleDeadlock 내부에서 시작
         }
 
         if (isDragging)
@@ -685,6 +687,21 @@ public class GameManager : MonoBehaviour
             if (lineClearRoutine != null)
                 StopCoroutine(lineClearRoutine);
             lineClearRoutine = StartCoroutine(LineClearAfterDelayRoutine(lineClearDelay));
+
+            // 마지막 타일은 "다음 타일로 이동"이 없어서 -1이 안 됨. 손 뗄 때(커밋) 마지막 타일 1 감소 → 0이면 클리어
+            if (currentPath.Count > 0)
+            {
+                Tile lastTile = currentPath[currentPath.Count - 1];
+                if (lastTile != null && lastTile.CurrentNumber > 0)
+                {
+                    var igniter = lastTile.GetComponent<IgniterTile>();
+                    if (igniter != null)
+                        igniter.OnLeftThenVanish();
+                    else
+                        lastTile.DecreaseNumber();
+                    NotifyTwinLinkStepped(lastTile);
+                }
+            }
         }
 
         if (currentPath.Count > 0)
@@ -934,7 +951,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 모든 타일 숫자가 0이면 Stage Clear 로그.
+    /// 모든 타일(특수 타일 포함)이 0이면 클리어. 로그 "Clear" 후 다음 스테이지.
     /// </summary>
     private void CheckStageClear()
     {
@@ -944,7 +961,7 @@ public class GameManager : MonoBehaviour
                 if (tiles[row, col] != null && tiles[row, col].IsActive)
                     return;
         stageCleared = true;
-        Debug.Log("Stage Clear");
+        Debug.Log("Clear");
         StartCoroutine(LoadNextStageAfterDelay());
     }
 
