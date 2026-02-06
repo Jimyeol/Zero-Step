@@ -10,6 +10,10 @@ using TMPro;
 [RequireComponent(typeof(Tile))]
 public class IgniterTile : MonoBehaviour
 {
+    [Header("대표 컬러 (트레일 등 연출용)")]
+    [Tooltip("밟았을 때 트레일이 잠깐 이 색으로 변하는 데 사용")]
+    [SerializeField] private Color accentColor = new Color(1f, 0.6f, 0.2f, 1f); // 네온 오렌지
+
     [Header("소멸 연출")]
     [Tooltip("네온 꺼짐 + 스케일 다운 시간")]
     [SerializeField] private float vanishDuration = 0.25f;
@@ -64,6 +68,9 @@ public class IgniterTile : MonoBehaviour
             }
         }
     }
+
+    /// <summary>트레일 등 연출용 대표 컬러.</summary>
+    public Color GetAccentColor() => accentColor;
 
     /// <summary>
     /// 다음 타일로 이동하는 순간 호출. 네온 소멸·먼지 연출 후 count 0으로 비활성화.

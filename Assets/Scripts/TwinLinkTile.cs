@@ -280,4 +280,7 @@ public class TwinLinkTile : MonoBehaviour
     }
 
     public int LinkID => linkID;
+
+    /// <summary>트레일 등 연출용 대표 컬러 (JSON/linkID 기반).</summary>
+    public Color GetLinkColor() => linkColor;
 }

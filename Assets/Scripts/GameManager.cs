@@ -45,11 +45,30 @@ public class GameManager : MonoBehaviour
     [Tooltip("밟을 때 흔들림 강도")]
     [SerializeField] private float twinLinkShakeStrength = 0.08f;
 
-    [Header("라인 렌더러")]
-    [SerializeField] private float lineWidth = 0.15f;
-    [SerializeField] private Color lineColor = new Color(1f, 0.5f, 1f, 1f);
-    [Tooltip("손 뗀 후 그려진 라인이 사라지기까지 대기 시간(초)")]
-    [SerializeField] private float lineClearDelay = 1f;
+    [Header("네온 트레일 (손가락 궤적)")]
+    [SerializeField] private Color trailColor = new Color(1f, 0.4f, 1f, 1f);
+    [Tooltip("트레일 잔상 유지 시간(초). 손 뗀 후 이 시간만큼 남았다가 사라짐")]
+    [SerializeField] private float trailTime = 0.5f;
+    [Tooltip("트레일 꼭지점 최소 간격. 작을수록 부드러운 선")]
+    [SerializeField] private float trailMinVertexDistance = 0.1f;
+    [Tooltip("손 뗀 후 경로(링크) 점등 해제까지 대기 시간(초)")]
+    [SerializeField] private float pathLitClearDelay = 1f;
+
+    [Header("Multi-Color Neon Trail (그라데이션 순환 + 특수 타일 반응)")]
+    [Tooltip("4가지 이상 네온 컬러. Cyan, Magenta, Purple, Electric Blue 등")]
+    [SerializeField] private Color[] neonGradientColors = new Color[]
+    {
+        new Color(0f, 1f, 1f, 1f),   // Cyan
+        new Color(1f, 0f, 1f, 1f),   // Magenta
+        new Color(0.6f, 0.2f, 1f, 1f), // Purple
+        new Color(0.2f, 0.5f, 1f, 1f)  // Electric Blue
+    };
+    [Tooltip("Bloom용 HDR 강도. 2 이상 권장")]
+    [SerializeField] [Min(1f)] private float trailHdrIntensity = 2.2f;
+    [Tooltip("그라데이션 색상이 흐르는 속도 (키 순환)")]
+    [SerializeField] private float trailColorShiftSpeed = 1.5f;
+    [Tooltip("특수 타일 밟았을 때 해당 컬러로 0.2초간 Lerp 후 복귀")]
+    [SerializeField] private float specialTileColorLerpDuration = 0.2f;
 
     [Header("스테이지")]
     [SerializeField] private int startStageIndex = 1;
@@ -93,15 +112,18 @@ public class GameManager : MonoBehaviour
     private int initialStartTileRow;
     private int initialStartTileCol;
     private List<Tile> currentPath = new List<Tile>();
-    /// <summary>이전 이동 경로 포함 누적 라인 위치(네온 선 유지).</summary>
-    private List<Vector3> linePoints = new List<Vector3>();
-    /// <summary>지금까지 커밋된 스텝 수. 라인 시각만 지워도 이 값은 유지 → 기어 숫자 이어가기.</summary>
+    /// <summary>지금까지 커밋된 스텝 수. 기어 숫자 이어가기.</summary>
     private int totalStepsCommitted;
     private bool isDragging;
-    private LineRenderer lineRenderer;
     private bool stageCleared;
-    /// <summary>손 뗀 후 1초 뒤 라인 제거용 코루틴.</summary>
-    private Coroutine lineClearRoutine;
+    /// <summary>손 뗀 후 경로 점등 해제용 코루틴.</summary>
+    private Coroutine pathLitClearRoutine;
+    /// <summary>손가락 궤적 네온 트레일. 드래그 중에만 emitting, 위치는 포인터 월드 좌표.</summary>
+    private TrailRenderer neonTrail;
+    private Transform neonTrailTransform;
+    /// <summary>특수 타일 밟았을 때 트레일이 이 색으로 0.2초간 Lerp. EndTime 초과 시 무시.</summary>
+    private Color specialTileColor;
+    private float specialTileColorLerpStartTime = -999f;
     /// <summary>게임오버·리셋 연출 진행 중이면 입력 차단.</summary>
     private bool isGameOverSequencePlaying;
     /// <summary>인접 타일 사이 Link 배치·경로/체인 점등.</summary>
@@ -143,11 +165,10 @@ public class GameManager : MonoBehaviour
 
         EnsureInputAndRaycaster();
         EnsureCameraPostProcessingAndHDR();
-        CreateLineRenderer();
+        CreateNeonTrail();
         CacheTileSizeFromPrefab();
 
         currentStageIndex = startStageIndex;
-        linePoints.Clear();
         totalStepsCommitted = 0;
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data != null)
@@ -169,10 +190,10 @@ public class GameManager : MonoBehaviour
     {
         if (isGameOverSequencePlaying)
             return;
-        if (lineClearRoutine != null)
+        if (pathLitClearRoutine != null)
         {
-            StopCoroutine(lineClearRoutine);
-            lineClearRoutine = null;
+            StopCoroutine(pathLitClearRoutine);
+            pathLitClearRoutine = null;
         }
         currentStageIndex++;
         StageData data = StageManager.LoadStage(currentStageIndex);
@@ -183,9 +204,7 @@ public class GameManager : MonoBehaviour
             if (data == null)
                 return;
         }
-        linePoints.Clear();
         totalStepsCommitted = 0;
-        UpdateLineRendererPositions();
         ClearTiles();
         CreateGridFromStageData(data);
         SetCurrentStartTileFromStageData(data);
@@ -221,12 +240,20 @@ public class GameManager : MonoBehaviour
             isDragging = true;
             currentPath.Clear();
             currentPath.Add(hit);
+            NotifyTrailTileStepped(hit);
+            // 드래그 시작 시 트레일 위치를 포인터(손가락) 월드 좌표로 맞춰서 첫 프레임에 (0,0)으로 튀는 현상 방지
+            if (neonTrailTransform != null)
+            {
+                Vector2 w = GetPointerWorldPosition();
+                neonTrailTransform.position = new Vector3(w.x, w.y, -0.5f);
+            }
             // 시작점 터치만으로는 기어 숫자 갱신 안 함 — 타일을 실제로 옮겼을 때만 -1
         }
         // pointerUp일 때는 타일 추가하지 않음 — 손 뗀 위치로 잘못 판정되어 터치만 해도 DecreaseNumber 되는 버그 방지
         else if (isDragging && pointerHeld)
         {
-            Tile hit = GetTileAtScreen(screenPoint);
+            Tile lastForHit = currentPath.Count > 0 ? currentPath[currentPath.Count - 1] : null;
+            Tile hit = GetTileAtScreen(screenPoint, preferAdjacentTo: lastForHit);
             // 숫자가 남아 있으면 이미 라인이 그려진 타일이라도 재방문(중복 밟기) 허용.
             // 숫자는 '들어갈 때'가 아니라 '지나쳐 나갈 때' 감소 → 멈춘 타일이 0이 되어 다음 드래그를 못 시작하는 문제 방지.
             if (hit != null && hit.IsActive)
@@ -261,7 +288,7 @@ public class GameManager : MonoBehaviour
                     {
                         isDragging = false;
                         currentPath.Clear();
-                        UpdateLineRendererPositions();
+                        SetNeonTrailEmitting(false);
                         linkSystem?.ClearPathLit();
                         isGameOverSequencePlaying = true;
                         StartCoroutine(GameOverAndResetSequence());
@@ -279,6 +306,7 @@ public class GameManager : MonoBehaviour
                     if (blackout != null) blackout.OnStepped();
                     currentPath.Add(hit);
                     TryTriggerIgniter(hit);
+                    NotifyTrailTileStepped(hit);
                     int cFk = GetTotalPathCount();
                     Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {cFk} — 원인: FixedKnot 타일 추가");
                     NotifyFixedKnotsUpdateVisual(cFk);
@@ -304,6 +332,7 @@ public class GameManager : MonoBehaviour
                             NotifyFixedKnotLeft(last);
                             currentPath.Add(hit);
                             TryTriggerIgniter(hit);
+                            NotifyTrailTileStepped(hit);
                             int totalPathCount = GetTotalPathCount();
                             if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCount))
                             {
@@ -311,7 +340,7 @@ public class GameManager : MonoBehaviour
                                 last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
                                 isDragging = false;
                                 currentPath.Clear();
-                                UpdateLineRendererPositions();
+                                UpdateNeonTrailPosition();
                                 linkSystem?.ClearPathLit();
                                 isGameOverSequencePlaying = true;
                                 StartCoroutine(GameOverAndResetSequence());
@@ -342,6 +371,7 @@ public class GameManager : MonoBehaviour
                             blackout.OnStepped();
                         currentPath.Add(hit);
                         TryTriggerIgniter(hit);
+                        NotifyTrailTileStepped(hit);
                         int totalPathCountSc = GetTotalPathCount();
                         if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountSc))
                         {
@@ -349,7 +379,7 @@ public class GameManager : MonoBehaviour
                             last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
                             isDragging = false;
                             currentPath.Clear();
-                            UpdateLineRendererPositions();
+                            SetNeonTrailEmitting(false);
                             linkSystem?.ClearPathLit();
                             isGameOverSequencePlaying = true;
                             StartCoroutine(GameOverAndResetSequence());
@@ -379,6 +409,7 @@ public class GameManager : MonoBehaviour
                             blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
                         currentPath.Add(hit);
                         TryTriggerIgniter(hit);
+                        NotifyTrailTileStepped(hit);
                         int totalPathCountEl = GetTotalPathCount();
                         if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountEl))
                         {
@@ -386,7 +417,7 @@ public class GameManager : MonoBehaviour
                             last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
                             isDragging = false;
                             currentPath.Clear();
-                            UpdateLineRendererPositions();
+                            SetNeonTrailEmitting(false);
                             linkSystem?.ClearPathLit();
                             isGameOverSequencePlaying = true;
                             StartCoroutine(GameOverAndResetSequence());
@@ -417,9 +448,12 @@ public class GameManager : MonoBehaviour
 
         if (isDragging)
         {
-            UpdateLineRendererPositions();
-            linkSystem?.SetPathLit(currentPath, lineColor);
+            UpdateNeonTrailPosition();
+            linkSystem?.SetPathLit(currentPath, trailColor);
         }
+
+        // Multi-Color Neon: 그라데이션 색상 순환 + 특수 타일 밟았을 때 0.2초 Lerp
+        UpdateNeonTrailColor();
     }
 
     private Vector2 GetPointerScreenPosition()
@@ -458,14 +492,30 @@ public class GameManager : MonoBehaviour
         return false;
     }
 
-    private Tile GetTileAtScreen(Vector2 screenPoint)
+    /// <summary>화면 좌표 아래 타일 반환. 자식 콜라이더에서 맞아도 부모 Tile 반환. 드래그 중 preferAdjacentTo를 넘기면 인접 타일 우선(Blackout↔노말 연속 드래그 보정).</summary>
+    private Tile GetTileAtScreen(Vector2 screenPoint, Tile preferAdjacentTo = null)
     {
         if (mainCamera == null) return null;
         float camZ = mainCamera.transform.position.z;
         Vector3 world3 = mainCamera.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, Mathf.Abs(camZ)));
         Vector2 worldPoint = new Vector2(world3.x, world3.y);
-        Collider2D col = Physics2D.OverlapPoint(worldPoint);
-        return col != null ? col.GetComponent<Tile>() : null;
+        Collider2D[] cols = Physics2D.OverlapPointAll(worldPoint);
+        Tile first = null;
+        Tile adjacent = null;
+        for (int i = 0; i < cols.Length; i++)
+        {
+            Tile t = cols[i].GetComponent<Tile>();
+            if (t == null)
+                t = cols[i].GetComponentInParent<Tile>();
+            if (t == null) continue;
+            if (first == null) first = t;
+            if (preferAdjacentTo != null && t != preferAdjacentTo && IsAdjacent(preferAdjacentTo, t))
+            {
+                adjacent = t;
+                break;
+            }
+        }
+        return adjacent != null ? adjacent : first;
     }
 
     /// <summary>
@@ -618,7 +668,7 @@ public class GameManager : MonoBehaviour
         return totalStepsCommitted + Mathf.Max(0, currentPath.Count - 1);
     }
 
-    /// <summary>FixedKnot 화면 갱신. 오직 CurrentPathList( linePoints + currentPath ) Count만 전달. 터치 떼기·백트래킹 시에도 이 값만으로 갱신.</summary>
+    /// <summary>FixedKnot 화면 갱신. totalStepsCommitted + currentPath 기준 Count 전달.</summary>
     private void NotifyFixedKnotsUpdateVisual(int totalPathCount)
     {
         Debug.Log($"[GameManager] NotifyFixedKnotsUpdateVisual 호출 → totalPathCount={totalPathCount} (모든 FixedKnot에 표시 = targetOrder - 이 값)");
@@ -659,7 +709,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void CommitPathAndSetCurrentPosition()
     {
-        // 실제로 다른 타일로 이동했을 때만 linePoints 추가 및 totalStepsCommitted 갱신 (시작점만 터치한 경우 제외)
+        // 실제로 다른 타일로 이동했을 때만 totalStepsCommitted 갱신 (시작점만 터치한 경우 제외)
         bool actuallyMoved = currentPath.Count > 1;
         if (actuallyMoved)
         {
@@ -672,36 +722,17 @@ public class GameManager : MonoBehaviour
                         spotlightController.AddRevealedPosition(t.transform.position);
                 }
             }
-            foreach (Tile t in currentPath)
-            {
-                if (t == null) continue;
-                Vector3 p = t.transform.position;
-                p.z = -0.5f;
-                linePoints.Add(p);
-            }
             // 기어 스텝 수: 옮긴 횟수만. 첫 구간도 이어서도 새로 밟은 타일 수 = currentPath.Count - 1 (시작점 제외)
             totalStepsCommitted += (currentPath.Count - 1);
             Debug.Log($"[GameManager] totalPathCount 갱신(기어 -1 효과): {totalStepsCommitted} — 원인: CommitPath (손 뗀 후 경로 커밋)");
             NotifyFixedKnotsUpdateVisual(totalStepsCommitted);
 
-            if (lineClearRoutine != null)
-                StopCoroutine(lineClearRoutine);
-            lineClearRoutine = StartCoroutine(LineClearAfterDelayRoutine(lineClearDelay));
+            if (pathLitClearRoutine != null)
+                StopCoroutine(pathLitClearRoutine);
+            pathLitClearRoutine = StartCoroutine(PathLitClearAfterDelayRoutine(pathLitClearDelay));
 
-            // 마지막 타일은 "다음 타일로 이동"이 없어서 -1이 안 됨. 손 뗄 때(커밋) 마지막 타일 1 감소 → 0이면 클리어
-            if (currentPath.Count > 0)
-            {
-                Tile lastTile = currentPath[currentPath.Count - 1];
-                if (lastTile != null && lastTile.CurrentNumber > 0)
-                {
-                    var igniter = lastTile.GetComponent<IgniterTile>();
-                    if (igniter != null)
-                        igniter.OnLeftThenVanish();
-                    else
-                        lastTile.DecreaseNumber();
-                    NotifyTwinLinkStepped(lastTile);
-                }
-            }
+            // 마지막 타일(손 뗀 위치)은 여기서 -1 하지 않음. "다음 타일을 밟아서 떠날 때"만 OnLeaveTileForNext에서 -1 되므로,
+            // count 1인 타일에서 손을 떼도 그 타일이 사라지지 않고 다음 드래그의 시작점으로 유지됨.
         }
 
         if (currentPath.Count > 0)
@@ -719,50 +750,52 @@ public class GameManager : MonoBehaviour
             }
         }
         currentPath.Clear();
-        UpdateLineRendererPositions();
+        SetNeonTrailEmitting(false);
     }
 
-    private IEnumerator LineClearAfterDelayRoutine(float delay)
+    private IEnumerator PathLitClearAfterDelayRoutine(float delay)
     {
         yield return new WaitForSeconds(delay);
-        linePoints.Clear();
-        UpdateLineRendererPositions();
         linkSystem?.ClearPathLit();
-        // totalStepsCommitted는 건드리지 않음 → 기어 숫자 그대로 이어감
-        lineClearRoutine = null;
+        pathLitClearRoutine = null;
     }
 
-    private void UpdateLineRendererPositions()
+    /// <summary>드래그 중에만 트레일 위치를 포인터 월드 좌표로 갱신. 손 뗄 때는 emitting=false.</summary>
+    private void UpdateNeonTrailPosition()
     {
-        if (lineRenderer == null) return;
-
-        // 파괴된 타일 참조 제거 (리셋 등으로 Tile이 파괴된 경우 MissingReferenceException 방지)
-        for (int i = currentPath.Count - 1; i >= 0; i--)
+        if (neonTrail == null || neonTrailTransform == null) return;
+        if (isDragging)
         {
-            if (currentPath[i] == null)
-                currentPath.RemoveAt(i);
+            neonTrail.emitting = true;
+            Vector2 w = GetPointerWorldPosition();
+            neonTrailTransform.position = new Vector3(w.x, w.y, -0.5f);
         }
+        else
+            neonTrail.emitting = false;
+    }
 
-        int total = linePoints.Count + currentPath.Count;
-        if (total == 0)
+    private void SetNeonTrailEmitting(bool emitting)
+    {
+        if (neonTrail != null)
+            neonTrail.emitting = emitting;
+    }
+
+    /// <summary>특수 타일(TwinLink, Igniter 등)을 밟으면 트레일 메인 컬러가 해당 대표색으로 0.2초간 Lerp 후 복귀.</summary>
+    private void NotifyTrailTileStepped(Tile tile)
+    {
+        if (tile == null) return;
+        var twin = tile.GetComponent<TwinLinkTile>();
+        if (twin != null)
         {
-            lineRenderer.positionCount = 0;
+            specialTileColor = twin.GetLinkColor();
+            specialTileColorLerpStartTime = Time.time;
             return;
         }
-
-        lineRenderer.positionCount = total;
-        int idx = 0;
-        foreach (Vector3 p in linePoints)
+        var igniter = tile.GetComponent<IgniterTile>();
+        if (igniter != null)
         {
-            lineRenderer.SetPosition(idx++, p);
-        }
-        for (int i = 0; i < currentPath.Count; i++)
-        {
-            Tile t = currentPath[i];
-            if (t == null) continue;
-            Vector3 p = t.transform.position;
-            p.z = -0.5f;
-            lineRenderer.SetPosition(idx++, p);
+            specialTileColor = igniter.GetAccentColor();
+            specialTileColorLerpStartTime = Time.time;
         }
     }
 
@@ -811,10 +844,10 @@ public class GameManager : MonoBehaviour
         if (!IsDeadlock()) return false;
 
         Debug.Log("Game Over");
-        if (lineClearRoutine != null)
+        if (pathLitClearRoutine != null)
         {
-            StopCoroutine(lineClearRoutine);
-            lineClearRoutine = null;
+            StopCoroutine(pathLitClearRoutine);
+            pathLitClearRoutine = null;
         }
         isGameOverSequencePlaying = true;
         StartCoroutine(GameOverAndResetSequence());
@@ -826,9 +859,8 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private IEnumerator GameOverAndResetSequence()
     {
-        linePoints.Clear();
         totalStepsCommitted = 0;
-        UpdateLineRendererPositions();
+        SetNeonTrailEmitting(false);
         linkSystem?.ClearLinks();
 
         bool isSpotlight = spotlightController != null && spotlightController.IsSpotlightActive();
@@ -981,7 +1013,6 @@ public class GameManager : MonoBehaviour
                 yield break;
             }
         }
-        linePoints.Clear();
         totalStepsCommitted = 0;
         ClearTiles();
         CreateGridFromStageData(data);
@@ -1012,21 +1043,98 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void CreateLineRenderer()
+    /// <summary>Multi-Color Neon Trail: 4색+ 그라데이션, HDR 머티리얼(강도 2+), 시작 밝게·끝 투명.</summary>
+    private void CreateNeonTrail()
     {
-        GameObject lineGo = new GameObject("PathLine");
-        lineGo.transform.SetParent(transform);
+        GameObject trailGo = new GameObject("NeonTrail");
+        trailGo.transform.SetParent(transform);
+        trailGo.transform.position = new Vector3(0f, 0f, -0.5f);
 
-        lineRenderer = lineGo.AddComponent<LineRenderer>();
-        lineRenderer.positionCount = 0;
-        lineRenderer.useWorldSpace = true;
-        lineRenderer.startWidth = lineWidth;
-        lineRenderer.endWidth = lineWidth * 0.6f;
-        lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-        lineRenderer.startColor = lineColor;
-        lineRenderer.endColor = lineColor;
-        lineRenderer.numCapVertices = 4;
-        lineRenderer.numCornerVertices = 4;
+        neonTrail = trailGo.AddComponent<TrailRenderer>();
+        neonTrail.time = trailTime;
+        neonTrail.minVertexDistance = trailMinVertexDistance;
+        neonTrail.emitting = false;
+
+        AnimationCurve widthCurve = new AnimationCurve();
+        widthCurve.AddKey(0f, 0.5f);
+        widthCurve.AddKey(1f, 0f);
+        neonTrail.widthCurve = widthCurve;
+
+        // Bloom 극대화: 그라데이션 색상에 HDR 강도(trailHdrIntensity) 적용. 머티리얼은 Additive로 블룸 노출
+        Shader additiveShader = Shader.Find("Legacy Shaders/Particles/Additive") ?? Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
+        Material trailMat = new Material(additiveShader);
+        if (additiveShader != null && additiveShader.name.Contains("Additive"))
+            trailMat.SetColor("_TintColor", Color.white);
+        else
+            trailMat.color = Color.white;
+        neonTrail.material = trailMat;
+
+        // 4색 이상 그라데이션: 시작(손가락)은 가장 밝게, 끝(꼬리)은 Alpha 0. 순환은 UpdateNeonTrailColor에서 처리
+        ApplyNeonTrailGradient(0f);
+
+        neonTrail.sortingOrder = 10;
+        neonTrailTransform = trailGo.transform;
+    }
+
+    /// <summary>Time.time 기반으로 그라데이션 색상 키를 순환(Shift)시키고, 특수 타일 Lerp 중이면 해당 컬러로 블렌드.</summary>
+    private void UpdateNeonTrailColor()
+    {
+        if (neonTrail == null) return;
+
+        float t = Time.time;
+        bool inTileLerp = (t - specialTileColorLerpStartTime) < specialTileColorLerpDuration && specialTileColorLerpStartTime > -900f;
+        float blend = 0f;
+        if (inTileLerp)
+        {
+            float elapsed = t - specialTileColorLerpStartTime;
+            if (elapsed < specialTileColorLerpDuration * 0.5f)
+                blend = elapsed / (specialTileColorLerpDuration * 0.5f);
+            else
+                blend = 1f - (elapsed - specialTileColorLerpDuration * 0.5f) / (specialTileColorLerpDuration * 0.5f);
+        }
+
+        // 그라데이션 키 순환: phase에 따라 4색이 흐르는 느낌
+        float phase = t * trailColorShiftSpeed;
+        ApplyNeonTrailGradient(phase, inTileLerp ? blend : 0f, inTileLerp ? specialTileColor : default);
+    }
+
+    /// <summary>네온 그라데이션 적용. phase로 색상 키 순환, tileBlend &gt; 0이면 specialColor로 Lerp.</summary>
+    private void ApplyNeonTrailGradient(float phase, float tileBlend = 0f, Color specialColor = default)
+    {
+        if (neonTrail == null) return;
+        int n = (neonGradientColors != null && neonGradientColors.Length >= 4) ? neonGradientColors.Length : 4;
+        Color[] baseColors = (neonGradientColors != null && neonGradientColors.Length >= 4) ? neonGradientColors : new Color[]
+        {
+            new Color(0f, 1f, 1f, 1f), new Color(1f, 0f, 1f, 1f),
+            new Color(0.6f, 0.2f, 1f, 1f), new Color(0.2f, 0.5f, 1f, 1f)
+        };
+
+        // HDR 강도 적용 (Bloom용)
+        float intensity = trailHdrIntensity;
+        var colorKeys = new List<GradientColorKey>();
+        float step = 1f / Mathf.Max(1, n);
+        for (int i = 0; i <= n; i++)
+        {
+            float keyTime = i * step;
+            int idx = ((int)Mathf.Floor(phase) + i) % n;
+            if (idx < 0) idx += n;
+            Color c = baseColors[idx];
+            c = new Color(c.r * intensity, c.g * intensity, c.b * intensity, c.a);
+            if (tileBlend > 0.001f && specialColor.a > 0.001f)
+            {
+                Color sc = new Color(specialColor.r * intensity, specialColor.g * intensity, specialColor.b * intensity, specialColor.a);
+                c = Color.Lerp(c, sc, tileBlend);
+            }
+            colorKeys.Add(new GradientColorKey(c, keyTime));
+        }
+        var alphaKeys = new GradientAlphaKey[]
+        {
+            new GradientAlphaKey(0.9f, 0f),
+            new GradientAlphaKey(0f, 1f)
+        };
+        Gradient g = new Gradient();
+        g.SetKeys(colorKeys.ToArray(), alphaKeys);
+        neonTrail.colorGradient = g;
     }
 
     private void EnsureInputAndRaycaster()
