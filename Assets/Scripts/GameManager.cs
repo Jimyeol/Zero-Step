@@ -255,13 +255,26 @@ public class GameManager : MonoBehaviour
         // pointerUp일 때는 타일 추가하지 않음 — 손 뗀 위치로 잘못 판정되어 터치만 해도 DecreaseNumber 되는 버그 방지
         else if (isDragging && pointerHeld)
         {
-            Tile lastForHit = currentPath.Count > 0 ? currentPath[currentPath.Count - 1] : null;
+            // 파괴된 타일 참조 제거 (Igniter 소멸 등으로 타일이 비활성화/제거된 경우)
+            currentPath.RemoveAll(t => t == null);
+            if (currentPath.Count == 0)
+            {
+                isDragging = false;
+                return;
+            }
+            Tile lastForHit = currentPath[currentPath.Count - 1];
             Tile hit = GetTileAtScreen(screenPoint, preferAdjacentTo: lastForHit);
             // 숫자가 남아 있으면 이미 라인이 그려진 타일이라도 재방문(중복 밟기) 허용.
             // 숫자는 '들어갈 때'가 아니라 '지나쳐 나갈 때' 감소 → 멈춘 타일이 0이 되어 다음 드래그를 못 시작하는 문제 방지.
             if (hit != null && hit.IsActive)
             {
                 Tile last = currentPath[currentPath.Count - 1];
+                if (last == null)
+                {
+                    isDragging = false;
+                    currentPath.Clear();
+                    return;
+                }
                 // 같은 타일 위에서만 막기(hit==last). 이미 경로에 있어도 다른 타일에서 인접 진입(재진입)은 허용 — ShortCircuit도 한 드래그에서 여러 번 밟기 가능(count 2→1→0)
                 bool canStep = hit != last;
                 // Igniter 포함 이후에는 해당 지점 이전으로 백트래킹(되돌리기) 차단
@@ -270,7 +283,9 @@ public class GameManager : MonoBehaviour
                     int igniterIdx = -1;
                     for (int i = 0; i < currentPath.Count; i++)
                     {
-                        if (currentPath[i].GetComponent<IgniterTile>() != null) { igniterIdx = i; break; }
+                        Tile pt = currentPath[i];
+                        if (pt == null) continue;
+                        if (pt.GetComponent<IgniterTile>() != null) { igniterIdx = i; break; }
                     }
                     if (igniterIdx >= 0 && currentPath.IndexOf(hit) < igniterIdx)
                         canStep = false;
@@ -308,6 +323,7 @@ public class GameManager : MonoBehaviour
                     var blackout = last.GetComponent<BlackoutTile>();
                     if (blackout != null) blackout.OnStepped();
                     currentPath.Add(hit);
+                    LogSteppedOn(hit);
                     TryTriggerIgniter(hit);
                     NotifyTrailTileStepped(hit);
                     int cFk = GetTotalPathCount();
@@ -330,17 +346,14 @@ public class GameManager : MonoBehaviour
                         if (fixedKnotHit != null && !fixedKnotHit.CanEnter(nextStepNumber)) { /* 진입 불가 */ }
                         else
                         {
-                            OnLeaveTileForNext(last, hit);
-                            NotifyTwinLinkStepped(last);
-                            NotifyFixedKnotLeft(last);
                             currentPath.Add(hit);
+                            LogSteppedOn(hit);
                             TryTriggerIgniter(hit);
                             NotifyTrailTileStepped(hit);
                             int totalPathCount = GetTotalPathCount();
                             if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCount))
                             {
                                 currentPath.RemoveAt(currentPath.Count - 1);
-                                last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
                                 isDragging = false;
                                 currentPath.Clear();
                                 UpdateNeonTrailPosition();
@@ -350,6 +363,9 @@ public class GameManager : MonoBehaviour
                             }
                             else
                             {
+                                OnLeaveTileForNext(last, hit);
+                                NotifyTwinLinkStepped(last);
+                                NotifyFixedKnotLeft(last);
                                 NotifyFixedKnotsUpdateVisual(totalPathCount);
                                 if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                                 TryTriggerBlindCurtain(hit);
@@ -363,23 +379,14 @@ public class GameManager : MonoBehaviour
                     // ShortCircuit으로 들어감: 인접하면 어느 방향에서든 진입 가능 (제한은 나갈 때만). FixedKnot이면 올바른 순서에서만 추가
                     if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
-                        OnLeaveTileForNext(last, hit);
-                        NotifyTwinLinkStepped(last);
-                        NotifyFixedKnotLeft(last);
-                        var crossBlast = last.GetComponent<CrossBlastTile>();
-                        if (crossBlast != null)
-                            crossBlast.TriggerExplosion(this, hit);
-                        var blackout = last.GetComponent<BlackoutTile>();
-                        if (blackout != null)
-                            blackout.OnStepped();
                         currentPath.Add(hit);
+                        LogSteppedOn(hit);
                         TryTriggerIgniter(hit);
                         NotifyTrailTileStepped(hit);
                         int totalPathCountSc = GetTotalPathCount();
                         if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountSc))
                         {
                             currentPath.RemoveAt(currentPath.Count - 1);
-                            last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
                             isDragging = false;
                             currentPath.Clear();
                             SetNeonTrailEmitting(false);
@@ -389,6 +396,15 @@ public class GameManager : MonoBehaviour
                         }
                         else
                         {
+                            OnLeaveTileForNext(last, hit);
+                            NotifyTwinLinkStepped(last);
+                            NotifyFixedKnotLeft(last);
+                            var crossBlast = last.GetComponent<CrossBlastTile>();
+                            if (crossBlast != null)
+                                crossBlast.TriggerExplosion(this, hit);
+                            var blackout = last.GetComponent<BlackoutTile>();
+                            if (blackout != null)
+                                blackout.OnStepped();
                             NotifyFixedKnotsUpdateVisual(totalPathCountSc);
                             if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                             TryTriggerBlindCurtain(hit);
@@ -401,23 +417,14 @@ public class GameManager : MonoBehaviour
                     // 일반 타일 이동 (FixedKnot이면 올바른 순서에서만 추가)
                     if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
-                        OnLeaveTileForNext(last, hit); // 떠나는 타일: Igniter면 소멸 연출, 아니면 숫자 감소
-                        NotifyTwinLinkStepped(last);
-                        NotifyFixedKnotLeft(last);
-                        var crossBlast = last.GetComponent<CrossBlastTile>();
-                        if (crossBlast != null)
-                            crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
-                        var blackout = last.GetComponent<BlackoutTile>();
-                        if (blackout != null)
-                            blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
                         currentPath.Add(hit);
+                        LogSteppedOn(hit);
                         TryTriggerIgniter(hit);
                         NotifyTrailTileStepped(hit);
                         int totalPathCountEl = GetTotalPathCount();
                         if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountEl))
                         {
                             currentPath.RemoveAt(currentPath.Count - 1);
-                            last.GetComponent<Tile>().SetNumber(last.CurrentNumber + 1);
                             isDragging = false;
                             currentPath.Clear();
                             SetNeonTrailEmitting(false);
@@ -427,6 +434,15 @@ public class GameManager : MonoBehaviour
                         }
                         else
                         {
+                            OnLeaveTileForNext(last, hit); // 떠나는 타일: Igniter면 소멸 연출, 아니면 숫자 감소
+                            NotifyTwinLinkStepped(last);
+                            NotifyFixedKnotLeft(last);
+                            var crossBlast = last.GetComponent<CrossBlastTile>();
+                            if (crossBlast != null)
+                                crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
+                            var blackout = last.GetComponent<BlackoutTile>();
+                            if (blackout != null)
+                                blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
                             NotifyFixedKnotsUpdateVisual(totalPathCountEl);
                             if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                             TryTriggerBlindCurtain(hit);
@@ -649,11 +665,28 @@ public class GameManager : MonoBehaviour
     private void OnLeaveTileForNext(Tile last, Tile next)
     {
         if (last == null) return;
+        Debug.Log($"[타일 -1] 직전 타일 ({last.X},{last.Y}) 떠남 → 다음 ({next.X},{next.Y})으로 이동, 직전 타일 -1");
         var igniter = last.GetComponent<IgniterTile>();
         if (igniter != null)
+        {
             igniter.OnLeftThenVanish();
+            Debug.Log($"[타일 사라짐] Igniter ({last.X},{last.Y}) 소멸");
+        }
         else
+        {
+            int before = last.CurrentNumber;
             last.DecreaseNumber();
+            Debug.Log($"[타일 -1] ({last.X},{last.Y}) count {before} → {last.CurrentNumber}");
+            if (last.CurrentNumber <= 0)
+                Debug.Log($"[타일 사라짐] ({last.X},{last.Y}) count 0");
+        }
+    }
+
+    /// <summary>현재 밟은 타일 로그 (디버그용).</summary>
+    private void LogSteppedOn(Tile hit)
+    {
+        if (hit == null) return;
+        Debug.Log($"[현재 밟은 타일] ({hit.X},{hit.Y}) count={hit.CurrentNumber}");
     }
 
     /// <summary>타일을 밟은 직후: Igniter면 targetID에 해당하는 Hidden 그룹 릴레이 활성화 (Igniter에서 가까운 순).</summary>
