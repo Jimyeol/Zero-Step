@@ -118,6 +118,8 @@ public class GameManager : MonoBehaviour
     private bool stageCleared;
     /// <summary>손 뗀 후 경로 점등 해제용 코루틴.</summary>
     private Coroutine pathLitClearRoutine;
+    /// <summary>트레일 터치 시작 시 1프레임 뒤 emitting 재개하는 코루틴.</summary>
+    private Coroutine trailEmitDelayRoutine;
     /// <summary>손가락 궤적 네온 트레일. 드래그 중에만 emitting, 위치는 포인터 월드 좌표.</summary>
     private TrailRenderer neonTrail;
     private Transform neonTrailTransform;
@@ -195,6 +197,7 @@ public class GameManager : MonoBehaviour
             StopCoroutine(pathLitClearRoutine);
             pathLitClearRoutine = null;
         }
+        ResetTrail();
         currentStageIndex++;
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data == null)
@@ -241,12 +244,7 @@ public class GameManager : MonoBehaviour
             currentPath.Clear();
             currentPath.Add(hit);
             NotifyTrailTileStepped(hit);
-            // 드래그 시작 시 트레일 위치를 포인터(손가락) 월드 좌표로 맞춰서 첫 프레임에 (0,0)으로 튀는 현상 방지
-            if (neonTrailTransform != null)
-            {
-                Vector2 w = GetPointerWorldPosition();
-                neonTrailTransform.position = new Vector3(w.x, w.y, -0.5f);
-            }
+            OnDragStartTrail();
             // 시작점 터치만으로는 기어 숫자 갱신 안 함 — 타일을 실제로 옮겼을 때만 -1
         }
         // pointerUp일 때는 타일 추가하지 않음 — 손 뗀 위치로 잘못 판정되어 터치만 해도 DecreaseNumber 되는 버그 방지
@@ -435,6 +433,7 @@ public class GameManager : MonoBehaviour
         if (pointerUp)
         {
             isDragging = false;
+            ResetTrail();
             CommitPathAndSetCurrentPosition();
             // 클리어를 먼저 검사. 모든 타일 0이면 데드락 검사와 겹치므로 클리어 우선 (그렇지 않으면 게임오버로 잘못 처리됨)
             CheckStageClear();
@@ -754,24 +753,69 @@ public class GameManager : MonoBehaviour
         pathLitClearRoutine = null;
     }
 
-    /// <summary>드래그 중에만 트레일 위치를 포인터 월드 좌표로 갱신. 손 뗄 때는 emitting=false.</summary>
+    /// <summary>터치 시작 시 트레일 초기화 시퀀스: emitting 중단 → Clear → 위치 이동 → 1프레임 뒤 time 복구·emitting 재개.</summary>
+    private void OnDragStartTrail()
+    {
+        if (neonTrail == null || neonTrailTransform == null) return;
+        if (trailEmitDelayRoutine != null)
+        {
+            StopCoroutine(trailEmitDelayRoutine);
+            trailEmitDelayRoutine = null;
+        }
+        neonTrail.emitting = false;
+        neonTrail.Clear();
+        neonTrail.time = 0f;
+        Vector2 w = GetPointerWorldPosition();
+        neonTrailTransform.position = new Vector3(w.x, w.y, -0.5f);
+        trailEmitDelayRoutine = StartCoroutine(TrailEmitDelayRoutine());
+    }
+
+    private IEnumerator TrailEmitDelayRoutine()
+    {
+        yield return new WaitForEndOfFrame();
+        if (neonTrail != null)
+        {
+            neonTrail.time = trailTime;
+            neonTrail.emitting = true;
+        }
+        trailEmitDelayRoutine = null;
+    }
+
+    /// <summary>드래그 중에는 현재 프레임 포인터 월드 좌표만 position에 대입. emitting은 OnDragStartTrail 코루틴에서 1프레임 뒤 켬.</summary>
     private void UpdateNeonTrailPosition()
     {
         if (neonTrail == null || neonTrailTransform == null) return;
         if (isDragging)
         {
-            neonTrail.emitting = true;
             Vector2 w = GetPointerWorldPosition();
             neonTrailTransform.position = new Vector3(w.x, w.y, -0.5f);
         }
         else
-            neonTrail.emitting = false;
+        {
+            if (neonTrail != null)
+                neonTrail.emitting = false;
+        }
     }
 
     private void SetNeonTrailEmitting(bool emitting)
     {
         if (neonTrail != null)
             neonTrail.emitting = emitting;
+    }
+
+    /// <summary>트레일 강제 초기화. 드래그 종료·게임오버·리셋·스테이지 전환 시 호출. Clear() 포함.</summary>
+    private void ResetTrail()
+    {
+        if (trailEmitDelayRoutine != null)
+        {
+            StopCoroutine(trailEmitDelayRoutine);
+            trailEmitDelayRoutine = null;
+        }
+        if (neonTrail != null)
+        {
+            neonTrail.Clear();
+            neonTrail.emitting = false;
+        }
     }
 
     /// <summary>특수 타일(TwinLink, Igniter 등)을 밟으면 트레일 메인 컬러가 해당 대표색으로 0.2초간 Lerp 후 복귀.</summary>
@@ -854,7 +898,7 @@ public class GameManager : MonoBehaviour
     private IEnumerator GameOverAndResetSequence()
     {
         totalStepsCommitted = 0;
-        SetNeonTrailEmitting(false);
+        ResetTrail();
         linkSystem?.ClearLinks();
 
         bool isSpotlight = spotlightController != null && spotlightController.IsSpotlightActive();
@@ -994,6 +1038,7 @@ public class GameManager : MonoBehaviour
     private IEnumerator LoadNextStageAfterDelay()
     {
         yield return new WaitForSeconds(nextStageDelay);
+        ResetTrail();
         currentStageIndex++;
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data == null)

@@ -5,26 +5,26 @@
   "startPoint": { "x": 0, "y": 0 },
   "cells": [
     { "x": 0, "y": 0, "type": "Normal", "count": 1 },
-    { "x": 1, "y": 0, "type": "Normal", "count": 2 },
+    { "x": 1, "y": 0, "type": "Normal", "count": 1 },
     { "x": 2, "y": 0, "type": "Normal", "count": 1 },
     { "x": 3, "y": 0, "type": "Normal", "count": 1 },
     { "x": 4, "y": 0, "type": "Normal", "count": 1 },
 
-    { "x": 0, "y": 1, "type": "Normal", "count": 2 },
+    { "x": 0, "y": 1, "type": "Normal", "count": 1 },
     { "x": 1, "y": 1, "type": "Normal", "count": 1 },
-    { "x": 2, "y": 1, "type": "Normal", "count": 2 },
+    { "x": 2, "y": 1, "type": "Normal", "count": 1 },
     { "x": 3, "y": 1, "type": "Normal", "count": 1 },
     { "x": 4, "y": 1, "type": "Normal", "count": 1 },
 
     { "x": 0, "y": 2, "type": "Normal", "count": 1 },
-    { "x": 1, "y": 2, "type": "Normal", "count": 2 },
+    { "x": 1, "y": 2, "type": "Normal", "count": 1 },
     { "x": 2, "y": 2, "type": "FixedKnot", "count": 1, "targetOrder": 4, "properties": { "isAbsolute": true } },
     { "x": 3, "y": 2, "type": "Normal", "count": 1 },
     { "x": 4, "y": 2, "type": "Normal", "count": 1 },
 
     { "x": 0, "y": 3, "type": "Normal", "count": 1 },
     { "x": 1, "y": 3, "type": "Normal", "count": 1 },
-    { "x": 2, "y": 3, "type": "Normal", "count": 2 },
+    { "x": 2, "y": 3, "type": "Normal", "count": 1 },
     { "x": 3, "y": 3, "type": "Normal", "count": 1 },
     { "x": 4, "y": 3, "type": "Normal", "count": 1 },
 
