@@ -244,8 +244,9 @@ public class TwinLinkTile : MonoBehaviour
 
     /// <summary>
     /// 이 타일이 밟린 직후 호출. 짝꿍 count 동기화, 전기 번쩍임, DOShakePosition.
+    /// excludeTile: 이 타일은 동기화 제외 (방금 밟은 타일이 -1 되지 않도록).
     /// </summary>
-    public void OnSteppedSyncPartners()
+    public void OnSteppedSyncPartners(Tile excludeTile = null)
     {
         if (tile == null) return;
         int newCount = tile.CurrentNumber;
@@ -253,6 +254,7 @@ public class TwinLinkTile : MonoBehaviour
         foreach (var p in partners)
         {
             if (p == null || p.tile == null) continue;
+            if (excludeTile != null && p.tile == excludeTile) continue; // 방금 밟은 타일은 동기화 제외 → -2 버그 방지
             p.tile.SetNumber(newCount);
             p.FlashBolt();
             p.Shake();

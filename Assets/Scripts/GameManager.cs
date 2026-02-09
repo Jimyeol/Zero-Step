@@ -114,6 +114,8 @@ public class GameManager : MonoBehaviour
     private int initialStartTileRow;
     private int initialStartTileCol;
     private List<Tile> currentPath = new List<Tile>();
+    /// <summary>마지막으로 타일을 경로에 추가한 프레임. 직선 드래그 시 되돌아가기 지터 무시용.</summary>
+    private int lastStepFrame = -1;
     /// <summary>지금까지 커밋된 스텝 수. 기어 숫자 이어가기.</summary>
     private int totalStepsCommitted;
     private bool isDragging;
@@ -248,6 +250,7 @@ public class GameManager : MonoBehaviour
             isDragging = true;
             currentPath.Clear();
             currentPath.Add(hit);
+            lastStepFrame = Time.frameCount;
             NotifyTrailTileStepped(hit);
             OnDragStartTrail();
             // 시작점 터치만으로는 기어 숫자 갱신 안 함 — 타일을 실제로 옮겼을 때만 -1
@@ -277,6 +280,16 @@ public class GameManager : MonoBehaviour
                 }
                 // 같은 타일 위에서만 막기(hit==last). 이미 경로에 있어도 다른 타일에서 인접 진입(재진입)은 허용 — ShortCircuit도 한 드래그에서 여러 번 밟기 가능(count 2→1→0)
                 bool canStep = hit != last;
+                // 직선 드래그 시 인접 타일이 오락가락하며 되돌아가기만 반복되는 지터 무시 (한 번에 -2 되는 버그 방지)
+                if (canStep && currentPath.Count >= 2 && hit == currentPath[currentPath.Count - 2])
+                {
+                    int frameDelta = Time.frameCount - lastStepFrame;
+                    if (frameDelta >= 0 && frameDelta <= 3)
+                    {
+                        Debug.Log($"[지터 무시] 되돌아감 last=({last.X},{last.Y}) hit=({hit.X},{hit.Y}) frameDelta={frameDelta} (직선 드래그 오락가락 방지)");
+                        canStep = false;
+                    }
+                }
                 // Igniter 포함 이후에는 해당 지점 이전으로 백트래킹(되돌리기) 차단
                 if (canStep && currentPath.Contains(hit))
                 {
@@ -316,13 +329,15 @@ public class GameManager : MonoBehaviour
                 {
                     // FixedKnot 정확한 순서로만 진입 허용 (기어는 다음 타일 밟을 때 사라짐)
                     OnLeaveTileForNext(last, hit);
-                    NotifyTwinLinkStepped(last);
+                    NotifyTwinLinkStepped(last, hit);
                     NotifyFixedKnotLeft(last);
                     var crossBlast = last.GetComponent<CrossBlastTile>();
                     if (crossBlast != null) crossBlast.TriggerExplosion(this, hit);
                     var blackout = last.GetComponent<BlackoutTile>();
                     if (blackout != null) blackout.OnStepped();
                     currentPath.Add(hit);
+                    lastStepFrame = Time.frameCount;
+                    Debug.Log($"[스텝] FixedKnot last=({last.X},{last.Y})→hit=({hit.X},{hit.Y}) pathLen={currentPath.Count}");
                     LogSteppedOn(hit);
                     TryTriggerIgniter(hit);
                     NotifyTrailTileStepped(hit);
@@ -347,6 +362,7 @@ public class GameManager : MonoBehaviour
                         else
                         {
                             currentPath.Add(hit);
+                            Debug.Log($"[스텝] ShortCircuit(위) last=({last.X},{last.Y})→hit=({hit.X},{hit.Y}) pathLen={currentPath.Count}");
                             LogSteppedOn(hit);
                             TryTriggerIgniter(hit);
                             NotifyTrailTileStepped(hit);
@@ -363,8 +379,9 @@ public class GameManager : MonoBehaviour
                             }
                             else
                             {
+                                lastStepFrame = Time.frameCount;
                                 OnLeaveTileForNext(last, hit);
-                                NotifyTwinLinkStepped(last);
+                                NotifyTwinLinkStepped(last, hit);
                                 NotifyFixedKnotLeft(last);
                                 NotifyFixedKnotsUpdateVisual(totalPathCount);
                                 if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
@@ -380,6 +397,7 @@ public class GameManager : MonoBehaviour
                     if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
                         currentPath.Add(hit);
+                        Debug.Log($"[스텝] ShortCircuit(진입) last=({last.X},{last.Y})→hit=({hit.X},{hit.Y}) pathLen={currentPath.Count}");
                         LogSteppedOn(hit);
                         TryTriggerIgniter(hit);
                         NotifyTrailTileStepped(hit);
@@ -396,8 +414,9 @@ public class GameManager : MonoBehaviour
                         }
                         else
                         {
+                            lastStepFrame = Time.frameCount;
                             OnLeaveTileForNext(last, hit);
-                            NotifyTwinLinkStepped(last);
+                            NotifyTwinLinkStepped(last, hit);
                             NotifyFixedKnotLeft(last);
                             var crossBlast = last.GetComponent<CrossBlastTile>();
                             if (crossBlast != null)
@@ -418,6 +437,7 @@ public class GameManager : MonoBehaviour
                     if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
                     {
                         currentPath.Add(hit);
+                        Debug.Log($"[스텝] 일반 last=({last.X},{last.Y})→hit=({hit.X},{hit.Y}) pathLen={currentPath.Count}");
                         LogSteppedOn(hit);
                         TryTriggerIgniter(hit);
                         NotifyTrailTileStepped(hit);
@@ -434,8 +454,9 @@ public class GameManager : MonoBehaviour
                         }
                         else
                         {
+                            lastStepFrame = Time.frameCount;
                             OnLeaveTileForNext(last, hit); // 떠나는 타일: Igniter면 소멸 연출, 아니면 숫자 감소
-                            NotifyTwinLinkStepped(last);
+                            NotifyTwinLinkStepped(last, hit);
                             NotifyFixedKnotLeft(last);
                             var crossBlast = last.GetComponent<CrossBlastTile>();
                             if (crossBlast != null)
@@ -653,12 +674,12 @@ public class GameManager : MonoBehaviour
         if (fk != null) fk.OnLeftByPlayer();
     }
 
-    /// <summary>TwinLink 타일이 밟린 직후: 짝꿍 count 동기화·전기 테두리 번쩍임·DOShakePosition.</summary>
-    private void NotifyTwinLinkStepped(Tile tile)
+    /// <summary>TwinLink 타일이 밟린 직후: 짝꿍 count 동기화·전기 테두리 번쩍임·DOShakePosition. excludeFromSync=지금 밟은 타일이면 동기화 제외(한 번에 -2 방지).</summary>
+    private void NotifyTwinLinkStepped(Tile tile, Tile excludeFromSync = null)
     {
         if (tile == null) return;
         var twin = tile.GetComponent<TwinLinkTile>();
-        if (twin != null) twin.OnSteppedSyncPartners();
+        if (twin != null) twin.OnSteppedSyncPartners(excludeFromSync);
     }
 
     /// <summary>타일을 떠날 때: Igniter면 소멸 연출 후 0, 아니면 DecreaseNumber.</summary>
