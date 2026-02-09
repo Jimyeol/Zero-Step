@@ -257,8 +257,8 @@ public class GameManager : MonoBehaviour
             if (hit != null && hit.IsActive)
             {
                 Tile last = currentPath[currentPath.Count - 1];
-                // 인접하고, (처음 밟는 타일이거나 / ShortCircuit만 재방문 불가, 나머지는 같은 드래그에서 다시 밟기 가능)
-                bool canStep = hit != last && (!currentPath.Contains(hit) || hit.GetComponent<ShortCircuitTile>() == null);
+                // 같은 타일 위에서만 막기(hit==last). 이미 경로에 있어도 다른 타일에서 인접 진입(재진입)은 허용 — ShortCircuit도 한 드래그에서 여러 번 밟기 가능(count 2→1→0)
+                bool canStep = hit != last;
                 // Igniter 포함 이후에는 해당 지점 이전으로 백트래킹(되돌리기) 차단
                 if (canStep && currentPath.Contains(hit))
                 {
@@ -491,16 +491,22 @@ public class GameManager : MonoBehaviour
         return false;
     }
 
-    /// <summary>화면 좌표 아래 타일 반환. 자식 콜라이더에서 맞아도 부모 Tile 반환. 드래그 중 preferAdjacentTo를 넘기면 인접 타일 우선(Blackout↔노말 연속 드래그 보정).</summary>
+    /// <summary>드래그 중 인접 타일 검색 시 포인터 주변 반경(월드). count 1인 ShortCircuit 등이 놓치지 않도록.</summary>
+    private const float TilePickRadius = 0.45f;
+
+    /// <summary>화면 좌표 아래 타일 반환. 드래그 중에는 작은 반경(OverlapCircle)으로 검사해 인접 타일 중 포인터에 가장 가까운 것 반환.</summary>
     private Tile GetTileAtScreen(Vector2 screenPoint, Tile preferAdjacentTo = null)
     {
         if (mainCamera == null) return null;
         float camZ = mainCamera.transform.position.z;
         Vector3 world3 = mainCamera.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, Mathf.Abs(camZ)));
         Vector2 worldPoint = new Vector2(world3.x, world3.y);
-        Collider2D[] cols = Physics2D.OverlapPointAll(worldPoint);
+        Collider2D[] cols = preferAdjacentTo != null
+            ? Physics2D.OverlapCircleAll(worldPoint, TilePickRadius)
+            : Physics2D.OverlapPointAll(worldPoint);
         Tile first = null;
-        Tile adjacent = null;
+        Tile closestAdjacent = null;
+        float closestSq = float.MaxValue;
         for (int i = 0; i < cols.Length; i++)
         {
             Tile t = cols[i].GetComponent<Tile>();
@@ -510,11 +516,15 @@ public class GameManager : MonoBehaviour
             if (first == null) first = t;
             if (preferAdjacentTo != null && t != preferAdjacentTo && IsAdjacent(preferAdjacentTo, t))
             {
-                adjacent = t;
-                break;
+                float sq = ((Vector2)t.transform.position - worldPoint).sqrMagnitude;
+                if (sq < closestSq)
+                {
+                    closestSq = sq;
+                    closestAdjacent = t;
+                }
             }
         }
-        return adjacent != null ? adjacent : first;
+        return closestAdjacent != null ? closestAdjacent : first;
     }
 
     /// <summary>
