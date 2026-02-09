@@ -309,6 +309,7 @@ public class GameManager : MonoBehaviour
                     NotifyFixedKnotsUpdateVisual(cFk);
                     fixedKnotHit.OnSteppedCorrectly();
                     TryTriggerBlindCurtain(hit);
+                    CheckVictoryCondition(hit);
                 }
                 else if (shortCircuitLast != null)
                 {
@@ -347,6 +348,7 @@ public class GameManager : MonoBehaviour
                                 NotifyFixedKnotsUpdateVisual(totalPathCount);
                                 if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                                 TryTriggerBlindCurtain(hit);
+                                CheckVictoryCondition(hit);
                             }
                         }
                     }
@@ -385,6 +387,7 @@ public class GameManager : MonoBehaviour
                             NotifyFixedKnotsUpdateVisual(totalPathCountSc);
                             if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                             TryTriggerBlindCurtain(hit);
+                            CheckVictoryCondition(hit);
                         }
                     }
                 }
@@ -422,6 +425,7 @@ public class GameManager : MonoBehaviour
                             NotifyFixedKnotsUpdateVisual(totalPathCountEl);
                             if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
                             TryTriggerBlindCurtain(hit);
+                            CheckVictoryCondition(hit);
                         }
                     }
                 }
@@ -661,6 +665,31 @@ public class GameManager : MonoBehaviour
     private int GetTotalPathCount()
     {
         return totalStepsCommitted + Mathf.Max(0, currentPath.Count - 1);
+    }
+
+    /// <summary>맵 전체에서 count &gt; 0인 타일들의 카운트 합.</summary>
+    private int GetTotalRemainingCount()
+    {
+        if (tiles == null) return 0;
+        int sum = 0;
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                    sum += tiles[row, col].CurrentNumber;
+        return sum;
+    }
+
+    /// <summary>승리 조건: 남은 합이 1이고, 그 1이 현재 밟은 타일(B)의 카운트면 즉시 클리어. 해당 타일 0으로 만든 뒤 승리 연출.</summary>
+    private bool CheckVictoryCondition(Tile currentTile)
+    {
+        if (tiles == null || currentTile == null) return false;
+        int totalRemaining = GetTotalRemainingCount();
+        if (totalRemaining != 1 || currentTile.CurrentNumber != 1) return false;
+        currentTile.DecreaseNumber();
+        stageCleared = true;
+        Debug.Log("Clear");
+        StartCoroutine(LoadNextStageAfterDelay());
+        return true;
     }
 
     /// <summary>FixedKnot 화면 갱신. totalStepsCommitted + currentPath 기준 Count 전달.</summary>
