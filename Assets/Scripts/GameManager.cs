@@ -18,6 +18,8 @@ public class GameManager : MonoBehaviour
     [Header("그리드 설정")]
     [SerializeField] private float padding = 0.2f;
     [SerializeField] private float fitMargin = 1.05f;
+    [Tooltip("화면 양 끝 패딩. 1.15 = 그리드 주변 15% 여백 (맵이 화면 끝에 붙지 않음)")]
+    [SerializeField] private float screenEdgePadding = 1.15f;
     [Tooltip("스테이지 JSON 없을 때 폴백용")]
     [SerializeField] private int fallbackRows = 3;
     [SerializeField] private int fallbackCols = 3;
@@ -164,6 +166,9 @@ public class GameManager : MonoBehaviour
             Debug.LogError("[GameManager] Tile 프리팹 또는 Main Camera가 할당되지 않았습니다.");
             return;
         }
+
+        mainCamera.clearFlags = CameraClearFlags.SolidColor;
+        mainCamera.backgroundColor = Color.black;
 
         EnsureInputAndRaycaster();
         EnsureCameraPostProcessingAndHDR();
@@ -1270,7 +1275,8 @@ public class GameManager : MonoBehaviour
         float aspect = (float)Screen.width / Screen.height;
         float sizeByHeight = totalGridHeight * 0.5f * fitMargin;
         float sizeByWidth = (totalGridWidth * 0.5f) / aspect * fitMargin;
-        mainCamera.orthographicSize = Mathf.Max(sizeByHeight, sizeByWidth);
+        float fitSize = Mathf.Max(sizeByHeight, sizeByWidth);
+        mainCamera.orthographicSize = fitSize * screenEdgePadding;
         mainCamera.transform.position = new Vector3(0f, 0f, mainCamera.transform.position.z);
     }
 

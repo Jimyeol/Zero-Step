@@ -16,6 +16,8 @@ public class GridManager : MonoBehaviour
     [SerializeField] private float padding = 0.2f;
     [Tooltip("그리드가 화면에 Fit될 때 여유 비율 (1.05 = 5% 여백). Bloom 등으로 잘리면 올려보세요.")]
     [SerializeField] private float fitMargin = 1.05f;
+    [Tooltip("화면 양 끝 패딩. 1.15 = 그리드 주변 15% 여백 (맵이 화면 끝에 붙지 않음)")]
+    [SerializeField] private float screenEdgePadding = 1.15f;
 
     [Header("참조")]
     [SerializeField] private GameObject tilePrefab;
@@ -40,6 +42,9 @@ public class GridManager : MonoBehaviour
             Debug.LogError("[GridManager] Tile 프리팹 또는 Main Camera가 할당되지 않았습니다.");
             return;
         }
+
+        mainCamera.clearFlags = CameraClearFlags.SolidColor;
+        mainCamera.backgroundColor = Color.black;
 
         EnsurePhysics2DRaycaster();
         EnsureCameraPostProcessingAndHDR();
@@ -191,8 +196,8 @@ public class GridManager : MonoBehaviour
         float aspect = (float)Screen.width / Screen.height;
         float sizeByHeight = totalGridHeight * 0.5f * fitMargin;
         float sizeByWidth = (totalGridWidth * 0.5f) / aspect * fitMargin;
-
-        mainCamera.orthographicSize = Mathf.Max(sizeByHeight, sizeByWidth);
+        float fitSize = Mathf.Max(sizeByHeight, sizeByWidth);
+        mainCamera.orthographicSize = fitSize * screenEdgePadding;
         mainCamera.transform.position = new Vector3(0f, 0f, mainCamera.transform.position.z);
     }
 

@@ -1,9 +1,9 @@
 {
-  "stageID": 10,
+  "stageID": 19,
   "width": 3,
   "height": 3,
   "startPoint": {
-    "x": 0,
+    "x": 1,
     "y": 1
   },
   "config": {
@@ -11,22 +11,28 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 1,
-      "type": "Normal",
-      "count": 1
-    },
-    {
       "x": 1,
       "y": 1,
       "type": "Normal",
-      "count": 1
+      "count": 2
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "type": "Normal",
+      "count": 3
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "type": "Normal",
+      "count": 2
     },
     {
       "x": 1,
       "y": 0,
       "type": "Normal",
-      "count": 1
+      "count": 3
     },
     {
       "x": 2,
@@ -44,7 +50,19 @@
       "x": 2,
       "y": 2,
       "type": "Normal",
-      "count": 0
+      "count": 1
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "type": "Normal",
+      "count": 1
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "type": "Normal",
+      "count": 2
     }
   ]
 }
