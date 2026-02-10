@@ -384,6 +384,61 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 558284295}
   m_CullTransparentMesh: 1
+--- !u!1 &581379325
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 581379327}
+  - component: {fileID: 581379326}
+  m_Layer: 0
+  m_Name: UI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &581379326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 581379325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
+  m_PanelSettings: {fileID: 11400000, guid: 73215dd5e4e5b43998ebfc4c5bab54c6, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 9197481963319205126, guid: c5adf3ba84d7d439db398e10b7808438, type: 3}
+  m_SortingOrder: 0
+  m_Position: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+  m_PivotReferenceSize: 0
+  m_Pivot: 0
+  m_WorldSpaceCollider: {fileID: 0}
+--- !u!4 &581379327
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 581379325}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 8.65495, y: -57.45224, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -810,6 +865,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   padding: 0.2
   fitMargin: 1.05
+  screenEdgePadding: 1.15
   fallbackRows: 3
   fallbackCols: 3
   fallbackInitialNumber: 3
@@ -823,15 +879,29 @@ MonoBehaviour:
   twinLinkBoltWidthScale: 0.25
   twinLinkFlashDuration: 0.2
   twinLinkShakeStrength: 0.08
-  lineWidth: 0.15
-  lineColor: {r: 1, g: 0.5, b: 1, a: 1}
-  lineClearDelay: 1
+  trailColor: {r: 1, g: 0.4, b: 1, a: 1}
+  trailTime: 0.5
+  trailMinVertexDistance: 0.1
+  pathLitClearDelay: 1
+  neonGradientColors:
+  - {r: 0, g: 1, b: 1, a: 1}
+  - {r: 1, g: 0, b: 1, a: 1}
+  - {r: 0.6, g: 0.2, b: 1, a: 1}
+  - {r: 0.2, g: 0.5, b: 1, a: 1}
+  trailHdrIntensity: 2.2
+  trailColorShiftSpeed: 1.5
+  specialTileColorLerpDuration: 0.2
   startStageIndex: 1
   nextStageDelay: 0.5
   targetFrameRate: 60
   blinkInterval: 0.025
   blackoutWait: 0.5
   tileAppearInterval: 0.02
+  postProcessVolume: {fileID: 0}
+  vignetteRampUpDuration: 0.25
+  vignetteReturnDuration: 0.6
+  vignetteMaxIntensity: 0.85
+  vignetteDefaultIntensity: 0
   blindCurtainFlipDuration: 0.05
   blindCurtainRowInterval: 0.01
 --- !u!4 &1919529855
@@ -858,3 +928,4 @@ SceneRoots:
   - {fileID: 157857993}
   - {fileID: 1919529855}
   - {fileID: 1893994067}
+  - {fileID: 581379327}

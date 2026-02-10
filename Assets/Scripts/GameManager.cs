@@ -484,7 +484,7 @@ public class GameManager : MonoBehaviour
             // 클리어를 먼저 검사. 모든 타일 0이면 데드락 검사와 겹치므로 클리어 우선 (그렇지 않으면 게임오버로 잘못 처리됨)
             CheckStageClear();
             if (!stageCleared && CheckAndHandleDeadlock())
-                ; // 데드락이면 GameOver 연출은 CheckAndHandleDeadlock 내부에서 시작
+            { /* 데드락이면 GameOver 연출은 CheckAndHandleDeadlock 내부에서 시작 */ }
         }
 
         if (isDragging)

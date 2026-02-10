@@ -1,0 +1,9 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="TopBar" style="flex-direction: row; align-items: center; justify-content: space-between; width: 100%; height: auto; min-height: 100px; background-color: rgba(0, 0, 0, 0.5); padding-left: 40px; padding-right: 40px; padding-top: 100px; padding-bottom: 20px;">
+        
+        <ui:Label name="StageLabel" text="STAGE 01" style="-unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Examples%20&amp;%20Extras/Fonts/Oswald-Bold.ttf?fileID=12800000&amp;guid=c9f6d0e7bc8541498c9a4799ba184ede&amp;type=3#Oswald-Bold&quot;); font-size: 40px; color: rgb(0, 255, 255); -unity-font-style: bold;"/>
+
+        <ui:ProgressBar name="GameProgress" value="0" title="Progress" style="width: 300px; height: 30px; color: rgb(255, 255, 255); font-size: 20px;"/>
+        
+    </ui:VisualElement>
+</ui:UXML>
