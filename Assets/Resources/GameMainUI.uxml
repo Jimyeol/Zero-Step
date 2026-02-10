@@ -1,9 +1,21 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <ui:VisualElement name="TopBar" style="flex-direction: row; align-items: center; justify-content: space-between; width: 100%; height: auto; min-height: 100px; background-color: rgba(0, 0, 0, 0.5); padding-left: 40px; padding-right: 40px; padding-top: 100px; padding-bottom: 20px;">
-        
-        <ui:Label name="StageLabel" text="STAGE 01" style="-unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Examples%20&amp;%20Extras/Fonts/Oswald-Bold.ttf?fileID=12800000&amp;guid=c9f6d0e7bc8541498c9a4799ba184ede&amp;type=3#Oswald-Bold&quot;); font-size: 40px; color: rgb(0, 255, 255); -unity-font-style: bold;"/>
 
-        <ui:ProgressBar name="GameProgress" value="0" title="Progress" style="width: 300px; height: 30px; color: rgb(255, 255, 255); font-size: 20px;"/>
-        
+        <!-- 좌측: STAGE / 스테이지 번호 (세로 정렬) -->
+        <ui:VisualElement name="StageContainer" style="flex-direction: column; align-items: flex-start;">
+            <ui:Label name="StageTitle" text="STAGE" style="-unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Examples%20&amp;%20Extras/Fonts/Oswald-Bold.ttf?fileID=12800000&amp;guid=c9f6d0e7bc8541498c9a4799ba184ede&amp;type=3#Oswald-Bold&quot;); font-size: 34px; color: rgb(0, 255, 255); -unity-font-style: bold;"/>
+            <ui:Label name="StageNumber" text="01" style="-unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Examples%20&amp;%20Extras/Fonts/Oswald-Bold.ttf?fileID=12800000&amp;guid=c9f6d0e7bc8541498c9a4799ba184ede&amp;type=3#Oswald-Bold&quot;); font-size: 28px; color: rgb(255, 255, 255); -unity-font-style: bold; margin-top: 4px;"/>
+        </ui:VisualElement>
+
+        <!-- 중앙: 진행도 ProgressBar (맵 전체 카운트 기반, 중앙 정렬) -->
+        <ui:VisualElement name="CenterContainer" style="flex-grow: 1; flex-direction: row; justify-content: center;">
+            <ui:ProgressBar name="GameProgress" value="0" title="" style="width: 320px; height: 30px; color: rgb(255, 255, 255); font-size: 18px;"/>
+        </ui:VisualElement>
+
+        <!-- 우측: 설정 버튼 (동그란 테두리, 배경 없음) -->
+        <ui:Button name="SettingButton" text="" style="width: 56px; height: 56px; background-color: rgba(0, 0, 0, 0); border-left-color: rgb(255, 255, 255); border-right-color: rgb(255, 255, 255); border-top-color: rgb(255, 255, 255); border-bottom-color: rgb(255, 255, 255); border-left-width: 2px; border-right-width: 2px; border-top-width: 2px; border-bottom-width: 2px; border-radius: 999px; justify-content: center; align-items: center; padding-left: 0px; padding-right: 0px; padding-top: 0px; padding-bottom: 0px;">
+            <ui:Image name="SettingIcon" style="width: 32px; height: 32px;"/>
+        </ui:Button>
+
     </ui:VisualElement>
 </ui:UXML>

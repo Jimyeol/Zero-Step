@@ -139,6 +139,12 @@ public class GameManager : MonoBehaviour
     /// <summary>Hidden 타일: groupID별 그룹 (Igniter 트리거 시 활성화용).</summary>
     private Dictionary<string, List<HiddenTile>> hiddenGroups = new Dictionary<string, List<HiddenTile>>();
 
+    [Header("UI Toolkit 상단 UI")]
+    [Tooltip("GameMainUI.uxml을 사용하는 UIDocument가 있는 오브젝트에 붙은 컨트롤러")]
+    [SerializeField] private GameMainUIController mainUI;
+    /// <summary>각 스테이지 시작 시 전체 타일 카운트(합). 진행도 계산용.</summary>
+    private int initialTileCountForUI;
+
     /// <summary>CrossBlastTile·LinkSystem 등에서 그리드 크기 참조용.</summary>
     public int StageWidth => stageWidth;
     public int StageHeight => stageHeight;
@@ -188,6 +194,8 @@ public class GameManager : MonoBehaviour
         SetupSpotlight(data);
         AdjustCameraToFitGrid();
 
+        RefreshMainUIForStage();
+
         if (targetFrameRate > 0)
             Application.targetFrameRate = targetFrameRate;
     }
@@ -221,6 +229,8 @@ public class GameManager : MonoBehaviour
         SetupSpotlight(data);
         AdjustCameraToFitGrid();
         stageCleared = false;
+
+        RefreshMainUIForStage();
     }
 
     private void Update()
@@ -592,6 +602,9 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
+
+        // CrossBlast로 인한 주변 타일 감소 후 진행도 갱신
+        RefreshMainUIProgress();
     }
 
     /// <summary>
@@ -701,6 +714,9 @@ public class GameManager : MonoBehaviour
             if (last.CurrentNumber <= 0)
                 Debug.Log($"[타일 사라짐] ({last.X},{last.Y}) count 0");
         }
+
+        // 타일 숫자/소멸 변경 직후 진행도 갱신
+        RefreshMainUIProgress();
     }
 
     /// <summary>현재 밟은 타일 로그 (디버그용).</summary>
@@ -748,6 +764,31 @@ public class GameManager : MonoBehaviour
         return sum;
     }
 
+    /// <summary>현재 스테이지 기준으로 상단 UI(스테이지/진행도) 초기화.</summary>
+    private void RefreshMainUIForStage()
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI == null)
+            return;
+
+        int total = GetTotalRemainingCount();
+        initialTileCountForUI = Mathf.Max(1, total);
+        mainUI.SetupStage(currentStageIndex, initialTileCountForUI, total);
+    }
+
+    /// <summary>남은 타일 카운트 기준으로 상단 UI ProgressBar 갱신.</summary>
+    private void RefreshMainUIProgress()
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI == null || initialTileCountForUI <= 0)
+            return;
+
+        int remaining = GetTotalRemainingCount();
+        mainUI.UpdateProgress(remaining);
+    }
+
     /// <summary>승리 조건: 남은 합이 1이고, 그 1이 현재 밟은 타일(B)의 카운트면 즉시 클리어. 해당 타일 0으로 만든 뒤 승리 연출.</summary>
     private bool CheckVictoryCondition(Tile currentTile)
     {
@@ -755,6 +796,8 @@ public class GameManager : MonoBehaviour
         int totalRemaining = GetTotalRemainingCount();
         if (totalRemaining != 1 || currentTile.CurrentNumber != 1) return false;
         currentTile.DecreaseNumber();
+        // 마지막 타일 감소도 진행도에 반영
+        RefreshMainUIProgress();
         stageCleared = true;
         Debug.Log("Clear");
         StartCoroutine(LoadNextStageAfterDelay());
@@ -842,6 +885,8 @@ public class GameManager : MonoBehaviour
         }
         currentPath.Clear();
         SetNeonTrailEmitting(false);
+
+        RefreshMainUIProgress();
     }
 
     private IEnumerator PathLitClearAfterDelayRoutine(float delay)
@@ -1115,6 +1160,9 @@ public class GameManager : MonoBehaviour
         if (linkSystem != null && tiles != null)
             linkSystem.CreateLinksForCrossBlastOnly(tiles, stageWidth, stageHeight);
 
+        // 게임오버 후 리셋이 끝나면 진행도/스테이지 UI도 초기 상태로 복원
+        RefreshMainUIForStage();
+
         isGameOverSequencePlaying = false;
     }
 
@@ -1156,6 +1204,8 @@ public class GameManager : MonoBehaviour
         SetupSpotlight(data);
         AdjustCameraToFitGrid();
         stageCleared = false;
+
+        RefreshMainUIForStage();
     }
 
     private void ClearTiles()
