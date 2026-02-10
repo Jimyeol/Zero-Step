@@ -17,6 +17,13 @@ public class GameMainUIController : MonoBehaviour
     private Button settingButton;
     private Image settingIcon;
 
+    private Button skipButton;
+    private Image skipIcon;
+    private Button resetButton;
+    private Image resetIcon;
+    private Button blockAdsButton;
+    private Image blockIcon;
+
     /// <summary>현재 스테이지 시작 시 전체 타일 카운트(합).</summary>
     private int initialTileCount;
 
@@ -38,6 +45,13 @@ public class GameMainUIController : MonoBehaviour
         gameProgressBar = root.Q<ProgressBar>("GameProgress");
         settingButton = root.Q<Button>("SettingButton");
         settingIcon = root.Q<Image>("SettingIcon");
+
+        skipButton = root.Q<Button>("SkipButton");
+        skipIcon = root.Q<Image>("SkipIcon");
+        resetButton = root.Q<Button>("ResetButton");
+        resetIcon = root.Q<Image>("ResetIcon");
+        blockAdsButton = root.Q<Button>("BlockAdsButton");
+        blockIcon = root.Q<Image>("BlockIcon");
 
         if (gameProgressBar != null)
         {
@@ -70,6 +84,39 @@ public class GameMainUIController : MonoBehaviour
                 Debug.Log("설정화면 이동");
             };
         }
+
+        // 하단 스킵/리셋/광고제거 버튼 아이콘 및 클릭 로그
+        if (skipIcon != null)
+        {
+            Sprite sprite = Resources.Load<Sprite>("Sprites/skip");
+            if (sprite != null)
+                skipIcon.sprite = sprite;
+            else
+                Debug.LogWarning("[GameMainUIController] Resources/Sprites/skip.png 스프라이트를 찾을 수 없습니다.");
+        }
+        if (resetIcon != null)
+        {
+            Sprite sprite = Resources.Load<Sprite>("Sprites/reset");
+            if (sprite != null)
+                resetIcon.sprite = sprite;
+            else
+                Debug.LogWarning("[GameMainUIController] Resources/Sprites/reset.png 스프라이트를 찾을 수 없습니다.");
+        }
+        if (blockIcon != null)
+        {
+            Sprite sprite = Resources.Load<Sprite>("Sprites/block");
+            if (sprite != null)
+                blockIcon.sprite = sprite;
+            else
+                Debug.LogWarning("[GameMainUIController] Resources/Sprites/block.png 스프라이트를 찾을 수 없습니다.");
+        }
+
+        if (skipButton != null)
+            skipButton.clicked += () => Debug.Log("스테이지 스킵됨");
+        if (resetButton != null)
+            resetButton.clicked += () => Debug.Log("스테이지 리셋됨");
+        if (blockAdsButton != null)
+            blockAdsButton.clicked += () => Debug.Log("광고 제거");
     }
 
     /// <summary>스테이지 번호 및 전체 카운트로 상단 UI 초기화.</summary>
