@@ -394,6 +394,7 @@ GameObject:
   m_Component:
   - component: {fileID: 581379327}
   - component: {fileID: 581379326}
+  - component: {fileID: 581379328}
   m_Layer: 0
   m_Name: UI
   m_TagString: Untagged
@@ -439,6 +440,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &581379328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 581379325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4a74b3f08b1f47b0bdfaa51bd024020, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameMainUIController
+  uiDocument: {fileID: 581379326}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -902,6 +916,9 @@ MonoBehaviour:
   vignetteReturnDuration: 0.6
   vignetteMaxIntensity: 0.85
   vignetteDefaultIntensity: 0
+  uiTopMarginNormalized: 0.22
+  uiBottomMarginNormalized: 0.18
+  mainUI: {fileID: 0}
   blindCurtainFlipDuration: 0.05
   blindCurtainRowInterval: 0.01
 --- !u!4 &1919529855

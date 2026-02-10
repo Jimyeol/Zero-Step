@@ -100,6 +100,12 @@ public class GameManager : MonoBehaviour
     [Tooltip("평소 Vignette 강도 (기본 암막 크기). 0이면 효과 없음")]
     [SerializeField] [Range(0f, 1f)] private float vignetteDefaultIntensity = 0f;
 
+    [Header("카메라 UI 여백")]
+    [Tooltip("상단 UI(TopBar) 높이에 대응하는 화면 비율 (0~0.4 정도 권장)")]
+    [SerializeField] [Range(0f, 0.4f)] private float uiTopMarginNormalized = 0.22f;
+    [Tooltip("하단 버튼 바(BottomBar) 높이에 대응하는 화면 비율 (0~0.4 정도 권장)")]
+    [SerializeField] [Range(0f, 0.4f)] private float uiBottomMarginNormalized = 0.18f;
+
     private int currentStageIndex;
     private float tileWidth;
     private float tileHeight;
@@ -1377,11 +1383,19 @@ public class GameManager : MonoBehaviour
     {
         if (mainCamera == null || !mainCamera.orthographic) return;
         float aspect = (float)Screen.width / Screen.height;
-        float sizeByHeight = totalGridHeight * 0.5f * fitMargin;
+
+        // 뷰포트를 자르지 않고 전체 화면을 써서 발광(블룸)이 경계에서 잘리지 않도록 함.
+        // 대신 orthographicSize를 키워 그리드가 상·하단 UI 사이 '중앙 밴드'에만 들어가게 함.
+        float top = Mathf.Clamp01(uiTopMarginNormalized);
+        float bottom = Mathf.Clamp01(uiBottomMarginNormalized);
+        float centerBandHeight = Mathf.Clamp(1f - top - bottom, 0.2f, 1f);
+
+        float sizeByHeight = (totalGridHeight * 0.5f * fitMargin) / centerBandHeight;
         float sizeByWidth = (totalGridWidth * 0.5f) / aspect * fitMargin;
         float fitSize = Mathf.Max(sizeByHeight, sizeByWidth);
         mainCamera.orthographicSize = fitSize * screenEdgePadding;
         mainCamera.transform.position = new Vector3(0f, 0f, mainCamera.transform.position.z);
+        mainCamera.rect = new Rect(0f, 0f, 1f, 1f);
     }
 
     /// <summary>

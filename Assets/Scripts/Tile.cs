@@ -72,6 +72,9 @@ public class Tile : MonoBehaviour
     /// <summary>TwinLink 타일용. 설정 시 숫자 색상/발광을 이 색으로 고정.</summary>
     private Color? numberColorOverride;
 
+    /// <summary>타일 -1 시 파티클 개수 배율 (1.3 = 30% 증가).</summary>
+    private const float HitEffectParticleCountScale = 1.3f;
+
     private void Awake()
     {
         if (spriteRenderer == null)
@@ -83,6 +86,31 @@ public class Tile : MonoBehaviour
 
         if (numberText == null)
             numberText = GetComponentInChildren<TMP_Text>(true);
+
+        // hitEffect 파티클 개수를 1.3배로 적용 (burst 한 번만 스케일)
+        ScaleHitEffectEmission(HitEffectParticleCountScale);
+    }
+
+    /// <summary>hitEffect의 emission burst 개수를 지정 배율로 한 번 스케일.</summary>
+    private void ScaleHitEffectEmission(float scale)
+    {
+        if (hitEffect == null || scale <= 0f) return;
+        var emission = hitEffect.emission;
+        if (!emission.enabled) return;
+        int burstCount = emission.burstCount;
+        if (burstCount == 0) return;
+        var bursts = new ParticleSystem.Burst[burstCount];
+        emission.GetBursts(bursts);
+        for (int i = 0; i < burstCount; i++)
+        {
+            ParticleSystem.Burst b = bursts[i];
+            var countCurve = b.count;
+            float minC = countCurve.constantMin;
+            float maxC = countCurve.constantMax;
+            b.count = new ParticleSystem.MinMaxCurve(Mathf.Max(1f, minC * scale), Mathf.Max(1f, maxC * scale));
+            bursts[i] = b;
+        }
+        emission.SetBursts(bursts);
     }
 
     /// <summary>
@@ -348,13 +376,18 @@ public class Tile : MonoBehaviour
     {
         if (currentNumber <= 0)
             return;
+
+        // 1→0일 때도 파티클이 2→1처럼 선명하게: SetNumber(0) 후에는 타일 색이 어두워지므로,
+        // 감소 전 밝은 색을 미리 저장해 두고 파티클에 적용.
+        Color particleColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
+
         SetNumber(currentNumber - 1);
         PlayTensionAnimation();
 
         if (hitEffect != null)
         {
             var main = hitEffect.main;
-            main.startColor = spriteRenderer != null ? new ParticleSystem.MinMaxGradient(spriteRenderer.color) : new ParticleSystem.MinMaxGradient(Color.white);
+            main.startColor = new ParticleSystem.MinMaxGradient(particleColor);
             hitEffect.Play();
         }
     }
