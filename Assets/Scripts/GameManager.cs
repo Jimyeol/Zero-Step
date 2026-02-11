@@ -1173,6 +1173,82 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 현재 스테이지를 초기 상태로 리셋 (ResetButton 등에서 호출). 게임오버 연출 없이 타일 복원 + 순차 등장.
+    /// </summary>
+    public void ResetCurrentStage()
+    {
+        if (isGameOverSequencePlaying || tiles == null) return;
+        isGameOverSequencePlaying = true;
+        StartCoroutine(ResetCurrentStageRoutine());
+    }
+
+    private IEnumerator ResetCurrentStageRoutine()
+    {
+        totalStepsCommitted = 0;
+        ResetTrail();
+        linkSystem?.ClearLinks();
+        currentPath.Clear();
+        isDragging = false;
+        SetNeonTrailEmitting(false);
+
+        for (int row = 0; row < stageHeight; row++)
+        {
+            for (int col = 0; col < stageWidth; col++)
+            {
+                if (tiles[row, col] == null) continue;
+                Tile t = tiles[row, col];
+                t.ResetToInitial();
+                var hidden = t.GetComponent<HiddenTile>();
+                var igniter = t.GetComponent<IgniterTile>();
+                if (hidden != null)
+                    hidden.ResetToHiddenState();
+                else if (igniter != null)
+                    igniter.ResetToInitialState();
+                if (hidden == null)
+                    t.SetScaleZero();
+                var fixedKnot = t.GetComponent<FixedKnotTile>();
+                if (fixedKnot != null) fixedKnot.ResetGearVisibility();
+            }
+        }
+
+        for (int row = stageHeight - 1; row >= 0; row--)
+        {
+            for (int col = 0; col < stageWidth; col++)
+            {
+                if (tiles[row, col] == null) continue;
+                var hidden = tiles[row, col].GetComponent<HiddenTile>();
+                if (hidden != null) continue;
+                yield return new WaitForSeconds(tileAppearInterval);
+                tiles[row, col].PlayBounceAppearance();
+                var igniter = tiles[row, col].GetComponent<IgniterTile>();
+                if (igniter != null)
+                    igniter.EnsureNumberHidden();
+            }
+        }
+
+        if (currentStartTile != null)
+            currentStartTile.ClearScaleOverride();
+        if (tiles != null && initialStartTileRow >= 0 && initialStartTileRow < stageHeight &&
+            initialStartTileCol >= 0 && initialStartTileCol < stageWidth)
+        {
+            Tile initialStart = tiles[initialStartTileRow, initialStartTileCol];
+            if (initialStart != null)
+            {
+                currentStartTile = initialStart;
+                currentStartTile.SetInitialStartTile(true);
+                if (spotlightController != null)
+                    spotlightController.ResetRevealedToStartOnly(initialStart.transform.position);
+            }
+        }
+
+        if (linkSystem != null && tiles != null)
+            linkSystem.CreateLinksForCrossBlastOnly(tiles, stageWidth, stageHeight);
+
+        RefreshMainUIForStage();
+        isGameOverSequencePlaying = false;
+    }
+
+    /// <summary>
     /// 모든 타일(특수 타일 포함)이 0이면 클리어. 로그 "Clear" 후 다음 스테이지.
     /// </summary>
     private void CheckStageClear()

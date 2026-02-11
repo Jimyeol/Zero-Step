@@ -114,9 +114,19 @@ public class GameMainUIController : MonoBehaviour
         if (skipButton != null)
             skipButton.clicked += () => Debug.Log("스테이지 스킵됨");
         if (resetButton != null)
-            resetButton.clicked += () => Debug.Log("스테이지 리셋됨");
+            resetButton.clicked += OnResetClicked;
         if (blockAdsButton != null)
             blockAdsButton.clicked += () => Debug.Log("광고 제거");
+    }
+
+    /// <summary>리셋 버튼 클릭: 현재 스테이지를 초기 상태로 복원.</summary>
+    private void OnResetClicked()
+    {
+        var gm = FindFirstObjectByType<GameManager>();
+        if (gm != null)
+            gm.ResetCurrentStage();
+        else
+            Debug.Log("스테이지 리셋됨 (GameManager 없음)");
     }
 
     /// <summary>스테이지 번호 및 전체 카운트로 상단 UI 초기화.</summary>
