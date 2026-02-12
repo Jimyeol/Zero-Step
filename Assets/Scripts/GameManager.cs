@@ -76,6 +76,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int startStageIndex = 1;
     [SerializeField] private float nextStageDelay = 1.5f;
 
+    /// <summary>Easy Save 3 진행도 저장 키. 앱 재실행 시 이 스테이지부터 시작.</summary>
+    private const string SaveKeyStage = "StageProgress";
+
     [Header("성능 (모바일 FPS)")]
     [Tooltip("목표 FPS. 60 권장, -1이면 디바이스 기본값")]
     [SerializeField] private int targetFrameRate = 60;
@@ -189,7 +192,8 @@ public class GameManager : MonoBehaviour
         CreateNeonTrail();
         CacheTileSizeFromPrefab();
 
-        currentStageIndex = startStageIndex;
+        // 저장된 진행도가 있으면 해당 스테이지부터, 없으면 startStageIndex부터
+        currentStageIndex = LoadSavedStageIndex();
         totalStepsCommitted = 0;
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data != null)
@@ -237,6 +241,7 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
 
         RefreshMainUIForStage();
+        SaveStageProgress();
     }
 
     private void Update()
@@ -1288,6 +1293,46 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
 
         RefreshMainUIForStage();
+        SaveStageProgress();
+    }
+
+    /// <summary>Easy Save 3로 현재 스테이지 인덱스 저장. 클리어 후·앱 종료/일시정지 시 호출.</summary>
+    private void SaveStageProgress()
+    {
+        try
+        {
+            ES3.Save(SaveKeyStage, currentStageIndex);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameManager] 진행도 저장 실패: {e.Message}");
+        }
+    }
+
+    /// <summary>저장된 스테이지 인덱스 로드. 없으면 startStageIndex 반환.</summary>
+    private int LoadSavedStageIndex()
+    {
+        try
+        {
+            if (ES3.KeyExists(SaveKeyStage))
+                return ES3.Load<int>(SaveKeyStage);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameManager] 진행도 로드 실패: {e.Message}");
+        }
+        return startStageIndex;
+    }
+
+    private void OnApplicationPause(bool pause)
+    {
+        if (pause)
+            SaveStageProgress();
+    }
+
+    private void OnApplicationQuit()
+    {
+        SaveStageProgress();
     }
 
     private void ClearTiles()
