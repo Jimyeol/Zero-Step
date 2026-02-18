@@ -1,0 +1,43 @@
+/* ProgressBar fill must exactly match background height with no bottom gap. */
+#GameProgress {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+#GameProgress > .unity-progress-bar__container,
+#GameProgress > .unity-progress-bar__background {
+    margin: 0;
+    padding: 0;
+    position: relative;
+    height: 100%;
+    min-height: 100%;
+    max-height: 100%;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: stretch;
+}
+
+#GameProgress .unity-progress-bar__progress {
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    min-height: 100%;
+    max-height: 100%;
+    align-self: stretch;
+}
+
+#GameProgress .unity-progress-bar__progress > * {
+    margin: 0;
+    padding: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    min-height: 100%;
+    max-height: 100%;
+}

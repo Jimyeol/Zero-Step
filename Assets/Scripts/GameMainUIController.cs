@@ -26,6 +26,10 @@ public class GameMainUIController : MonoBehaviour
     private VisualElement settingPopupOverlay;
     private Button settingCloseButton;
     private bool isSettingPopupOpen;
+    [Header("ProgressBar Animation")]
+    [SerializeField] private float progressAnimDuration = 0.25f;
+    private float displayedProgressValue;
+    private Coroutine progressAnimRoutine;
 
     /// <summary>현재 스테이지 시작 시 전체 타일 카운트(합).</summary>
     private int initialTileCount;
@@ -43,6 +47,10 @@ public class GameMainUIController : MonoBehaviour
         }
 
         VisualElement root = uiDocument.rootVisualElement;
+        StyleSheet mainStyleSheet = Resources.Load<StyleSheet>("GameMainUI");
+        if (mainStyleSheet != null && !root.styleSheets.Contains(mainStyleSheet))
+            root.styleSheets.Add(mainStyleSheet);
+
         stageTitleLabel = root.Q<Label>("StageTitle");
         stageNumberLabel = root.Q<Label>("StageNumber");
         gameProgressBar = root.Q<ProgressBar>("GameProgress");
@@ -67,7 +75,49 @@ public class GameMainUIController : MonoBehaviour
             gameProgressBar.lowValue = 0f;
             gameProgressBar.highValue = 1f;
             gameProgressBar.value = 0f;
+            displayedProgressValue = 0f;
             gameProgressBar.title = string.Empty;
+            gameProgressBar.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, 0f));
+            gameProgressBar.style.borderLeftColor = Color.white;
+            gameProgressBar.style.borderRightColor = Color.white;
+            gameProgressBar.style.borderTopColor = Color.white;
+            gameProgressBar.style.borderBottomColor = Color.white;
+            gameProgressBar.style.borderLeftWidth = 3f;
+            gameProgressBar.style.borderRightWidth = 3f;
+            gameProgressBar.style.borderTopWidth = 3f;
+            gameProgressBar.style.borderBottomWidth = 3f;
+
+            VisualElement progressBackground = gameProgressBar.Q(className: ProgressBar.backgroundUssClassName);
+            if (progressBackground != null)
+            {
+                progressBackground.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, 0f));
+                progressBackground.style.marginTop = 0f;
+                progressBackground.style.marginBottom = 0f;
+                progressBackground.style.marginLeft = 0f;
+                progressBackground.style.marginRight = 0f;
+                progressBackground.style.paddingTop = 0f;
+                progressBackground.style.paddingBottom = 0f;
+                progressBackground.style.paddingLeft = 0f;
+                progressBackground.style.paddingRight = 0f;
+                progressBackground.style.height = Length.Percent(100);
+            }
+
+            VisualElement progressFill = gameProgressBar.Q(className: ProgressBar.progressUssClassName);
+            if (progressFill != null)
+            {
+                progressFill.style.backgroundColor = new StyleColor(Color.white);
+                progressFill.style.marginTop = 0f;
+                progressFill.style.marginBottom = 0f;
+                progressFill.style.marginLeft = 0f;
+                progressFill.style.marginRight = 0f;
+                progressFill.style.paddingTop = 0f;
+                progressFill.style.paddingBottom = 0f;
+                progressFill.style.height = Length.Percent(100);
+            }
+
+            Label progressTitle = gameProgressBar.Q<Label>(className: ProgressBar.titleUssClassName);
+            if (progressTitle != null)
+                progressTitle.style.display = DisplayStyle.None;
         }
 
         // 설정 버튼: 아이콘 스프라이트 로드 + 클릭 이벤트
@@ -181,13 +231,34 @@ public class GameMainUIController : MonoBehaviour
         if (gameProgressBar == null || initialTileCount <= 0)
             return;
 
-        int used = Mathf.Clamp(initialTileCount - remainingCount, 0, initialTileCount);
+        float used = Mathf.Clamp(initialTileCount - remainingCount, 0, initialTileCount);
         gameProgressBar.lowValue = 0f;
         gameProgressBar.highValue = initialTileCount;
-        gameProgressBar.value = used;
+        gameProgressBar.title = string.Empty;
 
-        // 제목에는 사용 수/전체 수와 퍼센트 표시
-        float percent = initialTileCount > 0 ? (float)used / initialTileCount * 100f : 0f;
-        gameProgressBar.title = $"{used}/{initialTileCount} ({percent:0}%)";
+        if (progressAnimRoutine != null)
+            StopCoroutine(progressAnimRoutine);
+        progressAnimRoutine = StartCoroutine(AnimateProgressTo(used));
+    }
+
+    private System.Collections.IEnumerator AnimateProgressTo(float targetValue)
+    {
+        float startValue = displayedProgressValue;
+        float duration = Mathf.Max(0.01f, progressAnimDuration);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            t = t * t * (3f - 2f * t);
+            displayedProgressValue = Mathf.Lerp(startValue, targetValue, t);
+            gameProgressBar.value = displayedProgressValue;
+            yield return null;
+        }
+
+        displayedProgressValue = targetValue;
+        gameProgressBar.value = displayedProgressValue;
+        progressAnimRoutine = null;
     }
 }
