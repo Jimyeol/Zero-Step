@@ -23,6 +23,9 @@ public class GameMainUIController : MonoBehaviour
     private Image resetIcon;
     private Button blockAdsButton;
     private Image blockIcon;
+    private VisualElement settingPopupOverlay;
+    private Button settingCloseButton;
+    private bool isSettingPopupOpen;
 
     /// <summary>현재 스테이지 시작 시 전체 타일 카운트(합).</summary>
     private int initialTileCount;
@@ -52,6 +55,11 @@ public class GameMainUIController : MonoBehaviour
         resetIcon = root.Q<Image>("ResetIcon");
         blockAdsButton = root.Q<Button>("BlockAdsButton");
         blockIcon = root.Q<Image>("BlockIcon");
+        settingPopupOverlay = root.Q<VisualElement>("SettingPopupOverlay");
+        settingCloseButton = root.Q<Button>("SettingCloseButton");
+
+        if (settingPopupOverlay != null)
+            settingPopupOverlay.style.display = DisplayStyle.None;
 
         if (gameProgressBar != null)
         {
@@ -81,9 +89,12 @@ public class GameMainUIController : MonoBehaviour
         {
             settingButton.clicked += () =>
             {
-                Debug.Log("설정화면 이동");
+                ShowSettingPopup();
             };
         }
+
+        if (settingCloseButton != null)
+            settingCloseButton.clicked += HideSettingPopup;
 
         // 하단 스킵/리셋/광고제거 버튼 아이콘 및 클릭 로그
         if (skipIcon != null)
@@ -129,6 +140,27 @@ public class GameMainUIController : MonoBehaviour
             Debug.Log("스테이지 리셋됨 (GameManager 없음)");
     }
 
+    private void ShowSettingPopup()
+    {
+        if (settingPopupOverlay != null)
+        {
+            settingPopupOverlay.style.display = DisplayStyle.Flex;
+            isSettingPopupOpen = true;
+        }
+    }
+
+    private void HideSettingPopup()
+    {
+        if (settingPopupOverlay != null)
+        {
+            settingPopupOverlay.style.display = DisplayStyle.None;
+            isSettingPopupOpen = false;
+        }
+    }
+
+    /// <summary>설정 팝업이 열려 있으면 게임 입력 차단에 사용.</summary>
+    public bool IsSettingPopupOpen => isSettingPopupOpen;
+
     /// <summary>스테이지 번호 및 전체 카운트로 상단 UI 초기화.</summary>
     public void SetupStage(int stageIndex, int totalCount, int remainingCount)
     {
@@ -159,4 +191,3 @@ public class GameMainUIController : MonoBehaviour
         gameProgressBar.title = $"{used}/{initialTileCount} ({percent:0}%)";
     }
 }
-

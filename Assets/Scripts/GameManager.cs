@@ -249,6 +249,20 @@ public class GameManager : MonoBehaviour
         if (stageCleared || isGameOverSequencePlaying)
             return;
 
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI != null && mainUI.IsSettingPopupOpen)
+        {
+            if (isDragging)
+            {
+                isDragging = false;
+                currentPath.Clear();
+                ResetTrail();
+                linkSystem?.ClearPathLit();
+            }
+            return;
+        }
+
         UpdateDragAndPath();
     }
 
