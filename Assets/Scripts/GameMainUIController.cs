@@ -26,6 +26,26 @@ public class GameMainUIController : MonoBehaviour
     private VisualElement settingPopupOverlay;
     private Button settingCloseButton;
     private bool isSettingPopupOpen;
+
+    private Button soundSwitchButton;
+    private Label soundSwitchLabel;
+    private Button vibrationSwitchButton;
+    private Label vibrationSwitchLabel;
+    private Image soundIcon;
+    private Image vibrationIcon;
+    private Image helpIcon;
+    private Image languageIcon;
+
+    private Button helpButton;
+    private Button languageButton;
+    private Button rateButton;
+    private Button removeAdsButton;
+    private Button emailButton;
+    private Button resetDataButton;
+    private Button privacyPolicyButton;
+    private Button termsButton;
+    private bool isSoundOn = true;
+    private bool isVibrationOn = true;
     [Header("ProgressBar Animation")]
     [SerializeField] private float progressAnimDuration = 0.25f;
     private float displayedProgressValue;
@@ -65,6 +85,22 @@ public class GameMainUIController : MonoBehaviour
         blockIcon = root.Q<Image>("BlockIcon");
         settingPopupOverlay = root.Q<VisualElement>("SettingPopupOverlay");
         settingCloseButton = root.Q<Button>("SettingCloseButton");
+        soundSwitchButton = root.Q<Button>("SoundSwitchButton");
+        soundSwitchLabel = root.Q<Label>("SoundSwitchLabel");
+        vibrationSwitchButton = root.Q<Button>("VibrationSwitchButton");
+        vibrationSwitchLabel = root.Q<Label>("VibrationSwitchLabel");
+        soundIcon = root.Q<Image>("SoundIcon");
+        vibrationIcon = root.Q<Image>("VibrationIcon");
+        helpIcon = root.Q<Image>("HelpIcon");
+        languageIcon = root.Q<Image>("LanguageIcon");
+        helpButton = root.Q<Button>("HelpButton");
+        languageButton = root.Q<Button>("LanguageButton");
+        rateButton = root.Q<Button>("RateButton");
+        removeAdsButton = root.Q<Button>("RemoveAdsButton");
+        emailButton = root.Q<Button>("EmailButton");
+        resetDataButton = root.Q<Button>("ResetDataButton");
+        privacyPolicyButton = root.Q<Button>("PrivacyPolicyButton");
+        termsButton = root.Q<Button>("TermsButton");
 
         if (settingPopupOverlay != null)
             settingPopupOverlay.style.display = DisplayStyle.None;
@@ -146,6 +182,36 @@ public class GameMainUIController : MonoBehaviour
         if (settingCloseButton != null)
             settingCloseButton.clicked += HideSettingPopup;
 
+        AssignSprite(soundIcon, "Sprites/sound", "sound.png");
+        AssignSprite(vibrationIcon, "Sprites/vibrate", "vibrate.png");
+        AssignSprite(helpIcon, "Sprites/help", "help.png");
+        AssignSprite(languageIcon, "Sprites/global", "global.png");
+
+        RefreshSoundSwitchVisual();
+        RefreshVibrationSwitchVisual();
+
+        if (soundSwitchButton != null)
+            soundSwitchButton.clicked += ToggleSoundSwitch;
+        if (vibrationSwitchButton != null)
+            vibrationSwitchButton.clicked += ToggleVibrationSwitch;
+
+        if (helpButton != null)
+            helpButton.clicked += () => Debug.Log("도움말 열기");
+        if (languageButton != null)
+            languageButton.clicked += () => Debug.Log("언어 변경 열기");
+        if (rateButton != null)
+            rateButton.clicked += () => Debug.Log("평가하기 클릭");
+        if (removeAdsButton != null)
+            removeAdsButton.clicked += () => Debug.Log("광고 제거 클릭");
+        if (emailButton != null)
+            emailButton.clicked += () => Debug.Log("개발자 이메일 보내기 클릭");
+        if (resetDataButton != null)
+            resetDataButton.clicked += () => Debug.Log("데이터 초기화 클릭");
+        if (privacyPolicyButton != null)
+            privacyPolicyButton.clicked += () => Debug.Log("개인정보처리방침 열기");
+        if (termsButton != null)
+            termsButton.clicked += () => Debug.Log("이용약관 열기");
+
         // 하단 스킵/리셋/광고제거 버튼 아이콘 및 클릭 로그
         if (skipIcon != null)
         {
@@ -210,6 +276,59 @@ public class GameMainUIController : MonoBehaviour
 
     /// <summary>설정 팝업이 열려 있으면 게임 입력 차단에 사용.</summary>
     public bool IsSettingPopupOpen => isSettingPopupOpen;
+
+    private void ToggleSoundSwitch()
+    {
+        isSoundOn = !isSoundOn;
+        RefreshSoundSwitchVisual();
+        Debug.Log(isSoundOn ? "소리 ON" : "소리 OFF");
+    }
+
+    private void ToggleVibrationSwitch()
+    {
+        isVibrationOn = !isVibrationOn;
+        RefreshVibrationSwitchVisual();
+        Debug.Log(isVibrationOn ? "진동 ON" : "진동 OFF");
+    }
+
+    private void RefreshSoundSwitchVisual()
+    {
+        if (soundSwitchButton == null)
+            return;
+        soundSwitchButton.EnableInClassList("settings-switch-on", isSoundOn);
+        soundSwitchButton.EnableInClassList("settings-switch-off", !isSoundOn);
+        if (soundSwitchLabel != null)
+            soundSwitchLabel.text = isSoundOn ? "ON" : "OFF";
+    }
+
+    private void RefreshVibrationSwitchVisual()
+    {
+        if (vibrationSwitchButton == null)
+            return;
+        vibrationSwitchButton.EnableInClassList("settings-switch-on", isVibrationOn);
+        vibrationSwitchButton.EnableInClassList("settings-switch-off", !isVibrationOn);
+        if (vibrationSwitchLabel != null)
+            vibrationSwitchLabel.text = isVibrationOn ? "ON" : "OFF";
+    }
+
+    private void AssignSprite(Image targetImage, string resourcePath, string fileName)
+    {
+        if (targetImage == null)
+            return;
+        Sprite sprite = Resources.Load<Sprite>(resourcePath);
+        if (sprite != null)
+        {
+            targetImage.sprite = null;
+            targetImage.image = sprite.texture;
+            targetImage.scaleMode = ScaleMode.ScaleToFit;
+            targetImage.style.overflow = Overflow.Visible;
+            targetImage.style.width = 44f;
+            targetImage.style.height = 44f;
+            targetImage.uv = new Rect(0f, 0f, 1f, 1f);
+        }
+        else
+            Debug.LogWarning($"[GameMainUIController] Resources/{resourcePath} ({fileName}) 스프라이트를 찾을 수 없습니다.");
+    }
 
     /// <summary>스테이지 번호 및 전체 카운트로 상단 UI 초기화.</summary>
     public void SetupStage(int stageIndex, int totalCount, int remainingCount)

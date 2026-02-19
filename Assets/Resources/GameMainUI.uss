@@ -41,3 +41,100 @@
     min-height: 100%;
     max-height: 100%;
 }
+
+/* Settings Popup Visual Language */
+#SettingPopupPanel {
+    -unity-font-definition: url("project://database/Assets/Fonts/Orbitron-Medium.ttf?fileID=12800000&guid=d788a3059e71747c680a1ce1e963cd99&type=3#Orbitron-Medium");
+}
+
+#SettingScrollView {
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+#SettingScrollView .unity-scroller--vertical {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    opacity: 0;
+}
+
+#SettingScrollView .unity-scroll-view__content-and-vertical-scroll-container {
+    padding-right: 0;
+    margin-right: 0;
+}
+
+#SettingPopupPanel Button {
+    transition-property: background-color, border-left-color, border-right-color, border-top-color, border-bottom-color;
+    transition-duration: 0.12s;
+}
+
+#SettingPopupPanel Button:hover {
+    background-color: rgba(120, 220, 255, 0.12);
+    border-left-color: rgba(180, 244, 255, 0.9);
+    border-right-color: rgba(180, 244, 255, 0.9);
+    border-top-color: rgba(180, 244, 255, 0.9);
+    border-bottom-color: rgba(180, 244, 255, 0.9);
+}
+
+.settings-icon {
+    width: 44px;
+    height: 44px;
+    -unity-background-scale-mode: scale-to-fit;
+    overflow: visible;
+    flex-shrink: 0;
+}
+
+.settings-switch {
+    width: 126px;
+    height: 48px;
+    border-radius: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+}
+
+.settings-switch-on {
+    background-color: rgba(70, 236, 182, 0.24);
+    border-left-color: rgba(129, 255, 215, 0.9);
+    border-right-color: rgba(129, 255, 215, 0.9);
+    border-top-color: rgba(129, 255, 215, 0.9);
+    border-bottom-color: rgba(129, 255, 215, 0.9);
+}
+
+.settings-switch-off {
+    background-color: rgba(255, 128, 128, 0.2);
+    border-left-color: rgba(255, 166, 166, 0.85);
+    border-right-color: rgba(255, 166, 166, 0.85);
+    border-top-color: rgba(255, 166, 166, 0.85);
+    border-bottom-color: rgba(255, 166, 166, 0.85);
+}
+
+.settings-switch-label {
+    font-size: 18px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.settings-switch-knob {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background-color: rgb(255, 255, 255);
+}
+
+.settings-switch-on .settings-switch-knob {
+    background-color: rgba(212, 255, 238, 1);
+}
+
+.settings-switch-off .settings-switch-knob {
+    background-color: rgba(255, 234, 234, 1);
+}
