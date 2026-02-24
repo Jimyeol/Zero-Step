@@ -189,6 +189,7 @@ public class GameMainUIController : MonoBehaviour
 
         RefreshSoundSwitchVisual();
         RefreshVibrationSwitchVisual();
+        ApplySoundSwitchToAudioListener();
 
         if (soundSwitchButton != null)
             soundSwitchButton.clicked += ToggleSoundSwitch;
@@ -239,11 +240,21 @@ public class GameMainUIController : MonoBehaviour
         }
 
         if (skipButton != null)
-            skipButton.clicked += () => Debug.Log("스테이지 스킵됨");
+            skipButton.clicked += OnSkipClicked;
         if (resetButton != null)
             resetButton.clicked += OnResetClicked;
         if (blockAdsButton != null)
             blockAdsButton.clicked += () => Debug.Log("광고 제거");
+    }
+
+    /// <summary>스킵 버튼 클릭: 현재 스테이지를 건너뛰고 즉시 다음 스테이지 로드.</summary>
+    private void OnSkipClicked()
+    {
+        var gm = FindFirstObjectByType<GameManager>();
+        if (gm != null)
+            gm.LoadNextStageImmediate();
+        else
+            Debug.Log("스테이지 스킵됨 (GameManager 없음)");
     }
 
     /// <summary>리셋 버튼 클릭: 현재 스테이지를 초기 상태로 복원.</summary>
@@ -281,6 +292,7 @@ public class GameMainUIController : MonoBehaviour
     {
         isSoundOn = !isSoundOn;
         RefreshSoundSwitchVisual();
+        ApplySoundSwitchToAudioListener();
         Debug.Log(isSoundOn ? "소리 ON" : "소리 OFF");
     }
 
@@ -309,6 +321,11 @@ public class GameMainUIController : MonoBehaviour
         vibrationSwitchButton.EnableInClassList("settings-switch-off", !isVibrationOn);
         if (vibrationSwitchLabel != null)
             vibrationSwitchLabel.text = isVibrationOn ? "ON" : "OFF";
+    }
+
+    private void ApplySoundSwitchToAudioListener()
+    {
+        AudioListener.volume = isSoundOn ? 1f : 0f;
     }
 
     private void AssignSprite(Image targetImage, string resourcePath, string fileName)

@@ -9,6 +9,9 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using DG.Tweening;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 /// <summary>
 /// 네온 퍼즐 게임 매니저: JSON 스테이지 로드, 그리드 생성(count==0 스킵), 드래그 경로, Line Renderer, Stage Clear 시 다음 스테이지.
@@ -75,6 +78,34 @@ public class GameManager : MonoBehaviour
     [Header("스테이지")]
     [SerializeField] private int startStageIndex = 1;
     [SerializeField] private float nextStageDelay = 1.5f;
+
+    [Header("사운드")]
+    [Tooltip("블록 count가 -1 될 때 재생되는 음 볼륨")]
+    [SerializeField] [Range(0f, 1f)] private float blockNoteVolume = 0.9f;
+    [Tooltip("clear/fail/new stage 효과음 볼륨")]
+    [SerializeField] [Range(0f, 1f)] private float eventSfxVolume = 1f;
+    [Tooltip("같은 프레임에 여러 count 감소가 발생할 때 음 간격(초)")]
+    [SerializeField] [Range(0.01f, 0.2f)] private float blockNoteInterval = 0.045f;
+
+    [Header("블록 음계 (Assets/Sounds 자동 연결)")]
+    [SerializeField] private AudioClip blockAClip;
+    [SerializeField] private AudioClip blockAsClip;
+    [SerializeField] private AudioClip blockBClip;
+    [SerializeField] private AudioClip blockCClip;
+    [SerializeField] private AudioClip blockCoClip;
+    [SerializeField] private AudioClip blockCsClip;
+    [SerializeField] private AudioClip blockDClip;
+    [SerializeField] private AudioClip blockDsClip;
+    [SerializeField] private AudioClip blockEClip;
+    [SerializeField] private AudioClip blockFClip;
+    [SerializeField] private AudioClip blockFsClip;
+    [SerializeField] private AudioClip blockGClip;
+    [SerializeField] private AudioClip blockGsClip;
+
+    [Header("상태 효과음 (Assets/Sounds 자동 연결)")]
+    [SerializeField] private AudioClip failClip;
+    [SerializeField] private AudioClip newStageClip;
+    [SerializeField] private AudioClip clearClip;
 
     /// <summary>Easy Save 3 진행도 저장 키. 앱 재실행 시 이 스테이지부터 시작.</summary>
     private const string SaveKeyStage = "StageProgress";
@@ -148,6 +179,17 @@ public class GameManager : MonoBehaviour
     /// <summary>Hidden 타일: groupID별 그룹 (Igniter 트리거 시 활성화용).</summary>
     private Dictionary<string, List<HiddenTile>> hiddenGroups = new Dictionary<string, List<HiddenTile>>();
 
+    private AudioSource blockNoteAudioSource;
+    private AudioSource eventAudioSource;
+    private readonly Queue<AudioClip> pendingBlockNoteQueue = new Queue<AudioClip>();
+    private readonly Dictionary<string, AudioClip> blockNoteClipMap = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+    private readonly List<string[]> sparseMelodyPool = new List<string[]>();
+    private readonly List<string[]> mediumMelodyPool = new List<string[]>();
+    private readonly List<string[]> denseMelodyPool = new List<string[]>();
+    private string[] activeMelody = Array.Empty<string>();
+    private int activeMelodyIndex;
+    private float nextQueuedBlockNoteTime;
+
     [Header("UI Toolkit 상단 UI")]
     [Tooltip("GameMainUI.uxml을 사용하는 UIDocument가 있는 오브젝트에 붙은 컨트롤러")]
     [SerializeField] private GameMainUIController mainUI;
@@ -191,6 +233,7 @@ public class GameManager : MonoBehaviour
         EnsureCameraPostProcessingAndHDR();
         CreateNeonTrail();
         CacheTileSizeFromPrefab();
+        InitializeAudioSystem();
 
         // 저장된 진행도가 있으면 해당 스테이지부터, 없으면 startStageIndex부터
         currentStageIndex = LoadSavedStageIndex();
@@ -205,6 +248,8 @@ public class GameManager : MonoBehaviour
         AdjustCameraToFitGrid();
 
         RefreshMainUIForStage();
+        SetupMelodyForCurrentStage();
+        PlayNewStageSfx();
 
         if (targetFrameRate > 0)
             Application.targetFrameRate = targetFrameRate;
@@ -241,11 +286,14 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
 
         RefreshMainUIForStage();
+        SetupMelodyForCurrentStage();
+        PlayNewStageSfx();
         SaveStageProgress();
     }
 
     private void Update()
     {
+        ProcessPendingBlockNoteQueue();
         if (stageCleared || isGameOverSequencePlaying)
             return;
 
@@ -264,6 +312,185 @@ public class GameManager : MonoBehaviour
         }
 
         UpdateDragAndPath();
+    }
+
+    private void InitializeAudioSystem()
+    {
+        EnsureAudioSource(ref blockNoteAudioSource, "BlockNoteAudioSource");
+        EnsureAudioSource(ref eventAudioSource, "EventSfxAudioSource");
+        BuildBlockNoteClipMap();
+        BuildMelodyPoolsIfNeeded();
+    }
+
+    private void EnsureAudioSource(ref AudioSource audioSource, string childObjectName)
+    {
+        if (audioSource == null)
+        {
+            Transform existing = transform.Find(childObjectName);
+            GameObject child = existing != null ? existing.gameObject : new GameObject(childObjectName);
+            if (existing == null)
+                child.transform.SetParent(transform, false);
+            audioSource = child.GetComponent<AudioSource>();
+            if (audioSource == null)
+                audioSource = child.AddComponent<AudioSource>();
+        }
+
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+        audioSource.dopplerLevel = 0f;
+        audioSource.rolloffMode = AudioRolloffMode.Linear;
+    }
+
+    private void BuildBlockNoteClipMap()
+    {
+        blockNoteClipMap.Clear();
+        RegisterBlockNoteClip("a", blockAClip);
+        RegisterBlockNoteClip("as", blockAsClip);
+        RegisterBlockNoteClip("b", blockBClip);
+        RegisterBlockNoteClip("c", blockCClip);
+        RegisterBlockNoteClip("co", blockCoClip);
+        RegisterBlockNoteClip("cs", blockCsClip);
+        RegisterBlockNoteClip("d", blockDClip);
+        RegisterBlockNoteClip("ds", blockDsClip);
+        RegisterBlockNoteClip("e", blockEClip);
+        RegisterBlockNoteClip("f", blockFClip);
+        RegisterBlockNoteClip("fs", blockFsClip);
+        RegisterBlockNoteClip("g", blockGClip);
+        RegisterBlockNoteClip("gs", blockGsClip);
+    }
+
+    private void RegisterBlockNoteClip(string noteKey, AudioClip clip)
+    {
+        if (!string.IsNullOrEmpty(noteKey) && clip != null)
+            blockNoteClipMap[noteKey] = clip;
+    }
+
+    private void BuildMelodyPoolsIfNeeded()
+    {
+        if (sparseMelodyPool.Count > 0 || mediumMelodyPool.Count > 0 || denseMelodyPool.Count > 0)
+            return;
+
+        sparseMelodyPool.Add(new[] { "c", "e", "g", "co", "g", "e", "c", "e" });
+        sparseMelodyPool.Add(new[] { "a", "c", "e", "co", "e", "c", "a", "c" });
+        sparseMelodyPool.Add(new[] { "d", "fs", "a", "co", "a", "fs", "d", "a" });
+        sparseMelodyPool.Add(new[] { "g", "b", "d", "co", "d", "b", "g", "d" });
+        sparseMelodyPool.Add(new[] { "c", "d", "e", "g", "a", "g", "e", "d" });
+
+        mediumMelodyPool.Add(new[] { "e", "g", "a", "b", "a", "g", "e", "d", "c", "d" });
+        mediumMelodyPool.Add(new[] { "c", "e", "g", "b", "g", "e", "d", "c", "d", "e" });
+        mediumMelodyPool.Add(new[] { "a", "b", "co", "b", "a", "g", "e", "d", "e", "g" });
+        mediumMelodyPool.Add(new[] { "d", "e", "fs", "a", "fs", "e", "d", "c", "d", "e" });
+        mediumMelodyPool.Add(new[] { "f", "a", "as", "co", "as", "a", "f", "d", "f", "a" });
+
+        denseMelodyPool.Add(new[] { "d", "a", "b", "fs", "g", "d", "g", "a" }); // Canon motif
+        denseMelodyPool.Add(new[] { "fs", "d", "g", "a", "b", "g", "a", "fs" }); // Canon variation
+        denseMelodyPool.Add(new[] { "e", "e", "fs", "g", "g", "fs", "e", "d", "c", "d", "e", "fs", "g", "a" }); // Vivaldi-like
+        denseMelodyPool.Add(new[] { "a", "a", "g", "fs", "e", "fs", "g", "a", "co", "b", "a", "g", "fs", "e", "d" }); // Four seasons-like
+        denseMelodyPool.Add(new[] { "e", "ds", "e", "ds", "e", "b", "d", "c", "a", "c", "e", "a" }); // Fur Elise-like
+        denseMelodyPool.Add(new[] { "e", "e", "f", "g", "g", "f", "e", "d", "c", "c", "d", "e", "d", "c", "c" }); // Ode to Joy-like
+        denseMelodyPool.Add(new[] { "cs", "e", "gs", "cs", "e", "gs", "b", "gs", "e", "cs", "e", "gs" }); // Moonlight-like
+        denseMelodyPool.Add(new[] { "b", "a", "gs", "a", "c", "b", "a", "g", "fs", "e", "fs", "g", "a" }); // Turkish-like
+        denseMelodyPool.Add(new[] { "g", "a", "b", "c", "d", "e", "fs", "g", "a", "b", "co", "b", "a", "g" }); // Minuet-like
+        denseMelodyPool.Add(new[] { "d", "fs", "g", "a", "d", "a", "b", "fs", "g", "d", "g", "a" }); // Canon cadence
+    }
+
+    private void SetupMelodyForCurrentStage()
+    {
+        BuildBlockNoteClipMap();
+        BuildMelodyPoolsIfNeeded();
+
+        int activeTileCount = CountActiveTileCount();
+        int totalRemainingCount = GetTotalRemainingCount();
+
+        List<string[]> selectedPool;
+        if (activeTileCount <= 6 || totalRemainingCount <= 12)
+            selectedPool = sparseMelodyPool;
+        else if (activeTileCount >= 20 || totalRemainingCount >= 60)
+            selectedPool = denseMelodyPool;
+        else
+            selectedPool = mediumMelodyPool;
+
+        if (selectedPool == null || selectedPool.Count == 0)
+        {
+            activeMelody = Array.Empty<string>();
+            activeMelodyIndex = 0;
+            ClearPendingBlockNoteQueue();
+            return;
+        }
+
+        int seed = Mathf.Abs((currentStageIndex * 92821) ^ (activeTileCount * 68917) ^ (totalRemainingCount * 31337));
+        activeMelody = selectedPool[seed % selectedPool.Count];
+        activeMelodyIndex = 0;
+        ClearPendingBlockNoteQueue();
+    }
+
+    private int CountActiveTileCount()
+    {
+        if (tiles == null) return 0;
+        int count = 0;
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null && tiles[row, col].IsActive)
+                    count++;
+        return count;
+    }
+
+    private void QueueNextMelodyBlockNote()
+    {
+        if (activeMelody == null || activeMelody.Length == 0)
+            return;
+
+        string nextNoteKey = activeMelody[activeMelodyIndex];
+        activeMelodyIndex = (activeMelodyIndex + 1) % activeMelody.Length;
+
+        if (blockNoteClipMap.TryGetValue(nextNoteKey, out AudioClip clip) && clip != null)
+            pendingBlockNoteQueue.Enqueue(clip);
+    }
+
+    private void ProcessPendingBlockNoteQueue()
+    {
+        if (blockNoteAudioSource == null || pendingBlockNoteQueue.Count == 0)
+            return;
+        if (Time.unscaledTime < nextQueuedBlockNoteTime)
+            return;
+
+        while (pendingBlockNoteQueue.Count > 0)
+        {
+            AudioClip clip = pendingBlockNoteQueue.Dequeue();
+            if (clip == null)
+                continue;
+            blockNoteAudioSource.PlayOneShot(clip, blockNoteVolume);
+            nextQueuedBlockNoteTime = Time.unscaledTime + Mathf.Max(0.01f, blockNoteInterval);
+            return;
+        }
+    }
+
+    private void ClearPendingBlockNoteQueue()
+    {
+        pendingBlockNoteQueue.Clear();
+        nextQueuedBlockNoteTime = 0f;
+    }
+
+    private void PlayEventSfx(AudioClip clip)
+    {
+        if (clip == null || eventAudioSource == null)
+            return;
+        eventAudioSource.PlayOneShot(clip, eventSfxVolume);
+    }
+
+    private void PlayFailSfx() => PlayEventSfx(failClip);
+    private void PlayNewStageSfx() => PlayEventSfx(newStageClip);
+    private void PlayClearSfx() => PlayEventSfx(clearClip);
+
+    private void DecreaseTileAndPlayBlockNote(Tile tile)
+    {
+        if (tile == null)
+            return;
+        int before = tile.CurrentNumber;
+        tile.DecreaseNumber();
+        if (before > tile.CurrentNumber)
+            QueueNextMelodyBlockNote();
     }
 
     /// <summary>
@@ -622,7 +849,7 @@ public class GameManager : MonoBehaviour
                 Tile t = tiles[ny, nx];
                 if (t != null && t.IsActive)
                 {
-                    t.DecreaseNumber();
+                    DecreaseTileAndPlayBlockNote(t);
                     NotifyTwinLinkStepped(t);
                 }
             }
@@ -728,13 +955,16 @@ public class GameManager : MonoBehaviour
         var igniter = last.GetComponent<IgniterTile>();
         if (igniter != null)
         {
+            int beforeIgniter = last.CurrentNumber;
             igniter.OnLeftThenVanish();
+            if (beforeIgniter > 0)
+                QueueNextMelodyBlockNote();
             Debug.Log($"[타일 사라짐] Igniter ({last.X},{last.Y}) 소멸");
         }
         else
         {
             int before = last.CurrentNumber;
-            last.DecreaseNumber();
+            DecreaseTileAndPlayBlockNote(last);
             Debug.Log($"[타일 -1] ({last.X},{last.Y}) count {before} → {last.CurrentNumber}");
             if (last.CurrentNumber <= 0)
                 Debug.Log($"[타일 사라짐] ({last.X},{last.Y}) count 0");
@@ -817,14 +1047,15 @@ public class GameManager : MonoBehaviour
     /// <summary>승리 조건: 남은 합이 1이고, 그 1이 현재 밟은 타일(B)의 카운트면 즉시 클리어. 해당 타일 0으로 만든 뒤 승리 연출.</summary>
     private bool CheckVictoryCondition(Tile currentTile)
     {
-        if (tiles == null || currentTile == null) return false;
+        if (stageCleared || tiles == null || currentTile == null) return false;
         int totalRemaining = GetTotalRemainingCount();
         if (totalRemaining != 1 || currentTile.CurrentNumber != 1) return false;
-        currentTile.DecreaseNumber();
+        DecreaseTileAndPlayBlockNote(currentTile);
         // 마지막 타일 감소도 진행도에 반영
         RefreshMainUIProgress();
         stageCleared = true;
         Debug.Log("Clear");
+        PlayClearSfx();
         StartCoroutine(LoadNextStageAfterDelay());
         return true;
     }
@@ -1067,6 +1298,8 @@ public class GameManager : MonoBehaviour
     {
         totalStepsCommitted = 0;
         ResetTrail();
+        ClearPendingBlockNoteQueue();
+        PlayFailSfx();
         linkSystem?.ClearLinks();
 
         bool isSpotlight = spotlightController != null && spotlightController.IsSpotlightActive();
@@ -1187,6 +1420,8 @@ public class GameManager : MonoBehaviour
 
         // 게임오버 후 리셋이 끝나면 진행도/스테이지 UI도 초기 상태로 복원
         RefreshMainUIForStage();
+        SetupMelodyForCurrentStage();
+        PlayNewStageSfx();
 
         isGameOverSequencePlaying = false;
     }
@@ -1205,6 +1440,7 @@ public class GameManager : MonoBehaviour
     {
         totalStepsCommitted = 0;
         ResetTrail();
+        ClearPendingBlockNoteQueue();
         linkSystem?.ClearLinks();
         currentPath.Clear();
         isDragging = false;
@@ -1264,6 +1500,8 @@ public class GameManager : MonoBehaviour
             linkSystem.CreateLinksForCrossBlastOnly(tiles, stageWidth, stageHeight);
 
         RefreshMainUIForStage();
+        SetupMelodyForCurrentStage();
+        PlayNewStageSfx();
         isGameOverSequencePlaying = false;
     }
 
@@ -1272,13 +1510,14 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void CheckStageClear()
     {
-        if (tiles == null) return;
+        if (stageCleared || tiles == null) return;
         for (int row = 0; row < stageHeight; row++)
             for (int col = 0; col < stageWidth; col++)
                 if (tiles[row, col] != null && tiles[row, col].IsActive)
                     return;
         stageCleared = true;
         Debug.Log("Clear");
+        PlayClearSfx();
         StartCoroutine(LoadNextStageAfterDelay());
     }
 
@@ -1286,6 +1525,7 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(nextStageDelay);
         ResetTrail();
+        ClearPendingBlockNoteQueue();
         currentStageIndex++;
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data == null)
@@ -1307,6 +1547,8 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
 
         RefreshMainUIForStage();
+        SetupMelodyForCurrentStage();
+        PlayNewStageSfx();
         SaveStageProgress();
     }
 
@@ -1749,4 +1991,43 @@ public class GameManager : MonoBehaviour
             currentStartTile.SetInitialStartTile(true);
         }
     }
+
+#if UNITY_EDITOR
+    private void Reset()
+    {
+        AutoAssignSoundClipsInEditor();
+    }
+
+    private void OnValidate()
+    {
+        AutoAssignSoundClipsInEditor();
+    }
+
+    private void AutoAssignSoundClipsInEditor()
+    {
+        AssignClipIfMissing(ref blockAClip, "Assets/Sounds/block_a.wav");
+        AssignClipIfMissing(ref blockAsClip, "Assets/Sounds/block_as.wav");
+        AssignClipIfMissing(ref blockBClip, "Assets/Sounds/block_b.wav");
+        AssignClipIfMissing(ref blockCClip, "Assets/Sounds/block_c.wav");
+        AssignClipIfMissing(ref blockCoClip, "Assets/Sounds/block_co.wav");
+        AssignClipIfMissing(ref blockCsClip, "Assets/Sounds/block_cs.wav");
+        AssignClipIfMissing(ref blockDClip, "Assets/Sounds/block_d.wav");
+        AssignClipIfMissing(ref blockDsClip, "Assets/Sounds/block_ds.wav");
+        AssignClipIfMissing(ref blockEClip, "Assets/Sounds/block_e.wav");
+        AssignClipIfMissing(ref blockFClip, "Assets/Sounds/block_f.wav");
+        AssignClipIfMissing(ref blockFsClip, "Assets/Sounds/block_fs.wav");
+        AssignClipIfMissing(ref blockGClip, "Assets/Sounds/block_g.wav");
+        AssignClipIfMissing(ref blockGsClip, "Assets/Sounds/block_gs.wav");
+        AssignClipIfMissing(ref failClip, "Assets/Sounds/fail.wav");
+        AssignClipIfMissing(ref newStageClip, "Assets/Sounds/new_stage.wav");
+        AssignClipIfMissing(ref clearClip, "Assets/Sounds/clear.wav");
+    }
+
+    private static void AssignClipIfMissing(ref AudioClip target, string assetPath)
+    {
+        if (target != null)
+            return;
+        target = AssetDatabase.LoadAssetAtPath<AudioClip>(assetPath);
+    }
+#endif
 }
