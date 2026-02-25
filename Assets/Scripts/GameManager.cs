@@ -482,6 +482,14 @@ public class GameManager : MonoBehaviour
     private void PlayFailSfx() => PlayEventSfx(failClip);
     private void PlayNewStageSfx() => PlayEventSfx(newStageClip);
     private void PlayClearSfx() => PlayEventSfx(clearClip);
+    private void PlayStageClearHaptic()
+    {
+        if (!GameMainUIController.IsVibrationEnabled)
+            return;
+        if (!Application.isMobilePlatform)
+            return;
+        Handheld.Vibrate();
+    }
 
     private void DecreaseTileAndPlayBlockNote(Tile tile)
     {
@@ -1056,6 +1064,7 @@ public class GameManager : MonoBehaviour
         stageCleared = true;
         Debug.Log("Clear");
         PlayClearSfx();
+        PlayStageClearHaptic();
         StartCoroutine(LoadNextStageAfterDelay());
         return true;
     }
@@ -1518,6 +1527,7 @@ public class GameManager : MonoBehaviour
         stageCleared = true;
         Debug.Log("Clear");
         PlayClearSfx();
+        PlayStageClearHaptic();
         StartCoroutine(LoadNextStageAfterDelay());
     }
 

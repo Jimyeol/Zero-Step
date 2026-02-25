@@ -8,6 +8,8 @@ using UnityEngine.UIElements;
 [RequireComponent(typeof(UIDocument))]
 public class GameMainUIController : MonoBehaviour
 {
+    public static bool IsVibrationEnabled { get; private set; } = true;
+
     [Header("UI Toolkit 참조 (자동 캐싱)")]
     [SerializeField] private UIDocument uiDocument;
 
@@ -57,6 +59,8 @@ public class GameMainUIController : MonoBehaviour
 
     private void Awake()
     {
+        IsVibrationEnabled = isVibrationOn;
+
         // UIDocument 자동 캐싱
         if (uiDocument == null)
             uiDocument = GetComponent<UIDocument>();
@@ -302,6 +306,7 @@ public class GameMainUIController : MonoBehaviour
     private void ToggleVibrationSwitch()
     {
         isVibrationOn = !isVibrationOn;
+        IsVibrationEnabled = isVibrationOn;
         RefreshVibrationSwitchVisual();
         Debug.Log(isVibrationOn ? "진동 ON" : "진동 OFF");
     }
