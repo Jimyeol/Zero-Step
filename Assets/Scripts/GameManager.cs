@@ -250,9 +250,57 @@ public class GameManager : MonoBehaviour
         RefreshMainUIForStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
+        TrackStageStarted("app_launch");
 
         if (targetFrameRate > 0)
             Application.targetFrameRate = targetFrameRate;
+    }
+
+    private void TrackStageStarted(string entryType)
+    {
+        FirebaseBootstrap.LogEvent("stage_start", new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndex },
+            { "entry_type", entryType },
+            { "active_tiles", CountActiveTileCount() },
+            { "remaining_count", GetTotalRemainingCount() }
+        });
+        FirebaseBootstrap.LogBreadcrumb($"stage_start:{currentStageIndex}:{entryType}");
+    }
+
+    private void TrackStageCleared(string clearType)
+    {
+        FirebaseBootstrap.LogEvent("stage_clear", new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndex },
+            { "clear_type", clearType },
+            { "steps", totalStepsCommitted },
+            { "remaining_count", GetTotalRemainingCount() }
+        });
+        FirebaseBootstrap.LogBreadcrumb($"stage_clear:{currentStageIndex}:{clearType}");
+    }
+
+    private void TrackStageFailed(string reason)
+    {
+        FirebaseBootstrap.LogEvent("stage_fail", new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndex },
+            { "reason", reason },
+            { "steps", totalStepsCommitted },
+            { "remaining_count", GetTotalRemainingCount() }
+        });
+        FirebaseBootstrap.LogBreadcrumb($"stage_fail:{currentStageIndex}:{reason}");
+    }
+
+    private void TrackStageReset(string resetType)
+    {
+        FirebaseBootstrap.LogEvent("stage_reset", new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndex },
+            { "reset_type", resetType },
+            { "steps", totalStepsCommitted }
+        });
+        FirebaseBootstrap.LogBreadcrumb($"stage_reset:{currentStageIndex}:{resetType}");
     }
 
     /// <summary>
@@ -262,6 +310,8 @@ public class GameManager : MonoBehaviour
     {
         if (isGameOverSequencePlaying)
             return;
+
+        int skippedStageIndex = currentStageIndex;
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
@@ -289,6 +339,12 @@ public class GameManager : MonoBehaviour
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();
+        FirebaseBootstrap.LogEvent("stage_skip", new Dictionary<string, object>
+        {
+            { "from_stage_index", skippedStageIndex },
+            { "to_stage_index", currentStageIndex }
+        });
+        TrackStageStarted("manual_skip");
     }
 
     /// <summary>데이터 초기화 직후 호출: 1스테이지로 즉시 복귀하고 진행도를 1로 저장.</summary>
@@ -297,6 +353,7 @@ public class GameManager : MonoBehaviour
         if (isGameOverSequencePlaying)
             return;
 
+        int previousStageIndex = currentStageIndex;
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
@@ -332,6 +389,12 @@ public class GameManager : MonoBehaviour
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();
+        FirebaseBootstrap.LogEvent("progress_reset", new Dictionary<string, object>
+        {
+            { "from_stage_index", previousStageIndex },
+            { "to_stage_index", currentStageIndex }
+        });
+        TrackStageStarted("progress_reset");
     }
 
     private void Update()
@@ -1108,6 +1171,7 @@ public class GameManager : MonoBehaviour
         Debug.Log("Clear");
         PlayClearSfx();
         PlayStageClearHaptic();
+        TrackStageCleared("last_tile_rule");
         StartCoroutine(LoadNextStageAfterDelay());
         return true;
     }
@@ -1333,6 +1397,7 @@ public class GameManager : MonoBehaviour
         if (!IsDeadlock()) return false;
 
         Debug.Log("Game Over");
+        TrackStageFailed("deadlock");
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
@@ -1474,6 +1539,7 @@ public class GameManager : MonoBehaviour
         RefreshMainUIForStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
+        TrackStageStarted("auto_restart_after_fail");
 
         isGameOverSequencePlaying = false;
     }
@@ -1484,6 +1550,7 @@ public class GameManager : MonoBehaviour
     public void ResetCurrentStage()
     {
         if (isGameOverSequencePlaying || tiles == null) return;
+        TrackStageReset("manual_reset");
         isGameOverSequencePlaying = true;
         StartCoroutine(ResetCurrentStageRoutine());
     }
@@ -1554,6 +1621,7 @@ public class GameManager : MonoBehaviour
         RefreshMainUIForStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
+        TrackStageStarted("manual_reset");
         isGameOverSequencePlaying = false;
     }
 
@@ -1571,6 +1639,7 @@ public class GameManager : MonoBehaviour
         Debug.Log("Clear");
         PlayClearSfx();
         PlayStageClearHaptic();
+        TrackStageCleared("all_tiles_zero");
         StartCoroutine(LoadNextStageAfterDelay());
     }
 
@@ -1603,6 +1672,7 @@ public class GameManager : MonoBehaviour
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();
+        TrackStageStarted("auto_next_stage");
     }
 
     /// <summary>Easy Save 3로 현재 스테이지 인덱스 저장. 클리어 후·앱 종료/일시정지 시 호출.</summary>
@@ -1615,6 +1685,7 @@ public class GameManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogWarning($"[GameManager] 진행도 저장 실패: {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, "SaveStageProgress failed");
         }
     }
 
@@ -1629,6 +1700,7 @@ public class GameManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogWarning($"[GameManager] 진행도 초기화 실패: {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, "ClearSavedStageProgress failed");
         }
 
         PlayerPrefs.DeleteKey(SaveKeyStage);
@@ -1646,6 +1718,7 @@ public class GameManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogWarning($"[GameManager] 진행도 로드 실패: {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, "LoadSavedStageIndex failed");
         }
         return startStageIndex;
     }

@@ -98,19 +98,19 @@
 }
 
 .settings-icon {
-    width: 62px;
-    height: 62px;
+    width: 80px;
+    height: 80px;
     -unity-background-scale-mode: scale-to-fit;
     overflow: visible;
     flex-shrink: 0;
 }
 
 .settings-switch {
-    width: 176px;
-    height: 68px;
-    border-radius: 16px;
-    padding-left: 14px;
-    padding-right: 14px;
+    width: 240px;
+    height: 94px;
+    border-radius: 24px;
+    padding-left: 18px;
+    padding-right: 18px;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -137,7 +137,7 @@
 }
 
 .settings-switch-label {
-    font-size: 26px;
+    font-size: 34px;
     color: rgb(255, 255, 255);
     -unity-font-style: bold;
     margin-left: 4px;
@@ -145,8 +145,8 @@
 }
 
 .settings-switch-knob {
-    width: 34px;
-    height: 34px;
+    width: 46px;
+    height: 46px;
     border-radius: 999px;
     background-color: rgb(255, 255, 255);
 }

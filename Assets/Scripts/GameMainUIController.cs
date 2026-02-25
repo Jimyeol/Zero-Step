@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -275,6 +276,10 @@ public class GameMainUIController : MonoBehaviour
     /// <summary>스킵 버튼 클릭: 현재 스테이지를 건너뛰고 즉시 다음 스테이지 로드.</summary>
     private void OnSkipClicked()
     {
+        FirebaseBootstrap.LogEvent("ui_button_click", new Dictionary<string, object>
+        {
+            { "button_name", "skip" }
+        });
         var gm = FindFirstObjectByType<GameManager>();
         if (gm != null)
             gm.LoadNextStageImmediate();
@@ -285,6 +290,10 @@ public class GameMainUIController : MonoBehaviour
     /// <summary>리셋 버튼 클릭: 현재 스테이지를 초기 상태로 복원.</summary>
     private void OnResetClicked()
     {
+        FirebaseBootstrap.LogEvent("ui_button_click", new Dictionary<string, object>
+        {
+            { "button_name", "reset_stage" }
+        });
         var gm = FindFirstObjectByType<GameManager>();
         if (gm != null)
             gm.ResetCurrentStage();
@@ -298,6 +307,8 @@ public class GameMainUIController : MonoBehaviour
         {
             settingPopupOverlay.style.display = DisplayStyle.Flex;
             isSettingPopupOpen = true;
+            FirebaseBootstrap.LogEvent("settings_popup_open");
+            FirebaseBootstrap.LogBreadcrumb("settings_popup_open");
         }
     }
 
@@ -308,6 +319,7 @@ public class GameMainUIController : MonoBehaviour
         {
             settingPopupOverlay.style.display = DisplayStyle.None;
             isSettingPopupOpen = false;
+            FirebaseBootstrap.LogEvent("settings_popup_close");
         }
     }
 
@@ -320,6 +332,10 @@ public class GameMainUIController : MonoBehaviour
         RefreshSoundSwitchVisual();
         ApplySoundSwitchToAudioListener();
         SaveSettingBool(SaveKeySoundOn, isSoundOn);
+        FirebaseBootstrap.LogEvent("sound_toggle", new Dictionary<string, object>
+        {
+            { "enabled", isSoundOn ? 1L : 0L }
+        });
         Debug.Log(isSoundOn ? "소리 ON" : "소리 OFF");
     }
 
@@ -329,6 +345,10 @@ public class GameMainUIController : MonoBehaviour
         IsVibrationEnabled = isVibrationOn;
         RefreshVibrationSwitchVisual();
         SaveSettingBool(SaveKeyVibrationOn, isVibrationOn);
+        FirebaseBootstrap.LogEvent("vibration_toggle", new Dictionary<string, object>
+        {
+            { "enabled", isVibrationOn ? 1L : 0L }
+        });
         Debug.Log(isVibrationOn ? "진동 ON" : "진동 OFF");
     }
 
@@ -359,6 +379,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void ShowResetDataConfirmPopup()
     {
+        FirebaseBootstrap.LogEvent("reset_data_warning_popup_open");
         if (resetConfirmOverlay != null)
             resetConfirmOverlay.style.display = DisplayStyle.Flex;
     }
@@ -371,6 +392,9 @@ public class GameMainUIController : MonoBehaviour
 
     private void ConfirmResetData()
     {
+        FirebaseBootstrap.LogEvent("reset_data_confirmed");
+        FirebaseBootstrap.LogBreadcrumb("reset_data_confirmed");
+
         try
         {
             if (ES3.KeyExists(SaveKeySoundOn)) ES3.DeleteKey(SaveKeySoundOn);
@@ -379,6 +403,7 @@ public class GameMainUIController : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogWarning($"[GameMainUIController] 설정 초기화(ES3) 실패: {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, "ConfirmResetData ES3 delete failed");
         }
 
         PlayerPrefs.DeleteKey(SaveKeySoundOn);
@@ -404,16 +429,28 @@ public class GameMainUIController : MonoBehaviour
 
     private void OpenPrivacyPolicy()
     {
+        FirebaseBootstrap.LogEvent("open_external_link", new Dictionary<string, object>
+        {
+            { "link_type", "privacy_policy" }
+        });
         Application.OpenURL(PrivacyUrl);
     }
 
     private void OpenTerms()
     {
+        FirebaseBootstrap.LogEvent("open_external_link", new Dictionary<string, object>
+        {
+            { "link_type", "terms" }
+        });
         Application.OpenURL(PrivacyUrl);
     }
 
     private void OpenSupportEmail()
     {
+        FirebaseBootstrap.LogEvent("open_support_email", new Dictionary<string, object>
+        {
+            { "channel", "mailto" }
+        });
         string subject = Uri.EscapeDataString("ZeroStep Support Request");
         string body = Uri.EscapeDataString(BuildSupportEmailBody());
         Application.OpenURL($"mailto:{SupportEmailAddress}?subject={subject}&body={body}");
@@ -451,6 +488,7 @@ public class GameMainUIController : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogWarning($"[GameMainUIController] 설정 로드 실패({key}): {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, $"LoadSettingBool failed: {key}");
         }
 
         if (PlayerPrefs.HasKey(key))
@@ -467,6 +505,7 @@ public class GameMainUIController : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogWarning($"[GameMainUIController] 설정 저장 실패({key}): {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, $"SaveSettingBool failed: {key}");
         }
 
         PlayerPrefs.SetInt(key, value ? 1 : 0);
