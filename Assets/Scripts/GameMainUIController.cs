@@ -25,6 +25,7 @@ public class GameMainUIController : MonoBehaviour
     private Image blockIcon;
     private VisualElement settingPopupOverlay;
     private Button settingCloseButton;
+    private Image settingCloseIcon;
     private bool isSettingPopupOpen;
 
     private Button soundSwitchButton;
@@ -85,6 +86,7 @@ public class GameMainUIController : MonoBehaviour
         blockIcon = root.Q<Image>("BlockIcon");
         settingPopupOverlay = root.Q<VisualElement>("SettingPopupOverlay");
         settingCloseButton = root.Q<Button>("SettingCloseButton");
+        settingCloseIcon = root.Q<Image>("SettingCloseIcon");
         soundSwitchButton = root.Q<Button>("SoundSwitchButton");
         soundSwitchLabel = root.Q<Label>("SoundSwitchLabel");
         vibrationSwitchButton = root.Q<Button>("VibrationSwitchButton");
@@ -182,6 +184,7 @@ public class GameMainUIController : MonoBehaviour
         if (settingCloseButton != null)
             settingCloseButton.clicked += HideSettingPopup;
 
+        AssignSprite(settingCloseIcon, "Sprites/close", "close.png");
         AssignSprite(soundIcon, "Sprites/sound", "sound.png");
         AssignSprite(vibrationIcon, "Sprites/vibrate", "vibrate.png");
         AssignSprite(helpIcon, "Sprites/help", "help.png");
@@ -339,8 +342,6 @@ public class GameMainUIController : MonoBehaviour
             targetImage.image = sprite.texture;
             targetImage.scaleMode = ScaleMode.ScaleToFit;
             targetImage.style.overflow = Overflow.Visible;
-            targetImage.style.width = 44f;
-            targetImage.style.height = 44f;
             targetImage.uv = new Rect(0f, 0f, 1f, 1f);
         }
         else

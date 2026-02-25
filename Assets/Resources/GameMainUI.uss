@@ -45,6 +45,7 @@
 /* Settings Popup Visual Language */
 #SettingPopupPanel {
     -unity-font-definition: url("project://database/Assets/Fonts/Orbitron-Medium.ttf?fileID=12800000&guid=d788a3059e71747c680a1ce1e963cd99&type=3#Orbitron-Medium");
+    font-size: 28px;
 }
 
 #SettingScrollView {
@@ -77,27 +78,46 @@
     border-bottom-color: rgba(180, 244, 255, 0.9);
 }
 
+#SettingCloseButton {
+    min-width: 108px;
+    min-height: 108px;
+    background-color: rgba(0, 0, 0, 0) !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+    border-radius: 0 !important;
+}
+
+#SettingCloseButton:hover {
+    background-color: rgba(0, 0, 0, 0) !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+}
+
 .settings-icon {
-    width: 44px;
-    height: 44px;
+    width: 62px;
+    height: 62px;
     -unity-background-scale-mode: scale-to-fit;
     overflow: visible;
     flex-shrink: 0;
 }
 
 .settings-switch {
-    width: 126px;
-    height: 48px;
-    border-radius: 10px;
-    padding-left: 10px;
-    padding-right: 10px;
+    width: 176px;
+    height: 68px;
+    border-radius: 16px;
+    padding-left: 14px;
+    padding-right: 14px;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    border-left-width: 2px;
-    border-right-width: 2px;
-    border-top-width: 2px;
-    border-bottom-width: 2px;
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
 }
 
 .settings-switch-on {
@@ -117,7 +137,7 @@
 }
 
 .settings-switch-label {
-    font-size: 18px;
+    font-size: 26px;
     color: rgb(255, 255, 255);
     -unity-font-style: bold;
     margin-left: 4px;
@@ -125,8 +145,8 @@
 }
 
 .settings-switch-knob {
-    width: 24px;
-    height: 24px;
+    width: 34px;
+    height: 34px;
     border-radius: 999px;
     background-color: rgb(255, 255, 255);
 }
