@@ -15,6 +15,9 @@ public class GameMainUIController : MonoBehaviour
     private const string SaveKeyVibrationOn = "SettingVibrationOn";
     private const string PrivacyUrl = "https://www.naver.com";
     private const string SupportEmailAddress = "crewoongcrewoong@gmail.com";
+    private const string NeonPressBaseClass = "neon-press-button";
+    private const string NeonPressWarmClass = "neon-press-button-warm";
+    private const string NeonPressActiveClass = "neon-press-active";
 
     [Header("UI Toolkit 참조 (자동 캐싱)")]
     [SerializeField] private UIDocument uiDocument;
@@ -62,6 +65,7 @@ public class GameMainUIController : MonoBehaviour
     [SerializeField] private float progressAnimDuration = 0.25f;
     private float displayedProgressValue;
     private Coroutine progressAnimRoutine;
+    private readonly Dictionary<VisualElement, int> buttonPressAnimationVersion = new Dictionary<VisualElement, int>();
 
     /// <summary>현재 스테이지 시작 시 전체 타일 카운트(합).</summary>
     private int initialTileCount;
@@ -271,6 +275,76 @@ public class GameMainUIController : MonoBehaviour
             resetButton.clicked += OnResetClicked;
         if (blockAdsButton != null)
             blockAdsButton.clicked += () => Debug.Log("광고 제거");
+
+        SetupButtonClickAnimations();
+    }
+
+    private void SetupButtonClickAnimations()
+    {
+        RegisterButtonClickAnimation(settingButton);
+        RegisterButtonClickAnimation(skipButton);
+        RegisterButtonClickAnimation(resetButton);
+        RegisterButtonClickAnimation(blockAdsButton, useWarmPulse: true);
+
+        RegisterButtonClickAnimation(soundSwitchButton);
+        RegisterButtonClickAnimation(vibrationSwitchButton);
+        RegisterButtonClickAnimation(helpButton);
+        RegisterButtonClickAnimation(languageButton);
+        RegisterButtonClickAnimation(rateButton);
+        RegisterButtonClickAnimation(removeAdsButton, useWarmPulse: true);
+        RegisterButtonClickAnimation(emailButton);
+        RegisterButtonClickAnimation(resetDataButton, useWarmPulse: true);
+        RegisterButtonClickAnimation(privacyPolicyButton);
+        RegisterButtonClickAnimation(termsButton);
+        RegisterButtonClickAnimation(resetConfirmCancelButton);
+        RegisterButtonClickAnimation(resetConfirmOkButton, useWarmPulse: true);
+    }
+
+    private void RegisterButtonClickAnimation(Button button, bool useWarmPulse = false)
+    {
+        if (button == null)
+            return;
+
+        button.AddToClassList(NeonPressBaseClass);
+        if (useWarmPulse)
+            button.AddToClassList(NeonPressWarmClass);
+
+        button.clicked += () => PlayButtonClickAnimation(button);
+    }
+
+    private void PlayButtonClickAnimation(VisualElement button)
+    {
+        if (button == null)
+            return;
+
+        int version = 1;
+        if (buttonPressAnimationVersion.TryGetValue(button, out int previousVersion))
+            version = previousVersion + 1;
+        buttonPressAnimationVersion[button] = version;
+
+        button.RemoveFromClassList(NeonPressActiveClass);
+        button.style.scale = new StyleScale(new Scale(new Vector3(0.9f, 0.9f, 1f)));
+        button.AddToClassList(NeonPressActiveClass);
+
+        button.schedule.Execute(() =>
+        {
+            if (!IsCurrentButtonAnimationVersion(button, version))
+                return;
+            button.style.scale = new StyleScale(new Scale(new Vector3(1.05f, 1.05f, 1f)));
+        }).StartingIn(55);
+
+        button.schedule.Execute(() =>
+        {
+            if (!IsCurrentButtonAnimationVersion(button, version))
+                return;
+            button.style.scale = new StyleScale(new Scale(Vector3.one));
+            button.RemoveFromClassList(NeonPressActiveClass);
+        }).StartingIn(140);
+    }
+
+    private bool IsCurrentButtonAnimationVersion(VisualElement button, int expectedVersion)
+    {
+        return buttonPressAnimationVersion.TryGetValue(button, out int currentVersion) && currentVersion == expectedVersion;
     }
 
     /// <summary>스킵 버튼 클릭: 현재 스테이지를 건너뛰고 즉시 다음 스테이지 로드.</summary>

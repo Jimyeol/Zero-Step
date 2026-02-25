@@ -97,6 +97,29 @@
     border-bottom-width: 0 !important;
 }
 
+.neon-press-button {
+    transition-property: background-color, border-left-color, border-right-color, border-top-color, border-bottom-color, opacity;
+    transition-duration: 0.09s;
+    transition-timing-function: ease-out;
+}
+
+.neon-press-button.neon-press-active {
+    background-color: rgba(74, 240, 255, 0.18);
+    border-left-color: rgba(177, 248, 255, 0.98);
+    border-right-color: rgba(177, 248, 255, 0.98);
+    border-top-color: rgba(177, 248, 255, 0.98);
+    border-bottom-color: rgba(177, 248, 255, 0.98);
+    opacity: 0.96;
+}
+
+.neon-press-button.neon-press-button-warm.neon-press-active {
+    background-color: rgba(255, 196, 82, 0.22);
+    border-left-color: rgba(255, 234, 170, 0.98);
+    border-right-color: rgba(255, 234, 170, 0.98);
+    border-top-color: rgba(255, 234, 170, 0.98);
+    border-bottom-color: rgba(255, 234, 170, 0.98);
+}
+
 .settings-icon {
     width: 80px;
     height: 80px;
