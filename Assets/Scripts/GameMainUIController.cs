@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+using GoogleMobileAds.Api;
+#endif
 
 /// <summary>
 /// UI Toolkit 기반 게임 상단 UI 컨트롤러.
@@ -18,6 +21,10 @@ public class GameMainUIController : MonoBehaviour
     private const string NeonPressBaseClass = "neon-press-button";
     private const string NeonPressWarmClass = "neon-press-button-warm";
     private const string NeonPressActiveClass = "neon-press-active";
+    private const string AndroidReleaseBannerAdUnitId = "ca-app-pub-1863948941169747/1159516189";
+    private const string IOSReleaseBannerAdUnitId = "ca-app-pub-1863948941169747/3645749158";
+    private const string AndroidTestBannerAdUnitId = "ca-app-pub-3940256099942544/6300978111";
+    private const string IOSTestBannerAdUnitId = "ca-app-pub-3940256099942544/2934735716";
 
     [Header("UI Toolkit 참조 (자동 캐싱)")]
     [SerializeField] private UIDocument uiDocument;
@@ -59,8 +66,13 @@ public class GameMainUIController : MonoBehaviour
     private Button resetDataButton;
     private Button privacyPolicyButton;
     private Button termsButton;
+    private VisualElement bannerAdContainer;
+    private Label bannerAdPlaceholder;
     private bool isSoundOn = true;
     private bool isVibrationOn = true;
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+    private BannerView bannerView;
+#endif
     [Header("ProgressBar Animation")]
     [SerializeField] private float progressAnimDuration = 0.25f;
     private float displayedProgressValue;
@@ -124,6 +136,8 @@ public class GameMainUIController : MonoBehaviour
         resetDataButton = root.Q<Button>("ResetDataButton");
         privacyPolicyButton = root.Q<Button>("PrivacyPolicyButton");
         termsButton = root.Q<Button>("TermsButton");
+        bannerAdContainer = root.Q<VisualElement>("BannerAdContainer");
+        bannerAdPlaceholder = root.Q<Label>("BannerAdPlaceholder");
 
         if (settingPopupOverlay != null)
             settingPopupOverlay.style.display = DisplayStyle.None;
@@ -277,6 +291,12 @@ public class GameMainUIController : MonoBehaviour
             blockAdsButton.clicked += () => Debug.Log("광고 제거");
 
         SetupButtonClickAnimations();
+        InitializeBannerAd();
+    }
+
+    private void OnDestroy()
+    {
+        DestroyBannerAd();
     }
 
     private void SetupButtonClickAnimations()
@@ -601,6 +621,87 @@ public class GameMainUIController : MonoBehaviour
         }
         else
             Debug.LogWarning($"[GameMainUIController] Resources/{resourcePath} ({fileName}) 스프라이트를 찾을 수 없습니다.");
+    }
+
+    private void InitializeBannerAd()
+    {
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        SetBannerPlaceholderText(Debug.isDebugBuild ? "TEST AD LOADING..." : "AD LOADING...");
+        MobileAds.Initialize(_ => LoadBannerAd());
+#else
+        SetBannerPlaceholderText("BANNER");
+#endif
+    }
+
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+    private void LoadBannerAd()
+    {
+        DestroyBannerAd();
+
+        string adUnitId = ResolveBannerAdUnitId();
+        if (string.IsNullOrEmpty(adUnitId))
+        {
+            Debug.LogWarning("[GameMainUIController] 현재 플랫폼에서 Banner Ad Unit ID를 찾을 수 없습니다.");
+            return;
+        }
+
+        AdSize adSize = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(AdSize.FullWidth);
+        bannerView = new BannerView(adUnitId, adSize, AdPosition.Bottom);
+        bannerView.OnBannerAdLoaded += HandleBannerAdLoaded;
+        bannerView.OnBannerAdLoadFailed += HandleBannerAdLoadFailed;
+        bannerView.LoadAd(new AdRequest());
+
+        Debug.Log($"[GameMainUIController] Banner ad load requested. unitId={adUnitId}, testMode={(Debug.isDebugBuild ? 1 : 0)}");
+    }
+
+    private static string ResolveBannerAdUnitId()
+    {
+        bool useTestAdUnit = Debug.isDebugBuild;
+#if UNITY_ANDROID
+        return useTestAdUnit ? AndroidTestBannerAdUnitId : AndroidReleaseBannerAdUnitId;
+#elif UNITY_IOS
+        return useTestAdUnit ? IOSTestBannerAdUnitId : IOSReleaseBannerAdUnitId;
+#else
+        return string.Empty;
+#endif
+    }
+
+    private void HandleBannerAdLoaded()
+    {
+        if (bannerView != null)
+            bannerView.Show();
+
+        if (bannerAdContainer != null)
+            bannerAdContainer.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, 0f));
+
+        if (bannerAdPlaceholder != null)
+            bannerAdPlaceholder.style.display = DisplayStyle.None;
+    }
+
+    private void HandleBannerAdLoadFailed(LoadAdError loadError)
+    {
+        string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
+        Debug.LogWarning($"[GameMainUIController] Banner ad load failed: {errorMessage}");
+        SetBannerPlaceholderText("AD LOAD FAILED");
+    }
+#endif
+
+    private void SetBannerPlaceholderText(string text)
+    {
+        if (bannerAdPlaceholder == null)
+            return;
+        bannerAdPlaceholder.style.display = DisplayStyle.Flex;
+        bannerAdPlaceholder.text = text;
+    }
+
+    private void DestroyBannerAd()
+    {
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        if (bannerView == null)
+            return;
+        bannerView.Destroy();
+        bannerView = null;
+#endif
     }
 
     /// <summary>스테이지 번호 및 전체 카운트로 상단 UI 초기화.</summary>
