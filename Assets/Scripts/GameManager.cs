@@ -291,6 +291,49 @@ public class GameManager : MonoBehaviour
         SaveStageProgress();
     }
 
+    /// <summary>데이터 초기화 직후 호출: 1스테이지로 즉시 복귀하고 진행도를 1로 저장.</summary>
+    public void ResetProgressAndRestartToFirstStage()
+    {
+        if (isGameOverSequencePlaying)
+            return;
+
+        if (pathLitClearRoutine != null)
+        {
+            StopCoroutine(pathLitClearRoutine);
+            pathLitClearRoutine = null;
+        }
+
+        ResetTrail();
+        ClearPendingBlockNoteQueue();
+        linkSystem?.ClearPathLit();
+        currentPath.Clear();
+        isDragging = false;
+        stageCleared = false;
+        totalStepsCommitted = 0;
+        currentStageIndex = 1;
+
+        StageData data = StageManager.LoadStage(1);
+        ClearTiles();
+        if (data != null)
+        {
+            CreateGridFromStageData(data);
+            SetCurrentStartTileFromStageData(data);
+            SetupSpotlight(data);
+        }
+        else
+        {
+            CreateGridFallback();
+            SetCurrentStartTileFromStageData(null);
+            SetupSpotlight(null);
+        }
+
+        AdjustCameraToFitGrid();
+        RefreshMainUIForStage();
+        SetupMelodyForCurrentStage();
+        PlayNewStageSfx();
+        SaveStageProgress();
+    }
+
     private void Update()
     {
         ProcessPendingBlockNoteQueue();
@@ -1573,6 +1616,23 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogWarning($"[GameManager] 진행도 저장 실패: {e.Message}");
         }
+    }
+
+    /// <summary>저장된 스테이지 진행도 키를 삭제한다. (데이터 초기화용)</summary>
+    public static void ClearSavedStageProgress()
+    {
+        try
+        {
+            if (ES3.KeyExists(SaveKeyStage))
+                ES3.DeleteKey(SaveKeyStage);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameManager] 진행도 초기화 실패: {e.Message}");
+        }
+
+        PlayerPrefs.DeleteKey(SaveKeyStage);
+        PlayerPrefs.Save();
     }
 
     /// <summary>저장된 스테이지 인덱스 로드. 없으면 startStageIndex 반환.</summary>

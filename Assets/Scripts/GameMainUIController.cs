@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -9,6 +10,10 @@ using UnityEngine.UIElements;
 public class GameMainUIController : MonoBehaviour
 {
     public static bool IsVibrationEnabled { get; private set; } = true;
+    private const string SaveKeySoundOn = "SettingSoundOn";
+    private const string SaveKeyVibrationOn = "SettingVibrationOn";
+    private const string PrivacyUrl = "https://www.naver.com";
+    private const string SupportEmailAddress = "crewoongcrewoong@gmail.com";
 
     [Header("UI Toolkit 참조 (자동 캐싱)")]
     [SerializeField] private UIDocument uiDocument;
@@ -29,6 +34,9 @@ public class GameMainUIController : MonoBehaviour
     private Button settingCloseButton;
     private Image settingCloseIcon;
     private bool isSettingPopupOpen;
+    private VisualElement resetConfirmOverlay;
+    private Button resetConfirmCancelButton;
+    private Button resetConfirmOkButton;
 
     private Button soundSwitchButton;
     private Label soundSwitchLabel;
@@ -59,6 +67,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void Awake()
     {
+        LoadSavedSettings();
         IsVibrationEnabled = isVibrationOn;
 
         // UIDocument 자동 캐싱
@@ -91,6 +100,9 @@ public class GameMainUIController : MonoBehaviour
         settingPopupOverlay = root.Q<VisualElement>("SettingPopupOverlay");
         settingCloseButton = root.Q<Button>("SettingCloseButton");
         settingCloseIcon = root.Q<Image>("SettingCloseIcon");
+        resetConfirmOverlay = root.Q<VisualElement>("ResetConfirmOverlay");
+        resetConfirmCancelButton = root.Q<Button>("ResetConfirmCancelButton");
+        resetConfirmOkButton = root.Q<Button>("ResetConfirmOkButton");
         soundSwitchButton = root.Q<Button>("SoundSwitchButton");
         soundSwitchLabel = root.Q<Label>("SoundSwitchLabel");
         vibrationSwitchButton = root.Q<Button>("VibrationSwitchButton");
@@ -110,6 +122,8 @@ public class GameMainUIController : MonoBehaviour
 
         if (settingPopupOverlay != null)
             settingPopupOverlay.style.display = DisplayStyle.None;
+        if (resetConfirmOverlay != null)
+            resetConfirmOverlay.style.display = DisplayStyle.None;
 
         if (gameProgressBar != null)
         {
@@ -187,6 +201,10 @@ public class GameMainUIController : MonoBehaviour
 
         if (settingCloseButton != null)
             settingCloseButton.clicked += HideSettingPopup;
+        if (resetConfirmCancelButton != null)
+            resetConfirmCancelButton.clicked += HideResetDataConfirmPopup;
+        if (resetConfirmOkButton != null)
+            resetConfirmOkButton.clicked += ConfirmResetData;
 
         AssignSprite(settingCloseIcon, "Sprites/close", "close.png");
         AssignSprite(soundIcon, "Sprites/sound", "sound.png");
@@ -212,13 +230,13 @@ public class GameMainUIController : MonoBehaviour
         if (removeAdsButton != null)
             removeAdsButton.clicked += () => Debug.Log("광고 제거 클릭");
         if (emailButton != null)
-            emailButton.clicked += () => Debug.Log("개발자 이메일 보내기 클릭");
+            emailButton.clicked += OpenSupportEmail;
         if (resetDataButton != null)
-            resetDataButton.clicked += () => Debug.Log("데이터 초기화 클릭");
+            resetDataButton.clicked += ShowResetDataConfirmPopup;
         if (privacyPolicyButton != null)
-            privacyPolicyButton.clicked += () => Debug.Log("개인정보처리방침 열기");
+            privacyPolicyButton.clicked += OpenPrivacyPolicy;
         if (termsButton != null)
-            termsButton.clicked += () => Debug.Log("이용약관 열기");
+            termsButton.clicked += OpenTerms;
 
         // 하단 스킵/리셋/광고제거 버튼 아이콘 및 클릭 로그
         if (skipIcon != null)
@@ -285,6 +303,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void HideSettingPopup()
     {
+        HideResetDataConfirmPopup();
         if (settingPopupOverlay != null)
         {
             settingPopupOverlay.style.display = DisplayStyle.None;
@@ -300,6 +319,7 @@ public class GameMainUIController : MonoBehaviour
         isSoundOn = !isSoundOn;
         RefreshSoundSwitchVisual();
         ApplySoundSwitchToAudioListener();
+        SaveSettingBool(SaveKeySoundOn, isSoundOn);
         Debug.Log(isSoundOn ? "소리 ON" : "소리 OFF");
     }
 
@@ -308,6 +328,7 @@ public class GameMainUIController : MonoBehaviour
         isVibrationOn = !isVibrationOn;
         IsVibrationEnabled = isVibrationOn;
         RefreshVibrationSwitchVisual();
+        SaveSettingBool(SaveKeyVibrationOn, isVibrationOn);
         Debug.Log(isVibrationOn ? "진동 ON" : "진동 OFF");
     }
 
@@ -334,6 +355,122 @@ public class GameMainUIController : MonoBehaviour
     private void ApplySoundSwitchToAudioListener()
     {
         AudioListener.volume = isSoundOn ? 1f : 0f;
+    }
+
+    private void ShowResetDataConfirmPopup()
+    {
+        if (resetConfirmOverlay != null)
+            resetConfirmOverlay.style.display = DisplayStyle.Flex;
+    }
+
+    private void HideResetDataConfirmPopup()
+    {
+        if (resetConfirmOverlay != null)
+            resetConfirmOverlay.style.display = DisplayStyle.None;
+    }
+
+    private void ConfirmResetData()
+    {
+        try
+        {
+            if (ES3.KeyExists(SaveKeySoundOn)) ES3.DeleteKey(SaveKeySoundOn);
+            if (ES3.KeyExists(SaveKeyVibrationOn)) ES3.DeleteKey(SaveKeyVibrationOn);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] 설정 초기화(ES3) 실패: {e.Message}");
+        }
+
+        PlayerPrefs.DeleteKey(SaveKeySoundOn);
+        PlayerPrefs.DeleteKey(SaveKeyVibrationOn);
+        PlayerPrefs.Save();
+
+        GameManager.ClearSavedStageProgress();
+
+        isSoundOn = true;
+        isVibrationOn = true;
+        IsVibrationEnabled = true;
+        RefreshSoundSwitchVisual();
+        RefreshVibrationSwitchVisual();
+        ApplySoundSwitchToAudioListener();
+
+        HideResetDataConfirmPopup();
+        HideSettingPopup();
+
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm != null)
+            gm.ResetProgressAndRestartToFirstStage();
+    }
+
+    private void OpenPrivacyPolicy()
+    {
+        Application.OpenURL(PrivacyUrl);
+    }
+
+    private void OpenTerms()
+    {
+        Application.OpenURL(PrivacyUrl);
+    }
+
+    private void OpenSupportEmail()
+    {
+        string subject = Uri.EscapeDataString("ZeroStep Support Request");
+        string body = Uri.EscapeDataString(BuildSupportEmailBody());
+        Application.OpenURL($"mailto:{SupportEmailAddress}?subject={subject}&body={body}");
+    }
+
+    private static string BuildSupportEmailBody()
+    {
+        return
+            "Hello ZeroStep Team,\n\n" +
+            "Current Device Information:\n" +
+            $"- Device Model: {SystemInfo.deviceModel}\n" +
+            $"- Device Name: {SystemInfo.deviceName}\n" +
+            $"- Operating System: {SystemInfo.operatingSystem}\n" +
+            $"- System Language: {Application.systemLanguage}\n\n" +
+            "Game Version Information:\n" +
+            $"- App Version: {Application.version}\n" +
+            $"- Unity Version: {Application.unityVersion}\n\n" +
+            "Message:\n" +
+            "(Please write your message here.)\n";
+    }
+
+    private void LoadSavedSettings()
+    {
+        isSoundOn = LoadSettingBool(SaveKeySoundOn, true);
+        isVibrationOn = LoadSettingBool(SaveKeyVibrationOn, true);
+    }
+
+    private static bool LoadSettingBool(string key, bool defaultValue)
+    {
+        try
+        {
+            if (ES3.KeyExists(key))
+                return ES3.Load<bool>(key);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] 설정 로드 실패({key}): {e.Message}");
+        }
+
+        if (PlayerPrefs.HasKey(key))
+            return PlayerPrefs.GetInt(key, defaultValue ? 1 : 0) == 1;
+        return defaultValue;
+    }
+
+    private static void SaveSettingBool(string key, bool value)
+    {
+        try
+        {
+            ES3.Save(key, value);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] 설정 저장 실패({key}): {e.Message}");
+        }
+
+        PlayerPrefs.SetInt(key, value ? 1 : 0);
+        PlayerPrefs.Save();
     }
 
     private void AssignSprite(Image targetImage, string resourcePath, string fileName)
