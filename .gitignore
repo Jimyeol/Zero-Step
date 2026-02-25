@@ -106,3 +106,11 @@ InitTestScene*.unity*
 /Assets/Plugins/Android/FirebaseApp.androidlib/res/values/google-services.xml
 /Assets/StreamingAssets/google-services-desktop.json
 /Assets/StreamingAssets/google-services-desktop.json.meta
+/Assets/StreamingAssets.meta
+
+# Keep local-only large/generated artifacts out of git
+/Assets/Firebase/Plugins/x86_64/FirebaseCppApp-13_8_0.so
+/Assets/Firebase/Plugins/x86_64/FirebaseCppApp-13_8_0.so.meta
+/UIElementsSchema/
+/ZeroStep_BackUpThisFolder_ButDontShipItWithYourGame/
+/ZeroStep_BurstDebugInformation_DoNotShip/
