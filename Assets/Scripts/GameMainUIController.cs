@@ -28,6 +28,8 @@ public class GameMainUIController : MonoBehaviour
 
     [Header("UI Toolkit 참조 (자동 캐싱)")]
     [SerializeField] private UIDocument uiDocument;
+    [Header("배너 레이아웃")]
+    [SerializeField] private float bottomBarExtraSpacing = 26f;
 
     private Label stageTitleLabel;
     private Label stageNumberLabel;
@@ -66,10 +68,17 @@ public class GameMainUIController : MonoBehaviour
     private Button resetDataButton;
     private Button privacyPolicyButton;
     private Button termsButton;
+    private VisualElement bottomBar;
     private VisualElement bannerAdContainer;
     private Label bannerAdPlaceholder;
     private bool isSoundOn = true;
     private bool isVibrationOn = true;
+    private bool isDebugBuildCached;
+    private volatile bool pendingBannerLoadFromInitialize;
+    private float reservedBannerHeightPx;
+    private int cachedScreenWidth = -1;
+    private int cachedScreenHeight = -1;
+    private Rect cachedSafeArea;
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
     private BannerView bannerView;
 #endif
@@ -84,6 +93,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void Awake()
     {
+        isDebugBuildCached = Debug.isDebugBuild;
         LoadSavedSettings();
         IsVibrationEnabled = isVibrationOn;
 
@@ -136,6 +146,7 @@ public class GameMainUIController : MonoBehaviour
         resetDataButton = root.Q<Button>("ResetDataButton");
         privacyPolicyButton = root.Q<Button>("PrivacyPolicyButton");
         termsButton = root.Q<Button>("TermsButton");
+        bottomBar = root.Q<VisualElement>("BottomBar");
         bannerAdContainer = root.Q<VisualElement>("BannerAdContainer");
         bannerAdPlaceholder = root.Q<Label>("BannerAdPlaceholder");
 
@@ -291,7 +302,21 @@ public class GameMainUIController : MonoBehaviour
             blockAdsButton.clicked += () => Debug.Log("광고 제거");
 
         SetupButtonClickAnimations();
+        reservedBannerHeightPx = EstimateInitialBannerHeightPx();
+        RefreshBottomLayout(force: true);
         InitializeBannerAd();
+    }
+
+    private void Update()
+    {
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        if (pendingBannerLoadFromInitialize)
+        {
+            pendingBannerLoadFromInitialize = false;
+            LoadBannerAd();
+        }
+#endif
+        RefreshBottomLayout(force: false);
     }
 
     private void OnDestroy()
@@ -626,8 +651,9 @@ public class GameMainUIController : MonoBehaviour
     private void InitializeBannerAd()
     {
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
-        SetBannerPlaceholderText(Debug.isDebugBuild ? "TEST AD LOADING..." : "AD LOADING...");
-        MobileAds.Initialize(_ => LoadBannerAd());
+        SetBannerPlaceholderText(isDebugBuildCached ? "TEST AD LOADING..." : "AD LOADING...");
+        MobileAds.RaiseAdEventsOnUnityMainThread = true;
+        MobileAds.Initialize(_ => pendingBannerLoadFromInitialize = true);
 #else
         SetBannerPlaceholderText("BANNER");
 #endif
@@ -646,17 +672,19 @@ public class GameMainUIController : MonoBehaviour
         }
 
         AdSize adSize = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(AdSize.FullWidth);
+        reservedBannerHeightPx = Mathf.Max(reservedBannerHeightPx, ConvertDpToPixels(adSize.Height));
+        RefreshBottomLayout(force: true);
         bannerView = new BannerView(adUnitId, adSize, AdPosition.Bottom);
         bannerView.OnBannerAdLoaded += HandleBannerAdLoaded;
         bannerView.OnBannerAdLoadFailed += HandleBannerAdLoadFailed;
         bannerView.LoadAd(new AdRequest());
 
-        Debug.Log($"[GameMainUIController] Banner ad load requested. unitId={adUnitId}, testMode={(Debug.isDebugBuild ? 1 : 0)}");
+        Debug.Log($"[GameMainUIController] Banner ad load requested. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
     }
 
-    private static string ResolveBannerAdUnitId()
+    private string ResolveBannerAdUnitId()
     {
-        bool useTestAdUnit = Debug.isDebugBuild;
+        bool useTestAdUnit = isDebugBuildCached;
 #if UNITY_ANDROID
         return useTestAdUnit ? AndroidTestBannerAdUnitId : AndroidReleaseBannerAdUnitId;
 #elif UNITY_IOS
@@ -671,6 +699,16 @@ public class GameMainUIController : MonoBehaviour
         if (bannerView != null)
             bannerView.Show();
 
+        if (bannerView != null)
+        {
+            float loadedBannerHeight = bannerView.GetHeightInPixels();
+            if (loadedBannerHeight > 0f)
+            {
+                reservedBannerHeightPx = loadedBannerHeight;
+                RefreshBottomLayout(force: true);
+            }
+        }
+
         if (bannerAdContainer != null)
             bannerAdContainer.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, 0f));
 
@@ -682,6 +720,8 @@ public class GameMainUIController : MonoBehaviour
     {
         string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
         Debug.LogWarning($"[GameMainUIController] Banner ad load failed: {errorMessage}");
+        reservedBannerHeightPx = 0f;
+        RefreshBottomLayout(force: true);
         SetBannerPlaceholderText("AD LOAD FAILED");
     }
 #endif
@@ -701,7 +741,76 @@ public class GameMainUIController : MonoBehaviour
             return;
         bannerView.Destroy();
         bannerView = null;
+        reservedBannerHeightPx = 0f;
+        RefreshBottomLayout(force: true);
 #endif
+    }
+
+    private float EstimateInitialBannerHeightPx()
+    {
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        AdSize estimatedSize = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(AdSize.FullWidth);
+        if (estimatedSize != null && estimatedSize.Height > 0)
+            return ConvertDpToPixels(estimatedSize.Height);
+#endif
+        return 80f;
+    }
+
+    private static float ConvertDpToPixels(float dp)
+    {
+        float dpi = Screen.dpi;
+        if (dpi <= 0f)
+            dpi = 160f;
+        return Mathf.Ceil(dp * (dpi / 160f));
+    }
+
+    private void RefreshBottomLayout(bool force)
+    {
+        Rect currentSafeArea = Screen.safeArea;
+        bool screenChanged = cachedScreenWidth != Screen.width || cachedScreenHeight != Screen.height;
+        bool safeAreaChanged = !IsSameRect(cachedSafeArea, currentSafeArea);
+
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        if (bannerView != null)
+        {
+            float liveBannerHeight = bannerView.GetHeightInPixels();
+            if (liveBannerHeight > 0f && Mathf.Abs(liveBannerHeight - reservedBannerHeightPx) > 0.5f)
+            {
+                reservedBannerHeightPx = liveBannerHeight;
+                force = true;
+            }
+        }
+#endif
+
+        if (!force && !screenChanged && !safeAreaChanged)
+            return;
+
+        cachedScreenWidth = Screen.width;
+        cachedScreenHeight = Screen.height;
+        cachedSafeArea = currentSafeArea;
+
+        float safeBottomPx = Mathf.Max(0f, currentSafeArea.yMin);
+        float totalReservedBottomPx = safeBottomPx + Mathf.Max(0f, reservedBannerHeightPx);
+
+        if (bannerAdContainer != null)
+        {
+            bannerAdContainer.style.height = totalReservedBottomPx;
+            bannerAdContainer.style.paddingBottom = safeBottomPx;
+        }
+
+        if (bottomBar != null)
+        {
+            bottomBar.style.marginBottom = 0f;
+            bottomBar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, bottomBarExtraSpacing);
+        }
+    }
+
+    private static bool IsSameRect(Rect a, Rect b)
+    {
+        return Mathf.Abs(a.x - b.x) < 0.5f &&
+               Mathf.Abs(a.y - b.y) < 0.5f &&
+               Mathf.Abs(a.width - b.width) < 0.5f &&
+               Mathf.Abs(a.height - b.height) < 0.5f;
     }
 
     /// <summary>스테이지 번호 및 전체 카운트로 상단 UI 초기화.</summary>
