@@ -46,12 +46,12 @@
             </ui:VisualElement>
 
             <ui:ScrollView name="SettingScrollView" style="flex-grow: 1; margin-top: 12px;">
-                <ui:Label text="게임 설정" style="font-size: 36px; color: rgba(143, 235, 255, 1); -unity-font-style: bold; margin-top: 16px; margin-left: 8px; margin-bottom: 18px;"/>
+                <ui:Label name="GameSettingSectionLabel" text="게임 설정" style="font-size: 36px; color: rgba(143, 235, 255, 1); -unity-font-style: bold; margin-top: 16px; margin-left: 8px; margin-bottom: 18px;"/>
 
                 <ui:VisualElement name="SoundRow" style="height: 140px; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 18px; padding-left: 30px; padding-right: 30px; border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.35); border-right-color: rgba(255, 255, 255, 0.35); border-top-color: rgba(255, 255, 255, 0.35); border-bottom-color: rgba(255, 255, 255, 0.35); border-radius: 20px; background-color: rgba(255, 255, 255, 0.03);">
                     <ui:VisualElement style="flex-direction: row; align-items: center;">
                         <ui:Image name="SoundIcon" class="settings-icon" style="margin-right: 20px;"/>
-                        <ui:Label text="소리" style="font-size: 44px; color: rgb(255, 255, 255);"/>
+                        <ui:Label name="SoundRowLabel" text="소리" style="font-size: 44px; color: rgb(255, 255, 255);"/>
                     </ui:VisualElement>
                     <ui:Button name="SoundSwitchButton" class="settings-switch settings-switch-on" text="">
                         <ui:Label name="SoundSwitchLabel" text="ON" class="settings-switch-label"/>
@@ -62,7 +62,7 @@
                 <ui:VisualElement name="VibrationRow" style="height: 140px; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 30px; padding-left: 30px; padding-right: 30px; border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.35); border-right-color: rgba(255, 255, 255, 0.35); border-top-color: rgba(255, 255, 255, 0.35); border-bottom-color: rgba(255, 255, 255, 0.35); border-radius: 20px; background-color: rgba(255, 255, 255, 0.03);">
                     <ui:VisualElement style="flex-direction: row; align-items: center;">
                         <ui:Image name="VibrationIcon" class="settings-icon" style="margin-right: 20px;"/>
-                        <ui:Label text="진동" style="font-size: 44px; color: rgb(255, 255, 255);"/>
+                        <ui:Label name="VibrationRowLabel" text="진동" style="font-size: 44px; color: rgb(255, 255, 255);"/>
                     </ui:VisualElement>
                     <ui:Button name="VibrationSwitchButton" class="settings-switch settings-switch-on" text="">
                         <ui:Label name="VibrationSwitchLabel" text="ON" class="settings-switch-label"/>
@@ -70,28 +70,28 @@
                     </ui:Button>
                 </ui:VisualElement>
 
-                <ui:Label text="도움말 · 언어" style="font-size: 36px; color: rgba(143, 235, 255, 1); -unity-font-style: bold; margin-left: 8px; margin-bottom: 18px;"/>
+                <ui:Label name="HelpLanguageSectionLabel" text="도움말 · 언어" style="font-size: 36px; color: rgba(143, 235, 255, 1); -unity-font-style: bold; margin-left: 8px; margin-bottom: 18px;"/>
 
                 <ui:Button name="HelpButton" text="" style="height: 126px; margin-bottom: 18px; border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.35); border-right-color: rgba(255, 255, 255, 0.35); border-top-color: rgba(255, 255, 255, 0.35); border-bottom-color: rgba(255, 255, 255, 0.35); border-radius: 20px; background-color: rgba(255, 255, 255, 0.03); justify-content: center;">
                     <ui:VisualElement style="flex-direction: row; align-items: center; padding-left: 30px;">
                         <ui:Image name="HelpIcon" class="settings-icon" style="margin-right: 20px;"/>
-                        <ui:Label text="도움말" style="font-size: 40px; color: rgb(255, 255, 255);"/>
+                        <ui:Label name="HelpMenuLabel" text="도움말" style="font-size: 40px; color: rgb(255, 255, 255);"/>
                     </ui:VisualElement>
                 </ui:Button>
 
                 <ui:Button name="LanguageButton" text="" style="height: 126px; margin-bottom: 30px; border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.35); border-right-color: rgba(255, 255, 255, 0.35); border-top-color: rgba(255, 255, 255, 0.35); border-bottom-color: rgba(255, 255, 255, 0.35); border-radius: 20px; background-color: rgba(255, 255, 255, 0.03); justify-content: center;">
                     <ui:VisualElement style="flex-direction: row; align-items: center; padding-left: 30px;">
                         <ui:Image name="LanguageIcon" class="settings-icon" style="margin-right: 20px;"/>
-                        <ui:Label text="언어 변경" style="font-size: 40px; color: rgb(255, 255, 255);"/>
+                        <ui:Label name="LanguageMenuLabel" text="언어 변경" style="font-size: 40px; color: rgb(255, 255, 255);"/>
                     </ui:VisualElement>
                 </ui:Button>
 
-                <ui:Label text="추천 · 서비스" style="font-size: 36px; color: rgba(143, 235, 255, 1); -unity-font-style: bold; margin-left: 8px; margin-bottom: 18px;"/>
+                <ui:Label name="RecommendServiceSectionLabel" text="추천 · 서비스" style="font-size: 36px; color: rgba(143, 235, 255, 1); -unity-font-style: bold; margin-left: 8px; margin-bottom: 18px;"/>
                 <ui:Button name="RateButton" text="평가하기" style="height: 122px; margin-bottom: 18px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 20px; background-color: rgba(255, 255, 255, 0.03); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.35); border-right-color: rgba(255, 255, 255, 0.35); border-top-color: rgba(255, 255, 255, 0.35); border-bottom-color: rgba(255, 255, 255, 0.35);"/>
                 <ui:Button name="RemoveAdsButton" text="광고 제거" style="height: 122px; margin-bottom: 18px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 20px; background-color: rgba(255, 209, 102, 0.14); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.45); border-right-color: rgba(255, 255, 255, 0.45); border-top-color: rgba(255, 255, 255, 0.45); border-bottom-color: rgba(255, 255, 255, 0.45);"/>
                 <ui:Button name="EmailButton" text="개발자에게 이메일 보내기" style="height: 122px; margin-bottom: 30px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 20px; background-color: rgba(255, 255, 255, 0.03); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.35); border-right-color: rgba(255, 255, 255, 0.35); border-top-color: rgba(255, 255, 255, 0.35); border-bottom-color: rgba(255, 255, 255, 0.35);"/>
 
-                <ui:Label text="데이터 · 정책" style="font-size: 36px; color: rgba(255, 181, 181, 1); -unity-font-style: bold; margin-left: 8px; margin-bottom: 18px;"/>
+                <ui:Label name="DataPolicySectionLabel" text="데이터 · 정책" style="font-size: 36px; color: rgba(255, 181, 181, 1); -unity-font-style: bold; margin-left: 8px; margin-bottom: 18px;"/>
                 <ui:Button name="ResetDataButton" text="데이터 초기화" style="height: 122px; margin-bottom: 18px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 20px; background-color: rgba(255, 109, 109, 0.18); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 140, 140, 0.7); border-right-color: rgba(255, 140, 140, 0.7); border-top-color: rgba(255, 140, 140, 0.7); border-bottom-color: rgba(255, 140, 140, 0.7);"/>
                 <ui:Button name="PrivacyPolicyButton" text="개인정보처리방침" style="height: 118px; margin-bottom: 18px; font-size: 36px; color: rgba(234, 238, 255, 1); border-radius: 20px; background-color: rgba(255, 255, 255, 0.02); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.28); border-right-color: rgba(255, 255, 255, 0.28); border-top-color: rgba(255, 255, 255, 0.28); border-bottom-color: rgba(255, 255, 255, 0.28);"/>
                 <ui:Button name="TermsButton" text="이용약관" style="height: 118px; margin-bottom: 18px; font-size: 36px; color: rgba(234, 238, 255, 1); border-radius: 20px; background-color: rgba(255, 255, 255, 0.02); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.28); border-right-color: rgba(255, 255, 255, 0.28); border-top-color: rgba(255, 255, 255, 0.28); border-bottom-color: rgba(255, 255, 255, 0.28);"/>
@@ -104,6 +104,19 @@
                         <ui:Button name="ResetConfirmCancelButton" text="취소" style="width: 280px; height: 108px; margin-right: 18px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 20px; background-color: rgba(255, 255, 255, 0.08); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 255, 255, 0.6); border-right-color: rgba(255, 255, 255, 0.6); border-top-color: rgba(255, 255, 255, 0.6); border-bottom-color: rgba(255, 255, 255, 0.6);"/>
                         <ui:Button name="ResetConfirmOkButton" text="초기화" style="width: 280px; height: 108px; margin-left: 18px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 20px; background-color: rgba(255, 109, 109, 0.26); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(255, 150, 150, 0.85); border-right-color: rgba(255, 150, 150, 0.85); border-top-color: rgba(255, 150, 150, 0.85); border-bottom-color: rgba(255, 150, 150, 0.85);"/>
                     </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="LanguageSelectOverlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: none; justify-content: center; align-items: center; background-color: rgba(2, 5, 10, 0.82); border-radius: 32px;">
+                <ui:VisualElement name="LanguageSelectDialog" style="width: 92%; max-width: 860px; min-height: 560px; max-height: 88%; background-color: rgba(9, 14, 22, 0.98); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(178, 236, 255, 0.95); border-right-color: rgba(178, 236, 255, 0.95); border-top-color: rgba(178, 236, 255, 0.95); border-bottom-color: rgba(178, 236, 255, 0.95); border-radius: 24px; padding-left: 24px; padding-right: 24px; padding-top: 18px; padding-bottom: 18px;">
+                    <ui:VisualElement style="height: 100px; flex-direction: row; justify-content: space-between; align-items: center; padding-left: 8px; padding-right: 8px;">
+                        <ui:Label name="LanguageSelectTitleLabel" text="언어 선택" style="font-size: 46px; color: rgb(255, 255, 255); -unity-font-style: bold; letter-spacing: 0.6px;"/>
+                        <ui:Button name="LanguageSelectCloseButton" text="" style="width: 96px; height: 96px; background-color: rgba(0, 0, 0, 0); border-left-width: 0; border-right-width: 0; border-top-width: 0; border-bottom-width: 0; border-radius: 0; justify-content: center; align-items: center;">
+                            <ui:Image name="LanguageSelectCloseIcon" style="width: 60px; height: 60px;"/>
+                        </ui:Button>
+                    </ui:VisualElement>
+                    <ui:ScrollView name="LanguageSelectScrollView" style="flex-grow: 1; margin-top: 6px;">
+                        <ui:VisualElement name="LanguageOptionList" style="flex-direction: column;"/>
+                    </ui:ScrollView>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>

@@ -17,6 +17,7 @@ public class GameMainUIController : MonoBehaviour
     public static bool IsVibrationEnabled { get; private set; } = true;
     private const string SaveKeySoundOn = "SettingSoundOn";
     private const string SaveKeyVibrationOn = "SettingVibrationOn";
+    private const string SaveKeyLanguageSelection = "SettingLanguageSelection";
     private const string PrivacyUrl = "https://www.naver.com";
     private const string SupportEmailAddress = "crewoongcrewoong@gmail.com";
     private const string NeonPressBaseClass = "neon-press-button";
@@ -48,8 +49,11 @@ public class GameMainUIController : MonoBehaviour
         public string id;
         public int stageIndex;
         public string tutorialType = TutorialTypeBasicPath;
+        public string titleKey;
         public string title = "기본 플레이 방법";
+        public string descriptionKey;
         public string description = "왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다.";
+        public string closeButtonTextKey;
         public string closeButtonText = "확인";
     }
 
@@ -65,6 +69,7 @@ public class GameMainUIController : MonoBehaviour
         public string id;
         public int stageIndex;
         public int targetStageIndex;
+        public string messageKey;
         public string message = "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.";
         public float duration = 2.8f;
     }
@@ -121,6 +126,23 @@ public class GameMainUIController : MonoBehaviour
     private Button resetDataButton;
     private Button privacyPolicyButton;
     private Button termsButton;
+    private Label settingTitleTextLabel;
+    private Label gameSettingSectionLabel;
+    private Label helpLanguageSectionLabel;
+    private Label recommendServiceSectionLabel;
+    private Label dataPolicySectionLabel;
+    private Label soundRowLabel;
+    private Label vibrationRowLabel;
+    private Label helpMenuLabel;
+    private Label languageMenuLabel;
+    private Label resetConfirmTitleLabel;
+    private Label resetConfirmMessageLabel;
+    private VisualElement languageSelectOverlay;
+    private VisualElement languageSelectDialog;
+    private Label languageSelectTitleLabel;
+    private Button languageSelectCloseButton;
+    private Image languageSelectCloseIcon;
+    private VisualElement languageOptionList;
     private VisualElement tutorialOverlay;
     private VisualElement tutorialDialog;
     private Label tutorialTitleLabel;
@@ -155,6 +177,8 @@ public class GameMainUIController : MonoBehaviour
     private Sprite heartEmptySprite;
     private bool isSoundOn = true;
     private bool isVibrationOn = true;
+    private string selectedLanguageCode = GameLocalization.LanguageAuto;
+    private string activeLanguageCode = "en";
     private bool isDebugBuildCached;
     private volatile bool pendingBannerLoadFromInitialize;
     private volatile bool pendingRewardedAdLoadFromInitialize;
@@ -166,6 +190,7 @@ public class GameMainUIController : MonoBehaviour
     private Rect cachedSafeArea;
     private int currentHearts = MaxHearts;
     private bool isWaitingForHeartRefill;
+    private bool isLanguageSelectionPopupOpen;
     private bool isTutorialPopupOpen;
     private int currentStageIndexForUI = 1;
     private Coroutine tutorialAnimationRoutine;
@@ -235,6 +260,14 @@ public class GameMainUIController : MonoBehaviour
         resetConfirmOverlay = root.Q<VisualElement>("ResetConfirmOverlay");
         resetConfirmCancelButton = root.Q<Button>("ResetConfirmCancelButton");
         resetConfirmOkButton = root.Q<Button>("ResetConfirmOkButton");
+        resetConfirmTitleLabel = root.Q<Label>("ResetConfirmTitle");
+        resetConfirmMessageLabel = root.Q<Label>("ResetConfirmMessage");
+        languageSelectOverlay = root.Q<VisualElement>("LanguageSelectOverlay");
+        languageSelectDialog = root.Q<VisualElement>("LanguageSelectDialog");
+        languageSelectTitleLabel = root.Q<Label>("LanguageSelectTitleLabel");
+        languageSelectCloseButton = root.Q<Button>("LanguageSelectCloseButton");
+        languageSelectCloseIcon = root.Q<Image>("LanguageSelectCloseIcon");
+        languageOptionList = root.Q<VisualElement>("LanguageOptionList");
         soundSwitchButton = root.Q<Button>("SoundSwitchButton");
         soundSwitchLabel = root.Q<Label>("SoundSwitchLabel");
         vibrationSwitchButton = root.Q<Button>("VibrationSwitchButton");
@@ -251,6 +284,15 @@ public class GameMainUIController : MonoBehaviour
         resetDataButton = root.Q<Button>("ResetDataButton");
         privacyPolicyButton = root.Q<Button>("PrivacyPolicyButton");
         termsButton = root.Q<Button>("TermsButton");
+        settingTitleTextLabel = root.Q<Label>("SettingTitleLabel");
+        gameSettingSectionLabel = root.Q<Label>("GameSettingSectionLabel");
+        helpLanguageSectionLabel = root.Q<Label>("HelpLanguageSectionLabel");
+        recommendServiceSectionLabel = root.Q<Label>("RecommendServiceSectionLabel");
+        dataPolicySectionLabel = root.Q<Label>("DataPolicySectionLabel");
+        soundRowLabel = root.Q<Label>("SoundRowLabel");
+        vibrationRowLabel = root.Q<Label>("VibrationRowLabel");
+        helpMenuLabel = root.Q<Label>("HelpMenuLabel");
+        languageMenuLabel = root.Q<Label>("LanguageMenuLabel");
         tutorialOverlay = root.Q<VisualElement>("TutorialOverlay");
         tutorialDialog = root.Q<VisualElement>("TutorialDialog");
         tutorialTitleLabel = root.Q<Label>("TutorialTitleLabel");
@@ -286,6 +328,8 @@ public class GameMainUIController : MonoBehaviour
             settingPopupOverlay.style.display = DisplayStyle.None;
         if (resetConfirmOverlay != null)
             resetConfirmOverlay.style.display = DisplayStyle.None;
+        if (languageSelectOverlay != null)
+            languageSelectOverlay.style.display = DisplayStyle.None;
         if (heartDepletedOverlay != null)
             heartDepletedOverlay.style.display = DisplayStyle.None;
         if (tutorialOverlay != null)
@@ -295,6 +339,11 @@ public class GameMainUIController : MonoBehaviour
             stageSnackbar.style.display = DisplayStyle.None;
             stageSnackbar.style.opacity = 0f;
             stageSnackbar.style.scale = new StyleScale(new Scale(new Vector3(0.96f, 0.96f, 1f)));
+        }
+        if (languageSelectDialog != null)
+        {
+            languageSelectDialog.style.opacity = 1f;
+            languageSelectDialog.style.scale = new StyleScale(new Scale(Vector3.one));
         }
 
         if (gameProgressBar != null)
@@ -377,8 +426,11 @@ public class GameMainUIController : MonoBehaviour
             resetConfirmCancelButton.clicked += HideResetDataConfirmPopup;
         if (resetConfirmOkButton != null)
             resetConfirmOkButton.clicked += ConfirmResetData;
+        if (languageSelectCloseButton != null)
+            languageSelectCloseButton.clicked += HideLanguageSelectionPopup;
 
         AssignSprite(settingCloseIcon, "Sprites/close", "close.png");
+        AssignSprite(languageSelectCloseIcon, "Sprites/close", "close.png");
         AssignSprite(tutorialCloseIcon, "Sprites/close", "close.png");
         AssignSprite(tutorialHandImage, "Sprites/hand", "hand.png");
         AssignSprite(soundIcon, "Sprites/sound", "sound.png");
@@ -402,7 +454,7 @@ public class GameMainUIController : MonoBehaviour
         if (helpButton != null)
             helpButton.clicked += OpenHelpTutorialFromSettings;
         if (languageButton != null)
-            languageButton.clicked += () => Debug.Log("언어 변경 열기");
+            languageButton.clicked += OpenLanguageSelectionPopup;
         if (rateButton != null)
             rateButton.clicked += () => Debug.Log("평가하기 클릭");
         if (removeAdsButton != null)
@@ -455,6 +507,7 @@ public class GameMainUIController : MonoBehaviour
         if (blockAdsButton != null)
             blockAdsButton.clicked += () => Debug.Log("광고 제거");
 
+        ApplyLocalizationForCurrentLanguage();
         SetupButtonClickAnimations();
         ConfigureHeartDepletedPopupForRewardedAd();
         RefreshHeartVisuals();
@@ -514,6 +567,7 @@ public class GameMainUIController : MonoBehaviour
         RegisterButtonClickAnimation(tutorialConfirmButton, useWarmPulse: true);
         RegisterButtonClickAnimation(resetConfirmCancelButton);
         RegisterButtonClickAnimation(resetConfirmOkButton, useWarmPulse: true);
+        RegisterButtonClickAnimation(languageSelectCloseButton);
         RegisterButtonClickAnimation(heartRefillAdButton, useWarmPulse: true);
     }
 
@@ -605,6 +659,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void HideSettingPopup()
     {
+        HideLanguageSelectionPopup();
         HideResetDataConfirmPopup();
         if (settingPopupOverlay != null)
         {
@@ -826,7 +881,7 @@ public class GameMainUIController : MonoBehaviour
         {
             heartRefillAdButton.SetEnabled(true);
             int rewardMinutes = Mathf.Max(1, currentSessionPlayRewardMinutes);
-            SetHeartRefillStatus($"{rewardMinutes}분 플레이 보상으로 무료 충전 가능합니다.");
+            SetHeartRefillStatus(T("heart_status_session_reward", ("minutes", rewardMinutes.ToString())));
             return;
         }
 
@@ -834,12 +889,12 @@ public class GameMainUIController : MonoBehaviour
         bool canShow = rewardedAd != null && rewardedAd.CanShowAd();
         heartRefillAdButton.SetEnabled(canShow);
         if (canShow)
-            SetHeartRefillStatus("광고 시청 후 하트 3개 충전");
+            SetHeartRefillStatus(T("heart_status_reward_ready"));
         else
-            SetHeartRefillStatus("광고를 불러오는 중입니다...");
+            SetHeartRefillStatus(T("heart_status_loading_ad"));
 #else
         heartRefillAdButton.SetEnabled(true);
-        SetHeartRefillStatus("에디터에서는 즉시 충전됩니다.");
+        SetHeartRefillStatus(T("heart_status_editor"));
 #endif
     }
 
@@ -863,12 +918,12 @@ public class GameMainUIController : MonoBehaviour
         if (rewardedAd != null && rewardedAd.CanShowAd())
         {
             heartRefillAdButton?.SetEnabled(false);
-            SetHeartRefillStatus("광고를 여는 중입니다...");
+            SetHeartRefillStatus(T("heart_status_opening_ad"));
             pendingShowRewardedAd = true;
             return;
         }
 
-        SetHeartRefillStatus("광고를 준비 중입니다. 잠시 후 다시 시도해 주세요.");
+        SetHeartRefillStatus(T("heart_status_prepare_retry"));
         LoadRewardedAd();
 #else
         CompleteHeartRefillAfterReward();
@@ -918,10 +973,10 @@ public class GameMainUIController : MonoBehaviour
         currentHeartRefillMode = HeartRefillMode.RewardedAd;
         currentSessionPlayRewardMinutes = 0;
         SetHeartDepletedPopupCopy(
-            "하트가 모두 소진됐어요",
-            "광고를 시청하면 하트 3개가 즉시 충전되고 현재 스테이지가 다시 시작됩니다.",
-            "보상: 하트 3개 + 즉시 재시작",
-            "광고 보고 하트 3개 충전");
+            T("heart_rewarded_title"),
+            T("heart_rewarded_message"),
+            T("heart_rewarded_hint"),
+            T("heart_rewarded_button"));
     }
 
     private void ConfigureHeartDepletedPopupForSessionReward(int thresholdMinutes)
@@ -929,10 +984,10 @@ public class GameMainUIController : MonoBehaviour
         currentHeartRefillMode = HeartRefillMode.SessionPlayReward;
         currentSessionPlayRewardMinutes = Mathf.Max(1, thresholdMinutes);
         SetHeartDepletedPopupCopy(
-            "무료 하트 충전 기회",
-            $"{currentSessionPlayRewardMinutes}분 이상 플레이했기 때문에 하트 3개를 무료로 충전해드립니다.",
-            "보상: 하트 3개 + 즉시 재시작 (광고 없음)",
-            "무료 충전 확인");
+            T("heart_session_title"),
+            T("heart_session_message", ("minutes", currentSessionPlayRewardMinutes.ToString())),
+            T("heart_session_hint"),
+            T("heart_session_button"));
     }
 
     private void SetHeartDepletedPopupCopy(string title, string message, string rewardHint, string buttonText)
@@ -992,14 +1047,14 @@ public class GameMainUIController : MonoBehaviour
             if (string.IsNullOrWhiteSpace(entry.tutorialType))
                 entry.tutorialType = TutorialTypeBasicPath;
 
-            if (string.IsNullOrWhiteSpace(entry.title))
-                entry.title = "도움말";
+            if (string.IsNullOrWhiteSpace(entry.titleKey) && string.IsNullOrWhiteSpace(entry.title))
+                entry.titleKey = "help_generic_title";
 
-            if (string.IsNullOrWhiteSpace(entry.description))
-                entry.description = "타일을 연결해 카운트를 0으로 만드세요.";
+            if (string.IsNullOrWhiteSpace(entry.descriptionKey) && string.IsNullOrWhiteSpace(entry.description))
+                entry.descriptionKey = "help_generic_description";
 
-            if (string.IsNullOrWhiteSpace(entry.closeButtonText))
-                entry.closeButtonText = "확인";
+            if (string.IsNullOrWhiteSpace(entry.closeButtonTextKey) && string.IsNullOrWhiteSpace(entry.closeButtonText))
+                entry.closeButtonTextKey = "help_close_button";
 
             helpTutorialEntries.Add(entry);
             if (!helpTutorialEntriesByStage.TryGetValue(entry.stageIndex, out List<HelpTutorialEntryData> list))
@@ -1022,9 +1077,9 @@ public class GameMainUIController : MonoBehaviour
             id = "basic_stage_1",
             stageIndex = 1,
             tutorialType = TutorialTypeBasicPath,
-            title = "기본 플레이 방법",
-            description = "왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다.",
-            closeButtonText = "확인"
+            titleKey = "tutorial_basic_title",
+            descriptionKey = "tutorial_basic_description",
+            closeButtonTextKey = "help_close_button"
         };
         helpTutorialEntries.Add(fallback);
         helpTutorialEntriesByStage[1] = new List<HelpTutorialEntryData> { fallback };
@@ -1064,8 +1119,8 @@ public class GameMainUIController : MonoBehaviour
 
             if (string.IsNullOrWhiteSpace(entry.id))
                 entry.id = $"stage_snackbar_{entry.stageIndex}_{i + 1}";
-            if (string.IsNullOrWhiteSpace(entry.message))
-                entry.message = "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.";
+            if (string.IsNullOrWhiteSpace(entry.messageKey) && string.IsNullOrWhiteSpace(entry.message))
+                entry.messageKey = "snackbar_default_new_tile_unlock";
             if (entry.duration <= 0f)
                 entry.duration = stageSnackbarDefaultDuration;
 
@@ -1156,13 +1211,14 @@ public class GameMainUIController : MonoBehaviour
 
     private string BuildStageSnackbarMessage(StageSnackbarEntryData entry, int currentStageIndex)
     {
-        if (entry == null || string.IsNullOrWhiteSpace(entry.message))
+        string messageTemplate = ResolveStageSnackbarTemplate(entry);
+        if (string.IsNullOrWhiteSpace(messageTemplate))
             return string.Empty;
 
         int targetStageIndex = entry.targetStageIndex > 0 ? entry.targetStageIndex : currentStageIndex;
         int remainingStages = Mathf.Max(0, targetStageIndex - currentStageIndex);
 
-        string message = entry.message;
+        string message = messageTemplate;
         message = message.Replace("{currentStage}", currentStageIndex.ToString());
         message = message.Replace("{targetStage}", targetStageIndex.ToString());
         message = message.Replace("{remainingStages}", remainingStages.ToString());
@@ -1339,13 +1395,13 @@ public class GameMainUIController : MonoBehaviour
         }
 
         if (tutorialTitleLabel != null)
-            tutorialTitleLabel.text = entry.title;
+            tutorialTitleLabel.text = ResolveTutorialTitle(entry);
         if (tutorialDescriptionLabel != null)
-            tutorialDescriptionLabel.text = entry.description;
+            tutorialDescriptionLabel.text = ResolveTutorialDescription(entry);
         if (tutorialConfirmButton != null)
-            tutorialConfirmButton.text = entry.closeButtonText;
+            tutorialConfirmButton.text = ResolveTutorialCloseButtonText(entry);
 
-        ApplyTutorialStepState(1, 2, 1, "왼쪽 타일에서 시작해 경로를 연결해보세요.");
+        ApplyTutorialStepState(1, 2, 1, T("tutorial_hint_connect"));
         SetTutorialHandPosition(0, instant: true);
         StartTutorialAnimation(entry);
 
@@ -1418,31 +1474,31 @@ public class GameMainUIController : MonoBehaviour
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
-            ApplyTutorialStepState(1, 2, 1, "왼쪽에서 시작");
+            ApplyTutorialStepState(1, 2, 1, T("tutorial_step_start"));
             SetTutorialHandPosition(0, instant: true);
             yield return new WaitForSecondsRealtime(0.42f);
 
             if (!IsTutorialAnimationActive(animationVersion))
                 yield break;
             SetTutorialHandPosition(1, instant: false);
-            ApplyTutorialStepState(0, 2, 1, "왼쪽 타일 카운트 -1", pulseLeft: true);
+            ApplyTutorialStepState(0, 2, 1, T("tutorial_step_left"), pulseLeft: true);
             yield return stepWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
                 yield break;
             SetTutorialHandPosition(2, instant: false);
-            ApplyTutorialStepState(0, 1, 1, "중앙 타일 카운트 -1", pulseCenter: true);
+            ApplyTutorialStepState(0, 1, 1, T("tutorial_step_center"), pulseCenter: true);
             yield return stepWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
                 yield break;
             SetTutorialHandPosition(1, instant: false);
-            ApplyTutorialStepState(0, 1, 0, "오른쪽 타일 카운트 -1", pulseRight: true);
+            ApplyTutorialStepState(0, 1, 0, T("tutorial_step_right"), pulseRight: true);
             yield return stepWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
                 yield break;
-            ApplyTutorialStepState(0, 0, 0, "남은 카운트 0: 스테이지 클리어!", pulseCenter: true);
+            ApplyTutorialStepState(0, 0, 0, T("tutorial_step_clear"), pulseCenter: true);
             yield return cycleWait;
         }
 
@@ -1522,6 +1578,258 @@ public class GameMainUIController : MonoBehaviour
         tutorialHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
     }
 
+    private string T(string key)
+    {
+        return GameLocalization.Get(key, activeLanguageCode);
+    }
+
+    private string T(string key, params (string key, string value)[] replacements)
+    {
+        return GameLocalization.Get(key, activeLanguageCode, replacements);
+    }
+
+    private void ApplyLocalizationForCurrentLanguage()
+    {
+        if (stageTitleLabel != null)
+            stageTitleLabel.text = T("stage_title");
+
+        if (settingTitleTextLabel != null)
+            settingTitleTextLabel.text = T("settings_title");
+        if (gameSettingSectionLabel != null)
+            gameSettingSectionLabel.text = T("section_game_settings");
+        if (helpLanguageSectionLabel != null)
+            helpLanguageSectionLabel.text = T("section_help_language");
+        if (recommendServiceSectionLabel != null)
+            recommendServiceSectionLabel.text = T("section_recommend_service");
+        if (dataPolicySectionLabel != null)
+            dataPolicySectionLabel.text = T("section_data_policy");
+        if (soundRowLabel != null)
+            soundRowLabel.text = T("label_sound");
+        if (vibrationRowLabel != null)
+            vibrationRowLabel.text = T("label_vibration");
+        if (helpMenuLabel != null)
+            helpMenuLabel.text = T("menu_help");
+
+        if (rateButton != null)
+            rateButton.text = T("button_rate");
+        if (removeAdsButton != null)
+            removeAdsButton.text = T("button_remove_ads");
+        if (emailButton != null)
+            emailButton.text = T("button_email");
+        if (resetDataButton != null)
+            resetDataButton.text = T("button_reset_data");
+        if (privacyPolicyButton != null)
+            privacyPolicyButton.text = T("button_privacy_policy");
+        if (termsButton != null)
+            termsButton.text = T("button_terms");
+
+        if (resetConfirmTitleLabel != null)
+            resetConfirmTitleLabel.text = T("reset_confirm_title");
+        if (resetConfirmMessageLabel != null)
+            resetConfirmMessageLabel.text = T("reset_confirm_message");
+        if (resetConfirmCancelButton != null)
+            resetConfirmCancelButton.text = T("button_cancel");
+        if (resetConfirmOkButton != null)
+            resetConfirmOkButton.text = T("button_reset");
+        if (languageSelectTitleLabel != null)
+            languageSelectTitleLabel.text = T("language_select_title");
+
+        UpdateLanguageMenuLabel();
+        if (isLanguageSelectionPopupOpen)
+            BuildLanguageSelectionListUI();
+        UpdateActiveTutorialCopyIfOpen();
+
+        if (currentHeartRefillMode == HeartRefillMode.SessionPlayReward)
+            ConfigureHeartDepletedPopupForSessionReward(currentSessionPlayRewardMinutes);
+        else
+            ConfigureHeartDepletedPopupForRewardedAd();
+
+        UpdateHeartRefillButtonState();
+    }
+
+    private void UpdateLanguageMenuLabel()
+    {
+        if (languageMenuLabel == null)
+            return;
+
+        string languageDisplayName = BuildLanguageOptionDisplayName(selectedLanguageCode);
+
+        languageMenuLabel.text = T("menu_language", ("language", languageDisplayName));
+    }
+
+    private void OpenLanguageSelectionPopup()
+    {
+        if (languageSelectOverlay == null)
+        {
+            string nextSelection = GameLocalization.GetNextSelectionCode(selectedLanguageCode);
+            ApplyLanguageSelection(nextSelection, persist: true);
+            return;
+        }
+
+        if (languageSelectTitleLabel != null)
+            languageSelectTitleLabel.text = T("language_select_title");
+
+        BuildLanguageSelectionListUI();
+        languageSelectOverlay.style.display = DisplayStyle.Flex;
+        isLanguageSelectionPopupOpen = true;
+
+        if (languageSelectDialog != null)
+        {
+            languageSelectDialog.style.opacity = 0f;
+            languageSelectDialog.style.scale = new StyleScale(new Scale(new Vector3(0.95f, 0.95f, 1f)));
+            languageSelectDialog.schedule.Execute(() =>
+            {
+                if (!isLanguageSelectionPopupOpen)
+                    return;
+                languageSelectDialog.style.opacity = 1f;
+                languageSelectDialog.style.scale = new StyleScale(new Scale(Vector3.one));
+            }).StartingIn(12);
+        }
+
+        FirebaseBootstrap.LogEvent("language_popup_open", new Dictionary<string, object>
+        {
+            { "selection", selectedLanguageCode },
+            { "active", activeLanguageCode }
+        });
+    }
+
+    private void HideLanguageSelectionPopup()
+    {
+        isLanguageSelectionPopupOpen = false;
+        if (languageSelectOverlay != null)
+            languageSelectOverlay.style.display = DisplayStyle.None;
+        if (languageSelectDialog != null)
+        {
+            languageSelectDialog.style.opacity = 1f;
+            languageSelectDialog.style.scale = new StyleScale(new Scale(Vector3.one));
+        }
+    }
+
+    private void BuildLanguageSelectionListUI()
+    {
+        if (languageOptionList == null)
+            return;
+
+        languageOptionList.Clear();
+        string[] languageSelections = GameLocalization.GetSelectionOrder();
+        for (int i = 0; i < languageSelections.Length; i++)
+        {
+            string selectionCode = languageSelections[i];
+            string optionLabel = BuildLanguageOptionDisplayName(selectionCode);
+            bool isSelectedOption = string.Equals(selectedLanguageCode, selectionCode, StringComparison.OrdinalIgnoreCase);
+            if (isSelectedOption)
+                optionLabel = "✓ " + optionLabel;
+
+            Button optionButton = new Button
+            {
+                text = optionLabel
+            };
+            optionButton.AddToClassList("language-option-button");
+            if (isSelectedOption)
+                optionButton.AddToClassList("language-option-selected");
+
+            string capturedSelectionCode = selectionCode;
+            optionButton.clicked += () => OnLanguageSelectionOptionClicked(capturedSelectionCode);
+            RegisterButtonClickAnimation(optionButton);
+
+            languageOptionList.Add(optionButton);
+        }
+    }
+
+    private void OnLanguageSelectionOptionClicked(string selectionCode)
+    {
+        ApplyLanguageSelection(selectionCode, persist: true);
+        HideLanguageSelectionPopup();
+
+        FirebaseBootstrap.LogEvent("language_changed", new Dictionary<string, object>
+        {
+            { "selection", selectedLanguageCode },
+            { "active", activeLanguageCode }
+        });
+    }
+
+    private string BuildLanguageOptionDisplayName(string selectionCode)
+    {
+        string normalizedSelection = GameLocalization.NormalizeSelectionCode(selectionCode);
+        if (string.Equals(normalizedSelection, GameLocalization.LanguageAuto, StringComparison.OrdinalIgnoreCase))
+        {
+            string resolvedLanguageCode = GameLocalization.ResolveSystemLanguageCode();
+            string resolvedLanguageName = GameLocalization.GetLanguageDisplayName(resolvedLanguageCode);
+            return $"{T("language_system")} ({resolvedLanguageName})";
+        }
+
+        return GameLocalization.GetLanguageDisplayName(normalizedSelection);
+    }
+
+    private void ApplyLanguageSelection(string selectionCode, bool persist)
+    {
+        selectedLanguageCode = GameLocalization.NormalizeSelectionCode(selectionCode);
+        activeLanguageCode = GameLocalization.ResolveActiveLanguageCode(selectedLanguageCode);
+
+        if (persist)
+            SaveSettingString(SaveKeyLanguageSelection, selectedLanguageCode);
+
+        StopStageSnackbarPlayback();
+        ApplyLocalizationForCurrentLanguage();
+    }
+
+    private void UpdateActiveTutorialCopyIfOpen()
+    {
+        if (!isTutorialPopupOpen || activeTutorialEntry == null)
+            return;
+
+        if (tutorialTitleLabel != null)
+            tutorialTitleLabel.text = ResolveTutorialTitle(activeTutorialEntry);
+        if (tutorialDescriptionLabel != null)
+            tutorialDescriptionLabel.text = ResolveTutorialDescription(activeTutorialEntry);
+        if (tutorialConfirmButton != null)
+            tutorialConfirmButton.text = ResolveTutorialCloseButtonText(activeTutorialEntry);
+    }
+
+    private string ResolveTutorialTitle(HelpTutorialEntryData entry)
+    {
+        if (entry == null)
+            return T("help_generic_title");
+        if (!string.IsNullOrWhiteSpace(entry.titleKey))
+            return T(entry.titleKey);
+        if (!string.IsNullOrWhiteSpace(entry.title))
+            return entry.title;
+        return T("help_generic_title");
+    }
+
+    private string ResolveTutorialDescription(HelpTutorialEntryData entry)
+    {
+        if (entry == null)
+            return T("help_generic_description");
+        if (!string.IsNullOrWhiteSpace(entry.descriptionKey))
+            return T(entry.descriptionKey);
+        if (!string.IsNullOrWhiteSpace(entry.description))
+            return entry.description;
+        return T("help_generic_description");
+    }
+
+    private string ResolveTutorialCloseButtonText(HelpTutorialEntryData entry)
+    {
+        if (entry == null)
+            return T("help_close_button");
+        if (!string.IsNullOrWhiteSpace(entry.closeButtonTextKey))
+            return T(entry.closeButtonTextKey);
+        if (!string.IsNullOrWhiteSpace(entry.closeButtonText))
+            return entry.closeButtonText;
+        return T("help_close_button");
+    }
+
+    private string ResolveStageSnackbarTemplate(StageSnackbarEntryData entry)
+    {
+        if (entry == null)
+            return string.Empty;
+        if (!string.IsNullOrWhiteSpace(entry.messageKey))
+            return T(entry.messageKey);
+        if (!string.IsNullOrWhiteSpace(entry.message))
+            return entry.message;
+        return T("snackbar_default_new_tile_unlock");
+    }
+
     private void ToggleSoundSwitch()
     {
         isSoundOn = !isSoundOn;
@@ -1595,6 +1903,7 @@ public class GameMainUIController : MonoBehaviour
         {
             if (ES3.KeyExists(SaveKeySoundOn)) ES3.DeleteKey(SaveKeySoundOn);
             if (ES3.KeyExists(SaveKeyVibrationOn)) ES3.DeleteKey(SaveKeyVibrationOn);
+            if (ES3.KeyExists(SaveKeyLanguageSelection)) ES3.DeleteKey(SaveKeyLanguageSelection);
         }
         catch (Exception e)
         {
@@ -1604,6 +1913,7 @@ public class GameMainUIController : MonoBehaviour
 
         PlayerPrefs.DeleteKey(SaveKeySoundOn);
         PlayerPrefs.DeleteKey(SaveKeyVibrationOn);
+        PlayerPrefs.DeleteKey(SaveKeyLanguageSelection);
         PlayerPrefs.Save();
 
         GameManager.ClearSavedStageProgress();
@@ -1611,9 +1921,12 @@ public class GameMainUIController : MonoBehaviour
         isSoundOn = true;
         isVibrationOn = true;
         IsVibrationEnabled = true;
+        selectedLanguageCode = GameLocalization.LanguageAuto;
+        activeLanguageCode = GameLocalization.ResolveSystemLanguageCode();
         RefreshSoundSwitchVisual();
         RefreshVibrationSwitchVisual();
         ApplySoundSwitchToAudioListener();
+        ApplyLocalizationForCurrentLanguage();
 
         HideResetDataConfirmPopup();
         HideSettingPopup();
@@ -1672,6 +1985,9 @@ public class GameMainUIController : MonoBehaviour
     {
         isSoundOn = LoadSettingBool(SaveKeySoundOn, true);
         isVibrationOn = LoadSettingBool(SaveKeyVibrationOn, true);
+        selectedLanguageCode = GameLocalization.NormalizeSelectionCode(
+            LoadSettingString(SaveKeyLanguageSelection, GameLocalization.LanguageAuto));
+        activeLanguageCode = GameLocalization.ResolveActiveLanguageCode(selectedLanguageCode);
     }
 
     private static bool LoadSettingBool(string key, bool defaultValue)
@@ -1708,6 +2024,39 @@ public class GameMainUIController : MonoBehaviour
         PlayerPrefs.Save();
     }
 
+    private static string LoadSettingString(string key, string defaultValue)
+    {
+        try
+        {
+            if (ES3.KeyExists(key))
+                return ES3.Load<string>(key);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] 문자열 설정 로드 실패({key}): {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, $"LoadSettingString failed: {key}");
+        }
+
+        return PlayerPrefs.GetString(key, defaultValue);
+    }
+
+    private static void SaveSettingString(string key, string value)
+    {
+        string safeValue = value ?? string.Empty;
+        try
+        {
+            ES3.Save(key, safeValue);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] 문자열 설정 저장 실패({key}): {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, $"SaveSettingString failed: {key}");
+        }
+
+        PlayerPrefs.SetString(key, safeValue);
+        PlayerPrefs.Save();
+    }
+
     private void AssignSprite(Image targetImage, string resourcePath, string fileName)
     {
         if (targetImage == null)
@@ -1728,7 +2077,7 @@ public class GameMainUIController : MonoBehaviour
     private void InitializeBannerAd()
     {
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
-        SetBannerPlaceholderText(isDebugBuildCached ? "TEST AD LOADING..." : "AD LOADING...");
+        SetBannerPlaceholderText(isDebugBuildCached ? T("banner_loading_test") : T("banner_loading"));
         MobileAds.RaiseAdEventsOnUnityMainThread = true;
         MobileAds.Initialize(_ =>
         {
@@ -1736,7 +2085,7 @@ public class GameMainUIController : MonoBehaviour
             pendingRewardedAdLoadFromInitialize = true;
         });
 #else
-        SetBannerPlaceholderText("BANNER");
+        SetBannerPlaceholderText(T("banner_default"));
 #endif
     }
 
@@ -1776,7 +2125,7 @@ public class GameMainUIController : MonoBehaviour
             {
                 string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
                 Debug.LogWarning($"[GameMainUIController] Rewarded ad load failed: {errorMessage}");
-                SetHeartRefillStatus("광고 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+                SetHeartRefillStatus(T("heart_status_load_failed"));
                 UpdateHeartRefillButtonState();
                 return;
             }
@@ -1797,7 +2146,7 @@ public class GameMainUIController : MonoBehaviour
     {
         if (rewardedAd == null || !rewardedAd.CanShowAd())
         {
-            SetHeartRefillStatus("광고를 준비 중입니다. 잠시 후 다시 시도해 주세요.");
+            SetHeartRefillStatus(T("heart_status_prepare_retry"));
             UpdateHeartRefillButtonState();
             LoadRewardedAd();
             return;
@@ -1814,7 +2163,7 @@ public class GameMainUIController : MonoBehaviour
     private void HandleRewardedAdFullScreenClosed()
     {
         if (isWaitingForHeartRefill && !rewardEarnedThisShow)
-            SetHeartRefillStatus("보상을 받지 못했습니다. 다시 시도해 주세요.");
+            SetHeartRefillStatus(T("heart_status_no_reward"));
 
         DestroyRewardedAd();
         LoadRewardedAd();
@@ -1825,7 +2174,7 @@ public class GameMainUIController : MonoBehaviour
     {
         string errorMessage = adError != null ? adError.GetMessage() : "unknown";
         Debug.LogWarning($"[GameMainUIController] Rewarded ad failed to show: {errorMessage}");
-        SetHeartRefillStatus("광고 표시 실패. 다시 시도해 주세요.");
+        SetHeartRefillStatus(T("heart_status_show_failed"));
         DestroyRewardedAd();
         LoadRewardedAd();
         UpdateHeartRefillButtonState();
@@ -1907,7 +2256,7 @@ public class GameMainUIController : MonoBehaviour
         Debug.LogWarning($"[GameMainUIController] Banner ad load failed: {errorMessage}");
         reservedBannerHeightPx = 0f;
         RefreshBottomLayout(force: true);
-        SetBannerPlaceholderText("AD LOAD FAILED");
+        SetBannerPlaceholderText(T("banner_load_failed"));
     }
 #endif
 
@@ -2020,7 +2369,7 @@ public class GameMainUIController : MonoBehaviour
 
         // STAGE / 스테이지 번호 텍스트 갱신
         if (stageTitleLabel != null)
-            stageTitleLabel.text = "STAGE";
+            stageTitleLabel.text = T("stage_title");
 
         if (stageNumberLabel != null)
             stageNumberLabel.text = stageIndex.ToString("D2");

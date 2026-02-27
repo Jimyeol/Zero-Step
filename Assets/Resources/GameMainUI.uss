@@ -280,6 +280,75 @@
     transition-timing-function: ease-out;
 }
 
+#LanguageSelectDialog {
+    transition-property: opacity, scale;
+    transition-duration: 0.14s;
+    transition-timing-function: ease-out;
+}
+
+#LanguageSelectCloseButton {
+    min-width: 96px;
+    min-height: 96px;
+    background-color: rgba(0, 0, 0, 0) !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+    border-radius: 0 !important;
+}
+
+#LanguageSelectCloseButton:hover {
+    background-color: rgba(0, 0, 0, 0) !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+}
+
+#LanguageSelectScrollView .unity-scroller--vertical {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    opacity: 0;
+}
+
+#LanguageOptionList {
+    padding-bottom: 10px;
+}
+
+.language-option-button {
+    height: 100px;
+    margin-bottom: 12px;
+    font-size: 34px;
+    color: rgba(240, 248, 255, 1);
+    border-radius: 18px;
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgba(170, 208, 228, 0.52);
+    border-right-color: rgba(170, 208, 228, 0.52);
+    border-top-color: rgba(170, 208, 228, 0.52);
+    border-bottom-color: rgba(170, 208, 228, 0.52);
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.language-option-button:hover {
+    background-color: rgba(84, 184, 240, 0.2);
+    border-left-color: rgba(178, 234, 255, 0.92);
+    border-right-color: rgba(178, 234, 255, 0.92);
+    border-top-color: rgba(178, 234, 255, 0.92);
+    border-bottom-color: rgba(178, 234, 255, 0.92);
+}
+
+.language-option-selected {
+    background-color: rgba(79, 203, 255, 0.24);
+    border-left-color: rgba(197, 241, 255, 0.95);
+    border-right-color: rgba(197, 241, 255, 0.95);
+    border-top-color: rgba(197, 241, 255, 0.95);
+    border-bottom-color: rgba(197, 241, 255, 0.95);
+}
+
 .tutorial-demo-tile {
     width: 148px;
     height: 148px;

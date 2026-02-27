@@ -4,6 +4,7 @@
       "id": "tile_unlock_preview_3_to_5",
       "stageIndex": 3,
       "targetStageIndex": 5,
+      "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8
     }

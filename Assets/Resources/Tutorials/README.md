@@ -38,6 +38,9 @@
       "id": "basic_stage_1",
       "stageIndex": 1,
       "tutorialType": "BasicPath",
+      "titleKey": "tutorial_basic_title",
+      "descriptionKey": "tutorial_basic_description",
+      "closeButtonTextKey": "help_close_button",
       "title": "기본 플레이 방법",
       "description": "설명",
       "closeButtonText": "확인"
@@ -51,8 +54,11 @@
 - `id`: 튜토리얼 고유 ID
 - `stageIndex`: 자동 노출할 스테이지 번호
 - `tutorialType`: 현재는 `BasicPath` 사용
+- `titleKey`: (선택) 다국어 키. 있으면 `title`보다 우선
 - `title`: 팝업 제목
+- `descriptionKey`: (선택) 다국어 키. 있으면 `description`보다 우선
 - `description`: 팝업 본문
+- `closeButtonTextKey`: (선택) 다국어 키. 있으면 `closeButtonText`보다 우선
 - `closeButtonText`: 닫기 버튼 문구
 
 동작 규칙:
@@ -71,6 +77,7 @@
       "id": "tile_unlock_preview_3_to_5",
       "stageIndex": 3,
       "targetStageIndex": 5,
+      "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8
     }
@@ -83,6 +90,7 @@
 - `id`: 스낵바 고유 ID
 - `stageIndex`: 스낵바를 띄울 스테이지 번호
 - `targetStageIndex`: 목표 스테이지(남은 스테이지 계산 기준)
+- `messageKey`: (선택) 다국어 키. 있으면 `message`보다 우선
 - `message`: 표시 문구
 - `duration`: 노출 시간(초)
 
@@ -98,7 +106,13 @@
 - 설정/튜토리얼/하트 리필 팝업이 열려 있으면 해당 시점 스낵바는 표시하지 않습니다.
 - `duration <= 0`이면 기본값(코드 기본 2.8초)을 사용합니다.
 
-## 5) 작성 규칙(권장)
+## 5) 다국어 우선순위
+
+- 도움말: `titleKey/descriptionKey/closeButtonTextKey` -> 일반 텍스트(`title/description/closeButtonText`) 순으로 사용
+- 스낵바: `messageKey` -> `message` 순으로 사용
+- 다국어 키는 `Assets/Scripts/GameLocalization.cs`에 정의되어 있습니다.
+
+## 6) 작성 규칙(권장)
 
 - `id`는 반드시 고유하게 유지
 - `stageIndex`는 1 이상의 실제 존재 스테이지 번호 사용
@@ -110,7 +124,7 @@
 - 도움말: `tutorial_stage_{stage}_{topic}`
 - 스낵바: `snackbar_stage_{stage}_{topic}`
 
-## 6) 실전 예시
+## 7) 실전 예시
 
 ```json
 {
@@ -119,6 +133,7 @@
       "id": "snackbar_stage_7_igniter_unlock",
       "stageIndex": 7,
       "targetStageIndex": 10,
+      "messageKey": "snackbar_default_new_tile_unlock",
       "message": "점화 타일이 곧 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 3.0
     },
@@ -133,7 +148,7 @@
 }
 ```
 
-## 7) 수정 후 체크리스트
+## 8) 수정 후 체크리스트
 
 - JSON 문법 에러가 없는지 확인(쉼표/괄호)
 - `entries` 배열 안에 오브젝트가 들어있는지 확인

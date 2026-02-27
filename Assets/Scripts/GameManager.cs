@@ -434,7 +434,7 @@ public class GameManager : MonoBehaviour
     {
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
-        bool overlayOpen = mainUI != null && (mainUI.IsSettingPopupOpen || mainUI.IsWaitingForHeartRefill);
+        bool overlayOpen = mainUI != null && (mainUI.IsSettingPopupOpen || mainUI.IsTutorialPopupOpen || mainUI.IsWaitingForHeartRefill);
         IsPerformanceOverlayOpen = overlayOpen;
 
         ProcessPendingBlockNoteQueue();
