@@ -31,6 +31,12 @@ public class GameMainUIController : MonoBehaviour
     private const string IOSTestRewardedAdUnitId = "ca-app-pub-3940256099942544/1712485313";
     private const int MaxHearts = 3;
 
+    private enum HeartRefillMode
+    {
+        RewardedAd,
+        SessionPlayReward
+    }
+
     [Header("UI Toolkit 참조 (자동 캐싱)")]
     [SerializeField] private UIDocument uiDocument;
     [Header("배너 레이아웃")]
@@ -79,6 +85,9 @@ public class GameMainUIController : MonoBehaviour
     private Image heart3Image;
     private VisualElement heartDepletedOverlay;
     private VisualElement heartDepletedDialog;
+    private Label heartDepletedTitleLabel;
+    private Label heartDepletedMessageLabel;
+    private Label heartRefillRewardHintLabel;
     private Button heartRefillAdButton;
     private Label heartRefillStatusLabel;
     private VisualElement bottomBar;
@@ -99,6 +108,8 @@ public class GameMainUIController : MonoBehaviour
     private Rect cachedSafeArea;
     private int currentHearts = MaxHearts;
     private bool isWaitingForHeartRefill;
+    private HeartRefillMode currentHeartRefillMode = HeartRefillMode.RewardedAd;
+    private int currentSessionPlayRewardMinutes;
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
     private BannerView bannerView;
     private RewardedAd rewardedAd;
@@ -176,6 +187,9 @@ public class GameMainUIController : MonoBehaviour
         heart3Image = root.Q<Image>("Heart3Image");
         heartDepletedOverlay = root.Q<VisualElement>("HeartDepletedOverlay");
         heartDepletedDialog = root.Q<VisualElement>("HeartDepletedDialog");
+        heartDepletedTitleLabel = root.Q<Label>("HeartDepletedTitle");
+        heartDepletedMessageLabel = root.Q<Label>("HeartDepletedMessage");
+        heartRefillRewardHintLabel = root.Q<Label>("HeartRefillRewardHint");
         heartRefillAdButton = root.Q<Button>("HeartRefillAdButton");
         heartRefillStatusLabel = root.Q<Label>("HeartRefillStatusLabel");
         bottomBar = root.Q<VisualElement>("BottomBar");
@@ -340,6 +354,7 @@ public class GameMainUIController : MonoBehaviour
             blockAdsButton.clicked += () => Debug.Log("광고 제거");
 
         SetupButtonClickAnimations();
+        ConfigureHeartDepletedPopupForRewardedAd();
         RefreshHeartVisuals();
         reservedBannerHeightPx = EstimateInitialBannerHeightPx();
         RefreshBottomLayout(force: true);
@@ -501,6 +516,7 @@ public class GameMainUIController : MonoBehaviour
     {
         SetHeartCount(MaxHearts, animated: false);
         isWaitingForHeartRefill = false;
+        ConfigureHeartDepletedPopupForRewardedAd();
         HideHeartDepletedPopup();
     }
 
@@ -517,13 +533,32 @@ public class GameMainUIController : MonoBehaviour
             return true;
 
         isWaitingForHeartRefill = true;
-        ShowHeartDepletedPopup();
-        SetHeartRefillStatus("광고를 시청하면 하트가 3개 충전됩니다.");
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm != null && gm.TryPeekSessionFreeHeartRefill(out int thresholdMinutes))
+        {
+            ConfigureHeartDepletedPopupForSessionReward(thresholdMinutes);
+            FirebaseBootstrap.LogEvent("heart_refill_offer", new Dictionary<string, object>
+            {
+                { "type", "session_play_reward" },
+                { "threshold_minutes", thresholdMinutes },
+                { "pending_free_refills", gm.PendingSessionFreeHeartRefillCount }
+            });
+        }
+        else
+        {
+            ConfigureHeartDepletedPopupForRewardedAd();
+            FirebaseBootstrap.LogEvent("heart_refill_offer", new Dictionary<string, object>
+            {
+                { "type", "rewarded_ad" }
+            });
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
-        if (rewardedAd == null || !rewardedAd.CanShowAd())
-            LoadRewardedAd();
+            if (rewardedAd == null || !rewardedAd.CanShowAd())
+                LoadRewardedAd();
 #endif
+        }
+
+        ShowHeartDepletedPopup();
         return false;
     }
 
@@ -655,6 +690,8 @@ public class GameMainUIController : MonoBehaviour
     private void HideHeartDepletedPopup()
     {
         heartPopupAnimationVersion++;
+        currentHeartRefillMode = HeartRefillMode.RewardedAd;
+        currentSessionPlayRewardMinutes = 0;
 
         if (heartDepletedDialog != null)
         {
@@ -678,6 +715,14 @@ public class GameMainUIController : MonoBehaviour
         if (heartRefillAdButton == null)
             return;
 
+        if (currentHeartRefillMode == HeartRefillMode.SessionPlayReward)
+        {
+            heartRefillAdButton.SetEnabled(true);
+            int rewardMinutes = Mathf.Max(1, currentSessionPlayRewardMinutes);
+            SetHeartRefillStatus($"{rewardMinutes}분 플레이 보상으로 무료 충전 가능합니다.");
+            return;
+        }
+
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         bool canShow = rewardedAd != null && rewardedAd.CanShowAd();
         heartRefillAdButton.SetEnabled(canShow);
@@ -696,7 +741,16 @@ public class GameMainUIController : MonoBehaviour
         if (!isWaitingForHeartRefill)
             return;
 
-        FirebaseBootstrap.LogEvent("heart_refill_button_click");
+        FirebaseBootstrap.LogEvent("heart_refill_button_click", new Dictionary<string, object>
+        {
+            { "mode", currentHeartRefillMode == HeartRefillMode.SessionPlayReward ? "session_play_reward" : "rewarded_ad" }
+        });
+
+        if (currentHeartRefillMode == HeartRefillMode.SessionPlayReward)
+        {
+            TryCompleteSessionPlayRewardHeartRefill();
+            return;
+        }
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         if (rewardedAd != null && rewardedAd.CanShowAd())
@@ -714,15 +768,76 @@ public class GameMainUIController : MonoBehaviour
 #endif
     }
 
+    private void TryCompleteSessionPlayRewardHeartRefill()
+    {
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm == null || !gm.TryConsumeSessionFreeHeartRefill(out int thresholdMinutes))
+        {
+            ConfigureHeartDepletedPopupForRewardedAd();
+            UpdateHeartRefillButtonState();
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+            if (rewardedAd == null || !rewardedAd.CanShowAd())
+                LoadRewardedAd();
+#endif
+            return;
+        }
+
+        heartRefillAdButton?.SetEnabled(false);
+        CompleteHeartRefill("session_play_reward", thresholdMinutes);
+    }
+
     private void CompleteHeartRefillAfterReward()
+    {
+        CompleteHeartRefill("rewarded_ad");
+    }
+
+    private void CompleteHeartRefill(string source, int sessionRewardMinutes = 0)
     {
         SetHeartCount(MaxHearts, animated: true);
         isWaitingForHeartRefill = false;
         HideHeartDepletedPopup();
-        FirebaseBootstrap.LogEvent("heart_refilled", new Dictionary<string, object>
+        Dictionary<string, object> eventData = new Dictionary<string, object>
         {
-            { "source", "rewarded_ad" }
-        });
+            { "source", source }
+        };
+        if (sessionRewardMinutes > 0)
+            eventData["session_reward_minutes"] = sessionRewardMinutes;
+
+        FirebaseBootstrap.LogEvent("heart_refilled", eventData);
+    }
+
+    private void ConfigureHeartDepletedPopupForRewardedAd()
+    {
+        currentHeartRefillMode = HeartRefillMode.RewardedAd;
+        currentSessionPlayRewardMinutes = 0;
+        SetHeartDepletedPopupCopy(
+            "하트가 모두 소진됐어요",
+            "광고를 시청하면 하트 3개가 즉시 충전되고 현재 스테이지가 다시 시작됩니다.",
+            "보상: 하트 3개 + 즉시 재시작",
+            "광고 보고 하트 3개 충전");
+    }
+
+    private void ConfigureHeartDepletedPopupForSessionReward(int thresholdMinutes)
+    {
+        currentHeartRefillMode = HeartRefillMode.SessionPlayReward;
+        currentSessionPlayRewardMinutes = Mathf.Max(1, thresholdMinutes);
+        SetHeartDepletedPopupCopy(
+            "무료 하트 충전 기회",
+            $"{currentSessionPlayRewardMinutes}분 이상 플레이했기 때문에 하트 3개를 무료로 충전해드립니다.",
+            "보상: 하트 3개 + 즉시 재시작 (광고 없음)",
+            "무료 충전 확인");
+    }
+
+    private void SetHeartDepletedPopupCopy(string title, string message, string rewardHint, string buttonText)
+    {
+        if (heartDepletedTitleLabel != null)
+            heartDepletedTitleLabel.text = title;
+        if (heartDepletedMessageLabel != null)
+            heartDepletedMessageLabel.text = message;
+        if (heartRefillRewardHintLabel != null)
+            heartRefillRewardHintLabel.text = rewardHint;
+        if (heartRefillAdButton != null)
+            heartRefillAdButton.text = buttonText;
     }
 
     private void ToggleSoundSwitch()

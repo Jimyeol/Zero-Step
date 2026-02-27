@@ -111,6 +111,8 @@ public class GameManager : MonoBehaviour
 
     /// <summary>Easy Save 3 진행도 저장 키. 앱 재실행 시 이 스테이지부터 시작.</summary>
     private const string SaveKeyStage = "StageProgress";
+    private const float SessionFreeHeartRefillFirstThresholdSeconds = 10f * 60f;
+    private const float SessionFreeHeartRefillSecondThresholdSeconds = 20f * 60f;
 
     [Header("성능 (디바이스 최대 FPS)")]
     [Tooltip("실행 중 디바이스가 지원하는 최대 주사율을 목표 FPS로 사용합니다.")]
@@ -184,6 +186,7 @@ public class GameManager : MonoBehaviour
     private AudioSource blockNoteAudioSource;
     private AudioSource eventAudioSource;
     private readonly Queue<AudioClip> pendingBlockNoteQueue = new Queue<AudioClip>();
+    private readonly Queue<int> pendingSessionFreeHeartRefillMinutes = new Queue<int>();
     private readonly Dictionary<string, AudioClip> blockNoteClipMap = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
     private readonly List<string[]> sparseMelodyPool = new List<string[]>();
     private readonly List<string[]> mediumMelodyPool = new List<string[]>();
@@ -191,6 +194,7 @@ public class GameManager : MonoBehaviour
     private string[] activeMelody = Array.Empty<string>();
     private int activeMelodyIndex;
     private float nextQueuedBlockNoteTime;
+    private float sessionPlaytimeSeconds;
     private float nextTrailGradientUpdateTime;
     private GradientColorKey[] reusableTrailColorKeys;
     private readonly Gradient reusableTrailGradient = new Gradient();
@@ -212,6 +216,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameMainUIController mainUI;
     /// <summary>각 스테이지 시작 시 전체 타일 카운트(합). 진행도 계산용.</summary>
     private int initialTileCountForUI;
+    private bool sessionFreeHeartRefillGrantedAt10Minutes;
+    private bool sessionFreeHeartRefillGrantedAt20Minutes;
+    private bool isApplicationPaused;
+    private bool hasApplicationFocus = true;
     public static bool IsPerformanceOverlayOpen { get; private set; }
 
     /// <summary>CrossBlastTile·LinkSystem 등에서 그리드 크기 참조용.</summary>
@@ -220,6 +228,7 @@ public class GameManager : MonoBehaviour
     public LinkSystem GetLinkSystem() => linkSystem;
     /// <summary>Spotlight 모드: 현재 드래그 중인지.</summary>
     public bool IsDragging => isDragging;
+    public int PendingSessionFreeHeartRefillCount => pendingSessionFreeHeartRefillMinutes.Count;
     /// <summary>Spotlight 모드: 포인터(마우스/터치) 월드 좌표.</summary>
     public Vector2 GetPointerWorldPosition()
     {
@@ -429,6 +438,7 @@ public class GameManager : MonoBehaviour
         IsPerformanceOverlayOpen = overlayOpen;
 
         ProcessPendingBlockNoteQueue();
+        UpdateSessionHeartRefillProgress(overlayOpen);
         if (stageCleared || isGameOverSequencePlaying)
             return;
 
@@ -445,6 +455,56 @@ public class GameManager : MonoBehaviour
         }
 
         UpdateDragAndPath();
+    }
+
+    public bool TryPeekSessionFreeHeartRefill(out int thresholdMinutes)
+    {
+        if (pendingSessionFreeHeartRefillMinutes.Count > 0)
+        {
+            thresholdMinutes = pendingSessionFreeHeartRefillMinutes.Peek();
+            return true;
+        }
+
+        thresholdMinutes = 0;
+        return false;
+    }
+
+    public bool TryConsumeSessionFreeHeartRefill(out int thresholdMinutes)
+    {
+        if (pendingSessionFreeHeartRefillMinutes.Count > 0)
+        {
+            thresholdMinutes = pendingSessionFreeHeartRefillMinutes.Dequeue();
+            return true;
+        }
+
+        thresholdMinutes = 0;
+        return false;
+    }
+
+    private void UpdateSessionHeartRefillProgress(bool overlayOpen)
+    {
+        if (overlayOpen || stageCleared || isGameOverSequencePlaying || isApplicationPaused || !hasApplicationFocus)
+            return;
+
+        sessionPlaytimeSeconds += Time.unscaledDeltaTime;
+        TryGrantSessionFreeHeartRefill(SessionFreeHeartRefillFirstThresholdSeconds, 10, ref sessionFreeHeartRefillGrantedAt10Minutes);
+        TryGrantSessionFreeHeartRefill(SessionFreeHeartRefillSecondThresholdSeconds, 20, ref sessionFreeHeartRefillGrantedAt20Minutes);
+    }
+
+    private void TryGrantSessionFreeHeartRefill(float thresholdSeconds, int thresholdMinutes, ref bool alreadyGranted)
+    {
+        if (alreadyGranted || sessionPlaytimeSeconds < thresholdSeconds)
+            return;
+
+        alreadyGranted = true;
+        pendingSessionFreeHeartRefillMinutes.Enqueue(thresholdMinutes);
+        FirebaseBootstrap.LogEvent("session_free_heart_refill_granted", new Dictionary<string, object>
+        {
+            { "threshold_minutes", thresholdMinutes },
+            { "session_play_seconds", Mathf.FloorToInt(sessionPlaytimeSeconds) },
+            { "pending_free_refills", pendingSessionFreeHeartRefillMinutes.Count }
+        });
+        FirebaseBootstrap.LogBreadcrumb($"session_free_heart_refill_granted:{thresholdMinutes}m");
     }
 
     private void InitializeAudioSystem()
@@ -1769,6 +1829,7 @@ public class GameManager : MonoBehaviour
 
     private void OnApplicationPause(bool pause)
     {
+        isApplicationPaused = pause;
         if (pause)
             SaveStageProgress();
         else
@@ -1777,6 +1838,7 @@ public class GameManager : MonoBehaviour
 
     private void OnApplicationFocus(bool hasFocus)
     {
+        hasApplicationFocus = hasFocus;
         if (hasFocus)
             ConfigureDeviceMaxFrameRate();
     }
@@ -1784,6 +1846,7 @@ public class GameManager : MonoBehaviour
     private void OnApplicationQuit()
     {
         SaveStageProgress();
+        pendingSessionFreeHeartRefillMinutes.Clear();
         IsPerformanceOverlayOpen = false;
     }
 
