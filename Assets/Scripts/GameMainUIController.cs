@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -30,6 +31,43 @@ public class GameMainUIController : MonoBehaviour
     private const string AndroidTestRewardedAdUnitId = "ca-app-pub-3940256099942544/5224354917";
     private const string IOSTestRewardedAdUnitId = "ca-app-pub-3940256099942544/1712485313";
     private const int MaxHearts = 3;
+    private const string TutorialScheduleResourcePath = "Tutorials/help_tutorial_schedule";
+    private const string StageSnackbarScheduleResourcePath = "Tutorials/stage_snackbar_schedule";
+    private const string TutorialDismissedKeyPrefix = "TutorialDismissed_";
+    private const string TutorialTypeBasicPath = "BasicPath";
+
+    [Serializable]
+    private class HelpTutorialScheduleData
+    {
+        public HelpTutorialEntryData[] entries;
+    }
+
+    [Serializable]
+    private class HelpTutorialEntryData
+    {
+        public string id;
+        public int stageIndex;
+        public string tutorialType = TutorialTypeBasicPath;
+        public string title = "기본 플레이 방법";
+        public string description = "왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다.";
+        public string closeButtonText = "확인";
+    }
+
+    [Serializable]
+    private class StageSnackbarScheduleData
+    {
+        public StageSnackbarEntryData[] entries;
+    }
+
+    [Serializable]
+    private class StageSnackbarEntryData
+    {
+        public string id;
+        public int stageIndex;
+        public int targetStageIndex;
+        public string message = "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.";
+        public float duration = 2.8f;
+    }
 
     private enum HeartRefillMode
     {
@@ -42,6 +80,9 @@ public class GameMainUIController : MonoBehaviour
     [Header("배너 레이아웃")]
     [SerializeField] private float bottomBarExtraSpacing = 26f;
     [SerializeField] [Range(0.1f, 1f)] private float bannerHeightPollInterval = 0.25f;
+    [Header("스테이지 스낵바")]
+    [SerializeField] private float stageSnackbarExtraSpacing = 220f;
+    [SerializeField] [Range(1f, 8f)] private float stageSnackbarDefaultDuration = 2.8f;
 
     private Label stageTitleLabel;
     private Label stageNumberLabel;
@@ -80,6 +121,21 @@ public class GameMainUIController : MonoBehaviour
     private Button resetDataButton;
     private Button privacyPolicyButton;
     private Button termsButton;
+    private VisualElement tutorialOverlay;
+    private VisualElement tutorialDialog;
+    private Label tutorialTitleLabel;
+    private Label tutorialDescriptionLabel;
+    private Label tutorialStepHintLabel;
+    private Button tutorialCloseButton;
+    private Image tutorialCloseIcon;
+    private Button tutorialConfirmButton;
+    private VisualElement tutorialTileLeft;
+    private VisualElement tutorialTileCenter;
+    private VisualElement tutorialTileRight;
+    private Label tutorialTileLeftCount;
+    private Label tutorialTileCenterCount;
+    private Label tutorialTileRightCount;
+    private Image tutorialHandImage;
     private Image heart1Image;
     private Image heart2Image;
     private Image heart3Image;
@@ -91,6 +147,8 @@ public class GameMainUIController : MonoBehaviour
     private Button heartRefillAdButton;
     private Label heartRefillStatusLabel;
     private VisualElement bottomBar;
+    private VisualElement stageSnackbar;
+    private Label stageSnackbarLabel;
     private VisualElement bannerAdContainer;
     private Label bannerAdPlaceholder;
     private Sprite heartFilledSprite;
@@ -108,8 +166,19 @@ public class GameMainUIController : MonoBehaviour
     private Rect cachedSafeArea;
     private int currentHearts = MaxHearts;
     private bool isWaitingForHeartRefill;
+    private bool isTutorialPopupOpen;
+    private int currentStageIndexForUI = 1;
+    private Coroutine tutorialAnimationRoutine;
+    private HelpTutorialEntryData activeTutorialEntry;
+    private readonly List<HelpTutorialEntryData> helpTutorialEntries = new List<HelpTutorialEntryData>();
+    private readonly Dictionary<int, List<HelpTutorialEntryData>> helpTutorialEntriesByStage = new Dictionary<int, List<HelpTutorialEntryData>>();
+    private readonly Dictionary<int, List<StageSnackbarEntryData>> stageSnackbarEntriesByStage = new Dictionary<int, List<StageSnackbarEntryData>>();
+    private readonly HashSet<string> shownStageSnackbarIdsThisSession = new HashSet<string>();
+    private int tutorialAnimationVersion;
+    private int stageSnackbarAnimationVersion;
     private HeartRefillMode currentHeartRefillMode = HeartRefillMode.RewardedAd;
     private int currentSessionPlayRewardMinutes;
+    private Coroutine stageSnackbarRoutine;
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
     private BannerView bannerView;
     private RewardedAd rewardedAd;
@@ -182,6 +251,21 @@ public class GameMainUIController : MonoBehaviour
         resetDataButton = root.Q<Button>("ResetDataButton");
         privacyPolicyButton = root.Q<Button>("PrivacyPolicyButton");
         termsButton = root.Q<Button>("TermsButton");
+        tutorialOverlay = root.Q<VisualElement>("TutorialOverlay");
+        tutorialDialog = root.Q<VisualElement>("TutorialDialog");
+        tutorialTitleLabel = root.Q<Label>("TutorialTitleLabel");
+        tutorialDescriptionLabel = root.Q<Label>("TutorialDescriptionLabel");
+        tutorialStepHintLabel = root.Q<Label>("TutorialStepHintLabel");
+        tutorialCloseButton = root.Q<Button>("TutorialCloseButton");
+        tutorialCloseIcon = root.Q<Image>("TutorialCloseIcon");
+        tutorialConfirmButton = root.Q<Button>("TutorialConfirmButton");
+        tutorialTileLeft = root.Q<VisualElement>("TutorialTileLeft");
+        tutorialTileCenter = root.Q<VisualElement>("TutorialTileCenter");
+        tutorialTileRight = root.Q<VisualElement>("TutorialTileRight");
+        tutorialTileLeftCount = root.Q<Label>("TutorialTileLeftCount");
+        tutorialTileCenterCount = root.Q<Label>("TutorialTileCenterCount");
+        tutorialTileRightCount = root.Q<Label>("TutorialTileRightCount");
+        tutorialHandImage = root.Q<Image>("TutorialHandImage");
         heart1Image = root.Q<Image>("Heart1Image");
         heart2Image = root.Q<Image>("Heart2Image");
         heart3Image = root.Q<Image>("Heart3Image");
@@ -193,6 +277,8 @@ public class GameMainUIController : MonoBehaviour
         heartRefillAdButton = root.Q<Button>("HeartRefillAdButton");
         heartRefillStatusLabel = root.Q<Label>("HeartRefillStatusLabel");
         bottomBar = root.Q<VisualElement>("BottomBar");
+        stageSnackbar = root.Q<VisualElement>("StageSnackbar");
+        stageSnackbarLabel = root.Q<Label>("StageSnackbarLabel");
         bannerAdContainer = root.Q<VisualElement>("BannerAdContainer");
         bannerAdPlaceholder = root.Q<Label>("BannerAdPlaceholder");
 
@@ -202,6 +288,14 @@ public class GameMainUIController : MonoBehaviour
             resetConfirmOverlay.style.display = DisplayStyle.None;
         if (heartDepletedOverlay != null)
             heartDepletedOverlay.style.display = DisplayStyle.None;
+        if (tutorialOverlay != null)
+            tutorialOverlay.style.display = DisplayStyle.None;
+        if (stageSnackbar != null)
+        {
+            stageSnackbar.style.display = DisplayStyle.None;
+            stageSnackbar.style.opacity = 0f;
+            stageSnackbar.style.scale = new StyleScale(new Scale(new Vector3(0.96f, 0.96f, 1f)));
+        }
 
         if (gameProgressBar != null)
         {
@@ -285,12 +379,16 @@ public class GameMainUIController : MonoBehaviour
             resetConfirmOkButton.clicked += ConfirmResetData;
 
         AssignSprite(settingCloseIcon, "Sprites/close", "close.png");
+        AssignSprite(tutorialCloseIcon, "Sprites/close", "close.png");
+        AssignSprite(tutorialHandImage, "Sprites/hand", "hand.png");
         AssignSprite(soundIcon, "Sprites/sound", "sound.png");
         AssignSprite(vibrationIcon, "Sprites/vibrate", "vibrate.png");
         AssignSprite(helpIcon, "Sprites/help", "help.png");
         AssignSprite(languageIcon, "Sprites/global", "global.png");
         heartFilledSprite = Resources.Load<Sprite>("Sprites/heart");
         heartEmptySprite = Resources.Load<Sprite>("Sprites/heart_empty");
+        LoadHelpTutorialSchedule();
+        LoadStageSnackbarSchedule();
 
         RefreshSoundSwitchVisual();
         RefreshVibrationSwitchVisual();
@@ -302,7 +400,7 @@ public class GameMainUIController : MonoBehaviour
             vibrationSwitchButton.clicked += ToggleVibrationSwitch;
 
         if (helpButton != null)
-            helpButton.clicked += () => Debug.Log("도움말 열기");
+            helpButton.clicked += OpenHelpTutorialFromSettings;
         if (languageButton != null)
             languageButton.clicked += () => Debug.Log("언어 변경 열기");
         if (rateButton != null)
@@ -317,6 +415,10 @@ public class GameMainUIController : MonoBehaviour
             privacyPolicyButton.clicked += OpenPrivacyPolicy;
         if (termsButton != null)
             termsButton.clicked += OpenTerms;
+        if (tutorialCloseButton != null)
+            tutorialCloseButton.clicked += CloseTutorialPopup;
+        if (tutorialConfirmButton != null)
+            tutorialConfirmButton.clicked += CloseTutorialPopup;
         if (heartRefillAdButton != null)
             heartRefillAdButton.clicked += OnHeartRefillAdButtonClicked;
 
@@ -385,6 +487,8 @@ public class GameMainUIController : MonoBehaviour
 
     private void OnDestroy()
     {
+        StopStageSnackbarPlayback();
+        StopTutorialAnimation();
         DestroyBannerAd();
         DestroyRewardedAd();
     }
@@ -406,6 +510,8 @@ public class GameMainUIController : MonoBehaviour
         RegisterButtonClickAnimation(resetDataButton, useWarmPulse: true);
         RegisterButtonClickAnimation(privacyPolicyButton);
         RegisterButtonClickAnimation(termsButton);
+        RegisterButtonClickAnimation(tutorialCloseButton);
+        RegisterButtonClickAnimation(tutorialConfirmButton, useWarmPulse: true);
         RegisterButtonClickAnimation(resetConfirmCancelButton);
         RegisterButtonClickAnimation(resetConfirmOkButton, useWarmPulse: true);
         RegisterButtonClickAnimation(heartRefillAdButton, useWarmPulse: true);
@@ -510,6 +616,7 @@ public class GameMainUIController : MonoBehaviour
 
     /// <summary>설정 팝업이 열려 있으면 게임 입력 차단에 사용.</summary>
     public bool IsSettingPopupOpen => isSettingPopupOpen;
+    public bool IsTutorialPopupOpen => isTutorialPopupOpen;
     public bool IsWaitingForHeartRefill => isWaitingForHeartRefill;
 
     public void ResetHeartsForNewStage()
@@ -838,6 +945,581 @@ public class GameMainUIController : MonoBehaviour
             heartRefillRewardHintLabel.text = rewardHint;
         if (heartRefillAdButton != null)
             heartRefillAdButton.text = buttonText;
+    }
+
+    private void LoadHelpTutorialSchedule()
+    {
+        helpTutorialEntries.Clear();
+        helpTutorialEntriesByStage.Clear();
+
+        TextAsset scheduleAsset = Resources.Load<TextAsset>(TutorialScheduleResourcePath);
+        if (scheduleAsset == null)
+        {
+            Debug.LogWarning($"[GameMainUIController] 도움말 스케줄 JSON 없음: Resources/{TutorialScheduleResourcePath}.json");
+            AddFallbackHelpTutorialEntry();
+            return;
+        }
+
+        HelpTutorialScheduleData scheduleData = null;
+        try
+        {
+            scheduleData = JsonUtility.FromJson<HelpTutorialScheduleData>(scheduleAsset.text);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] 도움말 스케줄 파싱 실패: {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, "Help tutorial schedule parse failed");
+        }
+
+        if (scheduleData == null || scheduleData.entries == null || scheduleData.entries.Length == 0)
+        {
+            AddFallbackHelpTutorialEntry();
+            return;
+        }
+
+        for (int i = 0; i < scheduleData.entries.Length; i++)
+        {
+            HelpTutorialEntryData entry = scheduleData.entries[i];
+            if (entry == null)
+                continue;
+
+            if (entry.stageIndex <= 0)
+                continue;
+
+            if (string.IsNullOrWhiteSpace(entry.id))
+                entry.id = $"tutorial_stage_{entry.stageIndex}_{i + 1}";
+
+            if (string.IsNullOrWhiteSpace(entry.tutorialType))
+                entry.tutorialType = TutorialTypeBasicPath;
+
+            if (string.IsNullOrWhiteSpace(entry.title))
+                entry.title = "도움말";
+
+            if (string.IsNullOrWhiteSpace(entry.description))
+                entry.description = "타일을 연결해 카운트를 0으로 만드세요.";
+
+            if (string.IsNullOrWhiteSpace(entry.closeButtonText))
+                entry.closeButtonText = "확인";
+
+            helpTutorialEntries.Add(entry);
+            if (!helpTutorialEntriesByStage.TryGetValue(entry.stageIndex, out List<HelpTutorialEntryData> list))
+            {
+                list = new List<HelpTutorialEntryData>();
+                helpTutorialEntriesByStage[entry.stageIndex] = list;
+            }
+
+            list.Add(entry);
+        }
+
+        if (helpTutorialEntries.Count == 0)
+            AddFallbackHelpTutorialEntry();
+    }
+
+    private void AddFallbackHelpTutorialEntry()
+    {
+        HelpTutorialEntryData fallback = new HelpTutorialEntryData
+        {
+            id = "basic_stage_1",
+            stageIndex = 1,
+            tutorialType = TutorialTypeBasicPath,
+            title = "기본 플레이 방법",
+            description = "왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다.",
+            closeButtonText = "확인"
+        };
+        helpTutorialEntries.Add(fallback);
+        helpTutorialEntriesByStage[1] = new List<HelpTutorialEntryData> { fallback };
+    }
+
+    private void LoadStageSnackbarSchedule()
+    {
+        stageSnackbarEntriesByStage.Clear();
+        shownStageSnackbarIdsThisSession.Clear();
+
+        TextAsset scheduleAsset = Resources.Load<TextAsset>(StageSnackbarScheduleResourcePath);
+        if (scheduleAsset == null)
+        {
+            Debug.LogWarning($"[GameMainUIController] 스낵바 스케줄 JSON 없음: Resources/{StageSnackbarScheduleResourcePath}.json");
+            return;
+        }
+
+        StageSnackbarScheduleData scheduleData = null;
+        try
+        {
+            scheduleData = JsonUtility.FromJson<StageSnackbarScheduleData>(scheduleAsset.text);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] 스낵바 스케줄 파싱 실패: {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, "Stage snackbar schedule parse failed");
+        }
+
+        if (scheduleData == null || scheduleData.entries == null || scheduleData.entries.Length == 0)
+            return;
+
+        for (int i = 0; i < scheduleData.entries.Length; i++)
+        {
+            StageSnackbarEntryData entry = scheduleData.entries[i];
+            if (entry == null || entry.stageIndex <= 0)
+                continue;
+
+            if (string.IsNullOrWhiteSpace(entry.id))
+                entry.id = $"stage_snackbar_{entry.stageIndex}_{i + 1}";
+            if (string.IsNullOrWhiteSpace(entry.message))
+                entry.message = "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.";
+            if (entry.duration <= 0f)
+                entry.duration = stageSnackbarDefaultDuration;
+
+            if (!stageSnackbarEntriesByStage.TryGetValue(entry.stageIndex, out List<StageSnackbarEntryData> list))
+            {
+                list = new List<StageSnackbarEntryData>();
+                stageSnackbarEntriesByStage[entry.stageIndex] = list;
+            }
+
+            list.Add(entry);
+        }
+    }
+
+    private void TryShowScheduledSnackbarForStage(int stageIndex)
+    {
+        if (isTutorialPopupOpen || isSettingPopupOpen || isWaitingForHeartRefill)
+            return;
+        if (!stageSnackbarEntriesByStage.TryGetValue(stageIndex, out List<StageSnackbarEntryData> entries) || entries == null || entries.Count == 0)
+            return;
+
+        List<StageSnackbarEntryData> pendingEntries = new List<StageSnackbarEntryData>();
+        for (int i = 0; i < entries.Count; i++)
+        {
+            StageSnackbarEntryData entry = entries[i];
+            if (entry == null)
+                continue;
+
+            if (!string.IsNullOrEmpty(entry.id) && shownStageSnackbarIdsThisSession.Contains(entry.id))
+                continue;
+
+            pendingEntries.Add(entry);
+        }
+
+        if (pendingEntries.Count == 0)
+            return;
+
+        for (int i = 0; i < pendingEntries.Count; i++)
+        {
+            StageSnackbarEntryData entry = pendingEntries[i];
+            if (entry != null && !string.IsNullOrEmpty(entry.id))
+                shownStageSnackbarIdsThisSession.Add(entry.id);
+        }
+
+        StartStageSnackbarPlayback(pendingEntries, stageIndex);
+    }
+
+    private void StartStageSnackbarPlayback(List<StageSnackbarEntryData> entries, int currentStageIndex)
+    {
+        if (entries == null || entries.Count == 0)
+            return;
+
+        StopStageSnackbarPlayback();
+        stageSnackbarRoutine = StartCoroutine(PlayStageSnackbarSequence(entries, currentStageIndex));
+    }
+
+    private IEnumerator PlayStageSnackbarSequence(List<StageSnackbarEntryData> entries, int currentStageIndex)
+    {
+        if (stageSnackbar == null || stageSnackbarLabel == null || entries == null || entries.Count == 0)
+            yield break;
+
+        stageSnackbarAnimationVersion++;
+        int animationVersion = stageSnackbarAnimationVersion;
+
+        for (int i = 0; i < entries.Count; i++)
+        {
+            if (!IsCurrentStageSnackbarAnimationVersion(animationVersion))
+                yield break;
+
+            StageSnackbarEntryData entry = entries[i];
+            string message = BuildStageSnackbarMessage(entry, currentStageIndex);
+            if (string.IsNullOrWhiteSpace(message))
+                continue;
+
+            ShowStageSnackbar(message, animationVersion);
+            float duration = Mathf.Max(1f, entry != null && entry.duration > 0f ? entry.duration : stageSnackbarDefaultDuration);
+            yield return new WaitForSecondsRealtime(duration);
+
+            if (!IsCurrentStageSnackbarAnimationVersion(animationVersion))
+                yield break;
+
+            HideStageSnackbar(animationVersion);
+            yield return new WaitForSecondsRealtime(0.2f);
+        }
+
+        if (IsCurrentStageSnackbarAnimationVersion(animationVersion))
+            stageSnackbarRoutine = null;
+    }
+
+    private string BuildStageSnackbarMessage(StageSnackbarEntryData entry, int currentStageIndex)
+    {
+        if (entry == null || string.IsNullOrWhiteSpace(entry.message))
+            return string.Empty;
+
+        int targetStageIndex = entry.targetStageIndex > 0 ? entry.targetStageIndex : currentStageIndex;
+        int remainingStages = Mathf.Max(0, targetStageIndex - currentStageIndex);
+
+        string message = entry.message;
+        message = message.Replace("{currentStage}", currentStageIndex.ToString());
+        message = message.Replace("{targetStage}", targetStageIndex.ToString());
+        message = message.Replace("{remainingStages}", remainingStages.ToString());
+        return message.Trim();
+    }
+
+    private void ShowStageSnackbar(string message, int animationVersion)
+    {
+        if (stageSnackbar == null || stageSnackbarLabel == null)
+            return;
+
+        stageSnackbarLabel.text = message;
+        stageSnackbar.style.display = DisplayStyle.Flex;
+        stageSnackbar.style.opacity = 0f;
+        stageSnackbar.style.scale = new StyleScale(new Scale(new Vector3(0.96f, 0.96f, 1f)));
+        stageSnackbar.schedule.Execute(() =>
+        {
+            if (!IsCurrentStageSnackbarAnimationVersion(animationVersion))
+                return;
+
+            stageSnackbar.style.opacity = 1f;
+            stageSnackbar.style.scale = new StyleScale(new Scale(Vector3.one));
+        }).StartingIn(12);
+
+        FirebaseBootstrap.LogEvent("stage_snackbar_show", new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndexForUI },
+            { "message", message }
+        });
+    }
+
+    private void HideStageSnackbar(int animationVersion)
+    {
+        if (stageSnackbar == null)
+            return;
+
+        stageSnackbar.style.opacity = 0f;
+        stageSnackbar.style.scale = new StyleScale(new Scale(new Vector3(0.97f, 0.97f, 1f)));
+        stageSnackbar.schedule.Execute(() =>
+        {
+            if (!IsCurrentStageSnackbarAnimationVersion(animationVersion))
+                return;
+
+            stageSnackbar.style.display = DisplayStyle.None;
+        }).StartingIn(160);
+    }
+
+    private void StopStageSnackbarPlayback()
+    {
+        stageSnackbarAnimationVersion++;
+        if (stageSnackbarRoutine != null)
+        {
+            StopCoroutine(stageSnackbarRoutine);
+            stageSnackbarRoutine = null;
+        }
+
+        if (stageSnackbar != null)
+        {
+            stageSnackbar.style.display = DisplayStyle.None;
+            stageSnackbar.style.opacity = 0f;
+            stageSnackbar.style.scale = new StyleScale(new Scale(new Vector3(0.96f, 0.96f, 1f)));
+        }
+    }
+
+    private bool IsCurrentStageSnackbarAnimationVersion(int expectedVersion)
+    {
+        return stageSnackbarAnimationVersion == expectedVersion;
+    }
+
+    private void TryShowScheduledTutorialForStage(int stageIndex)
+    {
+        if (isTutorialPopupOpen || isSettingPopupOpen || isWaitingForHeartRefill)
+            return;
+
+        HelpTutorialEntryData entry = GetNextAutoTutorialEntryForStage(stageIndex);
+        if (entry == null)
+            return;
+
+        ShowTutorialPopup(entry, ignoreDismissed: false, openedFromSettings: false);
+    }
+
+    private HelpTutorialEntryData GetNextAutoTutorialEntryForStage(int stageIndex)
+    {
+        if (!helpTutorialEntriesByStage.TryGetValue(stageIndex, out List<HelpTutorialEntryData> entries) || entries == null)
+            return null;
+
+        for (int i = 0; i < entries.Count; i++)
+        {
+            HelpTutorialEntryData entry = entries[i];
+            if (entry == null || string.IsNullOrEmpty(entry.id))
+                continue;
+
+            if (!IsTutorialDismissed(entry.id))
+                return entry;
+        }
+
+        return null;
+    }
+
+    private HelpTutorialEntryData GetHelpTutorialForSettings()
+    {
+        HelpTutorialEntryData stageEntry = GetFirstTutorialEntryForStage(currentStageIndexForUI);
+        if (stageEntry != null)
+            return stageEntry;
+        if (helpTutorialEntries.Count > 0)
+            return helpTutorialEntries[0];
+        return null;
+    }
+
+    private HelpTutorialEntryData GetFirstTutorialEntryForStage(int stageIndex)
+    {
+        if (!helpTutorialEntriesByStage.TryGetValue(stageIndex, out List<HelpTutorialEntryData> entries) || entries == null)
+            return null;
+        return entries.Count > 0 ? entries[0] : null;
+    }
+
+    private static string GetTutorialDismissedKey(string tutorialId)
+    {
+        return TutorialDismissedKeyPrefix + tutorialId;
+    }
+
+    private static bool IsTutorialDismissed(string tutorialId)
+    {
+        if (string.IsNullOrEmpty(tutorialId))
+            return false;
+        return LoadSettingBool(GetTutorialDismissedKey(tutorialId), false);
+    }
+
+    private static void MarkTutorialDismissed(string tutorialId)
+    {
+        if (string.IsNullOrEmpty(tutorialId))
+            return;
+        SaveSettingBool(GetTutorialDismissedKey(tutorialId), true);
+    }
+
+    private void OpenHelpTutorialFromSettings()
+    {
+        HelpTutorialEntryData entry = GetHelpTutorialForSettings();
+        if (entry == null)
+        {
+            Debug.LogWarning("[GameMainUIController] 표시할 도움말 항목이 없습니다.");
+            return;
+        }
+
+        HideSettingPopup();
+        ShowTutorialPopup(entry, ignoreDismissed: true, openedFromSettings: true);
+    }
+
+    private void ShowTutorialPopup(HelpTutorialEntryData entry, bool ignoreDismissed, bool openedFromSettings)
+    {
+        if (entry == null)
+            return;
+
+        if (!ignoreDismissed && IsTutorialDismissed(entry.id))
+            return;
+
+        activeTutorialEntry = entry;
+        isTutorialPopupOpen = true;
+
+        if (tutorialOverlay != null)
+            tutorialOverlay.style.display = DisplayStyle.Flex;
+
+        if (tutorialDialog != null)
+        {
+            tutorialDialog.style.opacity = 0f;
+            tutorialDialog.style.scale = new StyleScale(new Scale(new Vector3(0.94f, 0.94f, 1f)));
+            tutorialDialog.schedule.Execute(() =>
+            {
+                if (!isTutorialPopupOpen)
+                    return;
+                tutorialDialog.style.opacity = 1f;
+                tutorialDialog.style.scale = new StyleScale(new Scale(Vector3.one));
+            }).StartingIn(14);
+        }
+
+        if (tutorialTitleLabel != null)
+            tutorialTitleLabel.text = entry.title;
+        if (tutorialDescriptionLabel != null)
+            tutorialDescriptionLabel.text = entry.description;
+        if (tutorialConfirmButton != null)
+            tutorialConfirmButton.text = entry.closeButtonText;
+
+        ApplyTutorialStepState(1, 2, 1, "왼쪽 타일에서 시작해 경로를 연결해보세요.");
+        SetTutorialHandPosition(0, instant: true);
+        StartTutorialAnimation(entry);
+
+        FirebaseBootstrap.LogEvent("help_tutorial_open", new Dictionary<string, object>
+        {
+            { "tutorial_id", entry.id },
+            { "stage_index", entry.stageIndex },
+            { "open_type", openedFromSettings ? "settings_button" : "stage_auto" }
+        });
+    }
+
+    private void CloseTutorialPopup()
+    {
+        if (!isTutorialPopupOpen)
+            return;
+
+        string tutorialId = activeTutorialEntry != null ? activeTutorialEntry.id : string.Empty;
+        if (!string.IsNullOrEmpty(tutorialId))
+            MarkTutorialDismissed(tutorialId);
+
+        StopTutorialAnimation();
+        isTutorialPopupOpen = false;
+
+        if (tutorialDialog != null)
+        {
+            tutorialDialog.style.opacity = 1f;
+            tutorialDialog.style.scale = new StyleScale(new Scale(Vector3.one));
+        }
+
+        if (tutorialOverlay != null)
+            tutorialOverlay.style.display = DisplayStyle.None;
+
+        activeTutorialEntry = null;
+        if (tutorialStepHintLabel != null)
+            tutorialStepHintLabel.text = string.Empty;
+
+        FirebaseBootstrap.LogEvent("help_tutorial_close", new Dictionary<string, object>
+        {
+            { "tutorial_id", string.IsNullOrEmpty(tutorialId) ? "unknown" : tutorialId }
+        });
+    }
+
+    private void StartTutorialAnimation(HelpTutorialEntryData entry)
+    {
+        StopTutorialAnimation();
+        if (entry == null)
+            return;
+
+        if (string.Equals(entry.tutorialType, TutorialTypeBasicPath, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayBasicTutorialAnimationLoop(tutorialAnimationVersion));
+        }
+    }
+
+    private void StopTutorialAnimation()
+    {
+        tutorialAnimationVersion++;
+        if (tutorialAnimationRoutine != null)
+        {
+            StopCoroutine(tutorialAnimationRoutine);
+            tutorialAnimationRoutine = null;
+        }
+    }
+
+    private IEnumerator PlayBasicTutorialAnimationLoop(int animationVersion)
+    {
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.58f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.82f);
+
+        while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
+        {
+            ApplyTutorialStepState(1, 2, 1, "왼쪽에서 시작");
+            SetTutorialHandPosition(0, instant: true);
+            yield return new WaitForSecondsRealtime(0.42f);
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            SetTutorialHandPosition(1, instant: false);
+            ApplyTutorialStepState(0, 2, 1, "왼쪽 타일 카운트 -1", pulseLeft: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            SetTutorialHandPosition(2, instant: false);
+            ApplyTutorialStepState(0, 1, 1, "중앙 타일 카운트 -1", pulseCenter: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            SetTutorialHandPosition(1, instant: false);
+            ApplyTutorialStepState(0, 1, 0, "오른쪽 타일 카운트 -1", pulseRight: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyTutorialStepState(0, 0, 0, "남은 카운트 0: 스테이지 클리어!", pulseCenter: true);
+            yield return cycleWait;
+        }
+
+        tutorialAnimationRoutine = null;
+    }
+
+    private bool IsTutorialAnimationActive(int animationVersion)
+    {
+        return isTutorialPopupOpen && animationVersion == tutorialAnimationVersion;
+    }
+
+    private void ApplyTutorialStepState(int leftCount, int centerCount, int rightCount, string hint, bool pulseLeft = false, bool pulseCenter = false, bool pulseRight = false)
+    {
+        ApplyTutorialTileState(tutorialTileLeft, tutorialTileLeftCount, leftCount, pulseLeft);
+        ApplyTutorialTileState(tutorialTileCenter, tutorialTileCenterCount, centerCount, pulseCenter);
+        ApplyTutorialTileState(tutorialTileRight, tutorialTileRightCount, rightCount, pulseRight);
+
+        if (tutorialStepHintLabel != null)
+            tutorialStepHintLabel.text = hint;
+    }
+
+    private static void ApplyTutorialTileState(VisualElement tile, Label countLabel, int count, bool pulse)
+    {
+        if (countLabel != null)
+            countLabel.text = Mathf.Max(0, count).ToString();
+        if (tile == null)
+            return;
+
+        bool active = count > 0;
+        tile.style.opacity = active ? 1f : 0.3f;
+        tile.style.backgroundColor = active ? new StyleColor(new Color(0.24f, 0.72f, 0.99f, 0.23f)) : new StyleColor(new Color(0.08f, 0.13f, 0.2f, 0.46f));
+        Color borderColor = active ? new Color(0.73f, 0.93f, 1f, 0.95f) : new Color(0.45f, 0.61f, 0.72f, 0.58f);
+        tile.style.borderLeftColor = borderColor;
+        tile.style.borderRightColor = borderColor;
+        tile.style.borderTopColor = borderColor;
+        tile.style.borderBottomColor = borderColor;
+
+        if (pulse)
+        {
+            tile.style.scale = new StyleScale(new Scale(new Vector3(1.16f, 1.16f, 1f)));
+            tile.schedule.Execute(() =>
+            {
+                tile.style.scale = new StyleScale(new Scale(Vector3.one));
+            }).StartingIn(120);
+        }
+        else
+        {
+            tile.style.scale = new StyleScale(new Scale(Vector3.one));
+        }
+    }
+
+    private void SetTutorialHandPosition(int laneIndex, bool instant)
+    {
+        if (tutorialHandImage == null)
+            return;
+
+        float leftPercent;
+        switch (laneIndex)
+        {
+            case 0:
+                leftPercent = 19f;
+                break;
+            case 1:
+                leftPercent = 44f;
+                break;
+            case 2:
+                leftPercent = 69f;
+                break;
+            default:
+                leftPercent = 44f;
+                break;
+        }
+
+        tutorialHandImage.style.left = Length.Percent(leftPercent);
+        tutorialHandImage.style.top = 226f;
+        tutorialHandImage.style.opacity = 1f;
+        tutorialHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
     }
 
     private void ToggleSoundSwitch()
@@ -1317,6 +1999,9 @@ public class GameMainUIController : MonoBehaviour
             bottomBar.style.marginBottom = 0f;
             bottomBar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, bottomBarExtraSpacing);
         }
+
+        if (stageSnackbar != null)
+            stageSnackbar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, stageSnackbarExtraSpacing);
     }
 
     private static bool IsSameRect(Rect a, Rect b)
@@ -1330,6 +2015,9 @@ public class GameMainUIController : MonoBehaviour
     /// <summary>스테이지 번호 및 전체 카운트로 상단 UI 초기화.</summary>
     public void SetupStage(int stageIndex, int totalCount, int remainingCount)
     {
+        StopStageSnackbarPlayback();
+        currentStageIndexForUI = Mathf.Max(1, stageIndex);
+
         // STAGE / 스테이지 번호 텍스트 갱신
         if (stageTitleLabel != null)
             stageTitleLabel.text = "STAGE";
@@ -1339,6 +2027,8 @@ public class GameMainUIController : MonoBehaviour
 
         initialTileCount = Mathf.Max(1, totalCount);
         UpdateProgress(remainingCount);
+        TryShowScheduledTutorialForStage(currentStageIndexForUI);
+        TryShowScheduledSnackbarForStage(currentStageIndexForUI);
     }
 
     /// <summary>남은 타일 카운트 기준으로 ProgressBar 갱신.</summary>

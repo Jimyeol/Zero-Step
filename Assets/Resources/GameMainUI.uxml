@@ -30,6 +30,9 @@
             <ui:Image name="BlockIcon" style="width: 100px; height: 100px; align-items: center; justify-content: center; align-self: center; align-content: auto;"/>
         </ui:Button>
     </ui:VisualElement>
+    <ui:VisualElement name="StageSnackbar" picking-mode="Ignore" style="position: absolute; left: 5%; right: 5%; bottom: 300px; min-height: 92px; padding-left: 30px; padding-right: 30px; padding-top: 20px; padding-bottom: 20px; border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(168, 234, 255, 0.94); border-right-color: rgba(168, 234, 255, 0.94); border-top-color: rgba(168, 234, 255, 0.94); border-bottom-color: rgba(168, 234, 255, 0.94); border-radius: 22px; background-color: rgba(6, 17, 28, 0.92); justify-content: center; align-items: center; display: none;">
+        <ui:Label name="StageSnackbarLabel" text="" style="font-size: 31px; color: rgba(223, 246, 255, 1); -unity-text-align: middle-center; -unity-font-style: bold; white-space: normal;"/>
+    </ui:VisualElement>
     <ui:VisualElement name="BannerAdContainer" style="position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background-color: rgba(0, 0, 0, 0.3); justify-content: center; align-items: center;">
         <ui:Label name="BannerAdPlaceholder" text="Banner" style="font-size: 14px; color: rgba(255, 255, 255, 0.5); -unity-text-align: middle-center;"/>
     </ui:VisualElement>
@@ -112,6 +115,33 @@
             <ui:Label name="HeartRefillRewardHint" text="보상: 하트 3개 + 즉시 재시작" style="font-size: 30px; color: rgba(161, 231, 255, 1); -unity-text-align: middle-center; margin-bottom: 26px;"/>
             <ui:Button name="HeartRefillAdButton" text="광고 보고 하트 3개 충전" style="width: 92%; max-width: 790px; height: 126px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 22px; background-color: rgba(74, 193, 255, 0.26); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(189, 239, 255, 0.95); border-right-color: rgba(189, 239, 255, 0.95); border-top-color: rgba(189, 239, 255, 0.95); border-bottom-color: rgba(189, 239, 255, 0.95);"/>
             <ui:Label name="HeartRefillStatusLabel" text="" style="font-size: 30px; color: rgba(181, 226, 255, 1); -unity-text-align: middle-center; margin-top: 18px; min-height: 44px;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="TutorialOverlay" picking-mode="Position" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: none; justify-content: center; align-items: center; background-color: rgba(4, 9, 15, 0.82);">
+        <ui:VisualElement name="TutorialDialog" style="width: 94%; max-width: 960px; min-height: 760px; background-color: rgba(7, 11, 18, 0.98); border-left-width: 4px; border-right-width: 4px; border-top-width: 4px; border-bottom-width: 4px; border-left-color: rgba(156, 227, 255, 0.95); border-right-color: rgba(156, 227, 255, 0.95); border-top-color: rgba(156, 227, 255, 0.95); border-bottom-color: rgba(156, 227, 255, 0.95); border-radius: 28px; padding-left: 34px; padding-right: 34px; padding-top: 30px; padding-bottom: 30px;">
+            <ui:VisualElement style="height: 92px; flex-direction: row; justify-content: space-between; align-items: center;">
+                <ui:Label name="TutorialTitleLabel" text="기본 플레이 방법" style="font-size: 50px; color: rgb(255, 255, 255); -unity-font-style: bold; letter-spacing: 0.8px;"/>
+                <ui:Button name="TutorialCloseButton" text="" style="width: 96px; height: 96px; background-color: rgba(0, 0, 0, 0); border-left-width: 0; border-right-width: 0; border-top-width: 0; border-bottom-width: 0; border-radius: 0; justify-content: center; align-items: center;">
+                    <ui:Image name="TutorialCloseIcon" style="width: 62px; height: 62px;"/>
+                </ui:Button>
+            </ui:VisualElement>
+            <ui:Label name="TutorialDescriptionLabel" text="왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다." style="font-size: 34px; color: rgba(205, 233, 255, 1); -unity-text-align: middle-center; margin-top: 12px; margin-bottom: 18px;"/>
+            <ui:VisualElement name="TutorialDemoBoard" style="height: 340px; margin-top: 8px; margin-bottom: 18px; justify-content: center; align-items: center; position: relative;">
+                <ui:VisualElement style="flex-direction: row; justify-content: center; align-items: center;">
+                    <ui:VisualElement name="TutorialTileLeft" class="tutorial-demo-tile">
+                        <ui:Label name="TutorialTileLeftCount" text="1" class="tutorial-demo-count"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="TutorialTileCenter" class="tutorial-demo-tile">
+                        <ui:Label name="TutorialTileCenterCount" text="2" class="tutorial-demo-count"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="TutorialTileRight" class="tutorial-demo-tile">
+                        <ui:Label name="TutorialTileRightCount" text="1" class="tutorial-demo-count"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Image name="TutorialHandImage" style="position: absolute; width: 100px; height: 100px; left: 19%; top: 226px;"/>
+            </ui:VisualElement>
+            <ui:Label name="TutorialStepHintLabel" text="왼쪽 타일에서 시작해 경로를 연결해보세요." style="font-size: 32px; color: rgba(174, 228, 255, 1); -unity-text-align: middle-center; margin-bottom: 22px; min-height: 46px;"/>
+            <ui:Button name="TutorialConfirmButton" text="확인" style="height: 118px; width: 92%; align-self: center; font-size: 40px; color: rgb(255, 255, 255); border-radius: 22px; background-color: rgba(74, 193, 255, 0.28); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(189, 239, 255, 0.95); border-right-color: rgba(189, 239, 255, 0.95); border-top-color: rgba(189, 239, 255, 0.95); border-bottom-color: rgba(189, 239, 255, 0.95);"/>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

@@ -215,3 +215,96 @@
 #HeartRefillAdButton:active {
     background-color: rgba(130, 214, 255, 0.46);
 }
+
+#StageSnackbar {
+    transition-property: opacity, scale;
+    transition-duration: 0.16s;
+    transition-timing-function: ease-out;
+}
+
+#StageSnackbarLabel {
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    flex-shrink: 1;
+}
+
+#ResetConfirmMessage,
+#HeartDepletedMessage,
+#HeartRefillRewardHint,
+#HeartRefillStatusLabel,
+#StageSnackbarLabel,
+#TutorialDescriptionLabel,
+#TutorialStepHintLabel {
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    flex-shrink: 1;
+}
+
+#TutorialTitleLabel {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-right: 14px;
+    white-space: normal;
+}
+
+#TutorialDialog {
+    transition-property: opacity, scale;
+    transition-duration: 0.16s;
+    transition-timing-function: ease-out;
+}
+
+#TutorialCloseButton {
+    min-width: 96px;
+    min-height: 96px;
+    background-color: rgba(0, 0, 0, 0) !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+    border-radius: 0 !important;
+}
+
+#TutorialCloseButton:hover {
+    background-color: rgba(0, 0, 0, 0) !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+}
+
+#TutorialHandImage {
+    transition-property: left, top, scale, opacity;
+    transition-duration: 0.26s;
+    transition-timing-function: ease-out;
+}
+
+.tutorial-demo-tile {
+    width: 148px;
+    height: 148px;
+    margin-left: 18px;
+    margin-right: 18px;
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+    border-left-color: rgba(187, 239, 255, 0.92);
+    border-right-color: rgba(187, 239, 255, 0.92);
+    border-top-color: rgba(187, 239, 255, 0.92);
+    border-bottom-color: rgba(187, 239, 255, 0.92);
+    border-radius: 22px;
+    background-color: rgba(61, 191, 255, 0.19);
+    justify-content: center;
+    align-items: center;
+    transition-property: opacity, scale, background-color, border-left-color, border-right-color, border-top-color, border-bottom-color;
+    transition-duration: 0.16s;
+    transition-timing-function: ease-out;
+}
+
+.tutorial-demo-count {
+    color: rgb(255, 255, 255);
+    font-size: 64px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}

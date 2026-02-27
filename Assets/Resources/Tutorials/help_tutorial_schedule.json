@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "basic_stage_1",
+      "stageIndex": 1,
+      "tutorialType": "BasicPath",
+      "title": "기본 플레이 방법",
+      "description": "왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다.",
+      "closeButtonText": "확인"
+    }
+  ]
+}
