@@ -72,6 +72,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] [Min(1f)] private float trailHdrIntensity = 2.2f;
     [Tooltip("그라데이션 색상이 흐르는 속도 (키 순환)")]
     [SerializeField] private float trailColorShiftSpeed = 1.5f;
+    [Tooltip("네온 그라데이션 갱신 빈도(Hz). 너무 높으면 GC/CPU 부하가 커질 수 있음")]
+    [SerializeField] [Range(10f, 120f)] private float trailGradientUpdateHz = 45f;
     [Tooltip("특수 타일 밟았을 때 해당 컬러로 0.2초간 Lerp 후 복귀")]
     [SerializeField] private float specialTileColorLerpDuration = 0.2f;
 
@@ -110,9 +112,9 @@ public class GameManager : MonoBehaviour
     /// <summary>Easy Save 3 진행도 저장 키. 앱 재실행 시 이 스테이지부터 시작.</summary>
     private const string SaveKeyStage = "StageProgress";
 
-    [Header("성능 (모바일 FPS)")]
-    [Tooltip("목표 FPS. 60 권장, -1이면 디바이스 기본값")]
-    [SerializeField] private int targetFrameRate = 60;
+    [Header("성능 (디바이스 최대 FPS)")]
+    [Tooltip("실행 중 디바이스가 지원하는 최대 주사율을 목표 FPS로 사용합니다.")]
+    [SerializeField] private bool useDeviceMaxFps = true;
 
     [Header("게임오버·리셋 연출")]
     [Tooltip("깜빡임 한 번당 간격(초). 0.1초에 2번 깜빡임 = 0.025")]
@@ -189,12 +191,28 @@ public class GameManager : MonoBehaviour
     private string[] activeMelody = Array.Empty<string>();
     private int activeMelodyIndex;
     private float nextQueuedBlockNoteTime;
+    private float nextTrailGradientUpdateTime;
+    private GradientColorKey[] reusableTrailColorKeys;
+    private readonly Gradient reusableTrailGradient = new Gradient();
+    private static readonly GradientAlphaKey[] reusableTrailAlphaKeys =
+    {
+        new GradientAlphaKey(0.9f, 0f),
+        new GradientAlphaKey(0f, 1f)
+    };
+    private static readonly Color[] fallbackNeonColors =
+    {
+        new Color(0f, 1f, 1f, 1f),
+        new Color(1f, 0f, 1f, 1f),
+        new Color(0.6f, 0.2f, 1f, 1f),
+        new Color(0.2f, 0.5f, 1f, 1f)
+    };
 
     [Header("UI Toolkit 상단 UI")]
     [Tooltip("GameMainUI.uxml을 사용하는 UIDocument가 있는 오브젝트에 붙은 컨트롤러")]
     [SerializeField] private GameMainUIController mainUI;
     /// <summary>각 스테이지 시작 시 전체 타일 카운트(합). 진행도 계산용.</summary>
     private int initialTileCountForUI;
+    public static bool IsPerformanceOverlayOpen { get; private set; }
 
     /// <summary>CrossBlastTile·LinkSystem 등에서 그리드 크기 참조용.</summary>
     public int StageWidth => stageWidth;
@@ -214,6 +232,11 @@ public class GameManager : MonoBehaviour
 
     /// <summary>Spotlight 모드 컨트롤러. config.mode == "Spotlight"일 때만 사용.</summary>
     private SpotlightController spotlightController;
+
+    private void Awake()
+    {
+        ConfigureDeviceMaxFrameRate();
+    }
 
     private void Start()
     {
@@ -248,12 +271,11 @@ public class GameManager : MonoBehaviour
         AdjustCameraToFitGrid();
 
         RefreshMainUIForStage();
+        ResetMainUIHeartsForNewStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         TrackStageStarted("app_launch");
-
-        if (targetFrameRate > 0)
-            Application.targetFrameRate = targetFrameRate;
+        ConfigureDeviceMaxFrameRate();
     }
 
     private void TrackStageStarted(string entryType)
@@ -336,6 +358,7 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
 
         RefreshMainUIForStage();
+        ResetMainUIHeartsForNewStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();
@@ -386,6 +409,7 @@ public class GameManager : MonoBehaviour
 
         AdjustCameraToFitGrid();
         RefreshMainUIForStage();
+        ResetMainUIHeartsForNewStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();
@@ -399,13 +423,16 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        bool overlayOpen = mainUI != null && (mainUI.IsSettingPopupOpen || mainUI.IsWaitingForHeartRefill);
+        IsPerformanceOverlayOpen = overlayOpen;
+
         ProcessPendingBlockNoteQueue();
         if (stageCleared || isGameOverSequencePlaying)
             return;
 
-        if (mainUI == null)
-            mainUI = FindFirstObjectByType<GameMainUIController>();
-        if (mainUI != null && mainUI.IsSettingPopupOpen)
+        if (overlayOpen)
         {
             if (isDragging)
             {
@@ -1146,6 +1173,14 @@ public class GameManager : MonoBehaviour
         mainUI.SetupStage(currentStageIndex, initialTileCountForUI, total);
     }
 
+    private void ResetMainUIHeartsForNewStage()
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI != null)
+            mainUI.ResetHeartsForNewStage();
+    }
+
     /// <summary>남은 타일 카운트 기준으로 상단 UI ProgressBar 갱신.</summary>
     private void RefreshMainUIProgress()
     {
@@ -1419,6 +1454,11 @@ public class GameManager : MonoBehaviour
         PlayFailSfx();
         linkSystem?.ClearLinks();
 
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI != null)
+            mainUI.ConsumeHeartOnGameOver();
+
         bool isSpotlight = spotlightController != null && spotlightController.IsSpotlightActive();
 
         if (isSpotlight)
@@ -1480,6 +1520,9 @@ public class GameManager : MonoBehaviour
 
             yield return new WaitForSeconds(blackoutWait);
         }
+
+        if (mainUI != null && mainUI.IsWaitingForHeartRefill)
+            yield return new WaitUntil(() => mainUI == null || !mainUI.IsWaitingForHeartRefill);
 
         for (int row = 0; row < stageHeight; row++)
         {
@@ -1669,6 +1712,7 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
 
         RefreshMainUIForStage();
+        ResetMainUIHeartsForNewStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();
@@ -1727,11 +1771,62 @@ public class GameManager : MonoBehaviour
     {
         if (pause)
             SaveStageProgress();
+        else
+            ConfigureDeviceMaxFrameRate();
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (hasFocus)
+            ConfigureDeviceMaxFrameRate();
     }
 
     private void OnApplicationQuit()
     {
         SaveStageProgress();
+        IsPerformanceOverlayOpen = false;
+    }
+
+    private void ConfigureDeviceMaxFrameRate()
+    {
+        if (!useDeviceMaxFps)
+            return;
+
+        QualitySettings.vSyncCount = 0;
+        int maxFps = GetDeviceMaxFrameRate();
+        Application.targetFrameRate = maxFps;
+        Time.maximumDeltaTime = 0.1f;
+    }
+
+    private static int GetDeviceMaxFrameRate()
+    {
+        float maxRefreshRate = 0f;
+        Resolution[] resolutions = Screen.resolutions;
+        if (resolutions != null && resolutions.Length > 0)
+        {
+            for (int i = 0; i < resolutions.Length; i++)
+            {
+                float hz = GetResolutionRefreshRate(resolutions[i]);
+                if (hz > maxRefreshRate)
+                    maxRefreshRate = hz;
+            }
+        }
+
+        if (maxRefreshRate <= 0f)
+            maxRefreshRate = GetResolutionRefreshRate(Screen.currentResolution);
+        if (maxRefreshRate <= 0f)
+            maxRefreshRate = 60f;
+
+        return Mathf.Clamp(Mathf.RoundToInt(maxRefreshRate), 30, 240);
+    }
+
+    private static float GetResolutionRefreshRate(Resolution resolution)
+    {
+#if UNITY_2022_2_OR_NEWER
+        return (float)resolution.refreshRateRatio.value;
+#else
+        return resolution.refreshRate;
+#endif
     }
 
     private void ClearTiles()
@@ -1795,6 +1890,14 @@ public class GameManager : MonoBehaviour
 
         float t = Time.time;
         bool inTileLerp = (t - specialTileColorLerpStartTime) < specialTileColorLerpDuration && specialTileColorLerpStartTime > -900f;
+        if (!isDragging && !inTileLerp)
+            return;
+
+        float minUpdateInterval = 1f / Mathf.Max(10f, trailGradientUpdateHz);
+        if (!inTileLerp && t < nextTrailGradientUpdateTime)
+            return;
+        nextTrailGradientUpdateTime = t + minUpdateInterval;
+
         float blend = 0f;
         if (inTileLerp)
         {
@@ -1814,16 +1917,12 @@ public class GameManager : MonoBehaviour
     private void ApplyNeonTrailGradient(float phase, float tileBlend = 0f, Color specialColor = default)
     {
         if (neonTrail == null) return;
-        int n = (neonGradientColors != null && neonGradientColors.Length >= 4) ? neonGradientColors.Length : 4;
-        Color[] baseColors = (neonGradientColors != null && neonGradientColors.Length >= 4) ? neonGradientColors : new Color[]
-        {
-            new Color(0f, 1f, 1f, 1f), new Color(1f, 0f, 1f, 1f),
-            new Color(0.6f, 0.2f, 1f, 1f), new Color(0.2f, 0.5f, 1f, 1f)
-        };
+        Color[] baseColors = (neonGradientColors != null && neonGradientColors.Length >= 4) ? neonGradientColors : fallbackNeonColors;
+        int n = baseColors.Length;
+        EnsureTrailGradientBufferSize(n + 1);
 
         // HDR 강도 적용 (Bloom용)
         float intensity = trailHdrIntensity;
-        var colorKeys = new List<GradientColorKey>();
         float step = 1f / Mathf.Max(1, n);
         for (int i = 0; i <= n; i++)
         {
@@ -1837,16 +1936,16 @@ public class GameManager : MonoBehaviour
                 Color sc = new Color(specialColor.r * intensity, specialColor.g * intensity, specialColor.b * intensity, specialColor.a);
                 c = Color.Lerp(c, sc, tileBlend);
             }
-            colorKeys.Add(new GradientColorKey(c, keyTime));
+            reusableTrailColorKeys[i] = new GradientColorKey(c, keyTime);
         }
-        var alphaKeys = new GradientAlphaKey[]
-        {
-            new GradientAlphaKey(0.9f, 0f),
-            new GradientAlphaKey(0f, 1f)
-        };
-        Gradient g = new Gradient();
-        g.SetKeys(colorKeys.ToArray(), alphaKeys);
-        neonTrail.colorGradient = g;
+        reusableTrailGradient.SetKeys(reusableTrailColorKeys, reusableTrailAlphaKeys);
+        neonTrail.colorGradient = reusableTrailGradient;
+    }
+
+    private void EnsureTrailGradientBufferSize(int size)
+    {
+        if (reusableTrailColorKeys == null || reusableTrailColorKeys.Length != size)
+            reusableTrailColorKeys = new GradientColorKey[size];
     }
 
     private void EnsureInputAndRaycaster()

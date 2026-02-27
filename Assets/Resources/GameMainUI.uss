@@ -181,3 +181,37 @@
 .settings-switch-off .settings-switch-knob {
     background-color: rgba(255, 234, 234, 1);
 }
+
+#HeartContainer > Image {
+    -unity-background-scale-mode: scale-to-fit;
+    overflow: visible;
+}
+
+.heart-icon {
+    transition-property: opacity, scale;
+    transition-duration: 0.12s;
+    transition-timing-function: ease-out;
+}
+
+#HeartDepletedDialog {
+    transition-property: opacity, scale;
+    transition-duration: 0.16s;
+    transition-timing-function: ease-out;
+}
+
+#HeartRefillAdButton {
+    transition-property: background-color, border-left-color, border-right-color, border-top-color, border-bottom-color, opacity;
+    transition-duration: 0.12s;
+}
+
+#HeartRefillAdButton:hover {
+    background-color: rgba(91, 196, 255, 0.38);
+    border-left-color: rgba(214, 241, 255, 0.95);
+    border-right-color: rgba(214, 241, 255, 0.95);
+    border-top-color: rgba(214, 241, 255, 0.95);
+    border-bottom-color: rgba(214, 241, 255, 0.95);
+}
+
+#HeartRefillAdButton:active {
+    background-color: rgba(130, 214, 255, 0.46);
+}

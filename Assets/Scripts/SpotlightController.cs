@@ -33,12 +33,15 @@ public class SpotlightController : MonoBehaviour
     private readonly List<Vector2> startRevealPositions = new List<Vector2>();
     /// <summary>Normal 모드: 밟은 타일 월드 위치.</summary>
     private readonly List<Vector2> revealedPositions = new List<Vector2>();
+    private readonly Vector4[] revealedPositionBuffer = new Vector4[MaxRevealed];
     private bool isHardMode;
     private float radius;
     private float softness;
     /// <summary>게임오버 펄스 재생 중에는 일반 스포트라이트/밝힌 영역 숨김.</summary>
     private bool isPulsePlaying;
     private Tween pulseTween;
+    private float cachedFogOrthoSize = -1f;
+    private float cachedFogAspect = -1f;
 
     /// <summary>
     /// 스테이지 로드 시 GameManager가 호출. config와 스타트 타일 월드 위치 전달.
@@ -244,13 +247,22 @@ public class SpotlightController : MonoBehaviour
         if (fogQuad == null || targetCamera == null) return;
         if (!targetCamera.orthographic)
             return;
+        if (Mathf.Abs(cachedFogOrthoSize - targetCamera.orthographicSize) < 0.0001f &&
+            Mathf.Abs(cachedFogAspect - targetCamera.aspect) < 0.0001f)
+            return;
+
         float ortho = targetCamera.orthographicSize * 2f;
         float aspect = targetCamera.aspect;
         fogQuad.transform.localScale = new Vector3(ortho * aspect, ortho, 1f);
+        cachedFogOrthoSize = targetCamera.orthographicSize;
+        cachedFogAspect = aspect;
     }
 
     private void Update()
     {
+        if (GameManager.IsPerformanceOverlayOpen)
+            return;
+
         if (fogMaterial == null || config == null || !config.mode.Equals("Spotlight", System.StringComparison.OrdinalIgnoreCase))
             return;
 
@@ -278,28 +290,29 @@ public class SpotlightController : MonoBehaviour
             if (isHardMode)
             {
                 fogMaterial.SetInt("_RevealedCount", 0);
-                fogMaterial.SetVectorArray("_RevealedPositions", new Vector4[MaxRevealed]);
             }
             else
             {
-                int count = Mathf.Min(revealedPositions.Count, MaxRevealed);
-                fogMaterial.SetInt("_RevealedCount", count);
-                Vector4[] arr = new Vector4[MaxRevealed];
-                for (int i = 0; i < count; i++)
-                    arr[i] = new Vector4(revealedPositions[i].x, revealedPositions[i].y, 0f, 0f);
-                fogMaterial.SetVectorArray("_RevealedPositions", arr);
+                ApplyRevealedPositionsToMaterial();
             }
         }
         else
         {
             fogMaterial.SetVector("_Center", new Vector4(0f, 0f, 0f, 0f));
-            int count = Mathf.Min(revealedPositions.Count, MaxRevealed);
-            fogMaterial.SetInt("_RevealedCount", count);
-            Vector4[] arr = new Vector4[MaxRevealed];
-            for (int i = 0; i < count; i++)
-                arr[i] = new Vector4(revealedPositions[i].x, revealedPositions[i].y, 0f, 0f);
-            fogMaterial.SetVectorArray("_RevealedPositions", arr);
+            ApplyRevealedPositionsToMaterial();
         }
+    }
+
+    private void ApplyRevealedPositionsToMaterial()
+    {
+        if (fogMaterial == null)
+            return;
+
+        int count = Mathf.Min(revealedPositions.Count, MaxRevealed);
+        fogMaterial.SetInt("_RevealedCount", count);
+        for (int i = 0; i < count; i++)
+            revealedPositionBuffer[i] = new Vector4(revealedPositions[i].x, revealedPositions[i].y, 0f, 0f);
+        fogMaterial.SetVectorArray("_RevealedPositions", revealedPositionBuffer);
     }
 
     private void OnDestroy()

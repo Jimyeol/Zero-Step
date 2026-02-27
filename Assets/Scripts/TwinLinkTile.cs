@@ -185,6 +185,9 @@ public class TwinLinkTile : MonoBehaviour
 
     private void Update()
     {
+        if (GameManager.IsPerformanceOverlayOpen)
+            return;
+
         if (tile != null && !tile.IsActive)
         {
             SetBoltsActive(false);
