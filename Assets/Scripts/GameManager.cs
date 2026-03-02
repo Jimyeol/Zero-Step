@@ -343,34 +343,10 @@ public class GameManager : MonoBehaviour
             return;
 
         int skippedStageIndex = currentStageIndex;
-        if (pathLitClearRoutine != null)
-        {
-            StopCoroutine(pathLitClearRoutine);
-            pathLitClearRoutine = null;
-        }
-        ResetTrail();
-        currentStageIndex++;
-        StageData data = StageManager.LoadStage(currentStageIndex);
-        if (data == null)
-        {
-            currentStageIndex = 1;
-            data = StageManager.LoadStage(1);
-            if (data == null)
-                return;
-        }
-        totalStepsCommitted = 0;
-        ClearTiles();
-        CreateGridFromStageData(data);
-        SetCurrentStartTileFromStageData(data);
-        SetupSpotlight(data);
-        AdjustCameraToFitGrid();
-        stageCleared = false;
+        PrepareForStageTransition();
+        if (!TryAdvanceToNextStage())
+            return;
 
-        RefreshMainUIForStage();
-        ResetMainUIHeartsForNewStage();
-        SetupMelodyForCurrentStage();
-        PlayNewStageSfx();
-        SaveStageProgress();
         FirebaseBootstrap.LogEvent("stage_skip", new Dictionary<string, object>
         {
             { "from_stage_index", skippedStageIndex },
@@ -1749,8 +1725,44 @@ public class GameManager : MonoBehaviour
     private IEnumerator LoadNextStageAfterDelay()
     {
         yield return new WaitForSeconds(nextStageDelay);
+        PrepareForStageTransition();
+
+        int completedStageIndex = currentStageIndex;
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+
+        if (mainUI != null)
+        {
+            mainUI.ShowStageTransitionInterstitialIfNeeded(completedStageIndex, () =>
+            {
+                if (this == null)
+                    return;
+
+                if (TryAdvanceToNextStage())
+                    TrackStageStarted("auto_next_stage");
+            });
+        }
+        else
+        {
+            if (TryAdvanceToNextStage())
+                TrackStageStarted("auto_next_stage");
+        }
+    }
+
+    private void PrepareForStageTransition()
+    {
+        if (pathLitClearRoutine != null)
+        {
+            StopCoroutine(pathLitClearRoutine);
+            pathLitClearRoutine = null;
+        }
+
         ResetTrail();
         ClearPendingBlockNoteQueue();
+    }
+
+    private bool TryAdvanceToNextStage()
+    {
         currentStageIndex++;
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data == null)
@@ -1760,9 +1772,10 @@ public class GameManager : MonoBehaviour
             if (data == null)
             {
                 stageCleared = false;
-                yield break;
+                return false;
             }
         }
+
         totalStepsCommitted = 0;
         ClearTiles();
         CreateGridFromStageData(data);
@@ -1776,7 +1789,7 @@ public class GameManager : MonoBehaviour
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();
-        TrackStageStarted("auto_next_stage");
+        return true;
     }
 
     /// <summary>Easy Save 3로 현재 스테이지 인덱스 저장. 클리어 후·앱 종료/일시정지 시 호출.</summary>

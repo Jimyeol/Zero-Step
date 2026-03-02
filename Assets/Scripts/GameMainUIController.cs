@@ -27,10 +27,21 @@ public class GameMainUIController : MonoBehaviour
     private const string IOSReleaseBannerAdUnitId = "ca-app-pub-1863948941169747/3645749158";
     private const string AndroidTestBannerAdUnitId = "ca-app-pub-3940256099942544/6300978111";
     private const string IOSTestBannerAdUnitId = "ca-app-pub-3940256099942544/2934735716";
+    private const string AndroidReleaseInterstitialAdUnitId = "ca-app-pub-1863948941169747/3047278507";
+    private const string IOSReleaseInterstitialAdUnitId = "ca-app-pub-1863948941169747/9983863158";
+    private const string AndroidTestInterstitialAdUnitId = "ca-app-pub-3940256099942544/1033173712";
+    private const string IOSTestInterstitialAdUnitId = "ca-app-pub-3940256099942544/4411468910";
     private const string AndroidReleaseRewardedAdUnitId = "ca-app-pub-1863948941169747/7021684124";
     private const string IOSReleaseRewardedAdUnitId = "ca-app-pub-1863948941169747/6383389878";
     private const string AndroidTestRewardedAdUnitId = "ca-app-pub-3940256099942544/5224354917";
     private const string IOSTestRewardedAdUnitId = "ca-app-pub-3940256099942544/1712485313";
+    private const string AndroidReleaseStageSkipRewardedAdUnitId = "ca-app-pub-1863948941169747/4356131957";
+    private const string IOSReleaseStageSkipRewardedAdUnitId = "ca-app-pub-1863948941169747/6100458466";
+    private const string AndroidTestStageSkipRewardedAdUnitId = "ca-app-pub-3940256099942544/5224354917";
+    private const string IOSTestStageSkipRewardedAdUnitId = "ca-app-pub-3940256099942544/1712485313";
+    private const string StageSkipRewardName = "Stage Skip";
+    private const int StageSkipRewardAmount = 1;
+    private const int StageTransitionInterstitialInterval = 15;
     private const int MaxHearts = 3;
     private const string TutorialScheduleResourcePath = "Tutorials/help_tutorial_schedule";
     private const string StageSnackbarScheduleResourcePath = "Tutorials/stage_snackbar_schedule";
@@ -182,6 +193,8 @@ public class GameMainUIController : MonoBehaviour
     private bool isDebugBuildCached;
     private volatile bool pendingBannerLoadFromInitialize;
     private volatile bool pendingRewardedAdLoadFromInitialize;
+    private volatile bool pendingStageSkipRewardedAdLoadFromInitialize;
+    private volatile bool pendingInterstitialLoadFromInitialize;
     private volatile bool pendingShowRewardedAd;
     private float reservedBannerHeightPx;
     private float nextBannerHeightPollTime;
@@ -209,6 +222,14 @@ public class GameMainUIController : MonoBehaviour
     private RewardedAd rewardedAd;
     private bool isRewardedAdLoading;
     private bool rewardEarnedThisShow;
+    private RewardedAd stageSkipRewardedAd;
+    private bool isStageSkipRewardedAdLoading;
+    private bool stageSkipRewardEarnedThisShow;
+    private Action pendingStageSkipRewardCompletionAction;
+    private InterstitialAd stageTransitionInterstitialAd;
+    private bool isStageTransitionInterstitialAdLoading;
+    private bool isStageTransitionInterstitialShowing;
+    private Action pendingStageTransitionInterstitialCompletionAction;
 #endif
     [Header("ProgressBar Animation")]
     [SerializeField] private float progressAnimDuration = 0.25f;
@@ -529,6 +550,16 @@ public class GameMainUIController : MonoBehaviour
             pendingRewardedAdLoadFromInitialize = false;
             LoadRewardedAd();
         }
+        if (pendingStageSkipRewardedAdLoadFromInitialize)
+        {
+            pendingStageSkipRewardedAdLoadFromInitialize = false;
+            LoadStageSkipRewardedAd();
+        }
+        if (pendingInterstitialLoadFromInitialize)
+        {
+            pendingInterstitialLoadFromInitialize = false;
+            LoadStageTransitionInterstitialAd();
+        }
         if (pendingShowRewardedAd)
         {
             pendingShowRewardedAd = false;
@@ -544,6 +575,8 @@ public class GameMainUIController : MonoBehaviour
         StopTutorialAnimation();
         DestroyBannerAd();
         DestroyRewardedAd();
+        DestroyStageSkipRewardedAd();
+        DestroyStageTransitionInterstitialAd();
     }
 
     private void SetupButtonClickAnimations()
@@ -618,18 +651,48 @@ public class GameMainUIController : MonoBehaviour
         return buttonPressAnimationVersion.TryGetValue(button, out int currentVersion) && currentVersion == expectedVersion;
     }
 
-    /// <summary>스킵 버튼 클릭: 현재 스테이지를 건너뛰고 즉시 다음 스테이지 로드.</summary>
+    /// <summary>스킵 버튼 클릭: 보상형 광고를 시청하면 현재 스테이지를 건너뛴다.</summary>
     private void OnSkipClicked()
     {
         FirebaseBootstrap.LogEvent("ui_button_click", new Dictionary<string, object>
         {
             { "button_name", "skip" }
         });
+
         var gm = FindFirstObjectByType<GameManager>();
+        if (gm == null)
+        {
+            Debug.Log("스테이지 스킵됨 (GameManager 없음)");
+            return;
+        }
+
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        TryShowStageSkipRewardedAd(() =>
+        {
+            if (gm != null)
+                gm.LoadNextStageImmediate();
+        });
+#else
+        // 에디터에서는 광고 없이 즉시 동작.
         if (gm != null)
             gm.LoadNextStageImmediate();
-        else
-            Debug.Log("스테이지 스킵됨 (GameManager 없음)");
+#endif
+    }
+
+    public void ShowStageTransitionInterstitialIfNeeded(int completedStageIndex, Action onCompleted)
+    {
+        Action completion = onCompleted ?? (() => { });
+        if (completedStageIndex <= 0 || completedStageIndex % StageTransitionInterstitialInterval != 0)
+        {
+            completion.Invoke();
+            return;
+        }
+
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        if (TryShowStageTransitionInterstitial(completion))
+            return;
+#endif
+        completion.Invoke();
     }
 
     /// <summary>리셋 버튼 클릭: 현재 스테이지를 초기 상태로 복원.</summary>
@@ -2083,6 +2146,8 @@ public class GameMainUIController : MonoBehaviour
         {
             pendingBannerLoadFromInitialize = true;
             pendingRewardedAdLoadFromInitialize = true;
+            pendingStageSkipRewardedAdLoadFromInitialize = true;
+            pendingInterstitialLoadFromInitialize = true;
         });
 #else
         SetBannerPlaceholderText(T("banner_default"));
@@ -2097,6 +2162,30 @@ public class GameMainUIController : MonoBehaviour
         return useTestAdUnit ? AndroidTestRewardedAdUnitId : AndroidReleaseRewardedAdUnitId;
 #elif UNITY_IOS
         return useTestAdUnit ? IOSTestRewardedAdUnitId : IOSReleaseRewardedAdUnitId;
+#else
+        return string.Empty;
+#endif
+    }
+
+    private string ResolveStageSkipRewardedAdUnitId()
+    {
+        bool useTestAdUnit = isDebugBuildCached;
+#if UNITY_ANDROID
+        return useTestAdUnit ? AndroidTestStageSkipRewardedAdUnitId : AndroidReleaseStageSkipRewardedAdUnitId;
+#elif UNITY_IOS
+        return useTestAdUnit ? IOSTestStageSkipRewardedAdUnitId : IOSReleaseStageSkipRewardedAdUnitId;
+#else
+        return string.Empty;
+#endif
+    }
+
+    private string ResolveStageTransitionInterstitialAdUnitId()
+    {
+        bool useTestAdUnit = isDebugBuildCached;
+#if UNITY_ANDROID
+        return useTestAdUnit ? AndroidTestInterstitialAdUnitId : AndroidReleaseInterstitialAdUnitId;
+#elif UNITY_IOS
+        return useTestAdUnit ? IOSTestInterstitialAdUnitId : IOSReleaseInterstitialAdUnitId;
 #else
         return string.Empty;
 #endif
@@ -2142,6 +2231,71 @@ public class GameMainUIController : MonoBehaviour
         });
     }
 
+    private void LoadStageSkipRewardedAd()
+    {
+        if (isStageSkipRewardedAdLoading)
+            return;
+
+        if (stageSkipRewardedAd != null && stageSkipRewardedAd.CanShowAd())
+            return;
+
+        string adUnitId = ResolveStageSkipRewardedAdUnitId();
+        if (string.IsNullOrEmpty(adUnitId))
+            return;
+
+        isStageSkipRewardedAdLoading = true;
+        RewardedAd.Load(adUnitId, new AdRequest(), (RewardedAd ad, LoadAdError loadError) =>
+        {
+            isStageSkipRewardedAdLoading = false;
+            if (loadError != null || ad == null)
+            {
+                string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
+                Debug.LogWarning($"[GameMainUIController] Stage skip rewarded ad load failed: {errorMessage}");
+                return;
+            }
+
+            DestroyStageSkipRewardedAd();
+            stageSkipRewardedAd = ad;
+            stageSkipRewardEarnedThisShow = false;
+            stageSkipRewardedAd.OnAdFullScreenContentClosed += HandleStageSkipRewardedAdFullScreenClosed;
+            stageSkipRewardedAd.OnAdFullScreenContentFailed += HandleStageSkipRewardedAdFullScreenFailed;
+
+            Debug.Log($"[GameMainUIController] Stage skip rewarded ad loaded. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
+        });
+    }
+
+    private void LoadStageTransitionInterstitialAd()
+    {
+        if (isStageTransitionInterstitialAdLoading)
+            return;
+
+        if (stageTransitionInterstitialAd != null && stageTransitionInterstitialAd.CanShowAd())
+            return;
+
+        string adUnitId = ResolveStageTransitionInterstitialAdUnitId();
+        if (string.IsNullOrEmpty(adUnitId))
+            return;
+
+        isStageTransitionInterstitialAdLoading = true;
+        InterstitialAd.Load(adUnitId, new AdRequest(), (InterstitialAd ad, LoadAdError loadError) =>
+        {
+            isStageTransitionInterstitialAdLoading = false;
+            if (loadError != null || ad == null)
+            {
+                string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
+                Debug.LogWarning($"[GameMainUIController] Stage transition interstitial load failed: {errorMessage}");
+                return;
+            }
+
+            DestroyStageTransitionInterstitialAd();
+            stageTransitionInterstitialAd = ad;
+            stageTransitionInterstitialAd.OnAdFullScreenContentClosed += HandleStageTransitionInterstitialClosed;
+            stageTransitionInterstitialAd.OnAdFullScreenContentFailed += HandleStageTransitionInterstitialFailed;
+
+            Debug.Log($"[GameMainUIController] Stage transition interstitial loaded. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
+        });
+    }
+
     private void ShowRewardedAdInternal()
     {
         if (rewardedAd == null || !rewardedAd.CanShowAd())
@@ -2158,6 +2312,54 @@ public class GameMainUIController : MonoBehaviour
             rewardEarnedThisShow = true;
             CompleteHeartRefillAfterReward();
         });
+    }
+
+    private void TryShowStageSkipRewardedAd(Action onRewardEarned)
+    {
+        if (stageSkipRewardedAd == null || !stageSkipRewardedAd.CanShowAd())
+        {
+            FirebaseBootstrap.LogEvent("stage_skip_reward_ad_not_ready");
+            LoadStageSkipRewardedAd();
+            return;
+        }
+
+        pendingStageSkipRewardCompletionAction = onRewardEarned;
+        stageSkipRewardEarnedThisShow = false;
+        FirebaseBootstrap.LogEvent("stage_skip_reward_ad_show");
+        stageSkipRewardedAd.Show(_ =>
+        {
+            stageSkipRewardEarnedThisShow = true;
+            FirebaseBootstrap.LogEvent("stage_skip_reward_earned", new Dictionary<string, object>
+            {
+                { "reward_name", StageSkipRewardName },
+                { "reward_amount", StageSkipRewardAmount }
+            });
+        });
+    }
+
+    private bool TryShowStageTransitionInterstitial(Action onCompleted)
+    {
+        if (onCompleted == null)
+            return false;
+
+        if (isStageTransitionInterstitialShowing)
+            return true;
+
+        if (stageTransitionInterstitialAd == null || !stageTransitionInterstitialAd.CanShowAd())
+        {
+            LoadStageTransitionInterstitialAd();
+            return false;
+        }
+
+        pendingStageTransitionInterstitialCompletionAction = onCompleted;
+        isStageTransitionInterstitialShowing = true;
+        FirebaseBootstrap.LogEvent("stage_transition_interstitial_show", new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndexForUI },
+            { "interval", StageTransitionInterstitialInterval }
+        });
+        stageTransitionInterstitialAd.Show();
+        return true;
     }
 
     private void HandleRewardedAdFullScreenClosed()
@@ -2178,6 +2380,61 @@ public class GameMainUIController : MonoBehaviour
         DestroyRewardedAd();
         LoadRewardedAd();
         UpdateHeartRefillButtonState();
+    }
+
+    private void HandleStageSkipRewardedAdFullScreenClosed()
+    {
+        bool shouldSkip = stageSkipRewardEarnedThisShow;
+        Action completion = shouldSkip ? pendingStageSkipRewardCompletionAction : null;
+        pendingStageSkipRewardCompletionAction = null;
+
+        if (!shouldSkip)
+            FirebaseBootstrap.LogEvent("stage_skip_reward_not_earned");
+
+        DestroyStageSkipRewardedAd();
+        LoadStageSkipRewardedAd();
+
+        if (shouldSkip)
+            completion?.Invoke();
+    }
+
+    private void HandleStageSkipRewardedAdFullScreenFailed(AdError adError)
+    {
+        string errorMessage = adError != null ? adError.GetMessage() : "unknown";
+        Debug.LogWarning($"[GameMainUIController] Stage skip rewarded ad failed to show: {errorMessage}");
+        FirebaseBootstrap.LogEvent("stage_skip_reward_show_failed");
+        pendingStageSkipRewardCompletionAction = null;
+        DestroyStageSkipRewardedAd();
+        LoadStageSkipRewardedAd();
+    }
+
+    private void HandleStageTransitionInterstitialClosed()
+    {
+        CompleteStageTransitionInterstitialFlow("closed");
+    }
+
+    private void HandleStageTransitionInterstitialFailed(AdError adError)
+    {
+        string errorMessage = adError != null ? adError.GetMessage() : "unknown";
+        Debug.LogWarning($"[GameMainUIController] Stage transition interstitial failed to show: {errorMessage}");
+        CompleteStageTransitionInterstitialFlow("failed");
+    }
+
+    private void CompleteStageTransitionInterstitialFlow(string resultType)
+    {
+        Action completion = pendingStageTransitionInterstitialCompletionAction;
+        pendingStageTransitionInterstitialCompletionAction = null;
+        isStageTransitionInterstitialShowing = false;
+
+        DestroyStageTransitionInterstitialAd();
+        LoadStageTransitionInterstitialAd();
+
+        FirebaseBootstrap.LogEvent("stage_transition_interstitial_complete", new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndexForUI },
+            { "result", resultType }
+        });
+        completion?.Invoke();
     }
 
     private void LoadBannerAd()
@@ -2216,7 +2473,6 @@ public class GameMainUIController : MonoBehaviour
 
     private void DestroyRewardedAd()
     {
-#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         if (rewardedAd == null)
             return;
 
@@ -2224,7 +2480,29 @@ public class GameMainUIController : MonoBehaviour
         rewardedAd.OnAdFullScreenContentFailed -= HandleRewardedAdFullScreenFailed;
         rewardedAd.Destroy();
         rewardedAd = null;
-#endif
+    }
+
+    private void DestroyStageSkipRewardedAd()
+    {
+        if (stageSkipRewardedAd == null)
+            return;
+
+        stageSkipRewardedAd.OnAdFullScreenContentClosed -= HandleStageSkipRewardedAdFullScreenClosed;
+        stageSkipRewardedAd.OnAdFullScreenContentFailed -= HandleStageSkipRewardedAdFullScreenFailed;
+        stageSkipRewardedAd.Destroy();
+        stageSkipRewardedAd = null;
+    }
+
+    private void DestroyStageTransitionInterstitialAd()
+    {
+        if (stageTransitionInterstitialAd == null)
+            return;
+
+        stageTransitionInterstitialAd.OnAdFullScreenContentClosed -= HandleStageTransitionInterstitialClosed;
+        stageTransitionInterstitialAd.OnAdFullScreenContentFailed -= HandleStageTransitionInterstitialFailed;
+        stageTransitionInterstitialAd.Destroy();
+        stageTransitionInterstitialAd = null;
+        isStageTransitionInterstitialShowing = false;
     }
 
     private void HandleBannerAdLoaded()
@@ -2262,6 +2540,14 @@ public class GameMainUIController : MonoBehaviour
 
 #if UNITY_EDITOR || (!UNITY_ANDROID && !UNITY_IOS)
     private void DestroyRewardedAd()
+    {
+    }
+
+    private void DestroyStageSkipRewardedAd()
+    {
+    }
+
+    private void DestroyStageTransitionInterstitialAd()
     {
     }
 #endif
