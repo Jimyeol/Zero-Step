@@ -152,7 +152,11 @@ public class GameManager : MonoBehaviour
     private int stageWidth;
     private int stageHeight;
     private Tile[,] tiles;
-    /// <summary>드래그를 시작할 수 있는 타일(JSON 시작점 → 손 떼면 마지막 도달 타일).</summary>
+    /// <summary>
+    /// 현재 시작점(Current Start Point): 다음 드래그를 시작할 수 있는 타일.
+    /// 스테이지 시작 시에는 JSON의 초기 시작점(Initial Start Point)이고,
+    /// 플레이 중에는 손을 뗀 마지막 타일로 계속 갱신된다.
+    /// </summary>
     private Tile currentStartTile;
     /// <summary>게임오버 리셋 시 시작점 복원용. tiles[row, col] 인덱스.</summary>
     private int initialStartTileRow;

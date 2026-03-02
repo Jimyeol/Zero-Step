@@ -29,7 +29,7 @@ public class Tile : MonoBehaviour
     [Tooltip("숫자 감소 시 재생할 네온 스파크 파티클 (타일 색상과 동기화)")]
     public ParticleSystem hitEffect;
 
-    [Header("시작점 하트비트")]
+    [Header("시작점/현재시작점 하트비트")]
     [Tooltip("펄스 시 최대 스케일 배율 (기본 1.2에서 이 값까지 커졌다 줄었다)")]
     [SerializeField] private float pulsePeakScale = 1.26f;
     [SerializeField] private float pulseExpandDuration = 0.1f;
@@ -63,7 +63,10 @@ public class Tile : MonoBehaviour
     private bool isStartPoint;
     private static readonly Color StartPointTint = new Color(0.9f, 1f, 0.9f, 1f);
 
-    /// <summary>스케일 배율: 1=기본, 1.2=초기 시작 타일, 1.1=현재 위치(멈춘 지점).</summary>
+    /// <summary>
+    /// 스케일 배율:
+    /// 1=기본, 1.2=초기 시작점(Initial Start Point), 1.1=현재 시작점(Current Start Point).
+    /// </summary>
     private float scaleOverride = 1f;
     private const float InitialStartScale = 1.2f;
     private const float CurrentPositionScale = 1.1f;
@@ -133,7 +136,8 @@ public class Tile : MonoBehaviour
     }
 
     /// <summary>
-    /// JSON 시작 타일: Scale 1.2배 + 하트비트 펄스로 '여기서 시작' 시각적 힌트.
+    /// 초기 시작점(Initial Start Point, 스테이지 JSON의 startPoint):
+    /// Scale 1.2배 + 하트비트 펄스로 '스테이지 시작 위치'를 강조.
     /// </summary>
     public void SetInitialStartTile(bool isInitial)
     {
@@ -149,7 +153,8 @@ public class Tile : MonoBehaviour
     }
 
     /// <summary>
-    /// 멈춘 지점 = 다음 드래그의 시작점. 1.1x 스케일 + 하트비트로 현재 위치 표시.
+    /// 현재 시작점(Current Start Point, 현재 위치 마커):
+    /// 손을 뗀 마지막 타일을 다음 드래그 시작점으로 표시. 1.1x + 하트비트.
     /// </summary>
     public void SetCurrentPositionMarker(bool isCurrent)
     {
@@ -279,7 +284,9 @@ public class Tile : MonoBehaviour
     }
 
     /// <summary>
-    /// 하트비트: restMult ~ peakMult 구간에서 살짝 커졌다 줄었다 반복. (시작점·현재 위치 공용)
+    /// 하트비트(heartbeat pulse):
+    /// restMult ~ peakMult 구간을 반복하며 '커졌다/작아졌다' 효과를 준다.
+    /// 초기 시작점/현재 시작점 표시가 이 코루틴을 공용 사용한다.
     /// </summary>
     private IEnumerator HeartbeatPulseRoutine(float restMult, float peakMult)
     {
