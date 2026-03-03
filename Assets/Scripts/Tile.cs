@@ -48,6 +48,12 @@ public class Tile : MonoBehaviour
     private Coroutine scaleRoutine;
     /// <summary>시작점 하트비트(펄스) 애니메이션 코루틴.</summary>
     private Coroutine startPointPulseRoutine;
+    private Renderer numberTextRenderer;
+    private Renderer startLabelRenderer;
+    private int baseSpriteSortingOrder;
+    private int baseTileImageSortingOrder;
+    private int baseNumberTextSortingOrder;
+    private int baseStartLabelSortingOrder;
 
     // 요구 색상: 4+ 핑크(#FF00FF), 2~3 민트(#00FFCC), 1 하늘색(#87CEFA), 0 어두운 회색
     private static readonly Color Pink = new Color(1f, 0f, 1f, 1f);           // #FF00FF
@@ -70,6 +76,7 @@ public class Tile : MonoBehaviour
     private float scaleOverride = 1f;
     private const float InitialStartScale = 1.2f;
     private const float CurrentPositionScale = 1.1f;
+    private const int StartMarkerSortingOrderOffset = 100;
     /// <summary>BlindCurtain 밟은 후: 모든 타일 숫자를 ?로만 표시. 리셋 시 false로 복원.</summary>
     private bool displayAsQuestion;
     /// <summary>TwinLink 타일용. 설정 시 숫자 색상/발광을 이 색으로 고정.</summary>
@@ -89,9 +96,20 @@ public class Tile : MonoBehaviour
 
         if (numberText == null)
             numberText = GetComponentInChildren<TMP_Text>(true);
+        numberTextRenderer = numberText != null ? numberText.GetComponent<Renderer>() : null;
+        startLabelRenderer = startLabel != null ? startLabel.GetComponent<Renderer>() : null;
+        CacheBaseSortingOrders();
 
         // hitEffect 파티클 개수를 1.3배로 적용 (burst 한 번만 스케일)
         ScaleHitEffectEmission(HitEffectParticleCountScale);
+    }
+
+    private void CacheBaseSortingOrders()
+    {
+        baseSpriteSortingOrder = spriteRenderer != null ? spriteRenderer.sortingOrder : 0;
+        baseTileImageSortingOrder = tileImage != null ? tileImage.sortingOrder : 0;
+        baseNumberTextSortingOrder = numberTextRenderer != null ? numberTextRenderer.sortingOrder : 0;
+        baseStartLabelSortingOrder = startLabelRenderer != null ? startLabelRenderer.sortingOrder : 0;
     }
 
     /// <summary>hitEffect의 emission burst 개수를 지정 배율로 한 번 스케일.</summary>
@@ -148,6 +166,7 @@ public class Tile : MonoBehaviour
         }
         scaleOverride = isInitial ? InitialStartScale : 1f;
         ApplyScaleOverride();
+        ApplyStartMarkerSorting(isInitial);
         if (isInitial)
             startPointPulseRoutine = StartCoroutine(HeartbeatPulseRoutine(InitialStartScale, pulsePeakScale));
     }
@@ -165,6 +184,7 @@ public class Tile : MonoBehaviour
         }
         scaleOverride = isCurrent ? CurrentPositionScale : 1f;
         ApplyScaleOverride();
+        ApplyStartMarkerSorting(isCurrent);
         if (isCurrent)
         {
             float peakMult = CurrentPositionScale * (pulsePeakScale / InitialStartScale);
@@ -184,11 +204,25 @@ public class Tile : MonoBehaviour
         }
         scaleOverride = 1f;
         ApplyScaleOverride();
+        ApplyStartMarkerSorting(false);
     }
 
     private void ApplyScaleOverride()
     {
         transform.localScale = baseScale * scaleOverride;
+    }
+
+    private void ApplyStartMarkerSorting(bool bringToFront)
+    {
+        int offset = bringToFront ? StartMarkerSortingOrderOffset : 0;
+        if (spriteRenderer != null)
+            spriteRenderer.sortingOrder = baseSpriteSortingOrder + offset;
+        if (tileImage != null && tileImage != spriteRenderer)
+            tileImage.sortingOrder = baseTileImageSortingOrder + offset;
+        if (numberTextRenderer != null)
+            numberTextRenderer.sortingOrder = baseNumberTextSortingOrder + offset;
+        if (startLabelRenderer != null)
+            startLabelRenderer.sortingOrder = baseStartLabelSortingOrder + offset;
     }
 
     /// <summary>
