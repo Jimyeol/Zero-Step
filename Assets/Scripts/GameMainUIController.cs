@@ -47,6 +47,7 @@ public class GameMainUIController : MonoBehaviour
     private const string StageSnackbarScheduleResourcePath = "Tutorials/stage_snackbar_schedule";
     private const string TutorialDismissedKeyPrefix = "TutorialDismissed_";
     private const string TutorialTypeBasicPath = "BasicPath";
+    private const string DefaultSplashSpriteResourcePath = "Sprites/splash";
 
     [Serializable]
     private class HelpTutorialScheduleData
@@ -99,6 +100,15 @@ public class GameMainUIController : MonoBehaviour
     [Header("스테이지 스낵바")]
     [SerializeField] private float stageSnackbarExtraSpacing = 220f;
     [SerializeField] [Range(1f, 8f)] private float stageSnackbarDefaultDuration = 2.8f;
+    [Header("스플래시")]
+    [SerializeField] private string splashSpriteResourcePath = DefaultSplashSpriteResourcePath;
+    [SerializeField] [Range(0.5f, 8f)] private float splashMinimumDuration = 1.6f;
+    [SerializeField] [Range(2f, 20f)] private float splashMaximumWait = 8f;
+    [SerializeField] [Range(0.05f, 1f)] private float splashFadeOutDuration = 0.35f;
+    [SerializeField] [Range(0f, 0.08f)] private float splashPulseScale = 0.028f;
+    [SerializeField] [Range(0.1f, 4f)] private float splashPulseSpeed = 1.2f;
+    [SerializeField] [Range(0f, 30f)] private float splashFloatDistancePx = 10f;
+    [SerializeField] [Range(0.1f, 4f)] private float splashFloatSpeed = 0.8f;
 
     private Label stageTitleLabel;
     private Label stageNumberLabel;
@@ -214,6 +224,20 @@ public class GameMainUIController : MonoBehaviour
     private readonly HashSet<string> shownStageSnackbarIdsThisSession = new HashSet<string>();
     private int tutorialAnimationVersion;
     private int stageSnackbarAnimationVersion;
+    private Coroutine splashFadeRoutine;
+    private bool isSplashActive;
+    private bool isSplashClosing;
+    private float splashStartTime;
+    private bool splashStageReady;
+    private bool splashBannerReady;
+    private bool splashHeartRewardedReady;
+    private bool splashStageSkipRewardedReady;
+    private bool splashInterstitialReady;
+    private bool splashTimerStarted;
+    private VisualElement splashOverlay;
+    private Image splashImage;
+    private Label splashLoadingLabel;
+    private VisualElement splashLoadingProgressFill;
     private HeartRefillMode currentHeartRefillMode = HeartRefillMode.RewardedAd;
     private int currentSessionPlayRewardMinutes;
     private Coroutine stageSnackbarRoutine;
@@ -262,6 +286,7 @@ public class GameMainUIController : MonoBehaviour
         StyleSheet mainStyleSheet = Resources.Load<StyleSheet>("GameMainUI");
         if (mainStyleSheet != null && !root.styleSheets.Contains(mainStyleSheet))
             root.styleSheets.Add(mainStyleSheet);
+        InitializeSplashState();
 
         stageTitleLabel = root.Q<Label>("StageTitle");
         stageNumberLabel = root.Q<Label>("StageNumber");
@@ -537,6 +562,11 @@ public class GameMainUIController : MonoBehaviour
         InitializeBannerAd();
     }
 
+    private void Start()
+    {
+        EnsureSplashOverlayAttached();
+    }
+
     private void Update()
     {
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
@@ -567,16 +597,28 @@ public class GameMainUIController : MonoBehaviour
         }
 #endif
         RefreshBottomLayout(force: false);
+        EnsureSplashOverlayAttached();
+        UpdateSplashVisual();
+        TryCloseSplashIfReady();
     }
 
     private void OnDestroy()
     {
         StopStageSnackbarPlayback();
         StopTutorialAnimation();
+        if (splashFadeRoutine != null)
+            StopCoroutine(splashFadeRoutine);
+        splashFadeRoutine = null;
         DestroyBannerAd();
         DestroyRewardedAd();
         DestroyStageSkipRewardedAd();
         DestroyStageTransitionInterstitialAd();
+        isSplashActive = false;
+        isSplashClosing = false;
+        splashOverlay = null;
+        splashImage = null;
+        splashLoadingLabel = null;
+        splashLoadingProgressFill = null;
     }
 
     private void SetupButtonClickAnimations()
@@ -736,6 +778,265 @@ public class GameMainUIController : MonoBehaviour
     public bool IsSettingPopupOpen => isSettingPopupOpen;
     public bool IsTutorialPopupOpen => isTutorialPopupOpen;
     public bool IsWaitingForHeartRefill => isWaitingForHeartRefill;
+    public bool IsSplashActive => isSplashActive;
+
+    public void NotifyStageBootstrapCompleted()
+    {
+        splashStageReady = true;
+    }
+
+    private void InitializeSplashState()
+    {
+        splashStartTime = 0f;
+        splashTimerStarted = false;
+        isSplashActive = true;
+        isSplashClosing = false;
+        splashStageReady = false;
+
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        splashBannerReady = false;
+        splashHeartRewardedReady = false;
+        splashStageSkipRewardedReady = false;
+        splashInterstitialReady = false;
+#else
+        splashBannerReady = true;
+        splashHeartRewardedReady = true;
+        splashStageSkipRewardedReady = true;
+        splashInterstitialReady = true;
+#endif
+    }
+
+    private void EnsureSplashOverlayAttached()
+    {
+        if (!isSplashActive || uiDocument == null)
+            return;
+
+        if (splashOverlay != null && splashOverlay.parent != null)
+        {
+            splashOverlay.BringToFront();
+            return;
+        }
+
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root == null)
+            return;
+
+        CreateSplashOverlay(root);
+        splashOverlay?.BringToFront();
+    }
+
+    private void CreateSplashOverlay(VisualElement root)
+    {
+        if (root == null)
+            return;
+
+        if (splashOverlay != null)
+            splashOverlay.RemoveFromHierarchy();
+
+        splashOverlay = new VisualElement
+        {
+            name = "RuntimeSplashOverlay",
+            pickingMode = PickingMode.Position
+        };
+        splashOverlay.style.position = Position.Absolute;
+        splashOverlay.style.left = 0f;
+        splashOverlay.style.top = 0f;
+        splashOverlay.style.right = 0f;
+        splashOverlay.style.bottom = 0f;
+        splashOverlay.style.justifyContent = Justify.Center;
+        splashOverlay.style.alignItems = Align.Center;
+        splashOverlay.style.backgroundColor = new StyleColor(new Color(0.01f, 0.02f, 0.04f, 1f));
+        splashOverlay.style.opacity = 1f;
+
+        VisualElement logoWrap = new VisualElement();
+        logoWrap.style.width = Length.Percent(84f);
+        logoWrap.style.maxWidth = 900f;
+        logoWrap.style.alignItems = Align.Center;
+        logoWrap.style.justifyContent = Justify.Center;
+        logoWrap.style.flexDirection = FlexDirection.Column;
+
+        splashImage = new Image();
+        splashImage.style.width = Length.Percent(100f);
+        splashImage.style.maxHeight = 880f;
+        splashImage.scaleMode = ScaleMode.ScaleToFit;
+
+        string safePath = string.IsNullOrWhiteSpace(splashSpriteResourcePath)
+            ? DefaultSplashSpriteResourcePath
+            : splashSpriteResourcePath;
+        Texture splashTexture = TryLoadSplashTexture(safePath);
+        if (splashTexture != null)
+        {
+            splashImage.image = splashTexture;
+            logoWrap.Add(splashImage);
+        }
+        else
+        {
+            splashImage = null;
+            Label fallbackLabel = new Label("ZERO STEP");
+            fallbackLabel.style.fontSize = 92f;
+            fallbackLabel.style.color = new StyleColor(Color.white);
+            fallbackLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            logoWrap.Add(fallbackLabel);
+            Debug.LogWarning($"[GameMainUIController] 스플래시 이미지 리소스를 찾을 수 없습니다: Resources/{safePath}.png");
+        }
+
+        VisualElement loadingWrap = new VisualElement();
+        loadingWrap.style.position = Position.Absolute;
+        loadingWrap.style.left = 0f;
+        loadingWrap.style.right = 0f;
+        loadingWrap.style.bottom = 80f;
+        loadingWrap.style.alignItems = Align.Center;
+        loadingWrap.style.justifyContent = Justify.Center;
+        loadingWrap.style.flexDirection = FlexDirection.Column;
+
+        splashLoadingLabel = new Label("Loading");
+        splashLoadingLabel.style.fontSize = 28f;
+        splashLoadingLabel.style.color = new StyleColor(new Color(0.82f, 0.92f, 1f, 1f));
+        splashLoadingLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+        splashLoadingLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        splashLoadingLabel.style.letterSpacing = 0.8f;
+        loadingWrap.Add(splashLoadingLabel);
+
+        VisualElement progressTrack = new VisualElement();
+        progressTrack.style.width = 340f;
+        progressTrack.style.height = 10f;
+        progressTrack.style.marginTop = 16f;
+        progressTrack.style.backgroundColor = new StyleColor(new Color(0.2f, 0.28f, 0.36f, 0.65f));
+        progressTrack.style.borderTopLeftRadius = 999f;
+        progressTrack.style.borderTopRightRadius = 999f;
+        progressTrack.style.borderBottomLeftRadius = 999f;
+        progressTrack.style.borderBottomRightRadius = 999f;
+        progressTrack.style.overflow = Overflow.Hidden;
+
+        splashLoadingProgressFill = new VisualElement();
+        splashLoadingProgressFill.style.width = Length.Percent(0f);
+        splashLoadingProgressFill.style.height = Length.Percent(100f);
+        splashLoadingProgressFill.style.backgroundColor = new StyleColor(new Color(0.46f, 0.82f, 1f, 0.95f));
+        progressTrack.Add(splashLoadingProgressFill);
+        loadingWrap.Add(progressTrack);
+
+        splashOverlay.Add(logoWrap);
+        splashOverlay.Add(loadingWrap);
+        root.Add(splashOverlay);
+        Debug.Log($"[Splash] Overlay attached. root={root.name}, imageLoaded={(splashTexture != null ? 1 : 0)}, resourcePath={safePath}");
+        if (!splashTimerStarted)
+        {
+            splashStartTime = Time.unscaledTime;
+            splashTimerStarted = true;
+        }
+    }
+
+    private Texture TryLoadSplashTexture(string resourcePath)
+    {
+        if (string.IsNullOrWhiteSpace(resourcePath))
+            return null;
+
+        Sprite singleSprite = Resources.Load<Sprite>(resourcePath);
+        if (singleSprite != null)
+            return singleSprite.texture;
+
+        Sprite[] slicedSprites = Resources.LoadAll<Sprite>(resourcePath);
+        if (slicedSprites != null && slicedSprites.Length > 0 && slicedSprites[0] != null)
+            return slicedSprites[0].texture;
+
+        return Resources.Load<Texture2D>(resourcePath);
+    }
+
+    private void UpdateSplashVisual()
+    {
+        if (!isSplashActive || isSplashClosing || splashOverlay == null)
+            return;
+
+        float elapsed = Time.unscaledTime - splashStartTime;
+        if (splashImage != null)
+        {
+            float pulse = 1f + splashPulseScale * Mathf.Sin(elapsed * splashPulseSpeed * Mathf.PI * 2f);
+            float yOffset = splashFloatDistancePx * Mathf.Sin(elapsed * splashFloatSpeed * Mathf.PI * 2f);
+            splashImage.style.scale = new StyleScale(new Scale(new Vector3(pulse, pulse, 1f)));
+            splashImage.style.translate = new StyleTranslate(new Translate(
+                new Length(0f, LengthUnit.Pixel),
+                new Length(yOffset, LengthUnit.Pixel),
+                0f));
+        }
+
+        if (splashLoadingLabel != null)
+        {
+            int dotCount = Mathf.FloorToInt((Time.unscaledTime * 2.4f) % 4f);
+            splashLoadingLabel.text = $"Loading{new string('.', dotCount)}";
+        }
+
+        if (splashLoadingProgressFill != null)
+            splashLoadingProgressFill.style.width = Length.Percent(GetSplashReadinessProgress01() * 100f);
+    }
+
+    private float GetSplashReadinessProgress01()
+    {
+        int readyCount = 0;
+        if (splashStageReady) readyCount++;
+        if (splashBannerReady) readyCount++;
+        if (splashHeartRewardedReady) readyCount++;
+        if (splashStageSkipRewardedReady) readyCount++;
+        if (splashInterstitialReady) readyCount++;
+        return readyCount / 5f;
+    }
+
+    private bool IsSplashReady()
+    {
+        return splashStageReady &&
+               splashBannerReady &&
+               splashHeartRewardedReady &&
+               splashStageSkipRewardedReady &&
+               splashInterstitialReady;
+    }
+
+    private void TryCloseSplashIfReady()
+    {
+        if (!isSplashActive || isSplashClosing)
+            return;
+        if (!splashTimerStarted)
+            return;
+
+        float elapsed = Time.unscaledTime - splashStartTime;
+        bool minDurationPassed = elapsed >= Mathf.Max(0.1f, splashMinimumDuration);
+        bool timeout = elapsed >= Mathf.Max(splashMinimumDuration, splashMaximumWait);
+        bool ready = IsSplashReady();
+
+        if ((ready && minDurationPassed) || timeout)
+        {
+            if (timeout && !ready)
+                Debug.LogWarning("[GameMainUIController] Splash timeout reached before full preload; continue to gameplay.");
+
+            isSplashClosing = true;
+            splashFadeRoutine = StartCoroutine(CloseSplashRoutine());
+        }
+    }
+
+    private IEnumerator CloseSplashRoutine()
+    {
+        float duration = Mathf.Max(0.01f, splashFadeOutDuration);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            if (splashOverlay != null)
+                splashOverlay.style.opacity = 1f - t;
+            yield return null;
+        }
+
+        if (splashOverlay != null)
+            splashOverlay.RemoveFromHierarchy();
+
+        splashOverlay = null;
+        splashImage = null;
+        splashLoadingLabel = null;
+        splashLoadingProgressFill = null;
+        splashFadeRoutine = null;
+        isSplashActive = false;
+        isSplashClosing = false;
+        splashTimerStarted = false;
+    }
 
     public void ResetHeartsForNewStage()
     {
@@ -2150,6 +2451,10 @@ public class GameMainUIController : MonoBehaviour
             pendingInterstitialLoadFromInitialize = true;
         });
 #else
+        splashBannerReady = true;
+        splashHeartRewardedReady = true;
+        splashStageSkipRewardedReady = true;
+        splashInterstitialReady = true;
         SetBannerPlaceholderText(T("banner_default"));
 #endif
     }
@@ -2198,13 +2503,17 @@ public class GameMainUIController : MonoBehaviour
 
         if (rewardedAd != null && rewardedAd.CanShowAd())
         {
+            splashHeartRewardedReady = true;
             UpdateHeartRefillButtonState();
             return;
         }
 
         string adUnitId = ResolveRewardedAdUnitId();
         if (string.IsNullOrEmpty(adUnitId))
+        {
+            splashHeartRewardedReady = true;
             return;
+        }
 
         isRewardedAdLoading = true;
         RewardedAd.Load(adUnitId, new AdRequest(), (RewardedAd ad, LoadAdError loadError) =>
@@ -2212,6 +2521,7 @@ public class GameMainUIController : MonoBehaviour
             isRewardedAdLoading = false;
             if (loadError != null || ad == null)
             {
+                splashHeartRewardedReady = true;
                 string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
                 Debug.LogWarning($"[GameMainUIController] Rewarded ad load failed: {errorMessage}");
                 SetHeartRefillStatus(T("heart_status_load_failed"));
@@ -2219,6 +2529,7 @@ public class GameMainUIController : MonoBehaviour
                 return;
             }
 
+            splashHeartRewardedReady = true;
             DestroyRewardedAd();
             rewardedAd = ad;
             rewardEarnedThisShow = false;
@@ -2237,11 +2548,17 @@ public class GameMainUIController : MonoBehaviour
             return;
 
         if (stageSkipRewardedAd != null && stageSkipRewardedAd.CanShowAd())
+        {
+            splashStageSkipRewardedReady = true;
             return;
+        }
 
         string adUnitId = ResolveStageSkipRewardedAdUnitId();
         if (string.IsNullOrEmpty(adUnitId))
+        {
+            splashStageSkipRewardedReady = true;
             return;
+        }
 
         isStageSkipRewardedAdLoading = true;
         RewardedAd.Load(adUnitId, new AdRequest(), (RewardedAd ad, LoadAdError loadError) =>
@@ -2249,11 +2566,13 @@ public class GameMainUIController : MonoBehaviour
             isStageSkipRewardedAdLoading = false;
             if (loadError != null || ad == null)
             {
+                splashStageSkipRewardedReady = true;
                 string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
                 Debug.LogWarning($"[GameMainUIController] Stage skip rewarded ad load failed: {errorMessage}");
                 return;
             }
 
+            splashStageSkipRewardedReady = true;
             DestroyStageSkipRewardedAd();
             stageSkipRewardedAd = ad;
             stageSkipRewardEarnedThisShow = false;
@@ -2270,11 +2589,17 @@ public class GameMainUIController : MonoBehaviour
             return;
 
         if (stageTransitionInterstitialAd != null && stageTransitionInterstitialAd.CanShowAd())
+        {
+            splashInterstitialReady = true;
             return;
+        }
 
         string adUnitId = ResolveStageTransitionInterstitialAdUnitId();
         if (string.IsNullOrEmpty(adUnitId))
+        {
+            splashInterstitialReady = true;
             return;
+        }
 
         isStageTransitionInterstitialAdLoading = true;
         InterstitialAd.Load(adUnitId, new AdRequest(), (InterstitialAd ad, LoadAdError loadError) =>
@@ -2282,11 +2607,13 @@ public class GameMainUIController : MonoBehaviour
             isStageTransitionInterstitialAdLoading = false;
             if (loadError != null || ad == null)
             {
+                splashInterstitialReady = true;
                 string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
                 Debug.LogWarning($"[GameMainUIController] Stage transition interstitial load failed: {errorMessage}");
                 return;
             }
 
+            splashInterstitialReady = true;
             DestroyStageTransitionInterstitialAd();
             stageTransitionInterstitialAd = ad;
             stageTransitionInterstitialAd.OnAdFullScreenContentClosed += HandleStageTransitionInterstitialClosed;
@@ -2444,6 +2771,7 @@ public class GameMainUIController : MonoBehaviour
         string adUnitId = ResolveBannerAdUnitId();
         if (string.IsNullOrEmpty(adUnitId))
         {
+            splashBannerReady = true;
             Debug.LogWarning("[GameMainUIController] 현재 플랫폼에서 Banner Ad Unit ID를 찾을 수 없습니다.");
             return;
         }
@@ -2507,6 +2835,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void HandleBannerAdLoaded()
     {
+        splashBannerReady = true;
         if (bannerView != null)
             bannerView.Show();
 
@@ -2530,6 +2859,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void HandleBannerAdLoadFailed(LoadAdError loadError)
     {
+        splashBannerReady = true;
         string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
         Debug.LogWarning($"[GameMainUIController] Banner ad load failed: {errorMessage}");
         reservedBannerHeightPx = 0f;

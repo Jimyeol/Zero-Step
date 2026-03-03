@@ -287,6 +287,8 @@ public class GameManager : MonoBehaviour
         ResetMainUIHeartsForNewStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
+        PrewarmUpcomingStages();
+        NotifySplashStageBootstrapCompleted();
         TrackStageStarted("app_launch");
         ConfigureDeviceMaxFrameRate();
     }
@@ -414,7 +416,7 @@ public class GameManager : MonoBehaviour
     {
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
-        bool overlayOpen = mainUI != null && (mainUI.IsSettingPopupOpen || mainUI.IsTutorialPopupOpen || mainUI.IsWaitingForHeartRefill);
+        bool overlayOpen = mainUI != null && (mainUI.IsSettingPopupOpen || mainUI.IsTutorialPopupOpen || mainUI.IsWaitingForHeartRefill || mainUI.IsSplashActive);
         IsPerformanceOverlayOpen = overlayOpen;
 
         ProcessPendingBlockNoteQueue();
@@ -1793,7 +1795,24 @@ public class GameManager : MonoBehaviour
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();
+        PrewarmUpcomingStages();
         return true;
+    }
+
+    private void PrewarmUpcomingStages()
+    {
+        const int warmupCount = 6;
+        int warmed = StageManager.PrewarmStages(currentStageIndex, warmupCount);
+        if (warmed > 0)
+            Debug.Log($"[GameManager] Stage prewarm complete. start={currentStageIndex}, warmed={warmed}");
+    }
+
+    private void NotifySplashStageBootstrapCompleted()
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI != null)
+            mainUI.NotifyStageBootstrapCompleted();
     }
 
     /// <summary>Easy Save 3로 현재 스테이지 인덱스 저장. 클리어 후·앱 종료/일시정지 시 호출.</summary>
