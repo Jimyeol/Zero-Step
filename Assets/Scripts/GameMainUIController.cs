@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.Video;
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
 using GoogleMobileAds.Api;
 #endif
@@ -47,7 +48,9 @@ public class GameMainUIController : MonoBehaviour
     private const string StageSnackbarScheduleResourcePath = "Tutorials/stage_snackbar_schedule";
     private const string TutorialDismissedKeyPrefix = "TutorialDismissed_";
     private const string TutorialTypeBasicPath = "BasicPath";
+    private const string DefaultUIButtonSfxResourcePath = "Sounds/ui_button";
     private const string DefaultSplashSpriteResourcePath = "Sprites/splash";
+    private const string DefaultSplashVideoResourcePath = "Sprites/splash_video";
 
     [Serializable]
     private class HelpTutorialScheduleData
@@ -100,11 +103,16 @@ public class GameMainUIController : MonoBehaviour
     [Header("스테이지 스낵바")]
     [SerializeField] private float stageSnackbarExtraSpacing = 220f;
     [SerializeField] [Range(1f, 8f)] private float stageSnackbarDefaultDuration = 2.8f;
+    [Header("UI 버튼 사운드")]
+    [SerializeField] private string uiButtonSfxResourcePath = DefaultUIButtonSfxResourcePath;
+    [SerializeField] [Range(0f, 1f)] private float uiButtonSfxVolume = 1f;
     [Header("스플래시")]
     [SerializeField] private string splashSpriteResourcePath = DefaultSplashSpriteResourcePath;
+    [SerializeField] private string splashVideoResourcePath = DefaultSplashVideoResourcePath;
     [SerializeField] [Range(0.5f, 8f)] private float splashMinimumDuration = 1.6f;
     [SerializeField] [Range(2f, 20f)] private float splashMaximumWait = 8f;
     [SerializeField] [Range(0.05f, 1f)] private float splashFadeOutDuration = 0.35f;
+    [SerializeField] [Range(0.05f, 2f)] private float splashVideoFadeOutDuration = 0.5f;
     [SerializeField] [Range(0f, 0.08f)] private float splashPulseScale = 0.028f;
     [SerializeField] [Range(0.1f, 4f)] private float splashPulseSpeed = 1.2f;
     [SerializeField] [Range(0f, 30f)] private float splashFloatDistancePx = 10f;
@@ -194,6 +202,9 @@ public class GameMainUIController : MonoBehaviour
     private Label stageSnackbarLabel;
     private VisualElement bannerAdContainer;
     private Label bannerAdPlaceholder;
+    private AudioSource uiButtonSfxAudioSource;
+    private AudioClip uiButtonSfxClip;
+    private bool uiButtonSfxMissingLogged;
     private Sprite heartFilledSprite;
     private Sprite heartEmptySprite;
     private bool isSoundOn = true;
@@ -234,10 +245,16 @@ public class GameMainUIController : MonoBehaviour
     private bool splashStageSkipRewardedReady;
     private bool splashInterstitialReady;
     private bool splashTimerStarted;
+    private bool splashVideoLoaded;
+    private bool splashVideoEnded;
+    private bool splashVideoFadeStarted;
+    private float splashVideoFadeStartTime;
     private VisualElement splashOverlay;
     private Image splashImage;
     private Label splashLoadingLabel;
     private VisualElement splashLoadingProgressFill;
+    private VideoPlayer splashVideoPlayer;
+    private RenderTexture splashVideoRenderTexture;
     private HeartRefillMode currentHeartRefillMode = HeartRefillMode.RewardedAd;
     private int currentSessionPlayRewardMinutes;
     private Coroutine stageSnackbarRoutine;
@@ -487,6 +504,7 @@ public class GameMainUIController : MonoBehaviour
         heartEmptySprite = Resources.Load<Sprite>("Sprites/heart_empty");
         LoadHelpTutorialSchedule();
         LoadStageSnackbarSchedule();
+        InitializeUIButtonSfx();
 
         RefreshSoundSwitchVisual();
         RefreshVibrationSwitchVisual();
@@ -609,6 +627,7 @@ public class GameMainUIController : MonoBehaviour
         if (splashFadeRoutine != null)
             StopCoroutine(splashFadeRoutine);
         splashFadeRoutine = null;
+        CleanupSplashVideo();
         DestroyBannerAd();
         DestroyRewardedAd();
         DestroyStageSkipRewardedAd();
@@ -619,6 +638,39 @@ public class GameMainUIController : MonoBehaviour
         splashImage = null;
         splashLoadingLabel = null;
         splashLoadingProgressFill = null;
+    }
+
+    private void InitializeUIButtonSfx()
+    {
+        if (uiButtonSfxAudioSource == null)
+        {
+            Transform existing = transform.Find("UIButtonSfxAudioSource");
+            GameObject child = existing != null ? existing.gameObject : new GameObject("UIButtonSfxAudioSource");
+            if (existing == null)
+                child.transform.SetParent(transform, false);
+            uiButtonSfxAudioSource = child.GetComponent<AudioSource>();
+            if (uiButtonSfxAudioSource == null)
+                uiButtonSfxAudioSource = child.AddComponent<AudioSource>();
+        }
+
+        uiButtonSfxAudioSource.playOnAwake = false;
+        uiButtonSfxAudioSource.loop = false;
+        uiButtonSfxAudioSource.spatialBlend = 0f;
+        uiButtonSfxAudioSource.dopplerLevel = 0f;
+        uiButtonSfxAudioSource.rolloffMode = AudioRolloffMode.Linear;
+
+        if (uiButtonSfxClip == null)
+        {
+            string safePath = string.IsNullOrWhiteSpace(uiButtonSfxResourcePath)
+                ? DefaultUIButtonSfxResourcePath
+                : uiButtonSfxResourcePath;
+            uiButtonSfxClip = Resources.Load<AudioClip>(safePath);
+            if (uiButtonSfxClip == null && !uiButtonSfxMissingLogged)
+            {
+                uiButtonSfxMissingLogged = true;
+                Debug.LogWarning($"[GameMainUIController] UI 버튼 사운드를 찾을 수 없습니다: Resources/{safePath}.wav");
+            }
+        }
     }
 
     private void SetupButtonClickAnimations()
@@ -663,6 +715,8 @@ public class GameMainUIController : MonoBehaviour
         if (button == null)
             return;
 
+        PlayUIButtonSfx();
+
         int version = 1;
         if (buttonPressAnimationVersion.TryGetValue(button, out int previousVersion))
             version = previousVersion + 1;
@@ -691,6 +745,13 @@ public class GameMainUIController : MonoBehaviour
     private bool IsCurrentButtonAnimationVersion(VisualElement button, int expectedVersion)
     {
         return buttonPressAnimationVersion.TryGetValue(button, out int currentVersion) && currentVersion == expectedVersion;
+    }
+
+    private void PlayUIButtonSfx()
+    {
+        if (uiButtonSfxAudioSource == null || uiButtonSfxClip == null)
+            return;
+        uiButtonSfxAudioSource.PlayOneShot(uiButtonSfxClip, Mathf.Clamp01(uiButtonSfxVolume));
     }
 
     /// <summary>스킵 버튼 클릭: 보상형 광고를 시청하면 현재 스테이지를 건너뛴다.</summary>
@@ -792,6 +853,10 @@ public class GameMainUIController : MonoBehaviour
         isSplashActive = true;
         isSplashClosing = false;
         splashStageReady = false;
+        splashVideoLoaded = false;
+        splashVideoEnded = false;
+        splashVideoFadeStarted = false;
+        splashVideoFadeStartTime = 0f;
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         splashBannerReady = false;
@@ -849,28 +914,34 @@ public class GameMainUIController : MonoBehaviour
         splashOverlay.style.opacity = 1f;
 
         VisualElement logoWrap = new VisualElement();
-        logoWrap.style.width = Length.Percent(84f);
-        logoWrap.style.maxWidth = 900f;
+        logoWrap.style.position = Position.Absolute;
+        logoWrap.style.left = 0f;
+        logoWrap.style.top = 0f;
+        logoWrap.style.right = 0f;
+        logoWrap.style.bottom = 0f;
+        logoWrap.style.width = Length.Percent(100f);
+        logoWrap.style.height = Length.Percent(100f);
         logoWrap.style.alignItems = Align.Center;
         logoWrap.style.justifyContent = Justify.Center;
         logoWrap.style.flexDirection = FlexDirection.Column;
 
         splashImage = new Image();
         splashImage.style.width = Length.Percent(100f);
-        splashImage.style.maxHeight = 880f;
-        splashImage.scaleMode = ScaleMode.ScaleToFit;
+        splashImage.style.height = Length.Percent(100f);
+        splashImage.scaleMode = ScaleMode.ScaleAndCrop;
+        logoWrap.Add(splashImage);
 
         string safePath = string.IsNullOrWhiteSpace(splashSpriteResourcePath)
             ? DefaultSplashSpriteResourcePath
             : splashSpriteResourcePath;
         Texture splashTexture = TryLoadSplashTexture(safePath);
         if (splashTexture != null)
-        {
             splashImage.image = splashTexture;
-            logoWrap.Add(splashImage);
-        }
-        else
+
+        bool videoLoadedNow = TrySetupSplashVideo();
+        if (splashTexture == null && !videoLoadedNow)
         {
+            logoWrap.Remove(splashImage);
             splashImage = null;
             Label fallbackLabel = new Label("ZERO STEP");
             fallbackLabel.style.fontSize = 92f;
@@ -918,7 +989,7 @@ public class GameMainUIController : MonoBehaviour
         splashOverlay.Add(logoWrap);
         splashOverlay.Add(loadingWrap);
         root.Add(splashOverlay);
-        Debug.Log($"[Splash] Overlay attached. root={root.name}, imageLoaded={(splashTexture != null ? 1 : 0)}, resourcePath={safePath}");
+        Debug.Log($"[Splash] Overlay attached. root={root.name}, imageLoaded={(splashTexture != null ? 1 : 0)}, videoLoaded={(videoLoadedNow ? 1 : 0)}, resourcePath={safePath}");
         if (!splashTimerStarted)
         {
             splashStartTime = Time.unscaledTime;
@@ -942,13 +1013,132 @@ public class GameMainUIController : MonoBehaviour
         return Resources.Load<Texture2D>(resourcePath);
     }
 
+    private bool TrySetupSplashVideo()
+    {
+        if (splashImage == null)
+            return false;
+
+        string safeVideoPath = string.IsNullOrWhiteSpace(splashVideoResourcePath)
+            ? DefaultSplashVideoResourcePath
+            : splashVideoResourcePath;
+        VideoClip clip = Resources.Load<VideoClip>(safeVideoPath);
+        if (clip == null)
+        {
+            splashVideoLoaded = false;
+            splashVideoEnded = false;
+            splashVideoFadeStarted = false;
+            return false;
+        }
+
+        if (splashVideoPlayer == null)
+            splashVideoPlayer = GetComponent<VideoPlayer>();
+        if (splashVideoPlayer == null)
+            splashVideoPlayer = gameObject.AddComponent<VideoPlayer>();
+        if (splashVideoPlayer.isPlaying)
+            splashVideoPlayer.Stop();
+
+        ReleaseSplashVideoRenderTexture();
+        int textureWidth = Mathf.Max(64, (int)(clip.width > 0 ? clip.width : 1080u));
+        int textureHeight = Mathf.Max(64, (int)(clip.height > 0 ? clip.height : 1920u));
+        splashVideoRenderTexture = new RenderTexture(textureWidth, textureHeight, 0, RenderTextureFormat.ARGB32);
+        splashVideoRenderTexture.Create();
+
+        splashVideoPlayer.errorReceived -= HandleSplashVideoError;
+        splashVideoPlayer.loopPointReached -= HandleSplashVideoLoopPointReached;
+        splashVideoPlayer.prepareCompleted -= HandleSplashVideoPrepared;
+
+        splashVideoPlayer.playOnAwake = false;
+        splashVideoPlayer.source = VideoSource.VideoClip;
+        splashVideoPlayer.clip = clip;
+        splashVideoPlayer.isLooping = false;
+        splashVideoPlayer.skipOnDrop = true;
+        splashVideoPlayer.waitForFirstFrame = true;
+        splashVideoPlayer.audioOutputMode = VideoAudioOutputMode.None;
+        splashVideoPlayer.renderMode = VideoRenderMode.RenderTexture;
+        splashVideoPlayer.targetTexture = splashVideoRenderTexture;
+
+        splashVideoPlayer.errorReceived += HandleSplashVideoError;
+        splashVideoPlayer.loopPointReached += HandleSplashVideoLoopPointReached;
+        splashVideoPlayer.prepareCompleted += HandleSplashVideoPrepared;
+
+        splashImage.image = splashVideoRenderTexture;
+        splashImage.scaleMode = ScaleMode.ScaleAndCrop;
+        splashImage.style.opacity = 1f;
+        splashImage.style.display = DisplayStyle.Flex;
+
+        splashVideoLoaded = true;
+        splashVideoEnded = false;
+        splashVideoFadeStarted = false;
+        splashVideoFadeStartTime = 0f;
+        splashVideoPlayer.Prepare();
+        return true;
+    }
+
+    private void HandleSplashVideoPrepared(VideoPlayer source)
+    {
+        if (!isSplashActive || source == null)
+            return;
+        source.Play();
+    }
+
+    private void HandleSplashVideoLoopPointReached(VideoPlayer source)
+    {
+        splashVideoEnded = true;
+    }
+
+    private void HandleSplashVideoError(VideoPlayer source, string message)
+    {
+        Debug.LogWarning($"[GameMainUIController] Splash video playback failed: {message}");
+        splashVideoEnded = true;
+        StartSplashVideoFadeOut();
+    }
+
+    private void StartSplashVideoFadeOut()
+    {
+        if (!splashVideoLoaded || splashVideoFadeStarted || splashImage == null)
+            return;
+
+        splashVideoFadeStarted = true;
+        splashVideoFadeStartTime = Time.unscaledTime;
+    }
+
+    private void CleanupSplashVideo()
+    {
+        if (splashVideoPlayer != null)
+        {
+            splashVideoPlayer.errorReceived -= HandleSplashVideoError;
+            splashVideoPlayer.loopPointReached -= HandleSplashVideoLoopPointReached;
+            splashVideoPlayer.prepareCompleted -= HandleSplashVideoPrepared;
+            if (splashVideoPlayer.isPlaying)
+                splashVideoPlayer.Stop();
+            splashVideoPlayer.targetTexture = null;
+            splashVideoPlayer.clip = null;
+        }
+
+        ReleaseSplashVideoRenderTexture();
+        splashVideoLoaded = false;
+        splashVideoEnded = false;
+        splashVideoFadeStarted = false;
+    }
+
+    private void ReleaseSplashVideoRenderTexture()
+    {
+        if (splashVideoRenderTexture == null)
+            return;
+
+        if (splashVideoRenderTexture.IsCreated())
+            splashVideoRenderTexture.Release();
+        Destroy(splashVideoRenderTexture);
+        splashVideoRenderTexture = null;
+    }
+
     private void UpdateSplashVisual()
     {
         if (!isSplashActive || isSplashClosing || splashOverlay == null)
             return;
 
         float elapsed = Time.unscaledTime - splashStartTime;
-        if (splashImage != null)
+        if (splashImage != null && !splashVideoLoaded)
         {
             float pulse = 1f + splashPulseScale * Mathf.Sin(elapsed * splashPulseSpeed * Mathf.PI * 2f);
             float yOffset = splashFloatDistancePx * Mathf.Sin(elapsed * splashFloatSpeed * Mathf.PI * 2f);
@@ -957,6 +1147,15 @@ public class GameMainUIController : MonoBehaviour
                 new Length(0f, LengthUnit.Pixel),
                 new Length(yOffset, LengthUnit.Pixel),
                 0f));
+        }
+
+        if (splashVideoFadeStarted && splashImage != null)
+        {
+            float fadeDuration = Mathf.Max(0.05f, splashVideoFadeOutDuration);
+            float fadeT = Mathf.Clamp01((Time.unscaledTime - splashVideoFadeStartTime) / fadeDuration);
+            splashImage.style.opacity = 1f - fadeT;
+            if (fadeT >= 1f)
+                splashImage.style.display = DisplayStyle.None;
         }
 
         if (splashLoadingLabel != null)
@@ -997,13 +1196,18 @@ public class GameMainUIController : MonoBehaviour
             return;
 
         float elapsed = Time.unscaledTime - splashStartTime;
+        bool isReady = IsSplashReady();
         bool minDurationPassed = elapsed >= Mathf.Max(0.1f, splashMinimumDuration);
+        bool readyToClose = splashVideoLoaded
+            ? (isReady && splashVideoEnded)
+            : (isReady && minDurationPassed);
         bool timeout = elapsed >= Mathf.Max(splashMinimumDuration, splashMaximumWait);
-        bool ready = IsSplashReady();
+        if (!isReady && splashVideoLoaded && splashVideoEnded)
+            StartSplashVideoFadeOut();
 
-        if ((ready && minDurationPassed) || timeout)
+        if (readyToClose || timeout)
         {
-            if (timeout && !ready)
+            if (timeout && !isReady)
                 Debug.LogWarning("[GameMainUIController] Splash timeout reached before full preload; continue to gameplay.");
 
             isSplashClosing = true;
@@ -1036,6 +1240,7 @@ public class GameMainUIController : MonoBehaviour
         isSplashActive = false;
         isSplashClosing = false;
         splashTimerStarted = false;
+        CleanupSplashVideo();
     }
 
     public void ResetHeartsForNewStage()

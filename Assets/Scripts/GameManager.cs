@@ -81,6 +81,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int startStageIndex = 1;
     [SerializeField] private float nextStageDelay = 1.5f;
 
+    [Header("진동")]
+    [Tooltip("스테이지 클리어 진동 길이(ms). Android 전용 미세 조정")]
+    [SerializeField] [Range(10, 120)] private int stageClearHapticDurationMs = 20;
+    [Tooltip("스테이지 클리어 진동 강도(1~255). Android 전용 미세 조정")]
+    [SerializeField] [Range(1, 255)] private int stageClearHapticAmplitude = 30;
+
     [Header("사운드")]
     [Tooltip("블록 count가 -1 될 때 재생되는 음 볼륨")]
     [SerializeField] [Range(0f, 1f)] private float blockNoteVolume = 0.9f;
@@ -655,7 +661,14 @@ public class GameManager : MonoBehaviour
     }
 
     private void PlayFailSfx() => PlayEventSfx(failClip);
-    private void PlayNewStageSfx() => PlayEventSfx(newStageClip);
+    private void PlayNewStageSfx()
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI != null && mainUI.IsSplashActive)
+            return;
+        PlayEventSfx(newStageClip);
+    }
     private void PlayClearSfx() => PlayEventSfx(clearClip);
     private void PlayStageClearHaptic()
     {
@@ -663,8 +676,55 @@ public class GameManager : MonoBehaviour
             return;
         if (!Application.isMobilePlatform)
             return;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        PlayAndroidOneShotVibration(stageClearHapticDurationMs, stageClearHapticAmplitude);
+#else
         Handheld.Vibrate();
+#endif
     }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+    private void PlayAndroidOneShotVibration(int durationMs, int amplitude)
+    {
+        int safeDurationMs = Mathf.Clamp(durationMs, 1, 1000);
+        int safeAmplitude = Mathf.Clamp(amplitude, 1, 255);
+        try
+        {
+            using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            using (AndroidJavaObject activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
+            using (AndroidJavaClass contextClass = new AndroidJavaClass("android.content.Context"))
+            {
+                string vibratorService = contextClass.GetStatic<string>("VIBRATOR_SERVICE");
+                using (AndroidJavaObject vibrator = activity.Call<AndroidJavaObject>("getSystemService", vibratorService))
+                {
+                    if (vibrator == null || !vibrator.Call<bool>("hasVibrator"))
+                        return;
+
+                    using (AndroidJavaClass versionClass = new AndroidJavaClass("android.os.Build$VERSION"))
+                    {
+                        int sdkInt = versionClass.GetStatic<int>("SDK_INT");
+                        if (sdkInt >= 26)
+                        {
+                            using (AndroidJavaClass vibrationEffectClass = new AndroidJavaClass("android.os.VibrationEffect"))
+                            using (AndroidJavaObject oneShotEffect = vibrationEffectClass.CallStatic<AndroidJavaObject>("createOneShot", (long)safeDurationMs, safeAmplitude))
+                            {
+                                vibrator.Call("vibrate", oneShotEffect);
+                            }
+                        }
+                        else
+                        {
+                            vibrator.Call("vibrate", (long)safeDurationMs);
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[GameManager] Stage clear haptic fallback: {ex.Message}");
+        }
+    }
+#endif
 
     private void DecreaseTileAndPlayBlockNote(Tile tile)
     {
