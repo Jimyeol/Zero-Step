@@ -771,6 +771,8 @@ public class GameManager : MonoBehaviour
                 return;
             }
             Tile lastForHit = currentPath[currentPath.Count - 1];
+            Vector2 pointerWorld = ScreenToWorld2D(screenPoint);
+            Tile directHit = GetTileAtScreen(screenPoint);
             Tile hit = GetTileAtScreen(screenPoint, preferAdjacentTo: lastForHit);
             // 숫자가 남아 있으면 이미 라인이 그려진 타일이라도 재방문(중복 밟기) 허용.
             // 숫자는 '들어갈 때'가 아니라 '지나쳐 나갈 때' 감소 → 멈춘 타일이 0이 되어 다음 드래그를 못 시작하는 문제 방지.
@@ -789,9 +791,21 @@ public class GameManager : MonoBehaviour
                 if (canStep && currentPath.Count >= 2 && hit == currentPath[currentPath.Count - 2])
                 {
                     int frameDelta = Time.frameCount - lastStepFrame;
-                    if (frameDelta >= 0 && frameDelta <= 3)
+                    bool pointerDirectlyOnBackTile = directHit == hit;
+                    float backDist = Vector2.Distance(pointerWorld, (Vector2)hit.transform.position);
+                    float currentDist = Vector2.Distance(pointerWorld, (Vector2)last.transform.position);
+                    float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
+                    float backtrackMargin = tileSize * BacktrackDistanceMarginRatio;
+                    bool stronglyInsideBackTile = (backDist + backtrackMargin) < currentDist;
+                    bool withinJitterFrames = frameDelta >= 0 && frameDelta <= ImmediateBacktrackIgnoreFrames;
+                    if (!pointerDirectlyOnBackTile || withinJitterFrames || !stronglyInsideBackTile)
                     {
-                        Debug.Log($"[지터 무시] 되돌아감 last=({last.X},{last.Y}) hit=({hit.X},{hit.Y}) frameDelta={frameDelta} (직선 드래그 오락가락 방지)");
+                        string reason = !pointerDirectlyOnBackTile
+                            ? "포인터가 되돌아간 타일 위에 직접 올라오지 않음"
+                            : (withinJitterFrames
+                                ? "직선 드래그 오락가락 방지"
+                                : $"되돌아간 타일 안쪽 진입 부족(backDist={backDist:F3}, currentDist={currentDist:F3}, margin={backtrackMargin:F3})");
+                        Debug.Log($"[지터 무시] 되돌아감 last=({last.X},{last.Y}) hit=({hit.X},{hit.Y}) frameDelta={frameDelta} ({reason})");
                         canStep = false;
                     }
                 }
@@ -1040,14 +1054,24 @@ public class GameManager : MonoBehaviour
 
     /// <summary>드래그 중 인접 타일 검색 시 포인터 주변 반경(월드). count 1인 ShortCircuit 등이 놓치지 않도록.</summary>
     private const float TilePickRadius = 0.45f;
+    /// <summary>직전 타일로 즉시 되돌아가는 입력은 N프레임 이내 지터로 간주해 무시.</summary>
+    private const int ImmediateBacktrackIgnoreFrames = 15;
+    /// <summary>직전 타일로 되돌아가려면 현재 타일보다 이 거리만큼 더 가까워야 함(경계 오락가락 방지).</summary>
+    private const float BacktrackDistanceMarginRatio = 0.12f;
+
+    private Vector2 ScreenToWorld2D(Vector2 screenPoint)
+    {
+        if (mainCamera == null) return Vector2.zero;
+        float camZ = mainCamera.transform.position.z;
+        Vector3 world3 = mainCamera.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, Mathf.Abs(camZ)));
+        return new Vector2(world3.x, world3.y);
+    }
 
     /// <summary>화면 좌표 아래 타일 반환. 드래그 중에는 작은 반경(OverlapCircle)으로 검사해 인접 타일 중 포인터에 가장 가까운 것 반환.</summary>
     private Tile GetTileAtScreen(Vector2 screenPoint, Tile preferAdjacentTo = null)
     {
         if (mainCamera == null) return null;
-        float camZ = mainCamera.transform.position.z;
-        Vector3 world3 = mainCamera.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, Mathf.Abs(camZ)));
-        Vector2 worldPoint = new Vector2(world3.x, world3.y);
+        Vector2 worldPoint = ScreenToWorld2D(screenPoint);
         Collider2D[] cols = preferAdjacentTo != null
             ? Physics2D.OverlapCircleAll(worldPoint, TilePickRadius)
             : Physics2D.OverlapPointAll(worldPoint);
