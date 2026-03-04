@@ -254,7 +254,17 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
+        ForcePortraitOrientation();
         ConfigureDeviceMaxFrameRate();
+    }
+
+    private static void ForcePortraitOrientation()
+    {
+        Screen.autorotateToPortrait = true;
+        Screen.autorotateToPortraitUpsideDown = false;
+        Screen.autorotateToLandscapeLeft = false;
+        Screen.autorotateToLandscapeRight = false;
+        Screen.orientation = ScreenOrientation.Portrait;
     }
 
     private void Start()
