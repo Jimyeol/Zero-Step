@@ -135,6 +135,12 @@ public class GameManager : MonoBehaviour
     [Tooltip("순차 등장 시 타일 간 간격(초). 작을수록 빠름")]
     [SerializeField] private float tileAppearInterval = 0.02f;
 
+    [Header("Blackout 물음표 전환 연출")]
+    [Tooltip("한 줄당 Y축 한 바퀴 회전 시간(초). 50% 지점에서 ?로 전환")]
+    [SerializeField] private float blackoutFlipDuration = 0.35f;
+    [Tooltip("윗줄에서 아랫줄로 내려가는 줄 간격(초)")]
+    [SerializeField] private float blackoutRowInterval = 0.05f;
+
     [Header("Spotlight 게임오버 Vignette")]
     [Tooltip("암전 시 Vignette 강한 농도. 비어 있으면 씬의 Volume 자동 탐색")]
     [SerializeField] private Volume postProcessVolume;
@@ -181,6 +187,7 @@ public class GameManager : MonoBehaviour
     private Coroutine pathLitClearRoutine;
     /// <summary>트레일 터치 시작 시 1프레임 뒤 emitting 재개하는 코루틴.</summary>
     private Coroutine trailEmitDelayRoutine;
+    private Coroutine blackoutQuestionFlipRoutine;
     /// <summary>손가락 궤적 네온 트레일. 드래그 중에만 emitting, 위치는 포인터 월드 좌표.</summary>
     private TrailRenderer neonTrail;
     private Transform neonTrailTransform;
@@ -945,15 +952,17 @@ public class GameManager : MonoBehaviour
         var crossBlast = last.GetComponent<CrossBlastTile>();
         if (crossBlast != null)
             crossBlast.TriggerExplosion(this, hit);
-
-        var blackout = last.GetComponent<BlackoutTile>();
-        if (blackout != null)
-            blackout.OnStepped();
     }
 
     private void ApplyEnterTileEffects(Tile hit, FixedKnotTile fixedKnotHit, int totalPathCount)
     {
         LogSteppedOn(hit);
+        var blackout = hit.GetComponent<BlackoutTile>();
+        if (blackout != null)
+        {
+            blackout.OnStepped();
+            TriggerBlackoutQuestionFlip();
+        }
         TryTriggerIgniter(hit);
         NotifyTrailTileStepped(hit);
         NotifyFixedKnotsUpdateVisual(totalPathCount);
@@ -1080,6 +1089,9 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[타일 -1] 직전 타일 ({last.X},{last.Y}) 떠남 → 다음 ({next.X},{next.Y})으로 이동, 직전 타일 -1");
         int before = last.CurrentNumber;
         DecreaseTileAndPlayBlockNote(last);
+        var igniter = last.GetComponent<IgniterTile>();
+        if (igniter != null && last.CurrentNumber > 0)
+            igniter.OnConsumed();
         Debug.Log($"[타일 -1] ({last.X},{last.Y}) count {before} → {last.CurrentNumber}");
         if (last.CurrentNumber <= 0)
             Debug.Log($"[타일 사라짐] ({last.X},{last.Y}) count 0");
@@ -1139,6 +1151,101 @@ public class GameManager : MonoBehaviour
                 if (tiles[row, col] != null)
                     sum += tiles[row, col].CurrentNumber;
         return sum;
+    }
+
+    private void SetAllTilesDisplayAsQuestion(bool showAsQuestion)
+    {
+        if (tiles == null) return;
+        for (int row = 0; row < stageHeight; row++)
+        {
+            for (int col = 0; col < stageWidth; col++)
+            {
+                Tile tile = tiles[row, col];
+                if (tile == null) continue;
+                tile.SetDisplayAsQuestion(showAsQuestion);
+                var blindCurtain = tile.GetComponent<BlindCurtainTile>();
+                if (blindCurtain != null)
+                    blindCurtain.RefreshVisualState();
+            }
+        }
+    }
+
+    private void ResetAllTileQuestionRotations()
+    {
+        if (tiles == null) return;
+        for (int row = 0; row < stageHeight; row++)
+        {
+            for (int col = 0; col < stageWidth; col++)
+            {
+                Tile tile = tiles[row, col];
+                if (tile == null) continue;
+                var numberText = tile.GetNumberText();
+                if (numberText != null)
+                    numberText.transform.localEulerAngles = Vector3.zero;
+            }
+        }
+    }
+
+    private void TriggerBlackoutQuestionFlip()
+    {
+        if (blackoutQuestionFlipRoutine != null)
+        {
+            StopCoroutine(blackoutQuestionFlipRoutine);
+            blackoutQuestionFlipRoutine = null;
+        }
+        ResetAllTileQuestionRotations();
+        blackoutQuestionFlipRoutine = StartCoroutine(ShowAllTilesAsQuestionWithAnimation());
+    }
+
+    private IEnumerator ShowAllTilesAsQuestionWithAnimation()
+    {
+        if (tiles == null) yield break;
+
+        float rowDuration = Mathf.Max(0.01f, blackoutFlipDuration);
+        float rowDelay = Mathf.Max(0f, blackoutRowInterval);
+        float totalDuration = Mathf.Max(rowDuration, (stageHeight - 1) * rowDelay + rowDuration);
+        bool[] rowSwitched = new bool[stageHeight];
+        float elapsed = 0f;
+
+        while (elapsed < totalDuration)
+        {
+            elapsed += Time.deltaTime;
+
+            for (int row = stageHeight - 1; row >= 0; row--)
+            {
+                float rowStart = (stageHeight - 1 - row) * rowDelay;
+                float localElapsed = elapsed - rowStart;
+                float progress = localElapsed / rowDuration;
+                float yAngle = progress < 0f ? 0f : (progress > 1f ? 360f : 360f * progress);
+
+                for (int col = 0; col < stageWidth; col++)
+                {
+                    Tile tile = tiles[row, col];
+                    if (tile == null) continue;
+
+                    var numberText = tile.GetNumberText();
+                    if (numberText != null)
+                        numberText.transform.localEulerAngles = new Vector3(0f, yAngle, 0f);
+
+                    if (progress >= 0.5f && !rowSwitched[row])
+                    {
+                        tile.SetDisplayAsQuestion(true);
+                        var blindCurtain = tile.GetComponent<BlindCurtainTile>();
+                        if (blindCurtain != null)
+                            blindCurtain.RefreshVisualState();
+                    }
+                }
+
+                if (progress >= 0.5f)
+                    rowSwitched[row] = true;
+            }
+
+            yield return null;
+        }
+
+        SetAllTilesDisplayAsQuestion(true);
+        ResetAllTileQuestionRotations();
+        blackoutQuestionFlipRoutine = null;
     }
 
     /// <summary>현재 스테이지 기준으로 상단 UI(스테이지/진행도) 초기화.</summary>
@@ -1442,6 +1549,12 @@ public class GameManager : MonoBehaviour
     private IEnumerator GameOverAndResetSequence()
     {
         totalStepsCommitted = 0;
+        if (blackoutQuestionFlipRoutine != null)
+        {
+            StopCoroutine(blackoutQuestionFlipRoutine);
+            blackoutQuestionFlipRoutine = null;
+        }
+        ResetAllTileQuestionRotations();
         ResetTrail();
         ClearPendingBlockNoteQueue();
         PlayFailSfx();
@@ -1545,7 +1658,14 @@ public class GameManager : MonoBehaviour
                 var hidden = tiles[row, col].GetComponent<HiddenTile>();
                 if (hidden != null) continue;
                 yield return new WaitForSeconds(tileAppearInterval);
-                tiles[row, col].PlayBounceAppearance();
+                Tile tile = tiles[row, col];
+                tile.PlayBounceAppearance();
+                var igniter = tile.GetComponent<IgniterTile>();
+                if (igniter != null)
+                    igniter.RefreshVisualState();
+                var blindCurtain = tile.GetComponent<BlindCurtainTile>();
+                if (blindCurtain != null)
+                    blindCurtain.RefreshVisualState();
             }
         }
 
@@ -1592,6 +1712,12 @@ public class GameManager : MonoBehaviour
     private IEnumerator ResetCurrentStageRoutine()
     {
         totalStepsCommitted = 0;
+        if (blackoutQuestionFlipRoutine != null)
+        {
+            StopCoroutine(blackoutQuestionFlipRoutine);
+            blackoutQuestionFlipRoutine = null;
+        }
+        ResetAllTileQuestionRotations();
         ResetTrail();
         ClearPendingBlockNoteQueue();
         linkSystem?.ClearLinks();
@@ -1627,7 +1753,14 @@ public class GameManager : MonoBehaviour
                 var hidden = tiles[row, col].GetComponent<HiddenTile>();
                 if (hidden != null) continue;
                 yield return new WaitForSeconds(tileAppearInterval);
-                tiles[row, col].PlayBounceAppearance();
+                Tile tile = tiles[row, col];
+                tile.PlayBounceAppearance();
+                var igniter = tile.GetComponent<IgniterTile>();
+                if (igniter != null)
+                    igniter.RefreshVisualState();
+                var blindCurtain = tile.GetComponent<BlindCurtainTile>();
+                if (blindCurtain != null)
+                    blindCurtain.RefreshVisualState();
             }
         }
 
@@ -2159,6 +2292,12 @@ public class GameManager : MonoBehaviour
                     igniter.Setup(cell.targetID ?? "");
                 }
                 tile.SetNumber(cell.count);
+                var placedIgniter = tileObj.GetComponent<IgniterTile>();
+                if (placedIgniter != null)
+                    placedIgniter.RefreshVisualState();
+                var placedBlindCurtain = tileObj.GetComponent<BlindCurtainTile>();
+                if (placedBlindCurtain != null)
+                    placedBlindCurtain.RefreshVisualState();
                 tiles[cell.y, cell.x] = tile;
                 if (cell.type == "Hidden")
                 {

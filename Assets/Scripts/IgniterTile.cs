@@ -1,5 +1,6 @@
 using UnityEngine;
 using DG.Tweening;
+using TMPro;
 
 /// <summary>
 /// Igniter 타일: 밟는 순간 targetID에 해당하는 Hidden 타일들을 활성화하는 스위치 타일.
@@ -12,13 +13,20 @@ public class IgniterTile : MonoBehaviour
     [Tooltip("밟았을 때 트레일이 잠깐 이 색으로 변하는 데 사용")]
     [SerializeField] private Color accentColor = new Color(1f, 0.6f, 0.2f, 1f); // 네온 오렌지
 
+    private Tile tile;
     private SpriteRenderer spriteRenderer;
+    private TMP_Text numberText;
+    private Sprite defaultSprite;
     private string targetID;
     private bool hasTriggered;
+    private bool useIgniterVisual = true;
 
     private void Awake()
     {
+        tile = GetComponent<Tile>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        numberText = tile != null ? tile.GetNumberText() : GetComponentInChildren<TMP_Text>(true);
+        defaultSprite = spriteRenderer != null ? spriteRenderer.sprite : null;
     }
 
     /// <summary>
@@ -28,7 +36,8 @@ public class IgniterTile : MonoBehaviour
     {
         targetID = id ?? "";
         hasTriggered = false;
-        ApplySwitchSprite();
+        useIgniterVisual = true;
+        RefreshVisualState();
     }
 
     private void ApplySwitchSprite()
@@ -36,6 +45,34 @@ public class IgniterTile : MonoBehaviour
         Sprite switchSprite = Resources.Load<Sprite>("Sprites/switch");
         if (switchSprite != null && spriteRenderer != null)
             spriteRenderer.sprite = switchSprite;
+    }
+
+    private void RestoreDefaultSprite()
+    {
+        if (spriteRenderer != null && defaultSprite != null)
+            spriteRenderer.sprite = defaultSprite;
+    }
+
+    private void ApplyIgniterVisual()
+    {
+        ApplySwitchSprite();
+        if (numberText != null)
+            numberText.gameObject.SetActive(false);
+    }
+
+    private void ApplyNormalVisual()
+    {
+        RestoreDefaultSprite();
+        if (numberText != null && tile != null && tile.CurrentNumber > 0)
+            numberText.gameObject.SetActive(true);
+    }
+
+    public void RefreshVisualState()
+    {
+        if (useIgniterVisual && tile != null && tile.CurrentNumber > 0)
+            ApplyIgniterVisual();
+        else
+            ApplyNormalVisual();
     }
 
     /// <summary>
@@ -60,17 +97,24 @@ public class IgniterTile : MonoBehaviour
     /// <summary>트레일 등 연출용 대표 컬러.</summary>
     public Color GetAccentColor() => accentColor;
 
+    public void OnConsumed()
+    {
+        useIgniterVisual = false;
+        RefreshVisualState();
+    }
+
     /// <summary>
     /// 리셋/게임오버 시 GameManager가 호출. 다시 밟을 수 있는 상태로 복구한다.
     /// </summary>
     public void ResetToInitialState()
     {
         hasTriggered = false;
+        useIgniterVisual = true;
         DOTween.Kill(transform);
         if (spriteRenderer != null) DOTween.Kill(spriteRenderer);
-        ApplySwitchSprite();
         if (spriteRenderer != null)
             spriteRenderer.color = new Color(1f, 1f, 1f, 1f);
+        RefreshVisualState();
     }
 
     public string TargetID => targetID;

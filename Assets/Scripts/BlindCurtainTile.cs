@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 
 /// <summary>
 /// BlindCurtain 타일: 게임 규칙은 일반 타일과 같고, hidden 아이콘으로만 시각적 구분을 준다.
@@ -16,6 +17,7 @@ public class BlindCurtainTile : MonoBehaviour
 
     private Tile tile;
     private SpriteRenderer tileSpriteRenderer;
+    private TMP_Text numberText;
     private SpriteRenderer iconRenderer;
     private GameObject iconObject;
 
@@ -23,7 +25,14 @@ public class BlindCurtainTile : MonoBehaviour
     {
         tile = GetComponent<Tile>();
         tileSpriteRenderer = GetComponent<SpriteRenderer>();
+        numberText = tile != null ? tile.GetNumberText() : GetComponentInChildren<TMP_Text>(true);
         CreateIcon();
+    }
+
+    public void RefreshVisualState()
+    {
+        if (numberText != null)
+            numberText.gameObject.SetActive(false);
     }
 
     private void CreateIcon()
@@ -53,6 +62,7 @@ public class BlindCurtainTile : MonoBehaviour
     /// <summary>타일 배경 HDR 색상과 동기화해 아이콘에 발광(Emission) 효과 적용. 타일 비활성(count 0)이면 아이콘도 숨김.</summary>
     private void LateUpdate()
     {
+        RefreshVisualState();
         if (iconObject != null && tile != null)
         {
             bool shouldShow = tile.IsActive;

@@ -77,7 +77,7 @@ public class Tile : MonoBehaviour
     private const float InitialStartScale = 1.2f;
     private const float CurrentPositionScale = 1.1f;
     private const int StartMarkerSortingOrderOffset = 100;
-    /// <summary>BlindCurtain 밟은 후: 모든 타일 숫자를 ?로만 표시. 리셋 시 false로 복원.</summary>
+    /// <summary>Blackout 발동 후: 모든 타일 숫자를 ?로만 표시. 리셋 시 false로 복원.</summary>
     private bool displayAsQuestion;
     /// <summary>TwinLink 타일용. 설정 시 숫자 색상/발광을 이 색으로 고정.</summary>
     private Color? numberColorOverride;
@@ -444,7 +444,7 @@ public class Tile : MonoBehaviour
     private void UpdateNumberDisplay()
     {
         if (numberText == null) return;
-        // Blackout 타일 또는 BlindCurtain으로 인한 전체 ? 모드: 숫자 노출 금지
+        // Blackout 타일 자체 또는 Blackout 발동 후 전역 ? 모드: 숫자 노출 금지
         if (displayAsQuestion || GetComponent<BlackoutTile>() != null)
         {
             numberText.text = "?";
@@ -456,7 +456,7 @@ public class Tile : MonoBehaviour
         numberText.ForceMeshUpdate(true, true);
     }
 
-    /// <summary>BlindCurtain 밟을 때: 모든 타일 숫자를 ?로 표시. 리셋 시 GameManager가 false로 복원.</summary>
+    /// <summary>Blackout 발동 시: 모든 타일 숫자를 ?로 표시. 리셋 시 GameManager가 false로 복원.</summary>
     public void SetDisplayAsQuestion(bool showAsQuestion)
     {
         if (displayAsQuestion == showAsQuestion) return;
