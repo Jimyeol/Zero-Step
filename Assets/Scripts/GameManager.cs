@@ -117,6 +117,9 @@ public class GameManager : MonoBehaviour
 
     /// <summary>Easy Save 3 진행도 저장 키. 앱 재실행 시 이 스테이지부터 시작.</summary>
     private const string SaveKeyStage = "StageProgress";
+    private const string StageClearTypeAllTilesZero = "all_tiles_zero";
+    private const string StageClearTypeLastTileRule = "last_tile_rule";
+    private const string StageFailReasonDeadlock = "deadlock";
     private const float SessionFreeHeartRefillFirstThresholdSeconds = 10f * 60f;
     private const float SessionFreeHeartRefillSecondThresholdSeconds = 20f * 60f;
 
@@ -839,20 +842,11 @@ public class GameManager : MonoBehaviour
                 var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
                 var shortCircuitHit = hit.GetComponent<ShortCircuitTile>();
 
-                // FixedKnot: targetOrder 번째 스텝에만 진입 가능. 잘못된 순서면 경로에 넣지 않고, isAbsolute면 암전·재시작
+                // FixedKnot: targetOrder 번째 스텝에만 진입 가능. 잘못된 순서면 경로에 넣지 않는다.
                 bool fixedKnotWrongOrder = fixedKnotHit != null && IsAdjacent(last, hit) && !fixedKnotHit.CanEnter(nextStepNumber);
                 if (fixedKnotWrongOrder)
                 {
                     fixedKnotHit.PlayWrongOrderShake();
-                    if (fixedKnotHit.IsAbsolute)
-                    {
-                        isDragging = false;
-                        currentPath.Clear();
-                        SetNeonTrailEmitting(false);
-                        linkSystem?.ClearPathLit();
-                        isGameOverSequencePlaying = true;
-                        StartCoroutine(GameOverAndResetSequence());
-                    }
                 }
                 else if (fixedKnotHit != null && IsAdjacent(last, hit))
                 {
@@ -896,27 +890,14 @@ public class GameManager : MonoBehaviour
                             TryTriggerIgniter(hit);
                             NotifyTrailTileStepped(hit);
                             int totalPathCount = GetTotalPathCount();
-                            if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCount))
-                            {
-                                currentPath.RemoveAt(currentPath.Count - 1);
-                                isDragging = false;
-                                currentPath.Clear();
-                                UpdateNeonTrailPosition();
-                                linkSystem?.ClearPathLit();
-                                isGameOverSequencePlaying = true;
-                                StartCoroutine(GameOverAndResetSequence());
-                            }
-                            else
-                            {
-                                lastStepFrame = Time.frameCount;
-                                OnLeaveTileForNext(last, hit);
-                                NotifyTwinLinkStepped(last, hit);
-                                NotifyFixedKnotLeft(last);
-                                NotifyFixedKnotsUpdateVisual(totalPathCount);
-                                if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
-                                TryTriggerBlindCurtain(hit);
-                                CheckVictoryCondition(hit);
-                            }
+                            lastStepFrame = Time.frameCount;
+                            OnLeaveTileForNext(last, hit);
+                            NotifyTwinLinkStepped(last, hit);
+                            NotifyFixedKnotLeft(last);
+                            NotifyFixedKnotsUpdateVisual(totalPathCount);
+                            if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
+                            TryTriggerBlindCurtain(hit);
+                            CheckVictoryCondition(hit);
                         }
                     }
                 }
@@ -931,33 +912,20 @@ public class GameManager : MonoBehaviour
                         TryTriggerIgniter(hit);
                         NotifyTrailTileStepped(hit);
                         int totalPathCountSc = GetTotalPathCount();
-                        if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountSc))
-                        {
-                            currentPath.RemoveAt(currentPath.Count - 1);
-                            isDragging = false;
-                            currentPath.Clear();
-                            SetNeonTrailEmitting(false);
-                            linkSystem?.ClearPathLit();
-                            isGameOverSequencePlaying = true;
-                            StartCoroutine(GameOverAndResetSequence());
-                        }
-                        else
-                        {
-                            lastStepFrame = Time.frameCount;
-                            OnLeaveTileForNext(last, hit);
-                            NotifyTwinLinkStepped(last, hit);
-                            NotifyFixedKnotLeft(last);
-                            var crossBlast = last.GetComponent<CrossBlastTile>();
-                            if (crossBlast != null)
-                                crossBlast.TriggerExplosion(this, hit);
-                            var blackout = last.GetComponent<BlackoutTile>();
-                            if (blackout != null)
-                                blackout.OnStepped();
-                            NotifyFixedKnotsUpdateVisual(totalPathCountSc);
-                            if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
-                            TryTriggerBlindCurtain(hit);
-                            CheckVictoryCondition(hit);
-                        }
+                        lastStepFrame = Time.frameCount;
+                        OnLeaveTileForNext(last, hit);
+                        NotifyTwinLinkStepped(last, hit);
+                        NotifyFixedKnotLeft(last);
+                        var crossBlast = last.GetComponent<CrossBlastTile>();
+                        if (crossBlast != null)
+                            crossBlast.TriggerExplosion(this, hit);
+                        var blackout = last.GetComponent<BlackoutTile>();
+                        if (blackout != null)
+                            blackout.OnStepped();
+                        NotifyFixedKnotsUpdateVisual(totalPathCountSc);
+                        if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
+                        TryTriggerBlindCurtain(hit);
+                        CheckVictoryCondition(hit);
                     }
                 }
                 else
@@ -971,33 +939,20 @@ public class GameManager : MonoBehaviour
                         TryTriggerIgniter(hit);
                         NotifyTrailTileStepped(hit);
                         int totalPathCountEl = GetTotalPathCount();
-                        if (fixedKnotHit == null && CheckFixedKnotMissed(totalPathCountEl))
-                        {
-                            currentPath.RemoveAt(currentPath.Count - 1);
-                            isDragging = false;
-                            currentPath.Clear();
-                            SetNeonTrailEmitting(false);
-                            linkSystem?.ClearPathLit();
-                            isGameOverSequencePlaying = true;
-                            StartCoroutine(GameOverAndResetSequence());
-                        }
-                        else
-                        {
-                            lastStepFrame = Time.frameCount;
-                            OnLeaveTileForNext(last, hit); // 떠나는 타일: Igniter면 소멸 연출, 아니면 숫자 감소
-                            NotifyTwinLinkStepped(last, hit);
-                            NotifyFixedKnotLeft(last);
-                            var crossBlast = last.GetComponent<CrossBlastTile>();
-                            if (crossBlast != null)
-                                crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
-                            var blackout = last.GetComponent<BlackoutTile>();
-                            if (blackout != null)
-                                blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
-                            NotifyFixedKnotsUpdateVisual(totalPathCountEl);
-                            if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
-                            TryTriggerBlindCurtain(hit);
-                            CheckVictoryCondition(hit);
-                        }
+                        lastStepFrame = Time.frameCount;
+                        OnLeaveTileForNext(last, hit); // 떠나는 타일: Igniter면 소멸 연출, 아니면 숫자 감소
+                        NotifyTwinLinkStepped(last, hit);
+                        NotifyFixedKnotLeft(last);
+                        var crossBlast = last.GetComponent<CrossBlastTile>();
+                        if (crossBlast != null)
+                            crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
+                        var blackout = last.GetComponent<BlackoutTile>();
+                        if (blackout != null)
+                            blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
+                        NotifyFixedKnotsUpdateVisual(totalPathCountEl);
+                        if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
+                        TryTriggerBlindCurtain(hit);
+                        CheckVictoryCondition(hit);
                     }
                 }
                 }
@@ -1010,6 +965,7 @@ public class GameManager : MonoBehaviour
             isDragging = false;
             ResetTrail();
             CommitPathAndSetCurrentPosition();
+            CheckVictoryCondition(currentStartTile);
             // 클리어를 먼저 검사. 모든 타일 0이면 데드락 검사와 겹치므로 클리어 우선 (그렇지 않으면 게임오버로 잘못 처리됨)
             CheckStageClear();
             if (!stageCleared && CheckAndHandleDeadlock())
@@ -1329,20 +1285,23 @@ public class GameManager : MonoBehaviour
         mainUI.UpdateProgress(remaining);
     }
 
-    /// <summary>승리 조건: 남은 합이 1이고, 그 1이 현재 밟은 타일(B)의 카운트면 즉시 클리어. 해당 타일 0으로 만든 뒤 승리 연출.</summary>
+    /// <summary>남은 합이 1이고 현재 타일도 1이면 마지막 타일을 소비하고 즉시 클리어한다.</summary>
     private bool CheckVictoryCondition(Tile currentTile)
     {
-        if (stageCleared || tiles == null || currentTile == null) return false;
+        if (stageCleared || tiles == null || currentTile == null)
+            return false;
+
         int totalRemaining = GetTotalRemainingCount();
-        if (totalRemaining != 1 || currentTile.CurrentNumber != 1) return false;
+        if (totalRemaining != 1 || currentTile.CurrentNumber != 1)
+            return false;
+
         DecreaseTileAndPlayBlockNote(currentTile);
-        // 마지막 타일 감소도 진행도에 반영
         RefreshMainUIProgress();
         stageCleared = true;
         Debug.Log("Clear");
         PlayClearSfx();
         PlayStageClearHaptic();
-        TrackStageCleared("last_tile_rule");
+        TrackStageCleared(StageClearTypeLastTileRule);
         StartCoroutine(LoadNextStageAfterDelay());
         return true;
     }
@@ -1358,21 +1317,6 @@ public class GameManager : MonoBehaviour
                     var fk = tiles[row, col].GetComponent<FixedKnotTile>();
                     if (fk != null) fk.UpdateVisual(totalPathCount);
                 }
-    }
-
-    /// <summary>totalPathCount가 targetOrder를 넘어갔는데 아직 밟지 않은 FixedKnot이 있으면 true → 게임오버.</summary>
-    private bool CheckFixedKnotMissed(int totalPathCount)
-    {
-        if (tiles == null) return false;
-        for (int row = 0; row < stageHeight; row++)
-            for (int col = 0; col < stageWidth; col++)
-                if (tiles[row, col] != null)
-                {
-                    var fk = tiles[row, col].GetComponent<FixedKnotTile>();
-                    if (fk != null && fk.IsMissedAtStepCount(totalPathCount))
-                        return true;
-                }
-        return false;
     }
 
     private bool IsAdjacent(Tile a, Tile b)
@@ -1568,7 +1512,7 @@ public class GameManager : MonoBehaviour
         if (!IsDeadlock()) return false;
 
         Debug.Log("Game Over");
-        TrackStageFailed("deadlock");
+        TrackStageFailed(StageFailReasonDeadlock);
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
@@ -1818,7 +1762,7 @@ public class GameManager : MonoBehaviour
         Debug.Log("Clear");
         PlayClearSfx();
         PlayStageClearHaptic();
-        TrackStageCleared("all_tiles_zero");
+        TrackStageCleared(StageClearTypeAllTilesZero);
         StartCoroutine(LoadNextStageAfterDelay());
     }
 

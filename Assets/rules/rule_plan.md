@@ -30,23 +30,23 @@
 
 ### 작업 체크리스트
 
-- [ ] `CheckVictoryCondition()` 특례 클리어 제거 또는 비활성화
-- [ ] `CheckStageClear()`를 유일한 공식 승리 판정으로 정리
-- [ ] `TrackStageCleared()`의 `clear_type` 정리
-- [ ] 데드락 외 패배 경로 목록 정리
-- [ ] `FixedKnot` 실패 경로 유지/제거 정책 확정
-- [ ] `TrackStageFailed(reason)` 값 정리
-- [ ] 문서와 다른 숨은 게임오버 진입점이 없는지 확인
+- [x] `CheckVictoryCondition()` 정책 재확정
+- [x] `CheckStageClear()`와 마지막 타일 `1` 특례를 공식 승리 판정으로 정리
+- [x] `TrackStageCleared()`의 `clear_type` 정리
+- [x] 데드락 외 패배 경로 목록 정리
+- [x] `FixedKnot` 실패 경로 유지/제거 정책 확정
+- [x] `TrackStageFailed(reason)` 값 정리
+- [x] 문서와 다른 숨은 게임오버 진입점이 없는지 확인
 
 ### 완료 기준
 
-- [ ] 승리 조건이 하나로 고정됨
-- [ ] 패배 조건 목록이 명시적으로 정리됨
-- [ ] `GameManager` 종료 조건만 봐도 문서와 비교 가능함
+- [x] 승리 조건 집합이 명시적으로 고정됨
+- [x] 패배 조건 목록이 명시적으로 정리됨
+- [x] `GameManager` 종료 조건만 봐도 문서와 비교 가능함
 
 ### 단계 종료 검증
 
-- [ ] 마지막 타일 특례 클리어가 발생하지 않는지 확인
+- [ ] 마지막 타일 `1` 특례 클리어가 정상 동작하는지 확인
 - [ ] 모든 활성 타일 count가 0일 때만 클리어되는지 확인
 - [ ] 데드락 처리 결과 확인
 - [ ] `FixedKnot` 관련 실패 동작이 이번 단계 정책과 일치하는지 확인
