@@ -4,7 +4,7 @@ using DG.Tweening;
 using DigitalRuby.LightningBolt;
 
 /// <summary>
-/// TwinLink 타일: 같은 linkID끼리 count 동기화, LightningBolt 에셋으로 테두리 전기 효과, 밟을 때 짝꿍 타일 번쩍임·흔들림.
+/// TwinLink 타일: 같은 linkID끼리 연결된 짝 타일을 관리하고, 전기 테두리와 번쩍임 연출을 담당한다.
 /// JSON color로 전기·숫자 발광색 적용.
 /// </summary>
 [RequireComponent(typeof(Tile))]
@@ -245,20 +245,56 @@ public class TwinLinkTile : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 이 타일이 밟린 직후 호출. 짝꿍 count 동기화, 전기 번쩍임, DOShakePosition.
-    /// excludeTile: 이 타일은 동기화 제외 (방금 밟은 타일이 -1 되지 않도록).
-    /// </summary>
-    public void OnSteppedSyncPartners(Tile excludeTile = null)
+    /// <summary>짝 타일들이 이번 스텝에 함께 감소 가능한지 검사.</summary>
+    public bool CanConsumePartners()
     {
-        if (tile == null) return;
-        int newCount = tile.CurrentNumber;
+        foreach (var p in partners)
+        {
+            if (p == null || p.tile == null) continue;
+            if (p.tile.CurrentNumber <= 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    public bool AreAllPartnersAtCount(int expectedCount)
+    {
+        if (partners.Count == 0)
+            return false;
+
+        foreach (var p in partners)
+        {
+            if (p == null || p.tile == null)
+                return false;
+            if (p.tile.CurrentNumber != expectedCount)
+                return false;
+        }
+
+        return true;
+    }
+
+    public int GetPartnerRemainingCount()
+    {
+        int sum = 0;
+        foreach (var p in partners)
+        {
+            if (p == null || p.tile == null) continue;
+            sum += p.tile.CurrentNumber;
+        }
+        return sum;
+    }
+
+    /// <summary>짝 타일들을 직접 1 감소시키고 전기 연출을 재생한다.</summary>
+    public void ConsumePartners(System.Action<Tile> consumeTile)
+    {
+        if (consumeTile == null)
+            return;
 
         foreach (var p in partners)
         {
             if (p == null || p.tile == null) continue;
-            if (excludeTile != null && p.tile == excludeTile) continue; // 방금 밟은 타일은 동기화 제외 → -2 버그 방지
-            p.tile.SetNumber(newCount);
+            consumeTile(p.tile);
             p.FlashBolt();
             p.Shake();
         }

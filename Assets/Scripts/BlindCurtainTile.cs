@@ -1,8 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 암전 커튼(BlindCurtain) 타일: count는 항상 1, 밟는 순간 모든 타일 숫자가 ?로 변함.
-/// UI에는 숫자 대신 hidden.png 아이콘 표시, 광원(발광) 효과 적용.
+/// BlindCurtain 타일: 게임 규칙은 일반 타일과 같고, hidden 아이콘으로만 시각적 구분을 준다.
 /// </summary>
 [RequireComponent(typeof(Tile))]
 public class BlindCurtainTile : MonoBehaviour
@@ -24,8 +23,6 @@ public class BlindCurtainTile : MonoBehaviour
     {
         tile = GetComponent<Tile>();
         tileSpriteRenderer = GetComponent<SpriteRenderer>();
-        if (tile != null && tile.GetNumberText() != null)
-            tile.GetNumberText().gameObject.SetActive(false);
         CreateIcon();
     }
 

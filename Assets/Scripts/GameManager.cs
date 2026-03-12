@@ -776,7 +776,7 @@ public class GameManager : MonoBehaviour
         // pointerUp일 때는 타일 추가하지 않음 — 손 뗀 위치로 잘못 판정되어 터치만 해도 DecreaseNumber 되는 버그 방지
         else if (isDragging && pointerHeld)
         {
-            // 파괴된 타일 참조 제거 (Igniter 소멸 등으로 타일이 비활성화/제거된 경우)
+            // 파괴되거나 소진된 타일 참조 제거
             currentPath.RemoveAll(t => t == null);
             if (currentPath.Count == 0)
             {
@@ -924,13 +924,22 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
+        var twinLinkLast = last.GetComponent<TwinLinkTile>();
+        if (twinLinkLast != null && !twinLinkLast.CanConsumePartners())
+            return false;
+
         return true;
     }
 
     private void ApplyLeaveTileEffects(Tile last, Tile hit)
     {
         OnLeaveTileForNext(last, hit);
-        NotifyTwinLinkStepped(last, hit);
+        var twinLink = last.GetComponent<TwinLinkTile>();
+        if (twinLink != null)
+        {
+            twinLink.ConsumePartners(DecreaseTileAndPlayBlockNote);
+            RefreshMainUIProgress();
+        }
         NotifyFixedKnotLeft(last);
 
         var crossBlast = last.GetComponent<CrossBlastTile>();
@@ -950,7 +959,6 @@ public class GameManager : MonoBehaviour
         NotifyFixedKnotsUpdateVisual(totalPathCount);
         if (fixedKnotHit != null)
             fixedKnotHit.OnSteppedCorrectly();
-        TryTriggerBlindCurtain(hit);
         CheckVictoryCondition(hit);
     }
 
@@ -1049,7 +1057,6 @@ public class GameManager : MonoBehaviour
                 if (t != null && t.IsActive)
                 {
                     DecreaseTileAndPlayBlockNote(t);
-                    NotifyTwinLinkStepped(t);
                 }
             }
         }
@@ -1058,78 +1065,6 @@ public class GameManager : MonoBehaviour
         RefreshMainUIProgress();
     }
 
-    /// <summary>
-    /// BlindCurtain 타일을 밟으면 즉시 모든 타일 숫자를 ?로 표시.
-    /// </summary>
-    private void TryTriggerBlindCurtain(Tile steppedTile)
-    {
-        if (steppedTile == null || steppedTile.GetComponent<BlindCurtainTile>() == null) return;
-        StartCoroutine(HideAllTilesNumbersWithAnimation());
-    }
-
-    [Header("BlindCurtain 물음표 전환 연출")]
-    [Tooltip("한 줄당 Y축 한 바퀴 회전 시간(초). 50% 지점에서 ?로 전환")]
-    [SerializeField] private float blindCurtainFlipDuration = 0.35f;
-    [Tooltip("윗줄→아랫줄 순서로 줄 간격(초)")]
-    [SerializeField] private float blindCurtainRowInterval = 0.05f;
-
-    /// <summary>윗줄부터 아랫줄까지 0.05초 간격으로 Y축 한 바퀴 회전, 50% 지점에서 ?로 전환.</summary>
-    private IEnumerator HideAllTilesNumbersWithAnimation()
-    {
-        if (tiles == null) yield break;
-        float rowDuration = Mathf.Max(0.01f, blindCurtainFlipDuration);
-        float rowDelay = Mathf.Max(0f, blindCurtainRowInterval);
-        float totalDuration = (stageHeight - 1) * rowDelay + rowDuration;
-        bool[] rowSwitched = new bool[stageHeight];
-        float elapsed = 0f;
-
-        while (elapsed < totalDuration)
-        {
-            elapsed += Time.deltaTime;
-
-            for (int r = stageHeight - 1; r >= 0; r--)
-            {
-                float rowStart = (stageHeight - 1 - r) * rowDelay;
-                float localElapsed = elapsed - rowStart;
-                float progress = localElapsed / rowDuration;
-
-                float yAngle = progress < 0f ? 0f : (progress > 1f ? 360f : 360f * progress);
-
-                for (int col = 0; col < stageWidth; col++)
-                {
-                    Tile t = tiles[r, col];
-                    if (t == null) continue;
-                    var numberText = t.GetNumberText();
-                    if (numberText != null)
-                        numberText.transform.localEulerAngles = new Vector3(0f, yAngle, 0f);
-                    if (progress >= 0.5f && !rowSwitched[r])
-                    {
-                        rowSwitched[r] = true;
-                        t.SetDisplayAsQuestion(true);
-                    }
-                }
-            }
-
-            yield return null;
-        }
-
-        for (int row = 0; row < stageHeight; row++)
-        {
-            for (int col = 0; col < stageWidth; col++)
-            {
-                Tile t = tiles[row, col];
-                if (t == null) continue;
-                t.SetDisplayAsQuestion(true);
-                var numberText = t.GetNumberText();
-                if (numberText != null)
-                    numberText.transform.localEulerAngles = Vector3.zero;
-            }
-        }
-    }
-
-    /// <summary>
-    /// 상하좌우 인접 여부 (대각선 불가).
-    /// </summary>
     /// <summary>타일을 떠날 때(last) 그 타일이 FixedKnot이면 기어 사라짐 연출.</summary>
     private void NotifyFixedKnotLeft(Tile lastTile)
     {
@@ -1138,36 +1073,16 @@ public class GameManager : MonoBehaviour
         if (fk != null) fk.OnLeftByPlayer();
     }
 
-    /// <summary>TwinLink 타일이 밟린 직후: 짝꿍 count 동기화·전기 테두리 번쩍임·DOShakePosition. excludeFromSync=지금 밟은 타일이면 동기화 제외(한 번에 -2 방지).</summary>
-    private void NotifyTwinLinkStepped(Tile tile, Tile excludeFromSync = null)
-    {
-        if (tile == null) return;
-        var twin = tile.GetComponent<TwinLinkTile>();
-        if (twin != null) twin.OnSteppedSyncPartners(excludeFromSync);
-    }
-
-    /// <summary>타일을 떠날 때: Igniter면 소멸 연출 후 0, 아니면 DecreaseNumber.</summary>
+    /// <summary>타일을 떠날 때 기본 감소를 적용한다.</summary>
     private void OnLeaveTileForNext(Tile last, Tile next)
     {
         if (last == null) return;
         Debug.Log($"[타일 -1] 직전 타일 ({last.X},{last.Y}) 떠남 → 다음 ({next.X},{next.Y})으로 이동, 직전 타일 -1");
-        var igniter = last.GetComponent<IgniterTile>();
-        if (igniter != null)
-        {
-            int beforeIgniter = last.CurrentNumber;
-            igniter.OnLeftThenVanish();
-            if (beforeIgniter > 0)
-                QueueNextMelodyBlockNote();
-            Debug.Log($"[타일 사라짐] Igniter ({last.X},{last.Y}) 소멸");
-        }
-        else
-        {
-            int before = last.CurrentNumber;
-            DecreaseTileAndPlayBlockNote(last);
-            Debug.Log($"[타일 -1] ({last.X},{last.Y}) count {before} → {last.CurrentNumber}");
-            if (last.CurrentNumber <= 0)
-                Debug.Log($"[타일 사라짐] ({last.X},{last.Y}) count 0");
-        }
+        int before = last.CurrentNumber;
+        DecreaseTileAndPlayBlockNote(last);
+        Debug.Log($"[타일 -1] ({last.X},{last.Y}) count {before} → {last.CurrentNumber}");
+        if (last.CurrentNumber <= 0)
+            Debug.Log($"[타일 사라짐] ({last.X},{last.Y}) count 0");
 
         // 타일 숫자/소멸 변경 직후 진행도 갱신
         RefreshMainUIProgress();
@@ -1180,8 +1095,8 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[현재 밟은 타일] ({hit.X},{hit.Y}) count={hit.CurrentNumber}");
     }
 
-    /// <summary>타일을 밟은 직후: Igniter면 targetID에 해당하는 Hidden 그룹 릴레이 활성화 (Igniter에서 가까운 순).</summary>
-    private void TryTriggerIgniter(Tile steppedTile)
+    /// <summary>타일을 밟은 직후: Igniter면 targetID에 해당하는 Hidden 그룹을 활성화한다.</summary>
+    private void TryTriggerIgniter(Tile steppedTile, bool instant = false)
     {
         if (steppedTile == null || hiddenGroups == null) return;
         var igniter = steppedTile.GetComponent<IgniterTile>();
@@ -1197,7 +1112,15 @@ public class GameManager : MonoBehaviour
             return da.CompareTo(db);
         });
         float relayInterval = (list.Count > 0 && list[0] != null) ? list[0].RelayInterval : 0.08f;
-        igniter.TriggerHiddenTiles(list, igniterPos, relayInterval);
+        igniter.TriggerHiddenTiles(list, instant, relayInterval);
+    }
+
+    private void ActivateStartIgniterIfNeeded()
+    {
+        if (currentStartTile == null)
+            return;
+
+        TryTriggerIgniter(currentStartTile, true);
     }
 
     /// <summary>옮긴 횟수만 반환. 첫 구간·이어서 드래그 모두 currentPath.Count - 1 로 통일 (한 번 옮길 때마다 -1).</summary>
@@ -1258,18 +1181,42 @@ public class GameManager : MonoBehaviour
             return false;
 
         int totalRemaining = GetTotalRemainingCount();
-        if (totalRemaining != 1 || currentTile.CurrentNumber != 1)
-            return false;
+        if (currentTile.CurrentNumber == 1)
+        {
+            if (totalRemaining == 1)
+            {
+                DecreaseTileAndPlayBlockNote(currentTile);
+                RefreshMainUIProgress();
+                stageCleared = true;
+                Debug.Log("Clear");
+                PlayClearSfx();
+                PlayStageClearHaptic();
+                TrackStageCleared(StageClearTypeLastTileRule);
+                StartCoroutine(LoadNextStageAfterDelay());
+                return true;
+            }
 
-        DecreaseTileAndPlayBlockNote(currentTile);
-        RefreshMainUIProgress();
-        stageCleared = true;
-        Debug.Log("Clear");
-        PlayClearSfx();
-        PlayStageClearHaptic();
-        TrackStageCleared(StageClearTypeLastTileRule);
-        StartCoroutine(LoadNextStageAfterDelay());
-        return true;
+            var twinLink = currentTile.GetComponent<TwinLinkTile>();
+            if (twinLink != null && twinLink.AreAllPartnersAtCount(1))
+            {
+                int twinGroupRemaining = currentTile.CurrentNumber + twinLink.GetPartnerRemainingCount();
+                if (totalRemaining == twinGroupRemaining)
+                {
+                    DecreaseTileAndPlayBlockNote(currentTile);
+                    twinLink.ConsumePartners(DecreaseTileAndPlayBlockNote);
+                    RefreshMainUIProgress();
+                    stageCleared = true;
+                    Debug.Log("Clear");
+                    PlayClearSfx();
+                    PlayStageClearHaptic();
+                    TrackStageCleared(StageClearTypeLastTileRule);
+                    StartCoroutine(LoadNextStageAfterDelay());
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>FixedKnot 화면 갱신. totalStepsCommitted + currentPath 기준 Count 전달.</summary>
@@ -1599,9 +1546,6 @@ public class GameManager : MonoBehaviour
                 if (hidden != null) continue;
                 yield return new WaitForSeconds(tileAppearInterval);
                 tiles[row, col].PlayBounceAppearance();
-                var igniter = tiles[row, col].GetComponent<IgniterTile>();
-                if (igniter != null)
-                    igniter.EnsureNumberHidden();
             }
         }
 
@@ -1615,6 +1559,7 @@ public class GameManager : MonoBehaviour
             {
                 currentStartTile = initialStart;
                 currentStartTile.SetInitialStartTile(true);
+                ActivateStartIgniterIfNeeded();
                 // 암막 모드 리셋 후에도 스테이지 새로 시작하듯 시작점만 밝혀서 다시 플레이 가능하게
                 if (spotlightController != null)
                     spotlightController.ResetRevealedToStartOnly(initialStart.transform.position);
@@ -1683,9 +1628,6 @@ public class GameManager : MonoBehaviour
                 if (hidden != null) continue;
                 yield return new WaitForSeconds(tileAppearInterval);
                 tiles[row, col].PlayBounceAppearance();
-                var igniter = tiles[row, col].GetComponent<IgniterTile>();
-                if (igniter != null)
-                    igniter.EnsureNumberHidden();
             }
         }
 
@@ -1699,6 +1641,7 @@ public class GameManager : MonoBehaviour
             {
                 currentStartTile = initialStart;
                 currentStartTile.SetInitialStartTile(true);
+                ActivateStartIgniterIfNeeded();
                 if (spotlightController != null)
                     spotlightController.ResetRevealedToStartOnly(initialStart.transform.position);
             }
@@ -1935,6 +1878,8 @@ public class GameManager : MonoBehaviour
     private void ClearTiles()
     {
         linkSystem?.ClearLinks();
+        hiddenGroups.Clear();
+        twinLinkGroups.Clear();
         if (tiles != null)
         {
             for (int row = 0; row < stageHeight; row++)
@@ -2127,6 +2072,8 @@ public class GameManager : MonoBehaviour
     {
         if (data.cells == null || data.startPoint == null) return;
 
+        hiddenGroups.Clear();
+        twinLinkGroups.Clear();
         stageWidth = data.width;
         stageHeight = data.height;
         totalGridWidth = data.width * tileWidth + (data.width - 1) * padding;
@@ -2165,7 +2112,6 @@ public class GameManager : MonoBehaviour
                     tileObj.AddComponent<BlackoutTile>();
                 if (cell.type == "BlindCurtain")
                 {
-                    tile.SetInitialNumber(1);
                     tileObj.AddComponent<BlindCurtainTile>();
                 }
                 if (cell.type == "ShortCircuit")
@@ -2209,11 +2155,10 @@ public class GameManager : MonoBehaviour
                 }
                 if (cell.type == "Igniter")
                 {
-                    tile.SetInitialNumber(1);
                     var igniter = tileObj.AddComponent<IgniterTile>();
                     igniter.Setup(cell.targetID ?? "");
                 }
-                tile.SetNumber(cell.type == "BlindCurtain" ? 1 : (cell.type == "Igniter" ? 1 : cell.count));
+                tile.SetNumber(cell.count);
                 tiles[cell.y, cell.x] = tile;
                 if (cell.type == "Hidden")
                 {
@@ -2255,6 +2200,7 @@ public class GameManager : MonoBehaviour
                 initialStartTileCol = sx;
                 currentStartTile = tiles[sy, sx];
                 currentStartTile.SetInitialStartTile(true);
+                ActivateStartIgniterIfNeeded();
                 return;
             }
         }
@@ -2264,6 +2210,7 @@ public class GameManager : MonoBehaviour
             initialStartTileCol = 0;
             currentStartTile = tiles[0, 0];
             currentStartTile.SetInitialStartTile(true);
+            ActivateStartIgniterIfNeeded();
         }
     }
 
