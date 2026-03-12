@@ -140,18 +140,42 @@
             </ui:VisualElement>
             <ui:Label name="TutorialDescriptionLabel" text="왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다." style="font-size: 34px; color: rgba(205, 233, 255, 1); -unity-text-align: middle-center; margin-top: 12px; margin-bottom: 18px;"/>
             <ui:VisualElement name="TutorialDemoBoard" style="height: 340px; margin-top: 8px; margin-bottom: 18px; justify-content: center; align-items: center; position: relative;">
-                <ui:VisualElement style="flex-direction: row; justify-content: center; align-items: center;">
-                    <ui:VisualElement name="TutorialTileLeft" class="tutorial-demo-tile">
-                        <ui:Label name="TutorialTileLeftCount" text="1" class="tutorial-demo-count"/>
+                <ui:VisualElement name="TutorialBasicDemoBoard" style="width: 100%; height: 100%; justify-content: center; align-items: center; position: relative;">
+                    <ui:VisualElement style="flex-direction: row; justify-content: center; align-items: center;">
+                        <ui:VisualElement name="TutorialTileLeft" class="tutorial-demo-tile">
+                            <ui:Label name="TutorialTileLeftCount" text="1" class="tutorial-demo-count"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="TutorialTileCenter" class="tutorial-demo-tile">
+                            <ui:Label name="TutorialTileCenterCount" text="2" class="tutorial-demo-count"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="TutorialTileRight" class="tutorial-demo-tile">
+                            <ui:Label name="TutorialTileRightCount" text="1" class="tutorial-demo-count"/>
+                        </ui:VisualElement>
                     </ui:VisualElement>
-                    <ui:VisualElement name="TutorialTileCenter" class="tutorial-demo-tile">
-                        <ui:Label name="TutorialTileCenterCount" text="2" class="tutorial-demo-count"/>
-                    </ui:VisualElement>
-                    <ui:VisualElement name="TutorialTileRight" class="tutorial-demo-tile">
-                        <ui:Label name="TutorialTileRightCount" text="1" class="tutorial-demo-count"/>
-                    </ui:VisualElement>
+                    <ui:Image name="TutorialHandImage" style="position: absolute; width: 100px; height: 100px; left: 19%; top: 226px;"/>
                 </ui:VisualElement>
-                <ui:Image name="TutorialHandImage" style="position: absolute; width: 100px; height: 100px; left: 19%; top: 226px;"/>
+                <ui:VisualElement name="TutorialShortCircuitDemoBoard" style="display: none; width: 100%; height: 100%; justify-content: center; align-items: center; position: relative;">
+                    <ui:VisualElement class="tutorial-grid-demo-wrap">
+                        <ui:VisualElement class="tutorial-grid-row">
+                            <ui:VisualElement name="TutorialShortTileTopLeft" class="tutorial-demo-tile tutorial-demo-grid-tile">
+                                <ui:Label name="TutorialShortTileTopLeftCount" text="1" class="tutorial-demo-count"/>
+                            </ui:VisualElement>
+                            <ui:VisualElement name="TutorialShortTileTopRight" class="tutorial-demo-tile tutorial-demo-grid-tile">
+                                <ui:Label name="TutorialShortTileTopRightCount" text="1" class="tutorial-demo-count"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="tutorial-grid-row">
+                            <ui:VisualElement name="TutorialShortTileBottomLeft" class="tutorial-demo-tile tutorial-demo-grid-tile tutorial-demo-short-circuit">
+                                <ui:Label name="TutorialShortTileBottomLeftArrow" text="→" class="tutorial-demo-arrow"/>
+                                <ui:Label name="TutorialShortTileBottomLeftCount" text="1" class="tutorial-demo-count"/>
+                            </ui:VisualElement>
+                            <ui:VisualElement name="TutorialShortTileBottomRight" class="tutorial-demo-tile tutorial-demo-grid-tile">
+                                <ui:Label name="TutorialShortTileBottomRightCount" text="1" class="tutorial-demo-count"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Image name="TutorialShortCircuitHandImage" style="position: absolute; width: 100px; height: 100px; left: 26%; top: 206px;"/>
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:Label name="TutorialStepHintLabel" text="왼쪽 타일에서 시작해 경로를 연결해보세요." style="font-size: 32px; color: rgba(174, 228, 255, 1); -unity-text-align: middle-center; margin-bottom: 22px; min-height: 46px;"/>
             <ui:Button name="TutorialConfirmButton" text="확인" style="height: 118px; width: 92%; align-self: center; font-size: 40px; color: rgb(255, 255, 255); border-radius: 22px; background-color: rgba(74, 193, 255, 0.28); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(189, 239, 255, 0.95); border-right-color: rgba(189, 239, 255, 0.95); border-top-color: rgba(189, 239, 255, 0.95); border-bottom-color: rgba(189, 239, 255, 0.95);"/>

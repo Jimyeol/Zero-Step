@@ -1,9 +1,49 @@
 {
   "entries": [
     {
-      "id": "tile_unlock_preview_3_to_5",
-      "stageIndex": 3,
-      "targetStageIndex": 5,
+      "id": "tile_unlock_preview_48_to_50",
+      "stageIndex": 48,
+      "targetStageIndex": 50,
+      "messageKey": "snackbar_default_new_tile_unlock",
+      "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
+      "duration": 2.8
+    },
+    {
+      "id": "tile_unlock_preview_98_to_100",
+      "stageIndex": 98,
+      "targetStageIndex": 100,
+      "messageKey": "snackbar_default_new_tile_unlock",
+      "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
+      "duration": 2.8
+    },
+    {
+      "id": "tile_unlock_preview_113_to_115",
+      "stageIndex": 113,
+      "targetStageIndex": 115,
+      "messageKey": "snackbar_default_new_tile_unlock",
+      "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
+      "duration": 2.8
+    },
+    {
+      "id": "tile_unlock_preview_138_to_140",
+      "stageIndex": 138,
+      "targetStageIndex": 140,
+      "messageKey": "snackbar_default_new_tile_unlock",
+      "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
+      "duration": 2.8
+    },
+    {
+      "id": "tile_unlock_preview_168_to_170",
+      "stageIndex": 168,
+      "targetStageIndex": 170,
+      "messageKey": "snackbar_default_new_tile_unlock",
+      "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
+      "duration": 2.8
+    },
+    {
+      "id": "tile_unlock_preview_198_to_200",
+      "stageIndex": 198,
+      "targetStageIndex": 200,
       "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8

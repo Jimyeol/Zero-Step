@@ -48,6 +48,7 @@ public class GameMainUIController : MonoBehaviour
     private const string StageSnackbarScheduleResourcePath = "Tutorials/stage_snackbar_schedule";
     private const string TutorialDismissedKeyPrefix = "TutorialDismissed_";
     private const string TutorialTypeBasicPath = "BasicPath";
+    private const string TutorialTypeShortCircuit = "ShortCircuit";
     private const string DefaultUIButtonSfxResourcePath = "Sounds/ui_button";
     private const string DefaultSplashSpriteResourcePath = "Sprites/splash";
     private const string DefaultSplashVideoResourcePath = "Sprites/splash_video";
@@ -174,6 +175,8 @@ public class GameMainUIController : MonoBehaviour
     private VisualElement languageOptionList;
     private VisualElement tutorialOverlay;
     private VisualElement tutorialDialog;
+    private VisualElement tutorialBasicDemoBoard;
+    private VisualElement tutorialShortCircuitDemoBoard;
     private Label tutorialTitleLabel;
     private Label tutorialDescriptionLabel;
     private Label tutorialStepHintLabel;
@@ -183,10 +186,20 @@ public class GameMainUIController : MonoBehaviour
     private VisualElement tutorialTileLeft;
     private VisualElement tutorialTileCenter;
     private VisualElement tutorialTileRight;
+    private VisualElement tutorialShortTileTopLeft;
+    private VisualElement tutorialShortTileTopRight;
+    private VisualElement tutorialShortTileBottomLeft;
+    private VisualElement tutorialShortTileBottomRight;
     private Label tutorialTileLeftCount;
     private Label tutorialTileCenterCount;
     private Label tutorialTileRightCount;
+    private Label tutorialShortTileTopLeftCount;
+    private Label tutorialShortTileTopRightCount;
+    private Label tutorialShortTileBottomLeftCount;
+    private Label tutorialShortTileBottomRightCount;
+    private Label tutorialShortTileBottomLeftArrow;
     private Image tutorialHandImage;
+    private Image tutorialShortCircuitHandImage;
     private Image heart1Image;
     private Image heart2Image;
     private Image heart3Image;
@@ -358,6 +371,8 @@ public class GameMainUIController : MonoBehaviour
         languageMenuLabel = root.Q<Label>("LanguageMenuLabel");
         tutorialOverlay = root.Q<VisualElement>("TutorialOverlay");
         tutorialDialog = root.Q<VisualElement>("TutorialDialog");
+        tutorialBasicDemoBoard = root.Q<VisualElement>("TutorialBasicDemoBoard");
+        tutorialShortCircuitDemoBoard = root.Q<VisualElement>("TutorialShortCircuitDemoBoard");
         tutorialTitleLabel = root.Q<Label>("TutorialTitleLabel");
         tutorialDescriptionLabel = root.Q<Label>("TutorialDescriptionLabel");
         tutorialStepHintLabel = root.Q<Label>("TutorialStepHintLabel");
@@ -367,10 +382,20 @@ public class GameMainUIController : MonoBehaviour
         tutorialTileLeft = root.Q<VisualElement>("TutorialTileLeft");
         tutorialTileCenter = root.Q<VisualElement>("TutorialTileCenter");
         tutorialTileRight = root.Q<VisualElement>("TutorialTileRight");
+        tutorialShortTileTopLeft = root.Q<VisualElement>("TutorialShortTileTopLeft");
+        tutorialShortTileTopRight = root.Q<VisualElement>("TutorialShortTileTopRight");
+        tutorialShortTileBottomLeft = root.Q<VisualElement>("TutorialShortTileBottomLeft");
+        tutorialShortTileBottomRight = root.Q<VisualElement>("TutorialShortTileBottomRight");
         tutorialTileLeftCount = root.Q<Label>("TutorialTileLeftCount");
         tutorialTileCenterCount = root.Q<Label>("TutorialTileCenterCount");
         tutorialTileRightCount = root.Q<Label>("TutorialTileRightCount");
+        tutorialShortTileTopLeftCount = root.Q<Label>("TutorialShortTileTopLeftCount");
+        tutorialShortTileTopRightCount = root.Q<Label>("TutorialShortTileTopRightCount");
+        tutorialShortTileBottomLeftCount = root.Q<Label>("TutorialShortTileBottomLeftCount");
+        tutorialShortTileBottomRightCount = root.Q<Label>("TutorialShortTileBottomRightCount");
+        tutorialShortTileBottomLeftArrow = root.Q<Label>("TutorialShortTileBottomLeftArrow");
         tutorialHandImage = root.Q<Image>("TutorialHandImage");
+        tutorialShortCircuitHandImage = root.Q<Image>("TutorialShortCircuitHandImage");
         heart1Image = root.Q<Image>("Heart1Image");
         heart2Image = root.Q<Image>("Heart2Image");
         heart3Image = root.Q<Image>("Heart3Image");
@@ -496,6 +521,7 @@ public class GameMainUIController : MonoBehaviour
         AssignSprite(languageSelectCloseIcon, "Sprites/close", "close.png");
         AssignSprite(tutorialCloseIcon, "Sprites/close", "close.png");
         AssignSprite(tutorialHandImage, "Sprites/hand", "hand.png");
+        AssignSprite(tutorialShortCircuitHandImage, "Sprites/hand", "hand.png");
         AssignSprite(soundIcon, "Sprites/sound", "sound.png");
         AssignSprite(vibrationIcon, "Sprites/vibrate", "vibrate.png");
         AssignSprite(helpIcon, "Sprites/help", "help.png");
@@ -1969,9 +1995,7 @@ public class GameMainUIController : MonoBehaviour
             tutorialDescriptionLabel.text = ResolveTutorialDescription(entry);
         if (tutorialConfirmButton != null)
             tutorialConfirmButton.text = ResolveTutorialCloseButtonText(entry);
-
-        ApplyTutorialStepState(1, 2, 1, T("tutorial_hint_connect"));
-        SetTutorialHandPosition(0, instant: true);
+        ConfigureTutorialDemo(entry);
         StartTutorialAnimation(entry);
 
         FirebaseBootstrap.LogEvent("help_tutorial_open", new Dictionary<string, object>
@@ -2024,6 +2048,11 @@ public class GameMainUIController : MonoBehaviour
             tutorialAnimationVersion++;
             tutorialAnimationRoutine = StartCoroutine(PlayBasicTutorialAnimationLoop(tutorialAnimationVersion));
         }
+        else if (string.Equals(entry.tutorialType, TutorialTypeShortCircuit, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayShortCircuitTutorialAnimationLoop(tutorialAnimationVersion));
+        }
     }
 
     private void StopTutorialAnimation()
@@ -2074,6 +2103,55 @@ public class GameMainUIController : MonoBehaviour
         tutorialAnimationRoutine = null;
     }
 
+    private IEnumerator PlayShortCircuitTutorialAnimationLoop(int animationVersion)
+    {
+        WaitForSecondsRealtime introWait = new WaitForSecondsRealtime(0.5f);
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+
+        while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
+        {
+            ApplyShortCircuitTutorialStepState(
+                1, 1, 1, 1,
+                T("tutorial_short_circuit_hint_intro"),
+                pulseBottomLeft: true,
+                pulseArrow: true);
+            SetShortCircuitTutorialHandPosition(0, instant: true);
+            yield return introWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            SetShortCircuitTutorialHandPosition(1, instant: false);
+            ApplyShortCircuitTutorialStepState(
+                1, 1, 0, 1,
+                T("tutorial_short_circuit_step_exit"),
+                pulseBottomLeft: true,
+                pulseBottomRight: true,
+                pulseArrow: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            SetShortCircuitTutorialHandPosition(2, instant: false);
+            ApplyShortCircuitTutorialStepState(
+                1, 1, 0, 0,
+                T("tutorial_short_circuit_step_follow"),
+                pulseTopRight: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyShortCircuitTutorialStepState(
+                1, 1, 0, 0,
+                T("tutorial_short_circuit_step_remember"),
+                pulseTopRight: true,
+                pulseArrow: true);
+            yield return cycleWait;
+        }
+
+        tutorialAnimationRoutine = null;
+    }
+
     private bool IsTutorialAnimationActive(int animationVersion)
     {
         return isTutorialPopupOpen && animationVersion == tutorialAnimationVersion;
@@ -2084,6 +2162,27 @@ public class GameMainUIController : MonoBehaviour
         ApplyTutorialTileState(tutorialTileLeft, tutorialTileLeftCount, leftCount, pulseLeft);
         ApplyTutorialTileState(tutorialTileCenter, tutorialTileCenterCount, centerCount, pulseCenter);
         ApplyTutorialTileState(tutorialTileRight, tutorialTileRightCount, rightCount, pulseRight);
+
+        if (tutorialStepHintLabel != null)
+            tutorialStepHintLabel.text = hint;
+    }
+
+    private void ApplyShortCircuitTutorialStepState(
+        int topLeftCount,
+        int topRightCount,
+        int bottomLeftCount,
+        int bottomRightCount,
+        string hint,
+        bool pulseTopLeft = false,
+        bool pulseTopRight = false,
+        bool pulseBottomLeft = false,
+        bool pulseBottomRight = false,
+        bool pulseArrow = false)
+    {
+        ApplyTutorialTileState(tutorialShortTileTopLeft, tutorialShortTileTopLeftCount, topLeftCount, pulseTopLeft);
+        ApplyTutorialTileState(tutorialShortTileTopRight, tutorialShortTileTopRightCount, topRightCount, pulseTopRight);
+        ApplyShortCircuitTileState(tutorialShortTileBottomLeft, tutorialShortTileBottomLeftCount, bottomLeftCount, pulseBottomLeft, pulseArrow);
+        ApplyTutorialTileState(tutorialShortTileBottomRight, tutorialShortTileBottomRightCount, bottomRightCount, pulseBottomRight);
 
         if (tutorialStepHintLabel != null)
             tutorialStepHintLabel.text = hint;
@@ -2119,6 +2218,45 @@ public class GameMainUIController : MonoBehaviour
         }
     }
 
+    private void ApplyShortCircuitTileState(VisualElement tile, Label countLabel, int count, bool pulseTile, bool pulseArrow)
+    {
+        ApplyTutorialTileState(tile, countLabel, count, pulseTile);
+
+        if (tile != null)
+        {
+            bool active = count > 0;
+            tile.style.backgroundColor = active
+                ? new StyleColor(new Color(0.99f, 0.68f, 0.24f, 0.28f))
+                : new StyleColor(new Color(0.18f, 0.14f, 0.08f, 0.52f));
+
+            Color borderColor = active
+                ? new Color(1f, 0.89f, 0.63f, 0.96f)
+                : new Color(0.69f, 0.58f, 0.42f, 0.62f);
+            tile.style.borderLeftColor = borderColor;
+            tile.style.borderRightColor = borderColor;
+            tile.style.borderTopColor = borderColor;
+            tile.style.borderBottomColor = borderColor;
+        }
+
+        if (tutorialShortTileBottomLeftArrow == null)
+            return;
+
+        bool showArrow = count > 0;
+        tutorialShortTileBottomLeftArrow.style.opacity = showArrow ? 1f : 0.42f;
+        tutorialShortTileBottomLeftArrow.style.scale = new StyleScale(
+            new Scale(pulseArrow && showArrow ? new Vector3(1.18f, 1.18f, 1f) : Vector3.one));
+        tutorialShortTileBottomLeftArrow.style.color = new StyleColor(
+            showArrow ? new Color(1f, 0.96f, 0.84f, 0.99f) : new Color(0.77f, 0.67f, 0.55f, 0.62f));
+
+        if (pulseArrow && showArrow)
+        {
+            tutorialShortTileBottomLeftArrow.schedule.Execute(() =>
+            {
+                tutorialShortTileBottomLeftArrow.style.scale = new StyleScale(new Scale(Vector3.one));
+            }).StartingIn(140);
+        }
+    }
+
     private void SetTutorialHandPosition(int laneIndex, bool instant)
     {
         if (tutorialHandImage == null)
@@ -2145,6 +2283,75 @@ public class GameMainUIController : MonoBehaviour
         tutorialHandImage.style.top = 226f;
         tutorialHandImage.style.opacity = 1f;
         tutorialHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
+    }
+
+    private void SetShortCircuitTutorialHandPosition(int pointIndex, bool instant)
+    {
+        if (tutorialShortCircuitHandImage == null)
+            return;
+
+        float leftPercent;
+        float top;
+        switch (pointIndex)
+        {
+            case 0:
+                leftPercent = 26f;
+                top = 206f;
+                break;
+            case 1:
+                leftPercent = 56f;
+                top = 206f;
+                break;
+            case 2:
+                leftPercent = 56f;
+                top = 48f;
+                break;
+            case 3:
+                leftPercent = 26f;
+                top = 48f;
+                break;
+            default:
+                leftPercent = 26f;
+                top = 206f;
+                break;
+        }
+
+        tutorialShortCircuitHandImage.style.left = Length.Percent(leftPercent);
+        tutorialShortCircuitHandImage.style.top = top;
+        tutorialShortCircuitHandImage.style.opacity = 1f;
+        tutorialShortCircuitHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
+    }
+
+    private void ConfigureTutorialDemo(HelpTutorialEntryData entry)
+    {
+        bool isShortCircuit = entry != null &&
+            string.Equals(entry.tutorialType, TutorialTypeShortCircuit, StringComparison.OrdinalIgnoreCase);
+
+        if (tutorialBasicDemoBoard != null)
+            tutorialBasicDemoBoard.style.display = isShortCircuit ? DisplayStyle.None : DisplayStyle.Flex;
+        if (tutorialShortCircuitDemoBoard != null)
+            tutorialShortCircuitDemoBoard.style.display = isShortCircuit ? DisplayStyle.Flex : DisplayStyle.None;
+
+        if (tutorialHandImage != null && !isShortCircuit)
+        {
+            ApplyTutorialStepState(1, 2, 1, T("tutorial_hint_connect"));
+            SetTutorialHandPosition(0, instant: true);
+        }
+
+        if (tutorialShortCircuitHandImage != null)
+            tutorialShortCircuitHandImage.style.opacity = isShortCircuit ? 1f : 0f;
+        if (tutorialHandImage != null && isShortCircuit)
+            tutorialHandImage.style.opacity = 0f;
+
+        if (!isShortCircuit)
+            return;
+
+        ApplyShortCircuitTutorialStepState(
+            1, 1, 1, 1,
+            T("tutorial_short_circuit_hint_intro"),
+            pulseBottomLeft: true,
+            pulseArrow: true);
+        SetShortCircuitTutorialHandPosition(0, instant: true);
     }
 
     private string T(string key)
