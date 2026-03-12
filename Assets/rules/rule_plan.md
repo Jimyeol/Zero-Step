@@ -68,28 +68,28 @@
 
 ### 작업 체크리스트
 
-- [ ] 현재 분기별 이동 처리 흐름을 공통 단계로 분해
-- [ ] 목적지 인접 여부 검사 공통화
-- [ ] `Hidden` 진입 가능 여부 검사 위치 고정
-- [ ] `ShortCircuit` 출발 방향 검사 위치 고정
-- [ ] `FixedKnot` 순서 검사 위치 고정
-- [ ] 목적지 활성 타일 여부 검사 위치 고정
-- [ ] 출발 타일 감소 시점 통일
-- [ ] 특수 효과 적용 순서 통일
-- [ ] `currentPath.Add(hit)` 시점 통일
+- [x] 현재 분기별 이동 처리 흐름을 공통 단계로 분해
+- [x] 목적지 인접 여부 검사 공통화
+- [x] `Hidden` 진입 가능 여부 검사 위치 고정
+- [x] `ShortCircuit` 출발 방향 검사 위치 고정
+- [x] `FixedKnot` 순서 검사 위치 고정
+- [x] 목적지 활성 타일 여부 검사 위치 고정
+- [x] 출발 타일 감소 시점 통일
+- [x] 특수 효과 적용 순서 통일
+- [x] `currentPath.Add(hit)` 시점 통일
 
 ### 권장 구현 구조
 
-- [ ] `CanEnterTile(...)`
-- [ ] `ValidateMoveRules(...)`
-- [ ] `ApplyLeaveTileEffects(...)`
-- [ ] `ApplyEnterTileEffects(...)`
-- [ ] `FinalizeStep(...)`
+- [x] `CanEnterTile(...)`
+- [x] `ValidateMoveRules(...)`
+- [x] `ApplyLeaveTileEffects(...)`
+- [x] `ApplyEnterTileEffects(...)`
+- [x] `FinalizeStep(...)`
 
 ### 완료 기준
 
-- [ ] 일반 이동, `ShortCircuit`, `FixedKnot` 진입 분기가 같은 순서를 따름
-- [ ] 이동 판정 순서를 코드만 읽어도 추적 가능함
+- [x] 일반 이동, `ShortCircuit`, `FixedKnot` 진입 분기가 같은 순서를 따름
+- [x] 이동 판정 순서를 코드만 읽어도 추적 가능함
 
 ### 단계 종료 검증
 

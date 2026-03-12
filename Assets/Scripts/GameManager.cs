@@ -762,7 +762,7 @@ public class GameManager : MonoBehaviour
         if (pointerDown)
         {
             Tile hit = GetTileAtScreen(screenPoint);
-            if (hit != currentStartTile || hit == null || !hit.IsActive)
+            if (hit != currentStartTile || !CanEnterTile(hit))
                 return;
             currentStartTile.ClearScaleOverride();
             isDragging = true;
@@ -789,7 +789,7 @@ public class GameManager : MonoBehaviour
             Tile hit = GetTileAtScreen(screenPoint, preferAdjacentTo: lastForHit);
             // 숫자가 남아 있으면 이미 라인이 그려진 타일이라도 재방문(중복 밟기) 허용.
             // 숫자는 '들어갈 때'가 아니라 '지나쳐 나갈 때' 감소 → 멈춘 타일이 0이 되어 다음 드래그를 못 시작하는 문제 방지.
-            if (hit != null && hit.IsActive)
+            if (CanEnterTile(hit))
             {
                 Tile last = currentPath[currentPath.Count - 1];
                 if (last == null)
@@ -836,126 +836,7 @@ public class GameManager : MonoBehaviour
                         canStep = false;
                 }
                 if (canStep)
-                {
-                int nextStepNumber = GetTotalPathCount() + 1;
-                var fixedKnotHit = hit.GetComponent<FixedKnotTile>();
-                var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
-                var shortCircuitHit = hit.GetComponent<ShortCircuitTile>();
-
-                // FixedKnot: targetOrder 번째 스텝에만 진입 가능. 잘못된 순서면 경로에 넣지 않는다.
-                bool fixedKnotWrongOrder = fixedKnotHit != null && IsAdjacent(last, hit) && !fixedKnotHit.CanEnter(nextStepNumber);
-                if (fixedKnotWrongOrder)
-                {
-                    fixedKnotHit.PlayWrongOrderShake();
-                }
-                else if (fixedKnotHit != null && IsAdjacent(last, hit))
-                {
-                    // FixedKnot 정확한 순서로만 진입 허용 (기어는 다음 타일 밟을 때 사라짐)
-                    OnLeaveTileForNext(last, hit);
-                    NotifyTwinLinkStepped(last, hit);
-                    NotifyFixedKnotLeft(last);
-                    var crossBlast = last.GetComponent<CrossBlastTile>();
-                    if (crossBlast != null) crossBlast.TriggerExplosion(this, hit);
-                    var blackout = last.GetComponent<BlackoutTile>();
-                    if (blackout != null) blackout.OnStepped();
-                    currentPath.Add(hit);
-                    lastStepFrame = Time.frameCount;
-                    Debug.Log($"[스텝] FixedKnot last=({last.X},{last.Y})→hit=({hit.X},{hit.Y}) pathLen={currentPath.Count}");
-                    LogSteppedOn(hit);
-                    TryTriggerIgniter(hit);
-                    NotifyTrailTileStepped(hit);
-                    int cFk = GetTotalPathCount();
-                    NotifyFixedKnotsUpdateVisual(cFk);
-                    fixedKnotHit.OnSteppedCorrectly();
-                    TryTriggerBlindCurtain(hit);
-                    CheckVictoryCondition(hit);
-                }
-                else if (shortCircuitLast != null)
-                {
-                    // ShortCircuit 위: 화살표 방향(출구) 셀로만 이동 가능
-                    if (!IsAdjacent(last, hit)) { /* 다른 타일 아님 */ }
-                    else if (!shortCircuitLast.IsExitCell(hit.X, hit.Y))
-                    {
-                        // 방향 위반 — 이동 불가, 경로에 추가하지 않음
-                    }
-                    else
-                    {
-                        // FixedKnot이면 반드시 올바른 순서에서만 추가 (다른 분기에서 실수로 추가 방지)
-                        if (fixedKnotHit != null && !fixedKnotHit.CanEnter(nextStepNumber)) { /* 진입 불가 */ }
-                        else
-                        {
-                            currentPath.Add(hit);
-                            Debug.Log($"[스텝] ShortCircuit(위) last=({last.X},{last.Y})→hit=({hit.X},{hit.Y}) pathLen={currentPath.Count}");
-                            LogSteppedOn(hit);
-                            TryTriggerIgniter(hit);
-                            NotifyTrailTileStepped(hit);
-                            int totalPathCount = GetTotalPathCount();
-                            lastStepFrame = Time.frameCount;
-                            OnLeaveTileForNext(last, hit);
-                            NotifyTwinLinkStepped(last, hit);
-                            NotifyFixedKnotLeft(last);
-                            NotifyFixedKnotsUpdateVisual(totalPathCount);
-                            if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
-                            TryTriggerBlindCurtain(hit);
-                            CheckVictoryCondition(hit);
-                        }
-                    }
-                }
-                else if (shortCircuitHit != null)
-                {
-                    // ShortCircuit으로 들어감: 인접하면 어느 방향에서든 진입 가능 (제한은 나갈 때만). FixedKnot이면 올바른 순서에서만 추가
-                    if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
-                    {
-                        currentPath.Add(hit);
-                        Debug.Log($"[스텝] ShortCircuit(진입) last=({last.X},{last.Y})→hit=({hit.X},{hit.Y}) pathLen={currentPath.Count}");
-                        LogSteppedOn(hit);
-                        TryTriggerIgniter(hit);
-                        NotifyTrailTileStepped(hit);
-                        int totalPathCountSc = GetTotalPathCount();
-                        lastStepFrame = Time.frameCount;
-                        OnLeaveTileForNext(last, hit);
-                        NotifyTwinLinkStepped(last, hit);
-                        NotifyFixedKnotLeft(last);
-                        var crossBlast = last.GetComponent<CrossBlastTile>();
-                        if (crossBlast != null)
-                            crossBlast.TriggerExplosion(this, hit);
-                        var blackout = last.GetComponent<BlackoutTile>();
-                        if (blackout != null)
-                            blackout.OnStepped();
-                        NotifyFixedKnotsUpdateVisual(totalPathCountSc);
-                        if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
-                        TryTriggerBlindCurtain(hit);
-                        CheckVictoryCondition(hit);
-                    }
-                }
-                else
-                {
-                    // 일반 타일 이동 (FixedKnot이면 올바른 순서에서만 추가)
-                    if (IsAdjacent(last, hit) && (fixedKnotHit == null || fixedKnotHit.CanEnter(nextStepNumber)))
-                    {
-                        currentPath.Add(hit);
-                        Debug.Log($"[스텝] 일반 last=({last.X},{last.Y})→hit=({hit.X},{hit.Y}) pathLen={currentPath.Count}");
-                        LogSteppedOn(hit);
-                        TryTriggerIgniter(hit);
-                        NotifyTrailTileStepped(hit);
-                        int totalPathCountEl = GetTotalPathCount();
-                        lastStepFrame = Time.frameCount;
-                        OnLeaveTileForNext(last, hit); // 떠나는 타일: Igniter면 소멸 연출, 아니면 숫자 감소
-                        NotifyTwinLinkStepped(last, hit);
-                        NotifyFixedKnotLeft(last);
-                        var crossBlast = last.GetComponent<CrossBlastTile>();
-                        if (crossBlast != null)
-                            crossBlast.TriggerExplosion(this, hit); // hit = 다음 타일(밟고 이동한 타일) → 효과 제외
-                        var blackout = last.GetComponent<BlackoutTile>();
-                        if (blackout != null)
-                            blackout.OnStepped(); // Blackout 타일 밟을 때 Punch Scale·탁해짐 피드백
-                        NotifyFixedKnotsUpdateVisual(totalPathCountEl);
-                        if (fixedKnotHit != null) fixedKnotHit.OnSteppedCorrectly();
-                        TryTriggerBlindCurtain(hit);
-                        CheckVictoryCondition(hit);
-                    }
-                }
-                }
+                    TryStepToTile(last, hit);
             }
         }
 
@@ -1016,6 +897,91 @@ public class GameManager : MonoBehaviour
         if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
             return true;
         return false;
+    }
+
+    private bool CanEnterTile(Tile hit)
+    {
+        // Hidden은 잠겨 있을 때 collider/활성 상태로 입력 단계에서 막히므로 IsActive 검사로 함께 정리한다.
+        return hit != null && hit.IsActive;
+    }
+
+    private bool ValidateMoveRules(Tile last, Tile hit, int nextStepNumber, out FixedKnotTile fixedKnotHit)
+    {
+        fixedKnotHit = hit != null ? hit.GetComponent<FixedKnotTile>() : null;
+        if (last == null || !CanEnterTile(hit))
+            return false;
+
+        if (!IsAdjacent(last, hit))
+            return false;
+
+        var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
+        if (shortCircuitLast != null && !shortCircuitLast.IsExitCell(hit.X, hit.Y))
+            return false;
+
+        if (fixedKnotHit != null && !fixedKnotHit.CanEnter(nextStepNumber))
+        {
+            fixedKnotHit.PlayWrongOrderShake();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ApplyLeaveTileEffects(Tile last, Tile hit)
+    {
+        OnLeaveTileForNext(last, hit);
+        NotifyTwinLinkStepped(last, hit);
+        NotifyFixedKnotLeft(last);
+
+        var crossBlast = last.GetComponent<CrossBlastTile>();
+        if (crossBlast != null)
+            crossBlast.TriggerExplosion(this, hit);
+
+        var blackout = last.GetComponent<BlackoutTile>();
+        if (blackout != null)
+            blackout.OnStepped();
+    }
+
+    private void ApplyEnterTileEffects(Tile hit, FixedKnotTile fixedKnotHit, int totalPathCount)
+    {
+        LogSteppedOn(hit);
+        TryTriggerIgniter(hit);
+        NotifyTrailTileStepped(hit);
+        NotifyFixedKnotsUpdateVisual(totalPathCount);
+        if (fixedKnotHit != null)
+            fixedKnotHit.OnSteppedCorrectly();
+        TryTriggerBlindCurtain(hit);
+        CheckVictoryCondition(hit);
+    }
+
+    private void FinalizeStep(Tile last, Tile hit, string stepLabel)
+    {
+        currentPath.Add(hit);
+        lastStepFrame = Time.frameCount;
+        Debug.Log($"[스텝] {stepLabel} last=({last.X},{last.Y})→hit=({hit.X},{hit.Y}) pathLen={currentPath.Count}");
+    }
+
+    private string GetStepLabel(Tile last, Tile hit, FixedKnotTile fixedKnotHit)
+    {
+        if (fixedKnotHit != null)
+            return "FixedKnot";
+        if (last != null && last.GetComponent<ShortCircuitTile>() != null)
+            return "ShortCircuit(위)";
+        if (hit != null && hit.GetComponent<ShortCircuitTile>() != null)
+            return "ShortCircuit(진입)";
+        return "일반";
+    }
+
+    private void TryStepToTile(Tile last, Tile hit)
+    {
+        int nextStepNumber = GetTotalPathCount() + 1;
+        if (!ValidateMoveRules(last, hit, nextStepNumber, out var fixedKnotHit))
+            return;
+
+        ApplyLeaveTileEffects(last, hit);
+        FinalizeStep(last, hit, GetStepLabel(last, hit, fixedKnotHit));
+        int totalPathCount = GetTotalPathCount();
+        ApplyEnterTileEffects(hit, fixedKnotHit, totalPathCount);
     }
 
     /// <summary>드래그 중 인접 타일 검색 시 포인터 주변 반경(월드). count 1인 ShortCircuit 등이 놓치지 않도록.</summary>
