@@ -200,8 +200,18 @@ public class GameManager : MonoBehaviour
     private LinkSystem linkSystem;
     /// <summary>TwinLink 타일: linkID별 그룹 (그리드 생성 후 파트너 등록용).</summary>
     private Dictionary<int, List<TwinLinkTile>> twinLinkGroups = new Dictionary<int, List<TwinLinkTile>>();
+    private readonly Dictionary<int, Color> twinLinkAssignedColors = new Dictionary<int, Color>();
+    private readonly List<Color> twinLinkAvailablePalette = new List<Color>();
     /// <summary>Hidden 타일: groupID별 그룹 (Igniter 트리거 시 활성화용).</summary>
     private Dictionary<string, List<HiddenTile>> hiddenGroups = new Dictionary<string, List<HiddenTile>>();
+    private static readonly Color[] TwinLinkRandomPalette =
+    {
+        new Color(1f, 0.55f, 0.12f, 1f),
+        new Color(1f, 0.86f, 0.2f, 1f),
+        new Color(0.72f, 1f, 0.18f, 1f),
+        new Color(0.66f, 0.44f, 1f, 1f),
+        new Color(1f, 0.28f, 0.38f, 1f)
+    };
 
     private AudioSource blockNoteAudioSource;
     private AudioSource eventAudioSource;
@@ -2207,6 +2217,7 @@ public class GameManager : MonoBehaviour
 
         hiddenGroups.Clear();
         twinLinkGroups.Clear();
+        ResetTwinLinkPaletteAssignments();
         stageWidth = data.width;
         stageHeight = data.height;
         totalGridWidth = data.width * tileWidth + (data.width - 1) * padding;
@@ -2262,8 +2273,8 @@ public class GameManager : MonoBehaviour
                 {
                     var twinLink = tileObj.AddComponent<TwinLinkTile>();
                     int id = cell.linkID != 0 ? cell.linkID : 101;
-                    string colorHex = !string.IsNullOrEmpty(cell.color) ? cell.color : "#00FBFF";
-                    twinLink.Setup(id, colorHex, twinLinkLightningPrefab, new TwinLinkTile.TwinLinkSettings
+                    Color assignedColor = GetOrAssignTwinLinkColor(id);
+                    twinLink.Setup(id, assignedColor, twinLinkLightningPrefab, new TwinLinkTile.TwinLinkSettings
                     {
                         borderOffset = twinLinkBorderOffset,
                         boltInterval = twinLinkBoltInterval,
@@ -2322,6 +2333,42 @@ public class GameManager : MonoBehaviour
         }
         twinLinkGroups.Clear();
         NotifyFixedKnotsUpdateVisual(0);
+    }
+
+    private void ResetTwinLinkPaletteAssignments()
+    {
+        twinLinkAssignedColors.Clear();
+        twinLinkAvailablePalette.Clear();
+        twinLinkAvailablePalette.AddRange(TwinLinkRandomPalette);
+        ShuffleTwinLinkPalette(twinLinkAvailablePalette);
+    }
+
+    private Color GetOrAssignTwinLinkColor(int linkId)
+    {
+        if (twinLinkAssignedColors.TryGetValue(linkId, out Color assignedColor))
+            return assignedColor;
+
+        if (twinLinkAvailablePalette.Count == 0)
+        {
+            twinLinkAvailablePalette.AddRange(TwinLinkRandomPalette);
+            ShuffleTwinLinkPalette(twinLinkAvailablePalette);
+        }
+
+        assignedColor = twinLinkAvailablePalette[0];
+        twinLinkAvailablePalette.RemoveAt(0);
+        twinLinkAssignedColors[linkId] = assignedColor;
+        return assignedColor;
+    }
+
+    private static void ShuffleTwinLinkPalette(List<Color> palette)
+    {
+        for (int i = palette.Count - 1; i > 0; i--)
+        {
+            int swapIndex = UnityEngine.Random.Range(0, i + 1);
+            Color temp = palette[i];
+            palette[i] = palette[swapIndex];
+            palette[swapIndex] = temp;
+        }
     }
 
     /// <summary>

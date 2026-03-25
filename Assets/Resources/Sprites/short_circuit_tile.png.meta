@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: e19e3c0fb079d4d318d1e197dca6c35b
+guid: 64ded2121e6ea4b8fbb394993d068573
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5791533861771406970
-    second: switch_0
-  - first:
-      213: 1971089474277950741
-    second: switch_1
+      213: -4728580017518432374
+    second: short_circuit_tile_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -142,13 +139,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: switch_0
+      name: short_circuit_tile_0
       rect:
         serializedVersion: 2
-        x: 43
-        y: 22
-        width: 425
-        height: 404
+        x: 1
+        y: 2
+        width: 509
+        height: 510
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -157,30 +154,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 681187833a650afa0800000000000000
-      internalID: -5791533861771406970
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: switch_1
-      rect:
-        serializedVersion: 2
-        x: 232
-        y: 306
-        width: 46
-        height: 184
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 51549defe67ba5b10800000000000000
-      internalID: 1971089474277950741
+      spriteID: a8fadc3f685b06eb0800000000000000
+      internalID: -4728580017518432374
       vertices: []
       indices: 
       edges: []
@@ -199,8 +174,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      switch_0: -5791533861771406970
-      switch_1: 1971089474277950741
+      short_circuit_tile_0: -4728580017518432374
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

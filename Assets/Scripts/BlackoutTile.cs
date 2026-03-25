@@ -9,6 +9,10 @@ using DG.Tweening;
 [RequireComponent(typeof(Tile))]
 public class BlackoutTile : MonoBehaviour
 {
+    [Header("스프라이트")]
+    [SerializeField] private string tileSpritePath = "Sprites/blind_curtain_tile";
+    [SerializeField] private float coverScale = 1f;
+
     [Header("노이즈·플리커")]
     [Tooltip("정적 노이즈 밝기 (0~1)")]
     [SerializeField] private float noiseAlpha = 0.15f;
@@ -37,7 +41,9 @@ public class BlackoutTile : MonoBehaviour
     private Tile tile;
     private TMP_Text questionText;
     private SpriteRenderer tileSpriteRenderer;
+    private SpriteRenderer coverRenderer;
     private SpriteRenderer noiseOverlay;
+    private GameObject coverObject;
     private Color baseNoiseColor;
     private Coroutine glitchRoutine;
     private Tween pulseTween;
@@ -48,13 +54,14 @@ public class BlackoutTile : MonoBehaviour
         tile = GetComponent<Tile>();
         questionText = tile != null ? tile.GetNumberText() : GetComponentInChildren<TMP_Text>(true);
         tileSpriteRenderer = GetComponent<SpriteRenderer>();
+        CreateCoverSprite();
         CreateNoiseOverlay();
+        EnsureOverlaySorting();
     }
 
     private void Start()
     {
-        if (questionText != null)
-            questionText.text = "?";
+        HideQuestionText();
         StartPulseTween();
         glitchRoutine = StartCoroutine(GlitchFlickerRoutine());
     }
@@ -64,6 +71,8 @@ public class BlackoutTile : MonoBehaviour
         pulseTween?.Kill();
         if (glitchRoutine != null)
             StopCoroutine(glitchRoutine);
+        if (coverObject != null)
+            Destroy(coverObject);
     }
 
     /// <summary>
@@ -71,7 +80,7 @@ public class BlackoutTile : MonoBehaviour
     /// </summary>
     public void OnStepped()
     {
-        if (questionText != null)
+        if (questionText != null && questionText.gameObject.activeInHierarchy)
         {
             questionText.transform.DOKill();
             questionText.transform.localScale = Vector3.one;
@@ -87,6 +96,32 @@ public class BlackoutTile : MonoBehaviour
                 tileSpriteRenderer.DOColor(original, dullDuration).SetEase(Ease.OutQuad).OnComplete(() => isStepped = false);
             });
         }
+    }
+
+    private void CreateCoverSprite()
+    {
+        if (tileSpriteRenderer == null || coverObject != null)
+            return;
+
+        Sprite tileSprite = Resources.Load<Sprite>(tileSpritePath);
+        if (tileSprite == null)
+        {
+            Debug.LogWarning($"[BlackoutTile] Resources/{tileSpritePath} 을(를) 찾을 수 없습니다.");
+            return;
+        }
+
+        coverObject = new GameObject("BlackoutCover");
+        coverObject.transform.SetParent(transform);
+        coverObject.transform.localPosition = new Vector3(0f, 0f, -0.01f);
+        coverObject.transform.localRotation = Quaternion.identity;
+        coverObject.transform.localScale = Vector3.one * coverScale;
+
+        coverRenderer = coverObject.AddComponent<SpriteRenderer>();
+        coverRenderer.sprite = tileSprite;
+        coverRenderer.sortingOrder = tileSpriteRenderer.sortingOrder + 1;
+        if (tileSpriteRenderer.sharedMaterial != null)
+            coverRenderer.sharedMaterial = tileSpriteRenderer.sharedMaterial;
+        coverRenderer.color = tileSpriteRenderer.color;
     }
 
     private void CreateNoiseOverlay()
@@ -114,13 +149,33 @@ public class BlackoutTile : MonoBehaviour
         Sprite noiseSprite = Sprite.Create(noiseTex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
         noiseOverlay.sprite = noiseSprite;
         noiseOverlay.color = new Color(1f, 1f, 1f, noiseAlpha);
-        noiseOverlay.sortingOrder = 1;
+        noiseOverlay.sortingOrder = tileSpriteRenderer != null ? tileSpriteRenderer.sortingOrder + 2 : 2;
         baseNoiseColor = noiseOverlay.color;
+    }
+
+    private void EnsureOverlaySorting()
+    {
+        if (questionText == null)
+            return;
+
+        Renderer questionRenderer = questionText.GetComponent<Renderer>();
+        if (questionRenderer != null && tileSpriteRenderer != null)
+            questionRenderer.sortingOrder = tileSpriteRenderer.sortingOrder + 3;
+    }
+
+    private void HideQuestionText()
+    {
+        if (questionText == null)
+            return;
+
+        questionText.text = string.Empty;
+        if (questionText.gameObject.activeSelf)
+            questionText.gameObject.SetActive(false);
     }
 
     private void StartPulseTween()
     {
-        if (questionText == null) return;
+        if (questionText == null || !questionText.gameObject.activeInHierarchy) return;
         questionText.transform.localScale = Vector3.one * pulseScaleMin;
         pulseTween = questionText.transform
             .DOScale(pulseScaleMax, pulseDuration * 0.5f)
@@ -151,7 +206,7 @@ public class BlackoutTile : MonoBehaviour
             else
             {
                 // 물음표 짧은 글리치 (위치/스케일 미세 지직, 숫자 노출 없음)
-                if (questionText != null)
+                if (questionText != null && questionText.gameObject.activeInHierarchy)
                 {
                     Vector3 origPos = questionText.transform.localPosition;
                     Vector3 origScale = questionText.transform.localScale;
@@ -168,5 +223,12 @@ public class BlackoutTile : MonoBehaviour
                 }
             }
         }
+    }
+
+    private void LateUpdate()
+    {
+        HideQuestionText();
+        if (coverRenderer != null && tileSpriteRenderer != null)
+            coverRenderer.color = tileSpriteRenderer.color;
     }
 }

@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: f2ac2ee50b53847d9b7a26c28a05af03
+guid: 54ccb174a849647ffab468c291f3f812
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -8254923099216508040
-    second: hidden 1_0
-  - first:
-      213: -372401177341217838
-    second: hidden 1_1
+      213: 4273033670107448934
+    second: black_out_tile_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -142,13 +139,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: hidden 1_0
+      name: black_out_tile_0
       rect:
         serializedVersion: 2
-        x: 15
-        y: 78
-        width: 418
-        height: 355
+        x: 70
+        y: 71
+        width: 371
+        height: 371
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -157,30 +154,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 87b880f7d2f907d80800000000000000
-      internalID: -8254923099216508040
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: hidden 1_1
-      rect:
-        serializedVersion: 2
-        x: 204
-        y: 111
-        width: 293
-        height: 228
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 2d3b3ae2a17f4daf0800000000000000
-      internalID: -372401177341217838
+      spriteID: 666c904cb7ddc4b30800000000000000
+      internalID: 4273033670107448934
       vertices: []
       indices: 
       edges: []
@@ -199,8 +174,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      hidden 1_0: -8254923099216508040
-      hidden 1_1: -372401177341217838
+      black_out_tile_0: 4273033670107448934
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

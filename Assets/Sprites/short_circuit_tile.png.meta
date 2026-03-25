@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: 41448fafe51d84838aeddb3a03de9db1
+guid: f283dc6edaa974a23b8b31b35cb911df
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6317526053111568887
-    second: link_0
-  - first:
-      213: 3734543198587805883
-    second: link_1
+      213: -4728580017518432374
+    second: short_circuit_tile_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -142,13 +139,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: link_0
+      name: short_circuit_tile_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 324
-        height: 349
+        x: 1
+        y: 2
+        width: 509
+        height: 510
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -157,30 +154,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7f99dfe397c5ca750800000000000000
-      internalID: 6317526053111568887
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: link_1
-      rect:
-        serializedVersion: 2
-        x: 188
-        y: 163
-        width: 324
-        height: 349
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: bb06d2ea043c3d330800000000000000
-      internalID: 3734543198587805883
+      spriteID: a8fadc3f685b06eb0800000000000000
+      internalID: -4728580017518432374
       vertices: []
       indices: 
       edges: []
@@ -199,8 +174,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      link_0: 6317526053111568887
-      link_1: 3734543198587805883
+      short_circuit_tile_0: -4728580017518432374
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

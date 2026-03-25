@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using DG.Tweening;
+using TMPro;
 
 /// <summary>
 /// 십자 폭발 타일: 밟을 때만 0.1초 발광(1.2배) 후 상하좌우 인접 타일만 -1. 대기 중에는 펄스 없음.
@@ -15,6 +16,8 @@ public class CrossBlastTile : MonoBehaviour
     [SerializeField] private float flashScaleMult = 1.2f;
     [Tooltip("발광 색 (JSON properties beamColor로 덮어쓸 수 있음)")]
     [SerializeField] private string beamColorHex = "#00FFFF";
+    [SerializeField] private string tileSpritePath = "Sprites/corss_blast_tile";
+    [SerializeField] [Range(0.1f, 2f)] private float numberScaleMultiplier = 0.8f;
 
     private Tile tile;
     private SpriteRenderer spriteRenderer;
@@ -28,6 +31,8 @@ public class CrossBlastTile : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         if (spriteRenderer != null)
             baseScale = transform.localScale;
+        ApplyTileSprite();
+        ApplyNumberScale();
         ParseBeamColor(beamColorHex);
     }
 
@@ -60,6 +65,29 @@ public class CrossBlastTile : MonoBehaviour
             baseBeamColor = new Color(0f, 1f, 1f, 1f); // 시안 기본
     }
 
+    private void ApplyTileSprite()
+    {
+        if (spriteRenderer == null)
+            return;
+
+        Sprite tileSprite = Resources.Load<Sprite>(tileSpritePath);
+        if (tileSprite == null)
+        {
+            Debug.LogWarning($"[CrossBlastTile] Resources/{tileSpritePath} 을(를) 찾을 수 없습니다.");
+            return;
+        }
+        spriteRenderer.sprite = tileSprite;
+    }
+
+    private void ApplyNumberScale()
+    {
+        TMP_Text numberText = tile != null ? tile.GetNumberText() : null;
+        if (numberText == null)
+            return;
+
+        numberText.transform.localScale *= numberScaleMultiplier;
+    }
+
     private IEnumerator FlashAndDecreaseAdjacentRoutine(GameManager gameManager, Tile nextTile)
     {
         isExploding = true;
@@ -78,20 +106,11 @@ public class CrossBlastTile : MonoBehaviour
         int exY = (nextTile != null) ? nextTile.Y : -999;
         gameManager.DecreaseAdjacentTiles(tile.X, tile.Y, exX, exY);
 
-        // CrossBlast 밟고 지나갈 때 인접 링크에 0.5초 펄스 파동 (흰색 HDR 반복 플래시)
-        LinkSystem linkSystem = gameManager.GetLinkSystem();
-        if (linkSystem != null)
-            linkSystem.LightUpAdjacentLinksPulse(tile.X, tile.Y, gameManager.StageWidth, gameManager.StageHeight, 0.5f);
-
         // 스케일·색상 복구
         transform.DOScale(baseScale, 0.05f).SetEase(Ease.OutQuad);
         if (tile != null)
             tile.RestoreNeonColor();
         yield return new WaitForSeconds(0.05f);
-
-        // CrossBlast 타일이 사라졌으면(숫자 0) 해당 링크 제거
-        if (linkSystem != null && tile != null && tile.CurrentNumber <= 0)
-            linkSystem.RemoveLinksForTile(tile.X, tile.Y);
 
         isExploding = false;
     }

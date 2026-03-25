@@ -5,7 +5,7 @@ using DigitalRuby.LightningBolt;
 
 /// <summary>
 /// TwinLink 타일: 같은 linkID끼리 연결된 짝 타일을 관리하고, 전기 테두리와 번쩍임 연출을 담당한다.
-/// JSON color로 전기·숫자 발광색 적용.
+/// GameManager가 지정한 전용 색으로 전기·숫자 발광색을 적용한다.
 /// </summary>
 [RequireComponent(typeof(Tile))]
 public class TwinLinkTile : MonoBehaviour
@@ -53,17 +53,14 @@ public class TwinLinkTile : MonoBehaviour
     }
 
     /// <summary>
-    /// JSON에서 로드한 linkID, color로 초기화. GameManager가 그리드 생성 후 호출.
+    /// GameManager가 지정한 linkID와 색으로 초기화. 같은 linkID끼리는 같은 색을 공유한다.
     /// boltPrefabOverride: GameManager에서 넘기면 이걸 사용.
     /// settings: GameManager Inspector 값. 값이 0이면 기본값 유지.
     /// </summary>
-    public void Setup(int id, string colorHex, GameObject boltPrefabOverride = null, TwinLinkSettings? settings = null)
+    public void Setup(int id, Color assignedColor, GameObject boltPrefabOverride = null, TwinLinkSettings? settings = null)
     {
         linkID = id;
-        if (!string.IsNullOrEmpty(colorHex) && ColorUtility.TryParseHtmlString(colorHex, out Color c))
-            linkColor = c;
-        else
-            linkColor = ColorByLinkID(id);
+        linkColor = assignedColor;
 
         normalLineColor = linkColor;
         if (tile != null)
@@ -211,23 +208,6 @@ public class TwinLinkTile : MonoBehaviour
                 boltScripts[i].Trigger();
             }
             ApplyBoltColor(normalLineColor);
-        }
-    }
-
-    /// <summary>
-    /// linkID에 따라 기본 색상 반환 (JSON color 없을 때).
-    /// </summary>
-    private static Color ColorByLinkID(int id)
-    {
-        int h = Mathf.Abs(id) % 6;
-        switch (h)
-        {
-            case 0: return new Color(0f, 0.98f, 1f, 1f);
-            case 1: return new Color(1f, 0.4f, 0.6f, 1f);
-            case 2: return new Color(0.4f, 1f, 0.6f, 1f);
-            case 3: return new Color(1f, 0.9f, 0.2f, 1f);
-            case 4: return new Color(0.6f, 0.4f, 1f, 1f);
-            default: return new Color(0f, 0.98f, 1f, 1f);
         }
     }
 

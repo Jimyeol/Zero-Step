@@ -4,7 +4,7 @@ using TMPro;
 
 /// <summary>
 /// Igniter 타일: 밟는 순간 targetID에 해당하는 Hidden 타일들을 활성화하는 스위치 타일.
-/// 이동/감소 규칙은 일반 타일과 같고, 시각적 식별을 위해 switch 스프라이트를 사용한다.
+/// 이동/감소 규칙은 일반 타일과 같고, 시각적 식별을 위해 전용 스프라이트를 사용한다.
 /// </summary>
 [RequireComponent(typeof(Tile))]
 public class IgniterTile : MonoBehaviour
@@ -12,6 +12,11 @@ public class IgniterTile : MonoBehaviour
     [Header("대표 컬러 (트레일 등 연출용)")]
     [Tooltip("밟았을 때 트레일이 잠깐 이 색으로 변하는 데 사용")]
     [SerializeField] private Color accentColor = new Color(1f, 0.6f, 0.2f, 1f); // 네온 오렌지
+    [SerializeField] private string igniterSpritePath = "Sprites/igniter_tile";
+    [Header("전환 연출")]
+    [SerializeField] private float consumePulseDuration = 0.22f;
+    [SerializeField] private float consumeFlashDuration = 0.12f;
+    [SerializeField] private float consumePunchScale = 0.18f;
 
     private Tile tile;
     private SpriteRenderer spriteRenderer;
@@ -20,6 +25,7 @@ public class IgniterTile : MonoBehaviour
     private string targetID;
     private bool hasTriggered;
     private bool useIgniterVisual = true;
+    private Sequence consumeSequence;
 
     private void Awake()
     {
@@ -30,7 +36,7 @@ public class IgniterTile : MonoBehaviour
     }
 
     /// <summary>
-    /// GameManager가 그리드 생성 후 호출. targetID와 switch 스프라이트를 설정한다.
+    /// GameManager가 그리드 생성 후 호출. targetID와 igniter 스프라이트를 설정한다.
     /// </summary>
     public void Setup(string id)
     {
@@ -40,11 +46,11 @@ public class IgniterTile : MonoBehaviour
         RefreshVisualState();
     }
 
-    private void ApplySwitchSprite()
+    private void ApplyIgniterSprite()
     {
-        Sprite switchSprite = Resources.Load<Sprite>("Sprites/switch");
-        if (switchSprite != null && spriteRenderer != null)
-            spriteRenderer.sprite = switchSprite;
+        Sprite igniterSprite = Resources.Load<Sprite>(igniterSpritePath);
+        if (igniterSprite != null && spriteRenderer != null)
+            spriteRenderer.sprite = igniterSprite;
     }
 
     private void RestoreDefaultSprite()
@@ -55,14 +61,16 @@ public class IgniterTile : MonoBehaviour
 
     private void ApplyIgniterVisual()
     {
-        ApplySwitchSprite();
-        if (numberText != null)
-            numberText.gameObject.SetActive(false);
+        ApplyIgniterSprite();
+        if (numberText != null && tile != null && tile.CurrentNumber > 0)
+            numberText.gameObject.SetActive(true);
     }
 
     private void ApplyNormalVisual()
     {
         RestoreDefaultSprite();
+        if (tile != null)
+            tile.RestoreNeonColor();
         if (numberText != null && tile != null && tile.CurrentNumber > 0)
             numberText.gameObject.SetActive(true);
     }
@@ -99,8 +107,38 @@ public class IgniterTile : MonoBehaviour
 
     public void OnConsumed()
     {
+        if (!useIgniterVisual)
+        {
+            RefreshVisualState();
+            return;
+        }
+
         useIgniterVisual = false;
-        RefreshVisualState();
+
+        if (consumeSequence != null && consumeSequence.IsActive())
+            consumeSequence.Kill();
+
+        Color baseColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
+        Color flashColor = new Color(
+            Mathf.Max(baseColor.r, accentColor.r * 1.25f),
+            Mathf.Max(baseColor.g, accentColor.g * 1.25f),
+            Mathf.Max(baseColor.b, accentColor.b * 1.25f),
+            baseColor.a);
+
+        consumeSequence = DOTween.Sequence().SetUpdate(true);
+        consumeSequence.Append(transform.DOPunchScale(Vector3.one * consumePunchScale, consumePulseDuration, 4, 0.6f).SetEase(Ease.OutQuad));
+        if (spriteRenderer != null)
+        {
+            consumeSequence.Join(spriteRenderer.DOColor(flashColor, consumeFlashDuration).SetEase(Ease.OutQuad));
+            consumeSequence.Append(spriteRenderer.DOColor(baseColor, consumeFlashDuration).SetEase(Ease.InQuad));
+        }
+        consumeSequence.OnComplete(() =>
+        {
+            consumeSequence = null;
+            if (spriteRenderer != null)
+                spriteRenderer.color = Color.white;
+            RefreshVisualState();
+        });
     }
 
     /// <summary>
@@ -112,6 +150,9 @@ public class IgniterTile : MonoBehaviour
         useIgniterVisual = true;
         DOTween.Kill(transform);
         if (spriteRenderer != null) DOTween.Kill(spriteRenderer);
+        if (consumeSequence != null && consumeSequence.IsActive())
+            consumeSequence.Kill();
+        consumeSequence = null;
         if (spriteRenderer != null)
             spriteRenderer.color = new Color(1f, 1f, 1f, 1f);
         RefreshVisualState();

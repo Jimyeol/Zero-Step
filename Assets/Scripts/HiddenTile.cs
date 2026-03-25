@@ -23,6 +23,7 @@ public class HiddenTile : MonoBehaviour
     private TMP_Text numberText;
     private bool isActivated;
     private Color targetColor;
+    private Color targetNumberColor;
 
     private void Awake()
     {
@@ -48,10 +49,10 @@ public class HiddenTile : MonoBehaviour
         isActivated = false;
         DOTween.Kill(transform);
         if (spriteRenderer != null) DOTween.Kill(spriteRenderer);
+        CacheTargetVisualState();
         if (spriteRenderer != null)
         {
             spriteRenderer.enabled = false;
-            targetColor = new Color(1f, 1f, 1f, 1f);
         }
         if (boxCollider2D != null)
             boxCollider2D.enabled = false;
@@ -75,14 +76,16 @@ public class HiddenTile : MonoBehaviour
         if (delay > 0f)
             yield return new WaitForSeconds(delay);
 
+        CacheTargetVisualState();
+
         if (boxCollider2D != null)
             boxCollider2D.enabled = true;
 
         if (spriteRenderer != null)
         {
             spriteRenderer.enabled = true;
-            spriteRenderer.color = new Color(1f, 1f, 1f, 0f);
-            spriteRenderer.DOFade(1f, appearDuration).SetEase(Ease.OutQuad);
+            spriteRenderer.color = new Color(targetColor.r, targetColor.g, targetColor.b, 0f);
+            spriteRenderer.DOFade(targetColor.a, appearDuration).SetEase(Ease.OutQuad);
             transform.DOScale(transform.localScale * 1.15f, appearDuration * 0.5f).SetEase(Ease.OutQuad)
                 .OnComplete(() => transform.DOScale(transform.localScale / 1.15f, appearDuration * 0.5f).SetEase(Ease.InQuad));
         }
@@ -93,10 +96,26 @@ public class HiddenTile : MonoBehaviour
         }
     }
 
+    private void CacheTargetVisualState()
+    {
+        if (tile != null)
+            tile.RestoreNeonColor();
+
+        if (spriteRenderer != null)
+            targetColor = spriteRenderer.color;
+        else
+            targetColor = Color.white;
+
+        if (numberText != null)
+            targetNumberColor = numberText.color;
+        else
+            targetNumberColor = Color.white;
+    }
+
     private IEnumerator FadeInNumberTextRoutine()
     {
         if (numberText == null) yield break;
-        Color c = numberText.color;
+        Color c = targetNumberColor;
         c.a = 0f;
         numberText.color = c;
         float elapsed = 0f;
