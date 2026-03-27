@@ -59,6 +59,8 @@ public class HiddenTile : MonoBehaviour
         if (numberText != null)
             numberText.gameObject.SetActive(false);
         transform.localScale = Vector3.one;
+        if (GameManager.VerboseStage6DebugEnabled)
+            Debug.Log($"[Stage6 Hidden 리셋] tile={GameManager.DescribeTileForDebug(tile)} collider={IsColliderEnabled} sprite={(spriteRenderer != null && spriteRenderer.enabled)} activated={isActivated}");
     }
 
     /// <summary>
@@ -68,6 +70,8 @@ public class HiddenTile : MonoBehaviour
     {
         if (isActivated) return;
         isActivated = true;
+        if (GameManager.VerboseStage6DebugEnabled)
+            Debug.Log($"[Stage6 Hidden 예약] tile={GameManager.DescribeTileForDebug(tile)} delay={delay:F3} colliderBefore={IsColliderEnabled}");
         StartCoroutine(ActivateAfterDelayRoutine(delay));
     }
 
@@ -94,6 +98,8 @@ public class HiddenTile : MonoBehaviour
             numberText.gameObject.SetActive(true);
             StartCoroutine(FadeInNumberTextRoutine());
         }
+        if (GameManager.VerboseStage6DebugEnabled)
+            Debug.Log($"[Stage6 Hidden 활성화] tile={GameManager.DescribeTileForDebug(tile)} delay={delay:F3} collider={IsColliderEnabled} sprite={(spriteRenderer != null && spriteRenderer.enabled)} activated={isActivated}");
     }
 
     private void CacheTargetVisualState()
@@ -131,4 +137,5 @@ public class HiddenTile : MonoBehaviour
     }
 
     public bool IsActivated => isActivated;
+    public bool IsColliderEnabled => boxCollider2D != null && boxCollider2D.enabled;
 }

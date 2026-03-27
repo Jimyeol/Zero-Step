@@ -90,11 +90,15 @@ public class IgniterTile : MonoBehaviour
     {
         if (hasTriggered || hiddenTiles == null) return;
         hasTriggered = true;
+        if (GameManager.VerboseStage6DebugEnabled)
+            Debug.Log($"[Stage6 Igniter 실행] source={GameManager.DescribeTileForDebug(tile)} targetID={targetID} instant={instant} relay={relayInterval:F3} hiddenCount={hiddenTiles.Count}");
         float delay = 0f;
         foreach (var h in hiddenTiles)
         {
             if (h != null && !h.IsActivated)
             {
+                if (GameManager.VerboseStage6DebugEnabled)
+                    Debug.Log($"[Stage6 Igniter 예약] source={GameManager.DescribeTileForDebug(tile)} target={GameManager.DescribeTileForDebug(h.GetComponent<Tile>())} delay={(instant ? 0f : delay):F3}");
                 h.ActivateWithDelay(instant ? 0f : delay);
                 if (!instant)
                     delay += relayInterval;

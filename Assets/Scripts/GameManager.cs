@@ -120,8 +120,10 @@ public class GameManager : MonoBehaviour
     private const string StageClearTypeAllTilesZero = "all_tiles_zero";
     private const string StageClearTypeLastTileRule = "last_tile_rule";
     private const string StageFailReasonDeadlock = "deadlock";
+    private const int VerboseDebugStageIndex = 6;
     private const float SessionFreeHeartRefillFirstThresholdSeconds = 10f * 60f;
     private const float SessionFreeHeartRefillSecondThresholdSeconds = 20f * 60f;
+    public static bool VerboseStage6DebugEnabled { get; private set; }
 
     [Header("성능 (디바이스 최대 FPS)")]
     [Tooltip("실행 중 디바이스가 지원하는 최대 주사율을 목표 FPS로 사용합니다.")]
@@ -311,6 +313,7 @@ public class GameManager : MonoBehaviour
         currentStageIndex = LoadSavedStageIndex();
         totalStepsCommitted = 0;
         StageData data = StageManager.LoadStage(currentStageIndex);
+        UpdateVerboseStage6DebugState(data);
         if (data != null)
             CreateGridFromStageData(data);
         else
@@ -420,6 +423,7 @@ public class GameManager : MonoBehaviour
         currentStageIndex = 1;
 
         StageData data = StageManager.LoadStage(1);
+        UpdateVerboseStage6DebugState(data);
         ClearTiles();
         if (data != null)
         {
@@ -781,6 +785,11 @@ public class GameManager : MonoBehaviour
             Tile hit = GetTileAtScreen(screenPoint);
             if (hit != currentStartTile || !CanEnterTile(hit))
                 return;
+            if (ShouldLogVerboseStage6Debug())
+            {
+                Vector2 pointerWorld = ScreenToWorld2D(screenPoint);
+                Debug.Log($"[Stage6 드래그 시작] screen=({screenPoint.x:F1},{screenPoint.y:F1}) world=({pointerWorld.x:F3},{pointerWorld.y:F3}) hit={DescribeTileForDebug(hit)} currentStart={DescribeTileForDebug(currentStartTile)}");
+            }
             currentStartTile.ClearScaleOverride();
             isDragging = true;
             currentPath.Clear();
@@ -801,9 +810,14 @@ public class GameManager : MonoBehaviour
                 return;
             }
             Tile lastForHit = currentPath[currentPath.Count - 1];
+            Tile previousTile = currentPath.Count >= 2 ? currentPath[currentPath.Count - 2] : null;
             Vector2 pointerWorld = ScreenToWorld2D(screenPoint);
             Tile directHit = GetTileAtScreen(screenPoint);
             Tile hit = GetTileAtScreen(screenPoint, preferAdjacentTo: lastForHit);
+            if (ShouldLogVerboseStage6Debug() && (directHit != hit || hit == null || hit == previousTile))
+            {
+                Debug.Log($"[Stage6 입력 판정] screen=({screenPoint.x:F1},{screenPoint.y:F1}) world=({pointerWorld.x:F3},{pointerWorld.y:F3}) last={DescribeTileForDebug(lastForHit)} prev={DescribeTileForDebug(previousTile)} direct={DescribeTileForDebug(directHit)} picked={DescribeTileForDebug(hit)} path={DescribeCurrentPathForDebug()} candidates={DescribeTilePickCandidates(screenPoint, lastForHit)}");
+            }
             // 숫자가 남아 있으면 이미 라인이 그려진 타일이라도 재방문(중복 밟기) 허용.
             // 숫자는 '들어갈 때'가 아니라 '지나쳐 나갈 때' 감소 → 멈춘 타일이 0이 되어 다음 드래그를 못 시작하는 문제 방지.
             if (CanEnterTile(hit))
@@ -835,25 +849,35 @@ public class GameManager : MonoBehaviour
                             : (withinJitterFrames
                                 ? "직선 드래그 오락가락 방지"
                                 : $"되돌아간 타일 안쪽 진입 부족(backDist={backDist:F3}, currentDist={currentDist:F3}, margin={backtrackMargin:F3})");
-                        Debug.Log($"[지터 무시] 되돌아감 last=({last.X},{last.Y}) hit=({hit.X},{hit.Y}) frameDelta={frameDelta} ({reason})");
+                        if (ShouldLogVerboseStage6Debug())
+                        {
+                            Debug.Log($"[지터 무시] 되돌아감 last=({last.X},{last.Y}) hit=({hit.X},{hit.Y}) frameDelta={frameDelta} ({reason}) direct={DescribeTileForDebug(directHit)} world=({pointerWorld.x:F3},{pointerWorld.y:F3}) path={DescribeCurrentPathForDebug()} candidates={DescribeTilePickCandidates(screenPoint, last)}");
+                        }
+                        else
+                        {
+                            Debug.Log($"[지터 무시] 되돌아감 last=({last.X},{last.Y}) hit=({hit.X},{hit.Y}) frameDelta={frameDelta} ({reason})");
+                        }
                         canStep = false;
                     }
                 }
-                // Igniter 포함 이후에는 해당 지점 이전으로 백트래킹(되돌리기) 차단
+                // Igniter가 연 Hidden 목표가 아직 남아 있으면, 그 Igniter 이전 구간으로의 복귀만 차단한다.
+                // Hidden 쪽을 모두 소진했다면 이전 일반 경로로 이어서 드래그할 수 있어야 한다.
                 if (canStep && currentPath.Contains(hit))
                 {
-                    int igniterIdx = -1;
-                    for (int i = 0; i < currentPath.Count; i++)
+                    int hitIdx = currentPath.IndexOf(hit);
+                    if (TryFindBlockingIgniterBacktrack(hitIdx, out int igniterIdx, out string pendingHiddenSummary))
                     {
-                        Tile pt = currentPath[i];
-                        if (pt == null) continue;
-                        if (pt.GetComponent<IgniterTile>() != null) { igniterIdx = i; break; }
-                    }
-                    if (igniterIdx >= 0 && currentPath.IndexOf(hit) < igniterIdx)
+                        if (ShouldLogVerboseStage6Debug())
+                            Debug.Log($"[Stage6 Igniter 백트래킹 차단] hit={DescribeTileForDebug(hit)} igniterIdx={igniterIdx} hitIdx={hitIdx} pending=[{pendingHiddenSummary}] path={DescribeCurrentPathForDebug()}");
                         canStep = false;
+                    }
                 }
                 if (canStep)
                     TryStepToTile(last, hit);
+            }
+            else if (ShouldLogVerboseStage6Debug())
+            {
+                Debug.Log($"[Stage6 입력 후보 무효] last={DescribeTileForDebug(lastForHit)} prev={DescribeTileForDebug(previousTile)} direct={DescribeTileForDebug(directHit)} picked={DescribeTileForDebug(hit)} world=({pointerWorld.x:F3},{pointerWorld.y:F3}) path={DescribeCurrentPathForDebug()} candidates={DescribeTilePickCandidates(screenPoint, lastForHit)}");
             }
         }
 
@@ -926,24 +950,42 @@ public class GameManager : MonoBehaviour
     {
         fixedKnotHit = hit != null ? hit.GetComponent<FixedKnotTile>() : null;
         if (last == null || !CanEnterTile(hit))
+        {
+            if (ShouldLogVerboseStage6Debug())
+                Debug.Log($"[Stage6 이동 거부] reason=null_or_inactive last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber} path={DescribeCurrentPathForDebug()}");
             return false;
+        }
 
         if (!IsAdjacent(last, hit))
+        {
+            if (ShouldLogVerboseStage6Debug())
+                Debug.Log($"[Stage6 이동 거부] reason=not_adjacent last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber} path={DescribeCurrentPathForDebug()}");
             return false;
+        }
 
         var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
         if (shortCircuitLast != null && !shortCircuitLast.IsExitCell(hit.X, hit.Y))
+        {
+            if (ShouldLogVerboseStage6Debug())
+                Debug.Log($"[Stage6 이동 거부] reason=short_circuit_exit last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
             return false;
+        }
 
         if (fixedKnotHit != null && !fixedKnotHit.CanEnter(nextStepNumber))
         {
             fixedKnotHit.PlayWrongOrderShake();
+            if (ShouldLogVerboseStage6Debug())
+                Debug.Log($"[Stage6 이동 거부] reason=fixed_knot_order last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
             return false;
         }
 
         var twinLinkLast = last.GetComponent<TwinLinkTile>();
         if (twinLinkLast != null && !twinLinkLast.CanConsumePartners())
+        {
+            if (ShouldLogVerboseStage6Debug())
+                Debug.Log($"[Stage6 이동 거부] reason=twin_link_partner last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
             return false;
+        }
 
         return true;
     }
@@ -1134,7 +1176,85 @@ public class GameManager : MonoBehaviour
             return da.CompareTo(db);
         });
         float relayInterval = (list.Count > 0 && list[0] != null) ? list[0].RelayInterval : 0.08f;
+        if (ShouldLogVerboseStage6Debug())
+        {
+            List<string> hiddenSummaries = new List<string>();
+            foreach (var hidden in list)
+            {
+                if (hidden == null)
+                {
+                    hiddenSummaries.Add("null");
+                    continue;
+                }
+                var hiddenTile = hidden.GetComponent<Tile>();
+                hiddenSummaries.Add($"{DescribeTileForDebug(hiddenTile)} activated={hidden.IsActivated} collider={hidden.IsColliderEnabled}");
+            }
+            Debug.Log($"[Stage6 Igniter 트리거] stepped={DescribeTileForDebug(steppedTile)} targetID={igniter.TargetID} instant={instant} relay={relayInterval:F3} targets=[{string.Join(" | ", hiddenSummaries)}]");
+        }
         igniter.TriggerHiddenTiles(list, instant, relayInterval);
+    }
+
+    private bool TryFindBlockingIgniterBacktrack(int hitIdx, out int igniterIdx, out string pendingHiddenSummary)
+    {
+        igniterIdx = -1;
+        pendingHiddenSummary = string.Empty;
+
+        if (hitIdx < 0 || currentPath == null || currentPath.Count == 0)
+            return false;
+
+        for (int i = 0; i < currentPath.Count; i++)
+        {
+            if (i <= hitIdx)
+                continue;
+
+            Tile pathTile = currentPath[i];
+            if (pathTile == null)
+                continue;
+
+            IgniterTile igniter = pathTile.GetComponent<IgniterTile>();
+            if (igniter == null)
+                continue;
+
+            if (!HasPendingHiddenTargetsForIgniter(igniter, out pendingHiddenSummary))
+                continue;
+
+            igniterIdx = i;
+            return true;
+        }
+
+        pendingHiddenSummary = string.Empty;
+        return false;
+    }
+
+    private bool HasPendingHiddenTargetsForIgniter(IgniterTile igniter, out string pendingHiddenSummary)
+    {
+        pendingHiddenSummary = string.Empty;
+        if (igniter == null || hiddenGroups == null || string.IsNullOrEmpty(igniter.TargetID))
+            return false;
+
+        if (!hiddenGroups.TryGetValue(igniter.TargetID, out List<HiddenTile> hiddenList) || hiddenList == null || hiddenList.Count == 0)
+            return false;
+
+        List<string> pendingTiles = null;
+        foreach (HiddenTile hidden in hiddenList)
+        {
+            if (hidden == null)
+                continue;
+
+            Tile hiddenTile = hidden.GetComponent<Tile>();
+            if (hiddenTile == null || hiddenTile.CurrentNumber <= 0)
+                continue;
+
+            if (pendingTiles == null)
+                pendingTiles = new List<string>();
+            pendingTiles.Add(DescribeTileForDebug(hiddenTile));
+        }
+
+        if (pendingTiles == null || pendingTiles.Count == 0)
+            return false;
+
+        pendingHiddenSummary = string.Join(" | ", pendingTiles);
+        return true;
     }
 
     private void ActivateStartIgniterIfNeeded()
@@ -1871,6 +1991,7 @@ public class GameManager : MonoBehaviour
                 return false;
             }
         }
+        UpdateVerboseStage6DebugState(data);
 
         totalStepsCommitted = 0;
         ClearTiles();
@@ -2214,6 +2335,8 @@ public class GameManager : MonoBehaviour
     private void CreateGridFromStageData(StageData data)
     {
         if (data.cells == null || data.startPoint == null) return;
+        UpdateVerboseStage6DebugState(data);
+        LogVerboseStage6Summary(data);
 
         hiddenGroups.Clear();
         twinLinkGroups.Clear();
@@ -2431,6 +2554,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void CreateGridFallback()
     {
+        UpdateVerboseStage6DebugState(null);
         stageWidth = fallbackCols;
         stageHeight = fallbackRows;
         totalGridWidth = fallbackCols * tileWidth + (fallbackCols - 1) * padding;
@@ -2468,6 +2592,99 @@ public class GameManager : MonoBehaviour
             currentStartTile = tiles[0, 0];
             currentStartTile.SetInitialStartTile(true);
         }
+    }
+
+    private void UpdateVerboseStage6DebugState(StageData data)
+    {
+        VerboseStage6DebugEnabled = currentStageIndex == VerboseDebugStageIndex || (data != null && data.stageID == VerboseDebugStageIndex);
+    }
+
+    private bool ShouldLogVerboseStage6Debug()
+    {
+        return VerboseStage6DebugEnabled;
+    }
+
+    private void LogVerboseStage6Summary(StageData data)
+    {
+        if (!ShouldLogVerboseStage6Debug() || data == null || data.cells == null)
+            return;
+
+        int igniterCount = 0;
+        int hiddenCount = 0;
+        int blackoutCount = 0;
+        int blindCurtainCount = 0;
+        int shortCircuitCount = 0;
+        foreach (CellData cell in data.cells)
+        {
+            switch (cell.type)
+            {
+                case "Igniter": igniterCount++; break;
+                case "Hidden": hiddenCount++; break;
+                case "Blackout": blackoutCount++; break;
+                case "BlindCurtain": blindCurtainCount++; break;
+                case "ShortCircuit": shortCircuitCount++; break;
+            }
+        }
+
+        Debug.Log($"[Stage6 로드 요약] stageIndex={currentStageIndex} stageID={data.stageID} size={data.width}x{data.height} start=({data.startPoint.x},{data.startPoint.y}) igniter={igniterCount} hidden={hiddenCount} blackout={blackoutCount} blindCurtain={blindCurtainCount} shortCircuit={shortCircuitCount}");
+    }
+
+    public static string DescribeTileForDebug(Tile tile)
+    {
+        if (tile == null)
+            return "null";
+
+        List<string> tags = new List<string>();
+        if (tile.GetComponent<IgniterTile>() != null) tags.Add("Igniter");
+        if (tile.GetComponent<HiddenTile>() != null) tags.Add("Hidden");
+        if (tile.GetComponent<BlackoutTile>() != null) tags.Add("Blackout");
+        if (tile.GetComponent<BlindCurtainTile>() != null) tags.Add("BlindCurtain");
+        if (tile.GetComponent<ShortCircuitTile>() != null) tags.Add("ShortCircuit");
+        if (tile.GetComponent<FixedKnotTile>() != null) tags.Add("FixedKnot");
+        if (tile.GetComponent<CrossBlastTile>() != null) tags.Add("CrossBlast");
+        if (tile.GetComponent<TwinLinkTile>() != null) tags.Add("TwinLink");
+        string typeSummary = tags.Count > 0 ? string.Join("+", tags) : "Normal";
+        return $"({tile.X},{tile.Y}) count={tile.CurrentNumber} active={tile.IsActive} type={typeSummary}";
+    }
+
+    private string DescribeCurrentPathForDebug()
+    {
+        if (currentPath == null || currentPath.Count == 0)
+            return "[]";
+
+        List<string> parts = new List<string>(currentPath.Count);
+        foreach (Tile tile in currentPath)
+            parts.Add(DescribeTileForDebug(tile));
+        return "[" + string.Join(" -> ", parts) + "]";
+    }
+
+    private string DescribeTilePickCandidates(Vector2 screenPoint, Tile preferAdjacentTo = null)
+    {
+        if (mainCamera == null)
+            return "camera=null";
+
+        Vector2 worldPoint = ScreenToWorld2D(screenPoint);
+        Collider2D[] cols = preferAdjacentTo != null
+            ? Physics2D.OverlapCircleAll(worldPoint, TilePickRadius)
+            : Physics2D.OverlapPointAll(worldPoint);
+        if (cols == null || cols.Length == 0)
+            return $"world=({worldPoint.x:F3},{worldPoint.y:F3}) candidates=[]";
+
+        HashSet<Tile> seen = new HashSet<Tile>();
+        List<string> parts = new List<string>();
+        foreach (Collider2D col in cols)
+        {
+            Tile tile = col.GetComponent<Tile>();
+            if (tile == null)
+                tile = col.GetComponentInParent<Tile>();
+            if (tile == null || !seen.Add(tile))
+                continue;
+
+            bool adjacent = preferAdjacentTo != null && IsAdjacent(preferAdjacentTo, tile);
+            parts.Add($"{DescribeTileForDebug(tile)}, adjacent={adjacent}");
+        }
+
+        return $"world=({worldPoint.x:F3},{worldPoint.y:F3}) candidates=[{string.Join(" | ", parts)}]";
     }
 
 #if UNITY_EDITOR
