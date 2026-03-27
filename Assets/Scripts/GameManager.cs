@@ -969,6 +969,18 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
+        var shortCircuitHit = hit.GetComponent<ShortCircuitTile>();
+        if (shortCircuitHit != null && shortCircuitHit.IsBlockedEntryFrom(last.X, last.Y))
+        {
+            ShowMoveRuleSnackbar(
+                $"short_circuit_entry:{hit.X}:{hit.Y}:{shortCircuitHit.DirectionLocalizationKey}",
+                "snackbar_short_circuit_blocked_entry",
+                ("direction", GetLocalizedDirectionLabel(shortCircuitHit.DirectionLocalizationKey)));
+            if (ShouldLogVerboseStage6Debug())
+                Debug.Log($"[Stage6 이동 거부] reason=short_circuit_entry last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
+            return false;
+        }
+
         var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
         if (shortCircuitLast != null && !shortCircuitLast.IsExitCell(hit.X, hit.Y))
         {

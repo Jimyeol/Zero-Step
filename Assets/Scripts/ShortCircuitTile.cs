@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// 네온 합선(ShortCircuit) 타일: 화살표 방향으로만 이동 가능.
-/// 화살표 방향 셀로만 나갈 수 있고, 반대 방향 셀에서만 들어올 수 있음.
+/// 화살표 방향 셀로만 나갈 수 있고, 화살표 방향 쪽에서의 진입만 금지한다.
 /// 시각적으로는 전용 타일 스프라이트를 사용한다.
 /// </summary>
 [RequireComponent(typeof(Tile))]
@@ -17,12 +17,11 @@ public class ShortCircuitTile : MonoBehaviour
     /// <summary>방향: Up(0,-1), Down(0,1), Right(1,0), Left(-1,0) — 그리드 (col,row) 기준.</summary>
     private int dirX, dirY;
     private int exitX, exitY;
-    private int entryX, entryY;
 
     /// <summary>이동 가능한 셀 (나갈 수 있는 유일한 셀).</summary>
     public (int x, int y) ExitCell => (exitX, exitY);
-    /// <summary>이 타일로 들어올 수 있는 유일한 셀 (화살표 반대 방향).</summary>
-    public (int x, int y) EntryCell => (entryX, entryY);
+    /// <summary>이 타일로 들어오면 안 되는 셀 (화살표가 향한 방향 쪽).</summary>
+    public (int x, int y) BlockedEntryCell => (exitX, exitY);
     public string DirectionLocalizationKey
     {
         get
@@ -54,8 +53,6 @@ public class ShortCircuitTile : MonoBehaviour
         int cy = tile.Y;
         exitX = cx + dirX;
         exitY = cy + dirY;
-        entryX = cx - dirX;
-        entryY = cy - dirY;
     }
 
     private void ParseDirection(string dir)
@@ -76,10 +73,10 @@ public class ShortCircuitTile : MonoBehaviour
         return toX == exitX && toY == exitY;
     }
 
-    /// <summary> (fromX, fromY)에서 이 타일로 들어올 수 있는지 (반대 방향에서만 진입 가능).</summary>
-    public bool IsValidEntryFrom(int fromX, int fromY)
+    /// <summary>(fromX, fromY)에서 이 타일로 진입이 금지되는지.</summary>
+    public bool IsBlockedEntryFrom(int fromX, int fromY)
     {
-        return fromX == entryX && fromY == entryY;
+        return fromX == exitX && fromY == exitY;
     }
 
     private void ApplyTileSprite()
