@@ -23,6 +23,19 @@ public class ShortCircuitTile : MonoBehaviour
     public (int x, int y) ExitCell => (exitX, exitY);
     /// <summary>이 타일로 들어올 수 있는 유일한 셀 (화살표 반대 방향).</summary>
     public (int x, int y) EntryCell => (entryX, entryY);
+    public string DirectionLocalizationKey
+    {
+        get
+        {
+            if (dirX < 0)
+                return "direction_left";
+            if (dirX > 0)
+                return "direction_right";
+            if (dirY < 0)
+                return "direction_up";
+            return "direction_down";
+        }
+    }
 
     private void Awake()
     {

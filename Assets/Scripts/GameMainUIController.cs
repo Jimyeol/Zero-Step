@@ -224,6 +224,7 @@ public class GameMainUIController : MonoBehaviour
     private bool isVibrationOn = true;
     private string selectedLanguageCode = GameLocalization.LanguageAuto;
     private string activeLanguageCode = "en";
+    public string ActiveLanguageCode => activeLanguageCode;
     private bool isDebugBuildCached;
     private volatile bool pendingBannerLoadFromInitialize;
     private volatile bool pendingRewardedAdLoadFromInitialize;
@@ -1820,7 +1821,48 @@ public class GameMainUIController : MonoBehaviour
         return message.Trim();
     }
 
-    private void ShowStageSnackbar(string message, int animationVersion)
+    public void ShowGameplaySnackbar(string localizationKey, params (string key, string value)[] replacements)
+    {
+        ShowGameplaySnackbar(localizationKey, 1.6f, replacements);
+    }
+
+    public void ShowGameplaySnackbar(string localizationKey, float durationSeconds, params (string key, string value)[] replacements)
+    {
+        if (string.IsNullOrWhiteSpace(localizationKey))
+            return;
+
+        string message = replacements != null && replacements.Length > 0
+            ? T(localizationKey, replacements)
+            : T(localizationKey);
+        if (string.IsNullOrWhiteSpace(message))
+            return;
+
+        StopStageSnackbarPlayback();
+        stageSnackbarRoutine = StartCoroutine(PlayGameplaySnackbar(message.Trim(), durationSeconds));
+    }
+
+    private IEnumerator PlayGameplaySnackbar(string message, float durationSeconds)
+    {
+        if (stageSnackbar == null || stageSnackbarLabel == null)
+            yield break;
+
+        stageSnackbarAnimationVersion++;
+        int animationVersion = stageSnackbarAnimationVersion;
+
+        ShowStageSnackbar(message, animationVersion, logAnalytics: false);
+        yield return new WaitForSecondsRealtime(Mathf.Max(0.8f, durationSeconds));
+
+        if (!IsCurrentStageSnackbarAnimationVersion(animationVersion))
+            yield break;
+
+        HideStageSnackbar(animationVersion);
+        yield return new WaitForSecondsRealtime(0.2f);
+
+        if (IsCurrentStageSnackbarAnimationVersion(animationVersion))
+            stageSnackbarRoutine = null;
+    }
+
+    private void ShowStageSnackbar(string message, int animationVersion, bool logAnalytics = true)
     {
         if (stageSnackbar == null || stageSnackbarLabel == null)
             return;
@@ -1838,11 +1880,14 @@ public class GameMainUIController : MonoBehaviour
             stageSnackbar.style.scale = new StyleScale(new Scale(Vector3.one));
         }).StartingIn(12);
 
-        FirebaseBootstrap.LogEvent("stage_snackbar_show", new Dictionary<string, object>
+        if (logAnalytics)
         {
-            { "stage_index", currentStageIndexForUI },
-            { "message", message }
-        });
+            FirebaseBootstrap.LogEvent("stage_snackbar_show", new Dictionary<string, object>
+            {
+                { "stage_index", currentStageIndexForUI },
+                { "message", message }
+            });
+        }
     }
 
     private void HideStageSnackbar(int animationVersion)

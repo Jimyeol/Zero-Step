@@ -30,14 +30,18 @@ public class FixedKnotTile : MonoBehaviour
     private int targetOrderValue;
     private bool isAbsoluteValue;
     private Tween fadeTween;
+    private Tween positionShakeTween;
     private int displayRemaining = 99;
     private Sprite defaultSprite;
     private Sprite lockedSprite;
+    private Vector3 baseLocalPosition;
+    private bool hasBaseLocalPosition;
 
     /// <summary>반드시 이 스텝 수에만 진입 가능 (1-based).</summary>
     public int TargetOrder => targetOrderValue;
     /// <summary>순서가 틀리면 진입 불가 후 게임오버(암전·리셋).</summary>
     public bool IsAbsolute => isAbsoluteValue;
+    public int CurrentRequiredOrder => Mathf.Max(1, displayRemaining);
 
     /// <summary>스테이지 데이터 기반 초기화. 그리드 생성 시 GameManager가 호출.</summary>
     public void Setup(int targetOrder, bool isAbsolute)
@@ -56,6 +60,11 @@ public class FixedKnotTile : MonoBehaviour
         tile = GetComponent<Tile>();
         tileSpriteRenderer = GetComponent<SpriteRenderer>();
         defaultSprite = tileSpriteRenderer != null ? tileSpriteRenderer.sprite : null;
+    }
+
+    private void Start()
+    {
+        CacheBaseLocalPosition();
     }
 
     private void EnsureOrderText()
@@ -216,7 +225,7 @@ public class FixedKnotTile : MonoBehaviour
         if (fadeTween != null && fadeTween.IsActive())
             fadeTween.Kill();
 
-        transform.DOShakePosition(0.15f, unlockShakeStrength, 12, 90f, false, true).SetUpdate(true);
+        PlayPositionShake(0.15f, unlockShakeStrength, 12);
         yield return new WaitForSeconds(0.15f);
 
         if (tileSpriteRenderer != null)
@@ -238,9 +247,12 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>잘못된 순서로 진입 시도 시 타일을 붉게 흔들어 피드백.</summary>
     public void PlayWrongOrderShake()
     {
+        if (positionShakeTween != null && positionShakeTween.IsActive())
+            return;
+
         float duration = 0.35f;
         float strength = 0.14f;
-        transform.DOShakePosition(duration, strength, 18, 90f, false, true).SetUpdate(true);
+        PlayPositionShake(duration, strength, 18);
         if (tileSpriteRenderer != null)
         {
             Color orig = tileSpriteRenderer.color;
@@ -250,6 +262,38 @@ public class FixedKnotTile : MonoBehaviour
                     tileSpriteRenderer.DOColor(orig, 0.3f).SetUpdate(true);
             });
         }
+    }
+
+    private void CacheBaseLocalPosition()
+    {
+        if (hasBaseLocalPosition)
+            return;
+
+        baseLocalPosition = transform.localPosition;
+        hasBaseLocalPosition = true;
+    }
+
+    private void PlayPositionShake(float duration, float strength, int vibrato)
+    {
+        CacheBaseLocalPosition();
+
+        if (positionShakeTween != null && positionShakeTween.IsActive())
+            positionShakeTween.Kill();
+
+        transform.localPosition = baseLocalPosition;
+        positionShakeTween = transform
+            .DOShakePosition(duration, strength, vibrato, 90f, false, true)
+            .SetUpdate(true)
+            .OnKill(() =>
+            {
+                transform.localPosition = baseLocalPosition;
+                positionShakeTween = null;
+            })
+            .OnComplete(() =>
+            {
+                transform.localPosition = baseLocalPosition;
+                positionShakeTween = null;
+            });
     }
 
     /// <summary>게임오버 리셋 시 잠금 타일과 순서 숫자를 다시 표시.</summary>
@@ -313,6 +357,8 @@ public class FixedKnotTile : MonoBehaviour
     {
         if (fadeTween != null && fadeTween.IsActive())
             fadeTween.Kill();
+        if (positionShakeTween != null && positionShakeTween.IsActive())
+            positionShakeTween.Kill();
         if (orderText != null)
             Destroy(orderText.gameObject);
     }

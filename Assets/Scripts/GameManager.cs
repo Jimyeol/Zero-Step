@@ -246,8 +246,10 @@ public class GameManager : MonoBehaviour
     [Header("UI Toolkit 상단 UI")]
     [Tooltip("GameMainUI.uxml을 사용하는 UIDocument가 있는 오브젝트에 붙은 컨트롤러")]
     [SerializeField] private GameMainUIController mainUI;
+    [SerializeField] [Range(0.8f, 3f)] private float gameplayRuleSnackbarDuration = 1.6f;
     /// <summary>각 스테이지 시작 시 전체 타일 카운트(합). 진행도 계산용.</summary>
     private int initialTileCountForUI;
+    private string lastMoveRuleSnackbarId;
     private bool sessionFreeHeartRefillGrantedAt10Minutes;
     private bool sessionFreeHeartRefillGrantedAt20Minutes;
     private bool isApplicationPaused;
@@ -785,6 +787,7 @@ public class GameManager : MonoBehaviour
             Tile hit = GetTileAtScreen(screenPoint);
             if (hit != currentStartTile || !CanEnterTile(hit))
                 return;
+            ClearMoveRuleSnackbarState();
             if (ShouldLogVerboseStage6Debug())
             {
                 Vector2 pointerWorld = ScreenToWorld2D(screenPoint);
@@ -806,6 +809,7 @@ public class GameManager : MonoBehaviour
             currentPath.RemoveAll(t => t == null);
             if (currentPath.Count == 0)
             {
+                ClearMoveRuleSnackbarState();
                 isDragging = false;
                 return;
             }
@@ -825,6 +829,7 @@ public class GameManager : MonoBehaviour
                 Tile last = currentPath[currentPath.Count - 1];
                 if (last == null)
                 {
+                    ClearMoveRuleSnackbarState();
                     isDragging = false;
                     currentPath.Clear();
                     return;
@@ -884,6 +889,7 @@ public class GameManager : MonoBehaviour
         // 손 뗄 때는 항상 커밋(터치만 해도 하트비트·라인 갱신). 타일 추가는 pointerHeld일 때만 해서 터치만 할 때 DecreaseNumber 방지.
         if (pointerUp)
         {
+            ClearMoveRuleSnackbarState();
             isDragging = false;
             ResetTrail();
             CommitPathAndSetCurrentPosition();
@@ -966,6 +972,10 @@ public class GameManager : MonoBehaviour
         var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
         if (shortCircuitLast != null && !shortCircuitLast.IsExitCell(hit.X, hit.Y))
         {
+            ShowMoveRuleSnackbar(
+                $"short_circuit:{last.X}:{last.Y}:{shortCircuitLast.DirectionLocalizationKey}",
+                "snackbar_short_circuit_only_direction",
+                ("direction", GetLocalizedDirectionLabel(shortCircuitLast.DirectionLocalizationKey)));
             if (ShouldLogVerboseStage6Debug())
                 Debug.Log($"[Stage6 이동 거부] reason=short_circuit_exit last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
             return false;
@@ -974,6 +984,10 @@ public class GameManager : MonoBehaviour
         if (fixedKnotHit != null && !fixedKnotHit.CanEnter(nextStepNumber))
         {
             fixedKnotHit.PlayWrongOrderShake();
+            ShowMoveRuleSnackbar(
+                $"fixed_knot:{hit.X}:{hit.Y}:{fixedKnotHit.CurrentRequiredOrder}",
+                "snackbar_fixed_knot_only_order",
+                ("order", fixedKnotHit.CurrentRequiredOrder.ToString()));
             if (ShouldLogVerboseStage6Debug())
                 Debug.Log($"[Stage6 이동 거부] reason=fixed_knot_order last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
             return false;
@@ -1047,10 +1061,41 @@ public class GameManager : MonoBehaviour
         if (!ValidateMoveRules(last, hit, nextStepNumber, out var fixedKnotHit))
             return;
 
+        ClearMoveRuleSnackbarState();
         ApplyLeaveTileEffects(last, hit);
         FinalizeStep(last, hit, GetStepLabel(last, hit, fixedKnotHit));
         int totalPathCount = GetTotalPathCount();
         ApplyEnterTileEffects(hit, fixedKnotHit, totalPathCount);
+    }
+
+    private void ClearMoveRuleSnackbarState()
+    {
+        lastMoveRuleSnackbarId = null;
+    }
+
+    private void ShowMoveRuleSnackbar(string snackbarId, string localizationKey, params (string key, string value)[] replacements)
+    {
+        if (string.IsNullOrWhiteSpace(snackbarId) || lastMoveRuleSnackbarId == snackbarId)
+            return;
+
+        lastMoveRuleSnackbarId = snackbarId;
+
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI == null)
+            return;
+
+        mainUI.ShowGameplaySnackbar(localizationKey, gameplayRuleSnackbarDuration, replacements);
+    }
+
+    private string GetLocalizedDirectionLabel(string directionLocalizationKey)
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI == null)
+            return directionLocalizationKey;
+
+        return GameLocalization.Get(directionLocalizationKey, mainUI.ActiveLanguageCode);
     }
 
     /// <summary>드래그 중 인접 타일 검색 시 포인터 주변 반경(월드). count 1인 ShortCircuit 등이 놓치지 않도록.</summary>
