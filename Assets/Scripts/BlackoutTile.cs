@@ -11,7 +11,8 @@ public class BlackoutTile : MonoBehaviour
 {
     [Header("스프라이트")]
     [SerializeField] private string tileSpritePath = "Sprites/blind_curtain_tile";
-    [SerializeField] private float coverScale = 1f;
+    [Tooltip("기본 타일 내부에 커버가 여유 있게 들어오도록 최종 스케일에 곱할 비율")]
+    [SerializeField] private float coverScale = 0.9f;
 
     [Header("노이즈·플리커")]
     [Tooltip("정적 노이즈 밝기 (0~1)")]
@@ -62,6 +63,7 @@ public class BlackoutTile : MonoBehaviour
     private void Start()
     {
         HideQuestionText();
+        SyncOverlayVisibility();
         StartPulseTween();
         glitchRoutine = StartCoroutine(GlitchFlickerRoutine());
     }
@@ -114,7 +116,7 @@ public class BlackoutTile : MonoBehaviour
         coverObject.transform.SetParent(transform);
         coverObject.transform.localPosition = new Vector3(0f, 0f, -0.01f);
         coverObject.transform.localRotation = Quaternion.identity;
-        coverObject.transform.localScale = Vector3.one * coverScale;
+        coverObject.transform.localScale = Vector3.one * GetFittedCoverScale(tileSpriteRenderer.sprite, tileSprite);
 
         coverRenderer = coverObject.AddComponent<SpriteRenderer>();
         coverRenderer.sprite = tileSprite;
@@ -122,6 +124,22 @@ public class BlackoutTile : MonoBehaviour
         if (tileSpriteRenderer.sharedMaterial != null)
             coverRenderer.sharedMaterial = tileSpriteRenderer.sharedMaterial;
         coverRenderer.color = tileSpriteRenderer.color;
+    }
+
+    private float GetFittedCoverScale(Sprite baseSprite, Sprite coverSprite)
+    {
+        if (baseSprite == null || coverSprite == null)
+            return Mathf.Max(0.01f, coverScale);
+
+        Vector2 baseSize = baseSprite.bounds.size;
+        Vector2 coverSize = coverSprite.bounds.size;
+        if (baseSize.x <= 0f || baseSize.y <= 0f || coverSize.x <= 0f || coverSize.y <= 0f)
+            return Mathf.Max(0.01f, coverScale);
+
+        float widthRatio = baseSize.x / coverSize.x;
+        float heightRatio = baseSize.y / coverSize.y;
+        float fitScale = Mathf.Min(1f, Mathf.Min(widthRatio, heightRatio));
+        return Mathf.Max(0.01f, fitScale * coverScale);
     }
 
     private void CreateNoiseOverlay()
@@ -228,7 +246,19 @@ public class BlackoutTile : MonoBehaviour
     private void LateUpdate()
     {
         HideQuestionText();
+        SyncOverlayVisibility();
         if (coverRenderer != null && tileSpriteRenderer != null)
             coverRenderer.color = tileSpriteRenderer.color;
+    }
+
+    private void SyncOverlayVisibility()
+    {
+        bool shouldShow = tile != null && tile.IsActive && tileSpriteRenderer != null && tileSpriteRenderer.enabled;
+
+        if (coverObject != null && coverObject.activeSelf != shouldShow)
+            coverObject.SetActive(shouldShow);
+
+        if (noiseOverlay != null && noiseOverlay.gameObject.activeSelf != shouldShow)
+            noiseOverlay.gameObject.SetActive(shouldShow);
     }
 }
