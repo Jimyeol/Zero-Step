@@ -142,10 +142,10 @@ TextureImporter:
       name: blind_curtain_tile_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 512
-        height: 512
+        x: 75
+        y: 96
+        width: 359
+        height: 324
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
