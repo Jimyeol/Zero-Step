@@ -31,6 +31,7 @@ public class GameManager : MonoBehaviour
     [Header("참조")]
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private Camera mainCamera;
+    [SerializeField] private ProceduralGridBackground proceduralBackground;
     [Tooltip("TwinLink 타일 전기 효과용. Assets/LightningBolt/SimpleLightningBoltAnimatedPrefab 할당")]
     [SerializeField] private GameObject twinLinkLightningPrefab;
 
@@ -330,8 +331,23 @@ public class GameManager : MonoBehaviour
         PlayNewStageSfx();
         PrewarmUpcomingStages();
         NotifySplashStageBootstrapCompleted();
-        TrackStageStarted("app_launch");
+        HandleStageStarted("app_launch");
         ConfigureDeviceMaxFrameRate();
+    }
+
+    private void HandleStageStarted(string entryType)
+    {
+        RandomizeBackgroundGridFlow();
+        TrackStageStarted(entryType);
+    }
+
+    private void RandomizeBackgroundGridFlow()
+    {
+        if (proceduralBackground == null)
+            proceduralBackground = FindFirstObjectByType<ProceduralGridBackground>();
+
+        if (proceduralBackground != null)
+            proceduralBackground.RandomizeGridFlowDirection(currentStageIndex);
     }
 
     private void TrackStageStarted(string entryType)
@@ -399,7 +415,7 @@ public class GameManager : MonoBehaviour
             { "from_stage_index", skippedStageIndex },
             { "to_stage_index", currentStageIndex }
         });
-        TrackStageStarted("manual_skip");
+        HandleStageStarted("manual_skip");
     }
 
     /// <summary>데이터 초기화 직후 호출: 1스테이지로 즉시 복귀하고 진행도를 1로 저장.</summary>
@@ -451,7 +467,7 @@ public class GameManager : MonoBehaviour
             { "from_stage_index", previousStageIndex },
             { "to_stage_index", currentStageIndex }
         });
-        TrackStageStarted("progress_reset");
+        HandleStageStarted("progress_reset");
     }
 
     private void Update()
@@ -1880,7 +1896,7 @@ public class GameManager : MonoBehaviour
         RefreshMainUIForStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
-        TrackStageStarted("auto_restart_after_fail");
+        HandleStageStarted("auto_restart_after_fail");
 
         isGameOverSequencePlaying = false;
     }
@@ -1973,7 +1989,7 @@ public class GameManager : MonoBehaviour
         RefreshMainUIForStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
-        TrackStageStarted("manual_reset");
+        HandleStageStarted("manual_reset");
         isGameOverSequencePlaying = false;
     }
 
@@ -2012,13 +2028,13 @@ public class GameManager : MonoBehaviour
                     return;
 
                 if (TryAdvanceToNextStage())
-                    TrackStageStarted("auto_next_stage");
+                    HandleStageStarted("auto_next_stage");
             });
         }
         else
         {
             if (TryAdvanceToNextStage())
-                TrackStageStarted("auto_next_stage");
+                HandleStageStarted("auto_next_stage");
         }
     }
 

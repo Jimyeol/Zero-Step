@@ -25,6 +25,10 @@ public class ProceduralGridBackground : MonoBehaviour
     [SerializeField] private FilterMode gridFilterMode = FilterMode.Bilinear;
     [SerializeField] private int gridSortingOrder = -110;
 
+    [Header("Grid Motion")]
+    [SerializeField] private bool gridMotionEnabled = true;
+    [SerializeField] [Min(0f)] private float gridScrollSpeed = 0.035f;
+
     [Header("Glow")]
     [SerializeField] [Min(32)] private int glowTextureSize = 256;
     [SerializeField] private Color glowColor = new Color(0f, 0.88f, 1f, 0.72f);
@@ -52,6 +56,13 @@ public class ProceduralGridBackground : MonoBehaviour
     private const string BottomGlowName = "BottomGlow";
     private const string BottomGlowCoreName = "BottomGlowCore";
     private const float MetricEpsilon = 0.0001f;
+    private static readonly Vector2[] GridFlowDirections =
+    {
+        Vector2.right,
+        Vector2.left,
+        new Vector2(1f, 1f).normalized,
+        new Vector2(-1f, 1f).normalized
+    };
 
     private Transform basePlane;
     private Transform gridPlane;
@@ -71,6 +82,10 @@ public class ProceduralGridBackground : MonoBehaviour
     private int cachedScreenWidth = -1;
     private int cachedScreenHeight = -1;
     private Vector3 cachedCameraPosition = new Vector3(float.NaN, float.NaN, float.NaN);
+    private readonly System.Random gridFlowRandom = new System.Random();
+    private Vector2 gridScrollDirection = Vector2.right;
+    private Vector2 gridScrollOffset;
+    private int lastGridFlowDirectionIndex = -1;
 
     private void Awake()
     {
@@ -87,6 +102,7 @@ public class ProceduralGridBackground : MonoBehaviour
     {
         EnsureSetup();
         RefitIfNeeded();
+        AdvanceGridMotion();
     }
 
     private void OnDestroy()
@@ -102,6 +118,7 @@ public class ProceduralGridBackground : MonoBehaviour
         gridTextureSize = SnapTextureSizeToWholeCells(gridTextureSize, gridCellPixels);
         gridLinePixels = Mathf.Clamp(gridLinePixels, 1, gridCellPixels);
         gridWorldCellSize = Mathf.Max(0.05f, gridWorldCellSize);
+        gridScrollSpeed = Mathf.Max(0f, gridScrollSpeed);
         glowTextureSize = Mathf.Max(32, glowTextureSize);
         glowIntensity = Mathf.Max(0f, glowIntensity);
         glowWidthScale = Mathf.Max(0.1f, glowWidthScale);
@@ -110,6 +127,24 @@ public class ProceduralGridBackground : MonoBehaviour
         coreGlowHeightScale = Mathf.Max(0.1f, coreGlowHeightScale);
     }
 #endif
+
+    public void RandomizeGridFlowDirection(int stageIndex)
+    {
+        int directionIndex = gridFlowRandom.Next(GridFlowDirections.Length);
+        if (GridFlowDirections.Length > 1 && directionIndex == lastGridFlowDirectionIndex)
+            directionIndex = (directionIndex + 1 + Mathf.Abs(stageIndex % (GridFlowDirections.Length - 1))) % GridFlowDirections.Length;
+
+        lastGridFlowDirectionIndex = directionIndex;
+        SetGridFlowDirection(GridFlowDirections[directionIndex]);
+    }
+
+    public void SetGridFlowDirection(Vector2 direction)
+    {
+        if (direction.sqrMagnitude <= MetricEpsilon)
+            direction = Vector2.right;
+
+        gridScrollDirection = direction.normalized;
+    }
 
     private void EnsureSetup()
     {
@@ -370,6 +405,17 @@ public class ProceduralGridBackground : MonoBehaviour
             material.SetTextureScale("_MainTex", scale);
     }
 
+    private static void SetMaterialTextureOffset(Material material, Vector2 offset)
+    {
+        if (material == null)
+            return;
+
+        if (material.HasProperty("_BaseMap"))
+            material.SetTextureOffset("_BaseMap", offset);
+        if (material.HasProperty("_MainTex"))
+            material.SetTextureOffset("_MainTex", offset);
+    }
+
     private void EnsurePlanes()
     {
         basePlane = EnsurePlane(BasePlaneName, baseMaterial, baseSortingOrder);
@@ -486,6 +532,20 @@ public class ProceduralGridBackground : MonoBehaviour
         cachedScreenWidth = Screen.width;
         cachedScreenHeight = Screen.height;
         cachedCameraPosition = cameraPosition;
+    }
+
+    private void AdvanceGridMotion()
+    {
+        if (!gridMotionEnabled || gridMaterial == null || gridScrollSpeed <= 0f)
+            return;
+
+        if (gridScrollDirection.sqrMagnitude <= MetricEpsilon)
+            gridScrollDirection = Vector2.right;
+
+        gridScrollOffset += gridScrollDirection.normalized * gridScrollSpeed * Time.deltaTime;
+        gridScrollOffset.x = Mathf.Repeat(gridScrollOffset.x, 1f);
+        gridScrollOffset.y = Mathf.Repeat(gridScrollOffset.y, 1f);
+        SetMaterialTextureOffset(gridMaterial, gridScrollOffset);
     }
 
     private float GetGridCellsPerTexture()

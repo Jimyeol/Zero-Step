@@ -3,7 +3,7 @@ using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// 네온 퍼즐 타일. 그리드 좌표(x,y), 숫자별 색상(4+ 핑크, 2~3 민트, 1 하늘색), HDR 발광, 0 시 꺼짐.
+/// 네온 퍼즐 타일. 그리드 좌표(x,y), 숫자별 색상 팔레트, HDR 발광, 0 시 꺼짐.
 /// 숫자 감소 시 코루틴으로 0.9x → 1.0x 텐션 애니메이션.
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
@@ -55,10 +55,19 @@ public class Tile : MonoBehaviour
     private int baseNumberTextSortingOrder;
     private int baseStartLabelSortingOrder;
 
-    // 요구 색상: 4+ 핑크(#FF00FF), 2~3 민트(#00FFCC), 1 하늘색(#87CEFA), 0 어두운 회색
-    private static readonly Color Pink = new Color(1f, 0f, 1f, 1f);           // #FF00FF
-    private static readonly Color Mint = new Color(0f, 1f, 0.8f, 1f);         // #00FFCC
-    private static readonly Color SkyBlue = new Color(0.53f, 0.81f, 0.98f, 1f); // #87CEFA
+    private static readonly Color[] NumberPalette =
+    {
+        new Color32(0x70, 0xDF, 0xF8, 0xFF), // 1
+        new Color32(0x54, 0xF5, 0xA4, 0xFF), // 2
+        new Color32(0xFA, 0xA1, 0x66, 0xFF), // 3
+        new Color32(0xF5, 0x5F, 0xD5, 0xFF), // 4
+        new Color32(0xA7, 0x7C, 0xFF, 0xFF), // 5
+        new Color32(0xF7, 0xE7, 0x5C, 0xFF), // 6
+        new Color32(0xFF, 0x5D, 0x73, 0xFF), // 7
+        new Color32(0xB6, 0xF8, 0x5C, 0xFF), // 8
+        new Color32(0x5B, 0x8C, 0xFF, 0xFF), // 9
+        new Color32(0xF4, 0xF0, 0xFF, 0xFF), // 10+
+    };
     private static readonly Color DarkGrayOff = new Color(0.2f, 0.2f, 0.2f, 1f);
 
     public int X => gridX;
@@ -84,6 +93,14 @@ public class Tile : MonoBehaviour
 
     /// <summary>타일 -1 시 파티클 개수 배율 (1.3 = 30% 증가).</summary>
     private const float HitEffectParticleCountScale = 1.3f;
+    private const float NumberFaceAlpha = 0.1f;
+    private const float NumberOutlineAlpha = 1f;
+    private const float NumberOutlineWidth = 0.42f;
+    private const float NumberGlowAlpha = 0.5f;
+    private const float NumberGlowOffset = 0f;
+    private const float NumberGlowPower = 0.45f;
+    private const float NumberGlowOuter = 0.3f;
+    private const float NumberGlowInner = 0.05f;
 
     private void Awake()
     {
@@ -260,7 +277,7 @@ public class Tile : MonoBehaviour
     {
         if (spriteRenderer != null) spriteRenderer.color = c;
         if (tileImage != null && tileImage != spriteRenderer) tileImage.color = c;
-        if (numberText != null) { numberText.color = c; ApplyTMPGlow(numberText, c); }
+        ApplyTMPOutlineNumberStyle(numberText, c);
     }
 
     /// <summary>
@@ -474,19 +491,22 @@ public class Tile : MonoBehaviour
     }
 
     /// <summary>
-    /// 숫자별 색상 적용: 4+ 핑크, 2~3 민트, 1 하늘색. HDR 발광(Color * 2.0). 0이면 어두운 회색 후 꺼짐.
+    /// 숫자별 색상 적용. 0이면 어두운 회색 후 꺼짐.
     /// </summary>
     private void ApplyNumberColor()
     {
         Color hdrColor;
+        Color numberDisplayColor;
         if (numberColorOverride.HasValue && currentNumber > 0)
         {
-            hdrColor = numberColorOverride.Value * hdrIntensity;
+            numberDisplayColor = numberColorOverride.Value;
+            hdrColor = numberDisplayColor * hdrIntensity;
             if (isStartPoint) hdrColor *= 1.3f * StartPointTint;
         }
         else
         {
             Color baseColor = GetBaseColorForNumber(currentNumber);
+            numberDisplayColor = baseColor;
             float emissionMult = hdrIntensity;
             if (isStartPoint && currentNumber > 0)
                 emissionMult *= 1.3f; // 시작 타일 Emission 강화
@@ -494,6 +514,8 @@ public class Tile : MonoBehaviour
             if (isStartPoint && currentNumber > 0)
                 hdrColor *= StartPointTint;
         }
+        if (isStartPoint && currentNumber > 0)
+            numberDisplayColor *= StartPointTint;
 
         if (spriteRenderer != null)
             spriteRenderer.color = hdrColor;
@@ -502,8 +524,7 @@ public class Tile : MonoBehaviour
 
         if (numberText != null)
         {
-            numberText.color = hdrColor;
-            ApplyTMPGlow(numberText, hdrColor);
+            ApplyTMPOutlineNumberStyle(numberText, numberDisplayColor);
         }
     }
 
@@ -513,15 +534,18 @@ public class Tile : MonoBehaviour
     private void ApplyNumberColorWithoutStartBoost()
     {
         Color hdrColor;
+        Color numberDisplayColor;
         if (numberColorOverride.HasValue && currentNumber > 0)
         {
-            hdrColor = numberColorOverride.Value * hdrIntensity;
+            numberDisplayColor = numberColorOverride.Value;
+            hdrColor = numberDisplayColor * hdrIntensity;
             if (spriteRenderer != null) spriteRenderer.color = hdrColor;
             if (tileImage != null && tileImage != spriteRenderer) tileImage.color = hdrColor;
-            if (numberText != null) { numberText.color = hdrColor; ApplyTMPGlow(numberText, hdrColor); }
+            ApplyTMPOutlineNumberStyle(numberText, numberDisplayColor);
             return;
         }
         Color baseColor = GetBaseColorForNumber(currentNumber);
+        numberDisplayColor = baseColor;
         hdrColor = baseColor * hdrIntensity;
 
         if (spriteRenderer != null)
@@ -531,38 +555,64 @@ public class Tile : MonoBehaviour
 
         if (numberText != null)
         {
-            numberText.color = hdrColor;
-            ApplyTMPGlow(numberText, hdrColor);
+            ApplyTMPOutlineNumberStyle(numberText, numberDisplayColor);
         }
     }
 
     private static Color GetBaseColorForNumber(int n)
     {
-        if (n >= 4) return Pink;
-        if (n >= 2) return Mint;
-        if (n >= 1) return SkyBlue;
-        return DarkGrayOff;
+        if (n <= 0)
+            return DarkGrayOff;
+
+        int paletteIndex = Mathf.Clamp(n, 1, NumberPalette.Length) - 1;
+        return NumberPalette[paletteIndex];
     }
 
     /// <summary>
-    /// TMP Glow Color를 타일 색상과 동기화 (Orbitron SDF 등).
+    /// 타일 숫자를 TMP 머티리얼 인스턴스 기반 outline-only 네온 스타일로 동기화.
     /// </summary>
-    private static void ApplyTMPGlow(TMP_Text tmp, Color hdrColor)
+    private static void ApplyTMPOutlineNumberStyle(TMP_Text tmp, Color displayColor)
     {
         if (tmp == null) return;
-        Material mat = tmp.fontSharedMaterial;
-        if (mat == null || !mat.HasProperty(ShaderUtilities.ID_GlowColor)) return;
+
+        Color vertexColor = displayColor;
+        vertexColor.a = Mathf.Clamp01(vertexColor.a);
+        tmp.color = vertexColor;
 
         Material instanceMat = tmp.fontMaterial;
-        if (instanceMat != null)
+        if (instanceMat == null)
+            return;
+
+        Color faceColor = displayColor;
+        faceColor.a = NumberFaceAlpha;
+        Color outlineColor = displayColor;
+        outlineColor.a = NumberOutlineAlpha;
+        Color glowColor = displayColor;
+        glowColor.a = NumberGlowAlpha;
+
+        if (instanceMat.HasProperty(ShaderUtilities.ID_FaceColor))
+            instanceMat.SetColor(ShaderUtilities.ID_FaceColor, faceColor);
+        if (instanceMat.HasProperty(ShaderUtilities.ID_OutlineColor))
+            instanceMat.SetColor(ShaderUtilities.ID_OutlineColor, outlineColor);
+        if (instanceMat.HasProperty(ShaderUtilities.ID_OutlineWidth))
+            instanceMat.SetFloat(ShaderUtilities.ID_OutlineWidth, NumberOutlineWidth);
+
+        if (instanceMat.HasProperty(ShaderUtilities.ID_GlowColor))
         {
             instanceMat.EnableKeyword(ShaderUtilities.Keyword_Glow);
-            instanceMat.SetColor(ShaderUtilities.ID_GlowColor, hdrColor);
-            instanceMat.SetFloat(ShaderUtilities.ID_GlowOffset, 0f);
-            instanceMat.SetFloat(ShaderUtilities.ID_GlowPower, 0.5f);
-            instanceMat.SetFloat(ShaderUtilities.ID_GlowOuter, 0.4f);
-            instanceMat.SetFloat(ShaderUtilities.ID_GlowInner, 0.05f);
+            instanceMat.SetColor(ShaderUtilities.ID_GlowColor, glowColor);
+            if (instanceMat.HasProperty(ShaderUtilities.ID_GlowOffset))
+                instanceMat.SetFloat(ShaderUtilities.ID_GlowOffset, NumberGlowOffset);
+            if (instanceMat.HasProperty(ShaderUtilities.ID_GlowPower))
+                instanceMat.SetFloat(ShaderUtilities.ID_GlowPower, NumberGlowPower);
+            if (instanceMat.HasProperty(ShaderUtilities.ID_GlowOuter))
+                instanceMat.SetFloat(ShaderUtilities.ID_GlowOuter, NumberGlowOuter);
+            if (instanceMat.HasProperty(ShaderUtilities.ID_GlowInner))
+                instanceMat.SetFloat(ShaderUtilities.ID_GlowInner, NumberGlowInner);
         }
+
+        tmp.UpdateMeshPadding();
+        tmp.SetMaterialDirty();
     }
 
     private void SetActiveState(bool active)
