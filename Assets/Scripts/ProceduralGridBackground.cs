@@ -12,6 +12,14 @@ public class ProceduralGridBackground : MonoBehaviour
     [SerializeField] private bool followCameraPosition = true;
     [SerializeField] private float backgroundZ = 2f;
 
+    [Header("Shaders")]
+    [Tooltip("Optional override. Leave empty to use the built-in Sprites/Default shader, which is compatible with the 2D renderer.")]
+    [SerializeField] private Shader baseShader;
+    [Tooltip("Optional override. Leave empty to use the built-in Sprites/Default shader, which supports texture offset animation.")]
+    [SerializeField] private Shader gridShader;
+    [Tooltip("Optional override. Leave empty to use the first supported additive/particle shader.")]
+    [SerializeField] private Shader glowShader;
+
     [Header("Base Plane")]
     [SerializeField] private Color basePlaneColor = new Color(0.008f, 0.031f, 0.051f, 1f);
     [SerializeField] private int baseSortingOrder = -120;
@@ -24,6 +32,10 @@ public class ProceduralGridBackground : MonoBehaviour
     [SerializeField] private Color gridLineColor = new Color(0.03f, 0.34f, 0.42f, 0.34f);
     [SerializeField] private FilterMode gridFilterMode = FilterMode.Bilinear;
     [SerializeField] private int gridSortingOrder = -110;
+    [Tooltip("When enabled, the visible grid density stays tied to a reference camera size instead of growing with larger stages.")]
+    [SerializeField] private bool lockGridDensityToReferenceCameraSize = true;
+    [Tooltip("Fallback reference orthographic size. 0 means use the current camera size until GameManager supplies the 2x2 reference.")]
+    [SerializeField] [Min(0f)] private float referenceOrthographicSize;
 
     [Header("Grid Motion")]
     [SerializeField] private bool gridMotionEnabled = true;
@@ -56,6 +68,18 @@ public class ProceduralGridBackground : MonoBehaviour
     private const string BottomGlowName = "BottomGlow";
     private const string BottomGlowCoreName = "BottomGlowCore";
     private const float MetricEpsilon = 0.0001f;
+    private const int DefaultGridTextureSize = 128;
+    private const int DefaultGridCellPixels = 16;
+    private const int DefaultGridLinePixels = 1;
+    private const float DefaultGridWorldCellSize = 1.1f;
+    private const float DefaultGridScrollSpeed = 0.035f;
+    private const int DefaultGlowTextureSize = 256;
+    private const float DefaultGlowIntensity = 0.135f;
+    private const float DefaultGlowWidthScale = 1.45f;
+    private const float DefaultGlowHeightScale = 0.72f;
+    private const float DefaultCoreGlowWidthScale = 0.55f;
+    private const float DefaultCoreGlowHeightScale = 0.32f;
+    private const float DefaultAspect = 9f / 16f;
     private static readonly Vector2[] GridFlowDirections =
     {
         Vector2.right,
@@ -70,6 +94,7 @@ public class ProceduralGridBackground : MonoBehaviour
     private Transform coreGlowPlane;
 
     private Mesh quadMesh;
+    private Mesh gridMesh;
     private Texture2D gridTexture;
     private Texture2D glowTexture;
     private Material baseMaterial;
@@ -83,9 +108,13 @@ public class ProceduralGridBackground : MonoBehaviour
     private int cachedScreenHeight = -1;
     private Vector3 cachedCameraPosition = new Vector3(float.NaN, float.NaN, float.NaN);
     private readonly System.Random gridFlowRandom = new System.Random();
+    private readonly Vector2[] gridUvBuffer = new Vector2[4];
     private Vector2 gridScrollDirection = Vector2.right;
     private Vector2 gridScrollOffset;
+    private Vector2 currentGridTiling = Vector2.one;
     private int lastGridFlowDirectionIndex = -1;
+    private float runtimeReferenceOrthographicSize = -1f;
+    private bool runtimeCorrectionLogged;
 
     private void Awake()
     {
@@ -113,18 +142,7 @@ public class ProceduralGridBackground : MonoBehaviour
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        gridTextureSize = Mathf.Max(16, gridTextureSize);
-        gridCellPixels = Mathf.Clamp(gridCellPixels, 4, gridTextureSize);
-        gridTextureSize = SnapTextureSizeToWholeCells(gridTextureSize, gridCellPixels);
-        gridLinePixels = Mathf.Clamp(gridLinePixels, 1, gridCellPixels);
-        gridWorldCellSize = Mathf.Max(0.05f, gridWorldCellSize);
-        gridScrollSpeed = Mathf.Max(0f, gridScrollSpeed);
-        glowTextureSize = Mathf.Max(32, glowTextureSize);
-        glowIntensity = Mathf.Max(0f, glowIntensity);
-        glowWidthScale = Mathf.Max(0.1f, glowWidthScale);
-        glowHeightScale = Mathf.Max(0.1f, glowHeightScale);
-        coreGlowWidthScale = Mathf.Max(0.1f, coreGlowWidthScale);
-        coreGlowHeightScale = Mathf.Max(0.1f, coreGlowHeightScale);
+        SanitizeSettings(false);
     }
 #endif
 
@@ -146,8 +164,21 @@ public class ProceduralGridBackground : MonoBehaviour
         gridScrollDirection = direction.normalized;
     }
 
+    public void SetGridReferenceOrthographicSize(float orthographicSize)
+    {
+        float sanitizedSize = Mathf.Max(0f, orthographicSize);
+        if (Mathf.Abs(runtimeReferenceOrthographicSize - sanitizedSize) <= MetricEpsilon)
+            return;
+
+        runtimeReferenceOrthographicSize = sanitizedSize;
+        EnsureSetup();
+        ForceRefit();
+    }
+
     private void EnsureSetup()
     {
+        SanitizeSettings(true);
+
         if (targetCamera == null)
             targetCamera = Camera.main;
 
@@ -159,30 +190,39 @@ public class ProceduralGridBackground : MonoBehaviour
 
     private void EnsureQuadMesh()
     {
-        if (quadMesh != null)
-            return;
-
-        quadMesh = new Mesh
+        if (quadMesh == null)
+            quadMesh = CreateQuadMesh("ProceduralBackgroundQuad");
+        if (gridMesh == null)
         {
-            name = "ProceduralBackgroundQuad"
+            gridMesh = CreateQuadMesh("ProceduralBackgroundGridQuad");
+            gridMesh.MarkDynamic();
+        }
+    }
+
+    private static Mesh CreateQuadMesh(string meshName)
+    {
+        Mesh mesh = new Mesh
+        {
+            name = meshName
         };
-        quadMesh.vertices = new[]
+        mesh.vertices = new[]
         {
             new Vector3(-0.5f, -0.5f, 0f),
             new Vector3(0.5f, -0.5f, 0f),
             new Vector3(-0.5f, 0.5f, 0f),
             new Vector3(0.5f, 0.5f, 0f)
         };
-        quadMesh.uv = new[]
+        mesh.uv = new[]
         {
             new Vector2(0f, 0f),
             new Vector2(1f, 0f),
             new Vector2(0f, 1f),
             new Vector2(1f, 1f)
         };
-        quadMesh.triangles = new[] { 0, 2, 1, 1, 2, 3 };
-        quadMesh.RecalculateBounds();
-        quadMesh.hideFlags = HideFlags.DontSave;
+        mesh.triangles = new[] { 0, 2, 1, 1, 2, 3 };
+        mesh.RecalculateBounds();
+        mesh.hideFlags = HideFlags.DontSave;
+        return mesh;
     }
 
     private void EnsureGeneratedTextures()
@@ -284,7 +324,7 @@ public class ProceduralGridBackground : MonoBehaviour
 
     private Material CreateBaseMaterial()
     {
-        Shader shader = FindFirstShader("Universal Render Pipeline/Unlit", "Unlit/Color", "Sprites/Default");
+        Shader shader = ResolveShader(baseShader, "Sprites/Default", "Universal Render Pipeline/Unlit", "Unlit/Color");
         Material material = new Material(shader)
         {
             name = "GeneratedBackgroundBaseMaterial",
@@ -299,7 +339,7 @@ public class ProceduralGridBackground : MonoBehaviour
 
     private Material CreateGridMaterial()
     {
-        Shader shader = FindFirstShader("Universal Render Pipeline/Unlit", "Unlit/Transparent", "Sprites/Default");
+        Shader shader = ResolveShader(gridShader, "Sprites/Default", "Universal Render Pipeline/Unlit", "Unlit/Transparent");
         Material material = new Material(shader)
         {
             name = "GeneratedBackgroundGridMaterial",
@@ -308,6 +348,7 @@ public class ProceduralGridBackground : MonoBehaviour
         ConfigureTransparentMaterial(material);
         SetMaterialColor(material, Color.white);
         SetMaterialTexture(material, gridTexture);
+        ResetGridMaterialUvTransform(material);
         material.renderQueue = (int)RenderQueue.Transparent;
         MaterialRebuildCount++;
         LogRebuild("grid material", MaterialRebuildCount);
@@ -316,7 +357,7 @@ public class ProceduralGridBackground : MonoBehaviour
 
     private Material CreateGlowMaterial(string materialName)
     {
-        Shader shader = FindFirstShader("Legacy Shaders/Particles/Additive", "Particles/Standard Unlit", "Sprites/Default");
+        Shader shader = ResolveShader(glowShader, "Legacy Shaders/Particles/Additive", "Particles/Standard Unlit", "Sprites/Default");
         Material material = new Material(shader)
         {
             name = materialName,
@@ -331,17 +372,28 @@ public class ProceduralGridBackground : MonoBehaviour
         return material;
     }
 
+    private Shader ResolveShader(Shader preferredShader, params string[] shaderNames)
+    {
+        if (preferredShader != null && preferredShader.isSupported)
+            return preferredShader;
+
+        if (preferredShader != null)
+            Debug.LogWarning($"[ProceduralGridBackground] Assigned shader is not supported on this platform: {preferredShader.name}", this);
+
+        return FindFirstShader(shaderNames);
+    }
+
     private static Shader FindFirstShader(params string[] shaderNames)
     {
         for (int i = 0; i < shaderNames.Length; i++)
         {
             Shader shader = Shader.Find(shaderNames[i]);
-            if (shader != null)
+            if (shader != null && shader.isSupported)
                 return shader;
         }
 
         Shader fallback = Shader.Find("Sprites/Default");
-        if (fallback != null)
+        if (fallback != null && fallback.isSupported)
             return fallback;
 
         return Shader.Find("Unlit/Color");
@@ -444,7 +496,7 @@ public class ProceduralGridBackground : MonoBehaviour
         MeshFilter meshFilter = child.GetComponent<MeshFilter>();
         if (meshFilter == null)
             meshFilter = child.gameObject.AddComponent<MeshFilter>();
-        meshFilter.sharedMesh = quadMesh;
+        meshFilter.sharedMesh = planeName == GridPlaneName ? gridMesh : quadMesh;
 
         MeshRenderer meshRenderer = child.GetComponent<MeshRenderer>();
         if (meshRenderer == null)
@@ -474,9 +526,10 @@ public class ProceduralGridBackground : MonoBehaviour
         if (targetCamera == null || !targetCamera.orthographic)
             return;
 
+        float aspect = CalculateCameraAspect(targetCamera);
         bool metricsChanged =
             Mathf.Abs(cachedOrthoSize - targetCamera.orthographicSize) > MetricEpsilon ||
-            Mathf.Abs(cachedAspect - targetCamera.aspect) > MetricEpsilon ||
+            Mathf.Abs(cachedAspect - aspect) > MetricEpsilon ||
             cachedScreenWidth != Screen.width ||
             cachedScreenHeight != Screen.height;
 
@@ -502,8 +555,9 @@ public class ProceduralGridBackground : MonoBehaviour
         if (targetCamera == null || !targetCamera.orthographic)
             return;
 
+        float aspect = CalculateCameraAspect(targetCamera);
         float height = targetCamera.orthographicSize * 2f;
-        float width = height * targetCamera.aspect;
+        float width = height * aspect;
         Vector3 cameraPosition = targetCamera.transform.position;
         if (followCameraPosition)
             transform.position = new Vector3(cameraPosition.x, cameraPosition.y, backgroundZ);
@@ -521,17 +575,45 @@ public class ProceduralGridBackground : MonoBehaviour
         float coreCenterY = -height * 0.5f + coreHeight * 0.5f + coreGlowYOffset;
         SetPlaneTransform(coreGlowPlane, new Vector3(0f, coreCenterY, -0.03f), coreWidth, coreHeight);
 
+        float gridTilingHeight = height;
+        float gridTilingWidth = width;
+        float referenceSize = GetGridReferenceOrthographicSize();
+        if (referenceSize > MetricEpsilon)
+        {
+            gridTilingHeight = referenceSize * 2f;
+            gridTilingWidth = gridTilingHeight * aspect;
+        }
+
         float cellsPerTexture = GetGridCellsPerTexture();
         Vector2 tiling = new Vector2(
-            Mathf.Max(0.001f, width / Mathf.Max(0.05f, gridWorldCellSize) / cellsPerTexture),
-            Mathf.Max(0.001f, height / Mathf.Max(0.05f, gridWorldCellSize) / cellsPerTexture));
-        SetMaterialTextureScale(gridMaterial, tiling);
+            Mathf.Max(0.001f, gridTilingWidth / Mathf.Max(0.05f, gridWorldCellSize) / cellsPerTexture),
+            Mathf.Max(0.001f, gridTilingHeight / Mathf.Max(0.05f, gridWorldCellSize) / cellsPerTexture));
+        currentGridTiling = tiling;
+        ResetGridMaterialUvTransform(gridMaterial);
+        ApplyGridMeshUvs();
 
         cachedOrthoSize = targetCamera.orthographicSize;
-        cachedAspect = targetCamera.aspect;
+        cachedAspect = aspect;
         cachedScreenWidth = Screen.width;
         cachedScreenHeight = Screen.height;
         cachedCameraPosition = cameraPosition;
+    }
+
+    public static float CalculateCameraAspect(Camera camera)
+    {
+        if (camera != null)
+        {
+            Rect pixelRect = camera.pixelRect;
+            if (pixelRect.width > MetricEpsilon && pixelRect.height > MetricEpsilon)
+                return pixelRect.width / pixelRect.height;
+            if (camera.aspect > MetricEpsilon)
+                return camera.aspect;
+        }
+
+        if (Screen.width > 0 && Screen.height > 0)
+            return (float)Screen.width / Screen.height;
+
+        return DefaultAspect;
     }
 
     private void AdvanceGridMotion()
@@ -545,7 +627,29 @@ public class ProceduralGridBackground : MonoBehaviour
         gridScrollOffset += gridScrollDirection.normalized * gridScrollSpeed * Time.deltaTime;
         gridScrollOffset.x = Mathf.Repeat(gridScrollOffset.x, 1f);
         gridScrollOffset.y = Mathf.Repeat(gridScrollOffset.y, 1f);
-        SetMaterialTextureOffset(gridMaterial, gridScrollOffset);
+        ApplyGridMeshUvs();
+    }
+
+    private void ApplyGridMeshUvs()
+    {
+        if (gridMesh == null)
+            return;
+
+        Vector2 tiling = new Vector2(
+            Mathf.Max(0.001f, currentGridTiling.x),
+            Mathf.Max(0.001f, currentGridTiling.y));
+        Vector2 offset = gridScrollOffset;
+        gridUvBuffer[0] = offset;
+        gridUvBuffer[1] = offset + new Vector2(tiling.x, 0f);
+        gridUvBuffer[2] = offset + new Vector2(0f, tiling.y);
+        gridUvBuffer[3] = offset + tiling;
+        gridMesh.uv = gridUvBuffer;
+    }
+
+    private static void ResetGridMaterialUvTransform(Material material)
+    {
+        SetMaterialTextureScale(material, Vector2.one);
+        SetMaterialTextureOffset(material, Vector2.zero);
     }
 
     private float GetGridCellsPerTexture()
@@ -553,6 +657,116 @@ public class ProceduralGridBackground : MonoBehaviour
         int cell = Mathf.Clamp(gridCellPixels, 4, Mathf.Max(16, gridTextureSize));
         int size = SnapTextureSizeToWholeCells(gridTextureSize, cell);
         return Mathf.Max(1f, size / (float)cell);
+    }
+
+    private float GetGridReferenceOrthographicSize()
+    {
+        if (runtimeReferenceOrthographicSize > MetricEpsilon)
+            return runtimeReferenceOrthographicSize;
+        if (!lockGridDensityToReferenceCameraSize)
+            return 0f;
+        if (referenceOrthographicSize > MetricEpsilon)
+            return referenceOrthographicSize;
+
+        return 0f;
+    }
+
+    private void SanitizeSettings(bool restoreMotionDefaults)
+    {
+        bool corrected = false;
+
+        if (gridTextureSize < 16)
+        {
+            gridTextureSize = DefaultGridTextureSize;
+            corrected = true;
+        }
+
+        gridCellPixels = Mathf.Clamp(gridCellPixels <= 0 ? DefaultGridCellPixels : gridCellPixels, 4, gridTextureSize);
+        int snappedTextureSize = SnapTextureSizeToWholeCells(gridTextureSize, gridCellPixels);
+        if (snappedTextureSize != gridTextureSize)
+        {
+            gridTextureSize = snappedTextureSize;
+            corrected = true;
+        }
+
+        int sanitizedLinePixels = Mathf.Clamp(gridLinePixels <= 0 ? DefaultGridLinePixels : gridLinePixels, 1, gridCellPixels);
+        if (sanitizedLinePixels != gridLinePixels)
+        {
+            gridLinePixels = sanitizedLinePixels;
+            corrected = true;
+        }
+
+        if (gridWorldCellSize <= 0.05f)
+        {
+            gridWorldCellSize = DefaultGridWorldCellSize;
+            corrected = true;
+        }
+
+        if (restoreMotionDefaults && !gridMotionEnabled)
+        {
+            gridMotionEnabled = true;
+            corrected = true;
+        }
+
+        if (gridScrollSpeed <= MetricEpsilon)
+        {
+            gridScrollSpeed = DefaultGridScrollSpeed;
+            corrected = true;
+        }
+
+        if (referenceOrthographicSize < 0f)
+        {
+            referenceOrthographicSize = 0f;
+            corrected = true;
+        }
+
+        if (glowTextureSize < 32)
+        {
+            glowTextureSize = DefaultGlowTextureSize;
+            corrected = true;
+        }
+
+        if (glowIntensity < 0f)
+        {
+            glowIntensity = DefaultGlowIntensity;
+            corrected = true;
+        }
+
+        if (glowWidthScale <= 0.1f)
+        {
+            glowWidthScale = DefaultGlowWidthScale;
+            corrected = true;
+        }
+
+        if (glowHeightScale <= 0.1f)
+        {
+            glowHeightScale = DefaultGlowHeightScale;
+            corrected = true;
+        }
+
+        if (coreGlowWidthScale <= 0.1f)
+        {
+            coreGlowWidthScale = DefaultCoreGlowWidthScale;
+            corrected = true;
+        }
+
+        if (coreGlowHeightScale <= 0.1f)
+        {
+            coreGlowHeightScale = DefaultCoreGlowHeightScale;
+            corrected = true;
+        }
+
+        if (gridScrollDirection.sqrMagnitude <= MetricEpsilon)
+        {
+            gridScrollDirection = Vector2.right;
+            corrected = true;
+        }
+
+        if (corrected && !runtimeCorrectionLogged && Application.isPlaying)
+        {
+            runtimeCorrectionLogged = true;
+            Debug.LogWarning("[ProceduralGridBackground] Corrected invalid serialized background settings at runtime.", this);
+        }
     }
 
     private static int SnapTextureSizeToWholeCells(int requestedSize, int cellPixels)
@@ -583,6 +797,7 @@ public class ProceduralGridBackground : MonoBehaviour
         DestroyGeneratedTexture(ref gridTexture);
         DestroyGeneratedTexture(ref glowTexture);
         DestroyGeneratedMesh(ref quadMesh);
+        DestroyGeneratedMesh(ref gridMesh);
     }
 
     private static void DestroyGeneratedMaterial(ref Material material)

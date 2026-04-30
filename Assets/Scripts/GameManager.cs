@@ -124,6 +124,8 @@ public class GameManager : MonoBehaviour
     private const int VerboseDebugStageIndex = 6;
     private const float SessionFreeHeartRefillFirstThresholdSeconds = 10f * 60f;
     private const float SessionFreeHeartRefillSecondThresholdSeconds = 20f * 60f;
+    private const int BackgroundGridReferenceColumns = 2;
+    private const int BackgroundGridReferenceRows = 2;
     public static bool VerboseStage6DebugEnabled { get; private set; }
 
     [Header("성능 (디바이스 최대 FPS)")]
@@ -337,17 +339,38 @@ public class GameManager : MonoBehaviour
 
     private void HandleStageStarted(string entryType)
     {
+        SyncBackgroundGridReferenceCameraSize();
         RandomizeBackgroundGridFlow();
         TrackStageStarted(entryType);
     }
 
     private void RandomizeBackgroundGridFlow()
     {
+        ProceduralGridBackground background = EnsureProceduralBackground();
+        if (background != null)
+            background.RandomizeGridFlowDirection(currentStageIndex);
+    }
+
+    private void SyncBackgroundGridReferenceCameraSize()
+    {
+        ProceduralGridBackground background = EnsureProceduralBackground();
+        if (background == null || mainCamera == null || !mainCamera.orthographic)
+            return;
+        if (tileWidth <= 0f || tileHeight <= 0f)
+            return;
+
+        float referenceGridWidth = GetGridWorldSpan(BackgroundGridReferenceColumns, tileWidth);
+        float referenceGridHeight = GetGridWorldSpan(BackgroundGridReferenceRows, tileHeight);
+        float referenceOrthographicSize = CalculateCameraOrthographicSizeForGrid(referenceGridWidth, referenceGridHeight, GetCameraAspect());
+        background.SetGridReferenceOrthographicSize(referenceOrthographicSize);
+    }
+
+    private ProceduralGridBackground EnsureProceduralBackground()
+    {
         if (proceduralBackground == null)
             proceduralBackground = FindFirstObjectByType<ProceduralGridBackground>();
 
-        if (proceduralBackground != null)
-            proceduralBackground.RandomizeGridFlowDirection(currentStageIndex);
+        return proceduralBackground;
     }
 
     private void TrackStageStarted(string entryType)
@@ -2386,7 +2409,15 @@ public class GameManager : MonoBehaviour
     private void AdjustCameraToFitGrid()
     {
         if (mainCamera == null || !mainCamera.orthographic) return;
-        float aspect = (float)Screen.width / Screen.height;
+
+        mainCamera.orthographicSize = CalculateCameraOrthographicSizeForGrid(totalGridWidth, totalGridHeight, GetCameraAspect());
+        mainCamera.transform.position = new Vector3(0f, 0f, mainCamera.transform.position.z);
+        mainCamera.rect = new Rect(0f, 0f, 1f, 1f);
+    }
+
+    private float CalculateCameraOrthographicSizeForGrid(float gridWidth, float gridHeight, float aspect)
+    {
+        float safeAspect = Mathf.Max(0.01f, aspect);
 
         // 뷰포트를 자르지 않고 전체 화면을 써서 발광(블룸)이 경계에서 잘리지 않도록 함.
         // 대신 orthographicSize를 키워 그리드가 상·하단 UI 사이 '중앙 밴드'에만 들어가게 함.
@@ -2394,12 +2425,23 @@ public class GameManager : MonoBehaviour
         float bottom = Mathf.Clamp01(uiBottomMarginNormalized);
         float centerBandHeight = Mathf.Clamp(1f - top - bottom, 0.2f, 1f);
 
-        float sizeByHeight = (totalGridHeight * 0.5f * fitMargin) / centerBandHeight;
-        float sizeByWidth = (totalGridWidth * 0.5f) / aspect * fitMargin;
+        float sizeByHeight = (gridHeight * 0.5f * fitMargin) / centerBandHeight;
+        float sizeByWidth = (gridWidth * 0.5f) / safeAspect * fitMargin;
         float fitSize = Mathf.Max(sizeByHeight, sizeByWidth);
-        mainCamera.orthographicSize = fitSize * screenEdgePadding;
-        mainCamera.transform.position = new Vector3(0f, 0f, mainCamera.transform.position.z);
-        mainCamera.rect = new Rect(0f, 0f, 1f, 1f);
+        return fitSize * screenEdgePadding;
+    }
+
+    private float GetCameraAspect()
+    {
+        return ProceduralGridBackground.CalculateCameraAspect(mainCamera);
+    }
+
+    private float GetGridWorldSpan(int tileCount, float tileSize)
+    {
+        if (tileCount <= 0)
+            return 0f;
+
+        return tileCount * tileSize + (tileCount - 1) * padding;
     }
 
     /// <summary>
