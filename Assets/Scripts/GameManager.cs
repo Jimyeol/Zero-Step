@@ -57,6 +57,16 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float trailTime = 0.5f;
     [Tooltip("트레일 꼭지점 최소 간격. 작을수록 부드러운 선")]
     [SerializeField] private float trailMinVertexDistance = 0.1f;
+    [Tooltip("속 빈 네온 윤곽선 트레일 셰이더. 비어 있으면 Resources/Shaders/HollowNeonTrail을 사용")]
+    [SerializeField] private Shader hollowTrailShader;
+    [Tooltip("트레일 폭 중 양쪽 윤곽선이 차지하는 비율")]
+    [SerializeField] [Range(0.02f, 0.45f)] private float trailOutlineWidth = 0.18f;
+    [Tooltip("윤곽선 가장자리 부드러움")]
+    [SerializeField] [Range(0.005f, 0.2f)] private float trailOutlineSoftness = 0.04f;
+    [Tooltip("Bloom에 걸리는 바깥 광원 폭")]
+    [SerializeField] [Range(0.05f, 1f)] private float trailGlowWidth = 0.58f;
+    [Tooltip("속 부분의 아주 약한 투명 잔광. 0이면 완전히 비어 보임")]
+    [SerializeField] [Range(0f, 0.2f)] private float trailCenterAlpha = 0.015f;
     [Tooltip("손 뗀 후 경로(링크) 점등 해제까지 대기 시간(초)")]
     [SerializeField] private float pathLitClearDelay = 1f;
 
@@ -245,6 +255,13 @@ public class GameManager : MonoBehaviour
         new Color(0.6f, 0.2f, 1f, 1f),
         new Color(0.2f, 0.5f, 1f, 1f)
     };
+    private static readonly int TrailTintColorId = Shader.PropertyToID("_TintColor");
+    private static readonly int TrailOutlineWidthId = Shader.PropertyToID("_EdgeWidth");
+    private static readonly int TrailOutlineSoftnessId = Shader.PropertyToID("_EdgeSoftness");
+    private static readonly int TrailGlowWidthId = Shader.PropertyToID("_GlowWidth");
+    private static readonly int TrailGlowAlphaId = Shader.PropertyToID("_GlowAlpha");
+    private static readonly int TrailGlowIntensityId = Shader.PropertyToID("_GlowIntensity");
+    private static readonly int TrailCenterAlphaId = Shader.PropertyToID("_CenterAlpha");
 
     [Header("UI Toolkit 상단 UI")]
     [Tooltip("GameMainUI.uxml을 사용하는 UIDocument가 있는 오브젝트에 붙은 컨트롤러")]
@@ -2249,7 +2266,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    /// <summary>Multi-Color Neon Trail: 4색+ 그라데이션, HDR 머티리얼(강도 2+), 시작 밝게·끝 투명.</summary>
+    /// <summary>Multi-Color Neon Trail: 속 빈 윤곽선 셰이더 + 4색 그라데이션, 시작 밝게·끝 투명.</summary>
     private void CreateNeonTrail()
     {
         GameObject trailGo = new GameObject("NeonTrail");
@@ -2260,26 +2277,80 @@ public class GameManager : MonoBehaviour
         neonTrail.time = trailTime;
         neonTrail.minVertexDistance = trailMinVertexDistance;
         neonTrail.emitting = false;
+        neonTrail.textureMode = LineTextureMode.Stretch;
+        neonTrail.alignment = LineAlignment.View;
+        neonTrail.numCapVertices = 6;
+        neonTrail.numCornerVertices = 4;
+        neonTrail.shadowCastingMode = ShadowCastingMode.Off;
+        neonTrail.receiveShadows = false;
 
         AnimationCurve widthCurve = new AnimationCurve();
         widthCurve.AddKey(0f, 0.5f);
         widthCurve.AddKey(1f, 0f);
         neonTrail.widthCurve = widthCurve;
 
-        // Bloom 극대화: 그라데이션 색상에 HDR 강도(trailHdrIntensity) 적용. 머티리얼은 Additive로 블룸 노출
-        Shader additiveShader = Shader.Find("Legacy Shaders/Particles/Additive") ?? Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
-        Material trailMat = new Material(additiveShader);
-        if (additiveShader != null && additiveShader.name.Contains("Additive"))
-            trailMat.SetColor("_TintColor", Color.white);
-        else
-            trailMat.color = Color.white;
-        neonTrail.material = trailMat;
+        Material trailMat = CreateNeonTrailMaterial();
+        if (trailMat != null)
+            neonTrail.material = trailMat;
 
         // 4색 이상 그라데이션: 시작(손가락)은 가장 밝게, 끝(꼬리)은 Alpha 0. 순환은 UpdateNeonTrailColor에서 처리
         ApplyNeonTrailGradient(0f);
 
         neonTrail.sortingOrder = 10;
         neonTrailTransform = trailGo.transform;
+    }
+
+    private Material CreateNeonTrailMaterial()
+    {
+        Shader shader = ResolveHollowTrailShader();
+        bool useHollowShader = shader != null;
+        if (shader == null)
+            shader = Shader.Find("Legacy Shaders/Particles/Additive") ?? Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
+        if (shader == null)
+        {
+            Debug.LogWarning("[GameManager] 네온 트레일 셰이더를 찾지 못했습니다. 기본 TrailRenderer 머티리얼을 사용합니다.");
+            return null;
+        }
+
+        Material trailMat = new Material(shader)
+        {
+            name = useHollowShader ? "Hollow Neon Trail (Runtime)" : "Fallback Neon Trail (Runtime)"
+        };
+
+        if (trailMat.HasProperty(TrailTintColorId))
+            trailMat.SetColor(TrailTintColorId, Color.white);
+        else
+            trailMat.color = Color.white;
+
+        if (useHollowShader)
+        {
+            SetTrailMaterialFloat(trailMat, TrailOutlineWidthId, trailOutlineWidth);
+            SetTrailMaterialFloat(trailMat, TrailOutlineSoftnessId, trailOutlineSoftness);
+            SetTrailMaterialFloat(trailMat, TrailGlowWidthId, trailGlowWidth);
+            SetTrailMaterialFloat(trailMat, TrailGlowAlphaId, 0.42f);
+            SetTrailMaterialFloat(trailMat, TrailGlowIntensityId, 0.75f);
+            SetTrailMaterialFloat(trailMat, TrailCenterAlphaId, trailCenterAlpha);
+        }
+
+        return trailMat;
+    }
+
+    private Shader ResolveHollowTrailShader()
+    {
+        if (hollowTrailShader != null)
+            return hollowTrailShader;
+
+        Shader shader = Resources.Load<Shader>("Shaders/HollowNeonTrail");
+        if (shader != null)
+            return shader;
+
+        return Shader.Find("ZeroStep/HollowNeonTrail");
+    }
+
+    private static void SetTrailMaterialFloat(Material material, int propertyId, float value)
+    {
+        if (material != null && material.HasProperty(propertyId))
+            material.SetFloat(propertyId, value);
     }
 
     /// <summary>Time.time 기반으로 그라데이션 색상 키를 순환(Shift)시키고, 특수 타일 Lerp 중이면 해당 컬러로 블렌드.</summary>
