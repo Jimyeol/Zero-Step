@@ -4,6 +4,8 @@
       "id": "tile_unlock_preview_48_to_50",
       "stageIndex": 48,
       "targetStageIndex": 50,
+      "tileType": "ShortCircuit",
+      "displayName": "ShortCircuit",
       "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8
@@ -12,6 +14,8 @@
       "id": "tile_unlock_preview_98_to_100",
       "stageIndex": 98,
       "targetStageIndex": 100,
+      "tileType": "CrossBlast",
+      "displayName": "CrossBlast",
       "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8
@@ -20,6 +24,8 @@
       "id": "tile_unlock_preview_113_to_115",
       "stageIndex": 113,
       "targetStageIndex": 115,
+      "tileType": "FixedKnot",
+      "displayName": "Fixed",
       "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8
@@ -28,6 +34,8 @@
       "id": "tile_unlock_preview_138_to_140",
       "stageIndex": 138,
       "targetStageIndex": 140,
+      "tileType": "TwinLink",
+      "displayName": "TwinLink",
       "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8
@@ -36,6 +44,8 @@
       "id": "tile_unlock_preview_168_to_170",
       "stageIndex": 168,
       "targetStageIndex": 170,
+      "tileType": "Igniter",
+      "displayName": "Igniter",
       "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8
@@ -44,6 +54,18 @@
       "id": "tile_unlock_preview_198_to_200",
       "stageIndex": 198,
       "targetStageIndex": 200,
+      "tileType": "BlindCurtain",
+      "displayName": "BlindCurtain",
+      "messageKey": "snackbar_default_new_tile_unlock",
+      "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
+      "duration": 2.8
+    },
+    {
+      "id": "tile_unlock_preview_228_to_230",
+      "stageIndex": 228,
+      "targetStageIndex": 230,
+      "tileType": "Blackout",
+      "displayName": "BlackOut",
       "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8

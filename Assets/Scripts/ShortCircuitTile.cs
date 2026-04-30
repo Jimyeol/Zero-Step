@@ -14,6 +14,9 @@ public class ShortCircuitTile : MonoBehaviour
 
     private Tile tile;
     private SpriteRenderer spriteRenderer;
+    private SpriteRenderer directionVisualRenderer;
+    private Transform directionVisualTransform;
+    private Sprite tileSprite;
     /// <summary>방향: Up(0,-1), Down(0,1), Right(1,0), Left(-1,0) — 그리드 (col,row) 기준.</summary>
     private int dirX, dirY;
     private int exitX, exitY;
@@ -43,6 +46,11 @@ public class ShortCircuitTile : MonoBehaviour
         ApplyTileSprite();
     }
 
+    private void LateUpdate()
+    {
+        SyncDirectionVisualRenderer();
+    }
+
     /// <summary>
     /// GameManager가 생성 시 호출. direction 문자열과 그리드 범위로 출구/입구 셀 계산.
     /// </summary>
@@ -53,6 +61,7 @@ public class ShortCircuitTile : MonoBehaviour
         int cy = tile.Y;
         exitX = cx + dirX;
         exitY = cy + dirY;
+        ApplyDirectionVisualRotation();
     }
 
     private void ParseDirection(string dir)
@@ -84,12 +93,69 @@ public class ShortCircuitTile : MonoBehaviour
         if (spriteRenderer == null)
             return;
 
-        Sprite tileSprite = Resources.Load<Sprite>(tileSpritePath);
+        tileSprite = Resources.Load<Sprite>(tileSpritePath);
         if (tileSprite == null)
         {
             Debug.LogWarning($"[ShortCircuitTile] Resources/{tileSpritePath} 을(를) 찾을 수 없습니다.");
             return;
         }
-        spriteRenderer.sprite = tileSprite;
+
+        EnsureDirectionVisualRenderer();
+        SyncDirectionVisualRenderer();
+        ApplyDirectionVisualRotation();
+    }
+
+    private void EnsureDirectionVisualRenderer()
+    {
+        if (directionVisualRenderer != null)
+            return;
+
+        GameObject visualObject = new GameObject("ShortCircuitDirectionVisual");
+        directionVisualTransform = visualObject.transform;
+        directionVisualTransform.SetParent(transform);
+        directionVisualTransform.localPosition = Vector3.zero;
+        directionVisualTransform.localRotation = Quaternion.identity;
+        directionVisualTransform.localScale = Vector3.one;
+
+        directionVisualRenderer = visualObject.AddComponent<SpriteRenderer>();
+        directionVisualRenderer.sprite = tileSprite;
+        if (spriteRenderer.sharedMaterial != null)
+            directionVisualRenderer.sharedMaterial = spriteRenderer.sharedMaterial;
+    }
+
+    private void SyncDirectionVisualRenderer()
+    {
+        if (directionVisualRenderer == null || spriteRenderer == null)
+            return;
+
+        directionVisualRenderer.sprite = tileSprite;
+        directionVisualRenderer.color = spriteRenderer.color;
+        directionVisualRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+        directionVisualRenderer.sortingOrder = spriteRenderer.sortingOrder;
+        directionVisualRenderer.maskInteraction = spriteRenderer.maskInteraction;
+        directionVisualRenderer.enabled = tile == null || tile.IsActive;
+
+        if (spriteRenderer.enabled)
+            spriteRenderer.enabled = false;
+    }
+
+    private void ApplyDirectionVisualRotation()
+    {
+        if (directionVisualTransform == null)
+            return;
+
+        directionVisualTransform.localEulerAngles = new Vector3(0f, 0f, GetSpriteRotationZ());
+    }
+
+    private float GetSpriteRotationZ()
+    {
+        if (dirX > 0)
+            return 180f;
+        if (dirY < 0)
+            return -90f;
+        if (dirY > 0)
+            return 90f;
+
+        return 0f;
     }
 }
