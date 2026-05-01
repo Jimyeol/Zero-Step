@@ -17,7 +17,7 @@ public class ShortCircuitTile : MonoBehaviour
     private SpriteRenderer directionVisualRenderer;
     private Transform directionVisualTransform;
     private Sprite tileSprite;
-    /// <summary>방향: Up(0,-1), Down(0,1), Right(1,0), Left(-1,0) — 그리드 (col,row) 기준.</summary>
+    /// <summary>방향: Up(0,1), Down(0,-1), Right(1,0), Left(-1,0) — 화면 배치 기준.</summary>
     private int dirX, dirY;
     private int exitX, exitY;
 
@@ -33,7 +33,7 @@ public class ShortCircuitTile : MonoBehaviour
                 return "direction_left";
             if (dirX > 0)
                 return "direction_right";
-            if (dirY < 0)
+            if (dirY > 0)
                 return "direction_up";
             return "direction_down";
         }
@@ -68,11 +68,11 @@ public class ShortCircuitTile : MonoBehaviour
     {
         switch (dir.ToUpperInvariant())
         {
-            case "UP":   dirX = 0;  dirY = -1; break;
-            case "DOWN": dirX = 0;  dirY = 1;  break;
+            case "UP":   dirX = 0;  dirY = 1;  break;
+            case "DOWN": dirX = 0;  dirY = -1; break;
             case "RIGHT": dirX = 1;  dirY = 0;  break;
             case "LEFT":  dirX = -1; dirY = 0;  break;
-            default:     dirX = 0;  dirY = 1;  break; // Down
+            default:     dirX = 0;  dirY = -1; break; // Down
         }
     }
 
@@ -151,9 +151,9 @@ public class ShortCircuitTile : MonoBehaviour
     {
         if (dirX > 0)
             return 180f;
-        if (dirY < 0)
-            return -90f;
         if (dirY > 0)
+            return -90f;
+        if (dirY < 0)
             return 90f;
 
         return 0f;
