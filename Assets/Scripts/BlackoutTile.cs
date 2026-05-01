@@ -11,7 +11,7 @@ public class BlackoutTile : MonoBehaviour
 {
     [Header("스프라이트")]
     [SerializeField] private string tileSpritePath = "Sprites/blind_curtain_tile";
-    [SerializeField] private float coverScale = 1f;
+    [SerializeField] private float coverScale = 0.7f;
 
     [Header("노이즈·플리커")]
     [Tooltip("정적 노이즈 밝기 (0~1)")]
@@ -57,6 +57,7 @@ public class BlackoutTile : MonoBehaviour
         CreateCoverSprite();
         CreateNoiseOverlay();
         EnsureOverlaySorting();
+        RefreshVisualState();
     }
 
     private void Start()
@@ -173,6 +174,16 @@ public class BlackoutTile : MonoBehaviour
             questionText.gameObject.SetActive(false);
     }
 
+    private void RefreshVisualState()
+    {
+        bool shouldShow = tile == null || tile.IsActive;
+
+        if (coverObject != null && coverObject.activeSelf != shouldShow)
+            coverObject.SetActive(shouldShow);
+        if (noiseOverlay != null)
+            noiseOverlay.enabled = shouldShow;
+    }
+
     private void StartPulseTween()
     {
         if (questionText == null || !questionText.gameObject.activeInHierarchy) return;
@@ -228,6 +239,7 @@ public class BlackoutTile : MonoBehaviour
     private void LateUpdate()
     {
         HideQuestionText();
+        RefreshVisualState();
         if (coverRenderer != null && tileSpriteRenderer != null)
             coverRenderer.color = tileSpriteRenderer.color;
     }
