@@ -36,6 +36,7 @@ public class FixedKnotTile : MonoBehaviour
     private Sprite lockedSprite;
     private Vector3 baseLocalPosition;
     private bool hasBaseLocalPosition;
+    private bool hasBeenSteppedCorrectly;
 
     /// <summary>반드시 이 스텝 수에만 진입 가능 (1-based).</summary>
     public int TargetOrder => targetOrderValue;
@@ -48,6 +49,7 @@ public class FixedKnotTile : MonoBehaviour
     {
         targetOrderValue = Mathf.Max(1, targetOrder);
         isAbsoluteValue = isAbsolute;
+        hasBeenSteppedCorrectly = false;
         EnsureOrderText();
         ApplyLockedVisual();
         if (tile != null && tile.GetNumberText() != null)
@@ -183,6 +185,8 @@ public class FixedKnotTile : MonoBehaviour
     {
         if (tile == null || !tile.IsActive)
             return false;
+        if (hasBeenSteppedCorrectly)
+            return false;
         return totalPathCount >= targetOrderValue;
     }
 
@@ -207,6 +211,7 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>정확한 순서에 밟았을 때 호출.</summary>
     public void OnSteppedCorrectly()
     {
+        hasBeenSteppedCorrectly = true;
         transform.DOPunchScale(Vector3.one * 0.15f, 0.2f, 4, 0.5f).SetUpdate(true);
     }
 
@@ -299,6 +304,7 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>게임오버 리셋 시 잠금 타일과 순서 숫자를 다시 표시.</summary>
     public void ResetGearVisibility()
     {
+        hasBeenSteppedCorrectly = false;
         displayRemaining = targetOrderValue;
         if (fadeTween != null && fadeTween.IsActive())
             fadeTween.Kill();

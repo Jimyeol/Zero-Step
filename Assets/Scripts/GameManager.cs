@@ -131,6 +131,7 @@ public class GameManager : MonoBehaviour
     private const string StageClearTypeAllTilesZero = "all_tiles_zero";
     private const string StageClearTypeLastTileRule = "last_tile_rule";
     private const string StageFailReasonDeadlock = "deadlock";
+    private const string StageFailReasonFixedKnotMissed = "fixed_knot_missed";
     private const int VerboseDebugStageIndex = 6;
     private const float SessionFreeHeartRefillFirstThresholdSeconds = 10f * 60f;
     private const float SessionFreeHeartRefillSecondThresholdSeconds = 20f * 60f;
@@ -188,6 +189,7 @@ public class GameManager : MonoBehaviour
     /// 플레이 중에는 손을 뗀 마지막 타일로 계속 갱신된다.
     /// </summary>
     private Tile currentStartTile;
+    private Tile gameOverFocusTile;
     /// <summary>게임오버 리셋 시 시작점 복원용. tiles[row, col] 인덱스.</summary>
     private int initialStartTileRow;
     private int initialStartTileCol;
@@ -1121,6 +1123,8 @@ public class GameManager : MonoBehaviour
         NotifyFixedKnotsUpdateVisual(totalPathCount);
         if (fixedKnotHit != null)
             fixedKnotHit.OnSteppedCorrectly();
+        if (CheckAndHandleMissedFixedKnot(totalPathCount))
+            return;
         CheckVictoryCondition(hit);
     }
 
@@ -1793,13 +1797,51 @@ public class GameManager : MonoBehaviour
     {
         if (!IsDeadlock()) return false;
 
+        return BeginGameOverSequence(StageFailReasonDeadlock);
+    }
+
+    private bool CheckAndHandleMissedFixedKnot(int totalPathCount)
+    {
+        if (stageCleared || isGameOverSequencePlaying || tiles == null)
+            return false;
+
+        for (int row = 0; row < stageHeight; row++)
+        {
+            for (int col = 0; col < stageWidth; col++)
+            {
+                Tile tile = tiles[row, col];
+                if (tile == null)
+                    continue;
+
+                var fixedKnot = tile.GetComponent<FixedKnotTile>();
+                if (fixedKnot == null || !fixedKnot.IsMissedAtStepCount(totalPathCount))
+                    continue;
+
+                fixedKnot.PlayWrongOrderShake();
+                Debug.Log($"Game Over: FixedKnot missed at ({tile.X},{tile.Y}) targetOrder={fixedKnot.TargetOrder} totalPathCount={totalPathCount}");
+                return BeginGameOverSequence(StageFailReasonFixedKnotMissed, tile);
+            }
+        }
+
+        return false;
+    }
+
+    private bool BeginGameOverSequence(string reason, Tile failFocusTile = null)
+    {
+        if (isGameOverSequencePlaying)
+            return false;
+
         Debug.Log("Game Over");
-        TrackStageFailed(StageFailReasonDeadlock);
+        TrackStageFailed(reason);
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
             pathLitClearRoutine = null;
         }
+
+        gameOverFocusTile = failFocusTile;
+        currentPath.Clear();
+        isDragging = false;
         isGameOverSequencePlaying = true;
         StartCoroutine(GameOverAndResetSequence());
         return true;
@@ -1832,7 +1874,8 @@ public class GameManager : MonoBehaviour
         if (isSpotlight)
         {
             // Spotlight: 전체 맵 밝히지 않음. 실패 지점(CurrentPosition)에서 Radar Pulse → Vignette 암전 → 완전 암흑 리셋
-            Vector2 failPos = currentStartTile != null ? (Vector2)currentStartTile.transform.position : Vector2.zero;
+            Tile focusTile = gameOverFocusTile != null ? gameOverFocusTile : currentStartTile;
+            Vector2 failPos = focusTile != null ? (Vector2)focusTile.transform.position : Vector2.zero;
             bool pulseDone = false;
             spotlightController.TriggerGameOverPulse(failPos, () => pulseDone = true);
             yield return new WaitUntil(() => pulseDone);
@@ -1957,6 +2000,7 @@ public class GameManager : MonoBehaviour
         PlayNewStageSfx();
         HandleStageStarted("auto_restart_after_fail");
 
+        gameOverFocusTile = null;
         isGameOverSequencePlaying = false;
     }
 
