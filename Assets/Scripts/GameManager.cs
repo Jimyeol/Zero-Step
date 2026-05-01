@@ -132,6 +132,7 @@ public class GameManager : MonoBehaviour
     private const string StageClearTypeLastTileRule = "last_tile_rule";
     private const string StageFailReasonDeadlock = "deadlock";
     private const string StageFailReasonFixedKnotMissed = "fixed_knot_missed";
+    private const float FixedKnotMissedSnackbarDuration = 2.2f;
     private const int VerboseDebugStageIndex = 6;
     private const float SessionFreeHeartRefillFirstThresholdSeconds = 10f * 60f;
     private const float SessionFreeHeartRefillSecondThresholdSeconds = 20f * 60f;
@@ -1817,6 +1818,7 @@ public class GameManager : MonoBehaviour
                 if (fixedKnot == null || !fixedKnot.IsMissedAtStepCount(totalPathCount))
                     continue;
 
+                ShowFixedKnotMissedSnackbar(tile, fixedKnot);
                 fixedKnot.PlayWrongOrderShake();
                 Debug.Log($"Game Over: FixedKnot missed at ({tile.X},{tile.Y}) targetOrder={fixedKnot.TargetOrder} totalPathCount={totalPathCount}");
                 return BeginGameOverSequence(StageFailReasonFixedKnotMissed, tile);
@@ -1824,6 +1826,21 @@ public class GameManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    private void ShowFixedKnotMissedSnackbar(Tile tile, FixedKnotTile fixedKnot)
+    {
+        if (tile == null || fixedKnot == null)
+            return;
+
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI == null)
+            return;
+
+        mainUI.ShowGameplaySnackbar(
+            "snackbar_fixed_knot_missed",
+            Mathf.Max(gameplayRuleSnackbarDuration, FixedKnotMissedSnackbarDuration));
     }
 
     private bool BeginGameOverSequence(string reason, Tile failFocusTile = null)
