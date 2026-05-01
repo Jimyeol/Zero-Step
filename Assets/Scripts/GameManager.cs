@@ -238,6 +238,7 @@ public class GameManager : MonoBehaviour
     private readonly List<string[]> denseMelodyPool = new List<string[]>();
     private string[] activeMelody = Array.Empty<string>();
     private int activeMelodyIndex;
+    private string lastSelectedMelodySignature;
     private float nextQueuedBlockNoteTime;
     private float sessionPlaytimeSeconds;
     private float nextTrailGradientUpdateTime;
@@ -635,28 +636,38 @@ public class GameManager : MonoBehaviour
         if (sparseMelodyPool.Count > 0 || mediumMelodyPool.Count > 0 || denseMelodyPool.Count > 0)
             return;
 
-        sparseMelodyPool.Add(new[] { "c", "e", "g", "co", "g", "e", "c", "e" });
-        sparseMelodyPool.Add(new[] { "a", "c", "e", "co", "e", "c", "a", "c" });
-        sparseMelodyPool.Add(new[] { "d", "fs", "a", "co", "a", "fs", "d", "a" });
-        sparseMelodyPool.Add(new[] { "g", "b", "d", "co", "d", "b", "g", "d" });
-        sparseMelodyPool.Add(new[] { "c", "d", "e", "g", "a", "g", "e", "d" });
+        sparseMelodyPool.Add(new[] { "c", "d", "e", "c", "e", "g", "e" }); // Airplane-like
+        sparseMelodyPool.Add(new[] { "c", "c", "g", "g", "a", "a", "g" }); // Twinkle-like
+        sparseMelodyPool.Add(new[] { "g", "g", "a", "a", "g", "g", "e" }); // School bell-like
+        sparseMelodyPool.Add(new[] { "g", "e", "e", "f", "d", "d", "c" }); // Butterfly-like
+        sparseMelodyPool.Add(new[] { "c", "e", "g", "e", "c", "d", "e" }); // Tiny march
+        sparseMelodyPool.Add(new[] { "c", "d", "e", "d", "c", "e", "g" }); // Chick steps
+        sparseMelodyPool.Add(new[] { "c", "g", "e", "g", "c", "g", "e" }); // Water drops
+        sparseMelodyPool.Add(new[] { "c", "e", "g", "co", "g", "e", "c" }); // Music box
+        sparseMelodyPool.Add(new[] { "e", "g", "a", "g", "e", "d", "c" }); // Forest walk
+        sparseMelodyPool.Add(new[] { "c", "d", "e", "g", "co", "g", "e" }); // Short clear
 
-        mediumMelodyPool.Add(new[] { "e", "g", "a", "b", "a", "g", "e", "d", "c", "d" });
-        mediumMelodyPool.Add(new[] { "c", "e", "g", "b", "g", "e", "d", "c", "d", "e" });
-        mediumMelodyPool.Add(new[] { "a", "b", "co", "b", "a", "g", "e", "d", "e", "g" });
-        mediumMelodyPool.Add(new[] { "d", "e", "fs", "a", "fs", "e", "d", "c", "d", "e" });
-        mediumMelodyPool.Add(new[] { "f", "a", "as", "co", "as", "a", "f", "d", "f", "a" });
+        mediumMelodyPool.Add(new[] { "c", "d", "e", "c", "e", "g", "e", "d", "c", "e", "g" }); // Airplane variation
+        mediumMelodyPool.Add(new[] { "c", "c", "g", "g", "a", "a", "g", "f", "f", "e", "e", "d" }); // Twinkle variation
+        mediumMelodyPool.Add(new[] { "g", "a", "g", "f", "e", "f", "g", "d", "e", "f", "e" }); // Bridge-like
+        mediumMelodyPool.Add(new[] { "e", "d", "c", "d", "e", "e", "e", "d", "d", "d", "e", "g", "g" }); // Nursery march
+        mediumMelodyPool.Add(new[] { "c", "e", "g", "a", "g", "e", "d", "c", "d", "e" }); // Round moon
+        mediumMelodyPool.Add(new[] { "c", "e", "g", "c", "d", "f", "a", "d", "e", "g" }); // Toy march
+        mediumMelodyPool.Add(new[] { "f", "a", "co", "a", "f", "d", "f", "a", "g", "e", "d" }); // Carousel
+        mediumMelodyPool.Add(new[] { "a", "c", "e", "c", "a", "b", "c", "e", "d", "c" }); // Cat steps
+        mediumMelodyPool.Add(new[] { "c", "d", "e", "g", "a", "g", "e", "d", "c", "e" }); // Fairy village
+        mediumMelodyPool.Add(new[] { "g", "a", "b", "co", "b", "a", "g", "e", "d", "c" }); // Bright stage
 
-        denseMelodyPool.Add(new[] { "d", "a", "b", "fs", "g", "d", "g", "a" }); // Canon motif
-        denseMelodyPool.Add(new[] { "fs", "d", "g", "a", "b", "g", "a", "fs" }); // Canon variation
-        denseMelodyPool.Add(new[] { "e", "e", "fs", "g", "g", "fs", "e", "d", "c", "d", "e", "fs", "g", "a" }); // Vivaldi-like
-        denseMelodyPool.Add(new[] { "a", "a", "g", "fs", "e", "fs", "g", "a", "co", "b", "a", "g", "fs", "e", "d" }); // Four seasons-like
-        denseMelodyPool.Add(new[] { "e", "ds", "e", "ds", "e", "b", "d", "c", "a", "c", "e", "a" }); // Fur Elise-like
-        denseMelodyPool.Add(new[] { "e", "e", "f", "g", "g", "f", "e", "d", "c", "c", "d", "e", "d", "c", "c" }); // Ode to Joy-like
-        denseMelodyPool.Add(new[] { "cs", "e", "gs", "cs", "e", "gs", "b", "gs", "e", "cs", "e", "gs" }); // Moonlight-like
-        denseMelodyPool.Add(new[] { "b", "a", "gs", "a", "c", "b", "a", "g", "fs", "e", "fs", "g", "a" }); // Turkish-like
-        denseMelodyPool.Add(new[] { "g", "a", "b", "c", "d", "e", "fs", "g", "a", "b", "co", "b", "a", "g" }); // Minuet-like
-        denseMelodyPool.Add(new[] { "d", "fs", "g", "a", "d", "a", "b", "fs", "g", "d", "g", "a" }); // Canon cadence
+        denseMelodyPool.Add(new[] { "c", "d", "e", "c", "e", "g", "e", "d", "c", "d", "e", "g", "a", "g", "e" }); // Airplane loop
+        denseMelodyPool.Add(new[] { "c", "c", "g", "g", "a", "a", "g", "f", "f", "e", "e", "d", "d", "c" }); // Twinkle long
+        denseMelodyPool.Add(new[] { "d", "a", "b", "fs", "g", "d", "g", "a", "d", "fs", "g", "a", "b", "a", "g" }); // Canon-like
+        denseMelodyPool.Add(new[] { "e", "e", "fs", "g", "g", "fs", "e", "d", "c", "d", "e", "fs", "g", "a", "g", "e" }); // Four seasons-like
+        denseMelodyPool.Add(new[] { "e", "e", "f", "g", "g", "f", "e", "d", "c", "c", "d", "e", "d", "c", "c" }); // Ode-like
+        denseMelodyPool.Add(new[] { "e", "ds", "e", "ds", "e", "b", "d", "c", "a", "c", "e", "a", "b", "e" }); // Elise-like
+        denseMelodyPool.Add(new[] { "a", "c", "ds", "e", "ds", "c", "a", "b", "c", "e", "g", "e", "ds", "c" }); // Mystery nursery
+        denseMelodyPool.Add(new[] { "c", "cs", "d", "ds", "e", "f", "fs", "g", "gs", "a", "as", "b", "co", "b" }); // Boss climb
+        denseMelodyPool.Add(new[] { "c", "d", "e", "g", "a", "b", "co", "b", "a", "g", "e", "d", "c", "e", "g", "co" }); // Puzzle finale
+        denseMelodyPool.Add(new[] { "d", "fs", "a", "co", "b", "a", "g", "fs", "e", "d", "fs", "a", "g", "e", "d" }); // Ending festival
     }
 
     private void SetupMelodyForCurrentStage()
@@ -684,9 +695,26 @@ public class GameManager : MonoBehaviour
         }
 
         int seed = Mathf.Abs((currentStageIndex * 92821) ^ (activeTileCount * 68917) ^ (totalRemainingCount * 31337));
-        activeMelody = selectedPool[seed % selectedPool.Count];
+        int melodyIndex = seed % selectedPool.Count;
+        string selectedMelodySignature = null;
+        for (int attempts = 0; attempts < selectedPool.Count; attempts++)
+        {
+            selectedMelodySignature = GetMelodySignature(selectedPool[melodyIndex]);
+            if (selectedPool.Count == 1 || !string.Equals(selectedMelodySignature, lastSelectedMelodySignature, StringComparison.Ordinal))
+                break;
+
+            melodyIndex = (melodyIndex + 1) % selectedPool.Count;
+        }
+
+        activeMelody = selectedPool[melodyIndex];
+        lastSelectedMelodySignature = selectedMelodySignature ?? GetMelodySignature(activeMelody);
         activeMelodyIndex = 0;
         ClearPendingBlockNoteQueue();
+    }
+
+    private static string GetMelodySignature(string[] melody)
+    {
+        return melody == null || melody.Length == 0 ? string.Empty : string.Join(",", melody);
     }
 
     private int CountActiveTileCount()
