@@ -38,12 +38,12 @@ public class GameManager : MonoBehaviour
     [Header("TwinLink 전기 효과 (Inspector에서 여기서 조정)")]
     [Tooltip("테두리 반폭. 1이면 타일 가장자리에 딱 맞게")]
     [SerializeField] private float twinLinkBorderOffset = 0.98f;
-    [Tooltip("번개 갱신 간격(초). 짧을수록 끊김 없이 계속 흐르는 느낌 (권장 0.03~0.06)")]
-    [SerializeField] [Range(0.02f, 0.2f)] private float twinLinkBoltInterval = 0.04f;
+    [Tooltip("번개 갱신 간격(초). 낮을수록 더 부드럽게 흐름 (권장 0.025~0.04)")]
+    [SerializeField] [Range(0.015f, 0.06f)] private float twinLinkBoltInterval = 0.03f;
     [Tooltip("전기 꺾임(0~0.5). 낮을수록 직선에 가깝고 끊김 없이 흐름")]
-    [SerializeField] [Range(0f, 0.5f)] private float twinLinkChaosFactor = 0.03f;
-    [Tooltip("번개 세부 분할. 낮을수록 단순한 선, 끊김 감소")]
-    [SerializeField] [Range(2, 6)] private int twinLinkBoltGenerations = 3;
+    [SerializeField] [Range(0f, 0.5f)] private float twinLinkChaosFactor = 0.025f;
+    [Tooltip("번개 세부 분할. 높을수록 부드럽고 촘촘한 전기 라인")]
+    [SerializeField] [Range(2, 6)] private int twinLinkBoltGenerations = 4;
     [Tooltip("전기 두께 배율. 타일 크기 기준")]
     [SerializeField] private float twinLinkBoltWidthScale = 0.25f;
     [Tooltip("밟을 때 번쩍임 지속 시간")]

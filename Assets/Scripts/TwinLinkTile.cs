@@ -24,10 +24,12 @@ public class TwinLinkTile : MonoBehaviour
 
     [Header("LightningBolt 전기 효과 (기본값만 사용, 실제 조정은 GameManager에서)")]
     [SerializeField] private GameObject lightningBoltPrefab;
+    private const float MinSmoothBoltInterval = 0.015f;
+    private const float MaxSmoothBoltInterval = 0.06f;
     private float borderOffset = 0.98f;
-    private float boltInterval = 0.04f;
-    private float chaosFactor = 0.03f;
-    private int boltGenerations = 3;
+    private float boltInterval = 0.03f;
+    private float chaosFactor = 0.025f;
+    private int boltGenerations = 4;
     private float boltWidthScale = 0.25f;
     private float flashDuration = 0.2f;
     private float flashIntensityMult = 2.2f;
@@ -70,7 +72,7 @@ public class TwinLinkTile : MonoBehaviour
         {
             var s = settings.Value;
             borderOffset = s.borderOffset > 0f ? s.borderOffset : borderOffset;
-            boltInterval = s.boltInterval > 0f ? s.boltInterval : boltInterval;
+            boltInterval = s.boltInterval > 0f ? Mathf.Clamp(s.boltInterval, MinSmoothBoltInterval, MaxSmoothBoltInterval) : boltInterval;
             chaosFactor = Mathf.Clamp01(s.chaosFactor);
             boltGenerations = Mathf.Clamp(s.boltGenerations, 2, 6);
             boltWidthScale = s.boltWidthScale > 0f ? s.boltWidthScale : boltWidthScale;
@@ -142,8 +144,8 @@ public class TwinLinkTile : MonoBehaviour
             script.StartObject = null;
             script.EndObject = null;
             script.ManualMode = true;
-            // 번개가 사라지기 전에 다음 트리거가 오도록 유지 시간을 충분히 (끊김 방지)
-            script.Duration = Mathf.Max(boltInterval * 4f, 0.15f);
+            // 번개가 사라지기 전에 여러 번 겹쳐 갱신되도록 유지 시간을 충분히 둔다.
+            script.Duration = Mathf.Max(boltInterval * 6f, 0.18f);
             script.Generations = boltGenerations;
             script.ChaosFactor = Mathf.Clamp01(chaosFactor);
 
@@ -153,6 +155,8 @@ public class TwinLinkTile : MonoBehaviour
                 lr.sortingOrder = 10;
                 lr.useWorldSpace = true;
                 lr.widthMultiplier = widthMult;
+                lr.numCapVertices = 4;
+                lr.numCornerVertices = 4;
             }
 
             boltScripts[i] = script;
