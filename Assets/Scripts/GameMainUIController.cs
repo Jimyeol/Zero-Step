@@ -49,9 +49,53 @@ public class GameMainUIController : MonoBehaviour
     private const string TutorialDismissedKeyPrefix = "TutorialDismissed_";
     private const string TutorialTypeBasicPath = "BasicPath";
     private const string TutorialTypeShortCircuit = "ShortCircuit";
+    private const string TutorialTypeCrossBlast = "CrossBlast";
+    private const string TutorialTypeFixedKnot = "FixedKnot";
+    private const string TutorialTypeTwinLink = "TwinLink";
+    private const string TutorialTypeIgniter = "Igniter";
+    private const string TutorialTypeBlindCurtain = "BlindCurtain";
+    private const string TutorialTypeBlackout = "Blackout";
+    private const string TutorialTypeBlackOutAlias = "BlackOut";
+    private const string ShortCircuitTutorialDemoDirection = "Right";
+    private const float TutorialHandFallbackSize = 100f;
+    private const float TutorialTrailHeight = 14f;
+    private const float TutorialBlockedMarkerSize = 58f;
+    private const int TutorialSpecialCellCount = 9;
+    private const float TutorialSpecialLineThickness = 14f;
+    private const float TutorialSpecialMarkerSize = 58f;
+    private const float TutorialSpecialPulseSize = 72f;
+    private const string CrossBlastSpriteResourcePath = "Sprites/corss_blast_tile";
+    private const string FixedKnotSpriteResourcePath = "Sprites/fixed_knot_tile";
+    private const string IgniterSpriteResourcePath = "Sprites/igniter_tile";
+    private const string BlindCurtainSpriteResourcePath = "Sprites/blind_curtain_tile";
     private const string DefaultUIButtonSfxResourcePath = "Sounds/ui_button";
     private const string DefaultSplashSpriteResourcePath = "Sprites/splash";
     private const string DefaultSplashVideoResourcePath = "Sprites/splash_video";
+
+    private static readonly Color[] TutorialNumberPalette =
+    {
+        new Color32(0x70, 0xDF, 0xF8, 0xFF),
+        new Color32(0x54, 0xF5, 0xA4, 0xFF),
+        new Color32(0xFA, 0xA1, 0x66, 0xFF),
+        new Color32(0xF5, 0x5F, 0xD5, 0xFF),
+        new Color32(0xA7, 0x7C, 0xFF, 0xFF),
+        new Color32(0xF7, 0xE7, 0x5C, 0xFF),
+        new Color32(0xFF, 0x5D, 0x73, 0xFF),
+        new Color32(0xB6, 0xF8, 0x5C, 0xFF),
+        new Color32(0x5B, 0x8C, 0xFF, 0xFF),
+        new Color32(0xF4, 0xF0, 0xFF, 0xFF)
+    };
+
+    private static readonly string[] TutorialSpecialCellThemeClasses =
+    {
+        "tutorial-special-cell-cross",
+        "tutorial-special-cell-fixed",
+        "tutorial-special-cell-twin",
+        "tutorial-special-cell-igniter",
+        "tutorial-special-cell-blind",
+        "tutorial-special-cell-blackout",
+        "tutorial-special-cell-hidden"
+    };
 
     [Serializable]
     private class HelpTutorialScheduleData
@@ -71,6 +115,24 @@ public class GameMainUIController : MonoBehaviour
         public string description = "왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다.";
         public string closeButtonTextKey;
         public string closeButtonText = "확인";
+    }
+
+    private class SpecialTutorialPreset
+    {
+        public readonly string tutorialType;
+        public readonly string themeClass;
+        public readonly string spritePath;
+        public readonly string initialHintKey;
+        public readonly int focusCell;
+
+        public SpecialTutorialPreset(string tutorialType, string themeClass, string spritePath, string initialHintKey, int focusCell)
+        {
+            this.tutorialType = tutorialType;
+            this.themeClass = themeClass;
+            this.spritePath = spritePath;
+            this.initialHintKey = initialHintKey;
+            this.focusCell = focusCell;
+        }
     }
 
     [Serializable]
@@ -176,13 +238,30 @@ public class GameMainUIController : MonoBehaviour
     private VisualElement tutorialOverlay;
     private VisualElement tutorialDialog;
     private VisualElement tutorialBasicDemoBoard;
+    private VisualElement tutorialBasicTrailLeftCenter;
+    private VisualElement tutorialBasicTrailCenterRight;
     private VisualElement tutorialShortCircuitDemoBoard;
+    private VisualElement tutorialShortCircuitExitTrail;
+    private VisualElement tutorialShortCircuitBlockedEntry;
+    private VisualElement tutorialSpecialDemoBoard;
+    private VisualElement tutorialSpecialTrailA;
+    private VisualElement tutorialSpecialTrailB;
+    private VisualElement tutorialSpecialTrailC;
+    private VisualElement tutorialSpecialBeamHorizontal;
+    private VisualElement tutorialSpecialBeamVertical;
+    private VisualElement tutorialSpecialPairLine;
+    private VisualElement tutorialSpecialPulse;
+    private VisualElement tutorialSpecialRevealPulseA;
+    private VisualElement tutorialSpecialRevealPulseB;
+    private VisualElement tutorialSpecialBlockedMarker;
     private Label tutorialTitleLabel;
     private Label tutorialDescriptionLabel;
     private Label tutorialStepHintLabel;
     private Button tutorialCloseButton;
     private Image tutorialCloseIcon;
     private Button tutorialConfirmButton;
+    private Button tutorialNextButton;
+    private Label tutorialNextButtonLabel;
     private VisualElement tutorialTileLeft;
     private VisualElement tutorialTileCenter;
     private VisualElement tutorialTileRight;
@@ -198,8 +277,17 @@ public class GameMainUIController : MonoBehaviour
     private Label tutorialShortTileBottomLeftCount;
     private Label tutorialShortTileBottomRightCount;
     private Label tutorialShortTileBottomLeftArrow;
+    private Label tutorialShortCircuitBlockedEntryLabel;
+    private Label tutorialSpecialBlockedLabel;
     private Image tutorialHandImage;
+    private Image tutorialShortCircuitTileImage;
     private Image tutorialShortCircuitHandImage;
+    private Image tutorialSpecialHandImage;
+    private readonly VisualElement[] tutorialSpecialCells = new VisualElement[TutorialSpecialCellCount];
+    private readonly Image[] tutorialSpecialSprites = new Image[TutorialSpecialCellCount];
+    private readonly Label[] tutorialSpecialCounts = new Label[TutorialSpecialCellCount];
+    private readonly Label[] tutorialSpecialBadges = new Label[TutorialSpecialCellCount];
+    private readonly Dictionary<string, Sprite> tutorialSpriteCache = new Dictionary<string, Sprite>();
     private Image heart1Image;
     private Image heart2Image;
     private Image heart3Image;
@@ -240,6 +328,7 @@ public class GameMainUIController : MonoBehaviour
     private bool isWaitingForHeartRefill;
     private bool isLanguageSelectionPopupOpen;
     private bool isTutorialPopupOpen;
+    private bool activeTutorialOpenedFromSettings;
     private int currentStageIndexForUI = 1;
     private Coroutine tutorialAnimationRoutine;
     private HelpTutorialEntryData activeTutorialEntry;
@@ -373,13 +462,30 @@ public class GameMainUIController : MonoBehaviour
         tutorialOverlay = root.Q<VisualElement>("TutorialOverlay");
         tutorialDialog = root.Q<VisualElement>("TutorialDialog");
         tutorialBasicDemoBoard = root.Q<VisualElement>("TutorialBasicDemoBoard");
+        tutorialBasicTrailLeftCenter = root.Q<VisualElement>("TutorialBasicTrailLeftCenter");
+        tutorialBasicTrailCenterRight = root.Q<VisualElement>("TutorialBasicTrailCenterRight");
         tutorialShortCircuitDemoBoard = root.Q<VisualElement>("TutorialShortCircuitDemoBoard");
+        tutorialShortCircuitExitTrail = root.Q<VisualElement>("TutorialShortCircuitExitTrail");
+        tutorialShortCircuitBlockedEntry = root.Q<VisualElement>("TutorialShortCircuitBlockedEntry");
+        tutorialSpecialDemoBoard = root.Q<VisualElement>("TutorialSpecialDemoBoard");
+        tutorialSpecialTrailA = root.Q<VisualElement>("TutorialSpecialTrailA");
+        tutorialSpecialTrailB = root.Q<VisualElement>("TutorialSpecialTrailB");
+        tutorialSpecialTrailC = root.Q<VisualElement>("TutorialSpecialTrailC");
+        tutorialSpecialBeamHorizontal = root.Q<VisualElement>("TutorialSpecialBeamHorizontal");
+        tutorialSpecialBeamVertical = root.Q<VisualElement>("TutorialSpecialBeamVertical");
+        tutorialSpecialPairLine = root.Q<VisualElement>("TutorialSpecialPairLine");
+        tutorialSpecialPulse = root.Q<VisualElement>("TutorialSpecialPulse");
+        tutorialSpecialRevealPulseA = root.Q<VisualElement>("TutorialSpecialRevealPulseA");
+        tutorialSpecialRevealPulseB = root.Q<VisualElement>("TutorialSpecialRevealPulseB");
+        tutorialSpecialBlockedMarker = root.Q<VisualElement>("TutorialSpecialBlockedMarker");
         tutorialTitleLabel = root.Q<Label>("TutorialTitleLabel");
         tutorialDescriptionLabel = root.Q<Label>("TutorialDescriptionLabel");
         tutorialStepHintLabel = root.Q<Label>("TutorialStepHintLabel");
         tutorialCloseButton = root.Q<Button>("TutorialCloseButton");
         tutorialCloseIcon = root.Q<Image>("TutorialCloseIcon");
         tutorialConfirmButton = root.Q<Button>("TutorialConfirmButton");
+        tutorialNextButton = root.Q<Button>("TutorialNextButton");
+        tutorialNextButtonLabel = root.Q<Label>("TutorialNextButtonLabel");
         tutorialTileLeft = root.Q<VisualElement>("TutorialTileLeft");
         tutorialTileCenter = root.Q<VisualElement>("TutorialTileCenter");
         tutorialTileRight = root.Q<VisualElement>("TutorialTileRight");
@@ -395,8 +501,19 @@ public class GameMainUIController : MonoBehaviour
         tutorialShortTileBottomLeftCount = root.Q<Label>("TutorialShortTileBottomLeftCount");
         tutorialShortTileBottomRightCount = root.Q<Label>("TutorialShortTileBottomRightCount");
         tutorialShortTileBottomLeftArrow = root.Q<Label>("TutorialShortTileBottomLeftArrow");
+        tutorialShortCircuitBlockedEntryLabel = root.Q<Label>("TutorialShortCircuitBlockedEntryLabel");
+        tutorialSpecialBlockedLabel = root.Q<Label>("TutorialSpecialBlockedLabel");
         tutorialHandImage = root.Q<Image>("TutorialHandImage");
+        tutorialShortCircuitTileImage = root.Q<Image>("TutorialShortCircuitTileImage");
         tutorialShortCircuitHandImage = root.Q<Image>("TutorialShortCircuitHandImage");
+        tutorialSpecialHandImage = root.Q<Image>("TutorialSpecialHandImage");
+        for (int i = 0; i < TutorialSpecialCellCount; i++)
+        {
+            tutorialSpecialCells[i] = root.Q<VisualElement>($"TutorialSpecialCell{i}");
+            tutorialSpecialSprites[i] = root.Q<Image>($"TutorialSpecialSprite{i}");
+            tutorialSpecialCounts[i] = root.Q<Label>($"TutorialSpecialCount{i}");
+            tutorialSpecialBadges[i] = root.Q<Label>($"TutorialSpecialBadge{i}");
+        }
         heart1Image = root.Q<Image>("Heart1Image");
         heart2Image = root.Q<Image>("Heart2Image");
         heart3Image = root.Q<Image>("Heart3Image");
@@ -522,7 +639,10 @@ public class GameMainUIController : MonoBehaviour
         AssignSprite(languageSelectCloseIcon, "Sprites/close", "close.png");
         AssignSprite(tutorialCloseIcon, "Sprites/close", "close.png");
         AssignSprite(tutorialHandImage, "Sprites/hand", "hand.png");
+        AssignSprite(tutorialShortCircuitTileImage, "Sprites/short_circuit_tile", "short_circuit_tile.png");
+        ApplyShortCircuitTutorialSpriteRotation();
         AssignSprite(tutorialShortCircuitHandImage, "Sprites/hand", "hand.png");
+        AssignSprite(tutorialSpecialHandImage, "Sprites/hand", "hand.png");
         AssignSprite(soundIcon, "Sprites/sound", "sound.png");
         AssignSprite(vibrationIcon, "Sprites/vibrate", "vibrate.png");
         AssignSprite(helpIcon, "Sprites/help", "help.png");
@@ -562,6 +682,8 @@ public class GameMainUIController : MonoBehaviour
             tutorialCloseButton.clicked += CloseTutorialPopup;
         if (tutorialConfirmButton != null)
             tutorialConfirmButton.clicked += CloseTutorialPopup;
+        if (tutorialNextButton != null)
+            tutorialNextButton.clicked += ShowNextSettingsTutorial;
         if (heartRefillAdButton != null)
             heartRefillAdButton.clicked += OnHeartRefillAdButtonClicked;
 
@@ -718,6 +840,7 @@ public class GameMainUIController : MonoBehaviour
         RegisterButtonClickAnimation(privacyPolicyButton);
         RegisterButtonClickAnimation(termsButton);
         RegisterButtonClickAnimation(tutorialCloseButton);
+        RegisterButtonClickAnimation(tutorialNextButton);
         RegisterButtonClickAnimation(tutorialConfirmButton, useWarmPulse: true);
         RegisterButtonClickAnimation(resetConfirmCancelButton);
         RegisterButtonClickAnimation(resetConfirmOkButton, useWarmPulse: true);
@@ -1968,6 +2091,31 @@ public class GameMainUIController : MonoBehaviour
         return null;
     }
 
+    private int GetHelpTutorialEntryIndex(HelpTutorialEntryData targetEntry)
+    {
+        if (targetEntry == null)
+            return -1;
+
+        for (int i = 0; i < helpTutorialEntries.Count; i++)
+        {
+            HelpTutorialEntryData entry = helpTutorialEntries[i];
+            if (ReferenceEquals(entry, targetEntry))
+                return i;
+        }
+
+        if (string.IsNullOrEmpty(targetEntry.id))
+            return -1;
+
+        for (int i = 0; i < helpTutorialEntries.Count; i++)
+        {
+            HelpTutorialEntryData entry = helpTutorialEntries[i];
+            if (entry != null && string.Equals(entry.id, targetEntry.id, StringComparison.Ordinal))
+                return i;
+        }
+
+        return -1;
+    }
+
     private HelpTutorialEntryData GetFirstTutorialEntryForStage(int stageIndex)
     {
         if (!helpTutorialEntriesByStage.TryGetValue(stageIndex, out List<HelpTutorialEntryData> entries) || entries == null)
@@ -2015,8 +2163,8 @@ public class GameMainUIController : MonoBehaviour
         if (!ignoreDismissed && IsTutorialDismissed(entry.id))
             return;
 
-        activeTutorialEntry = entry;
         isTutorialPopupOpen = true;
+        activeTutorialOpenedFromSettings = openedFromSettings;
 
         if (tutorialOverlay != null)
             tutorialOverlay.style.display = DisplayStyle.Flex;
@@ -2034,14 +2182,7 @@ public class GameMainUIController : MonoBehaviour
             }).StartingIn(14);
         }
 
-        if (tutorialTitleLabel != null)
-            tutorialTitleLabel.text = ResolveTutorialTitle(entry);
-        if (tutorialDescriptionLabel != null)
-            tutorialDescriptionLabel.text = ResolveTutorialDescription(entry);
-        if (tutorialConfirmButton != null)
-            tutorialConfirmButton.text = ResolveTutorialCloseButtonText(entry);
-        ConfigureTutorialDemo(entry);
-        StartTutorialAnimation(entry);
+        ApplyTutorialEntryToOpenPopup(entry);
 
         FirebaseBootstrap.LogEvent("help_tutorial_open", new Dictionary<string, object>
         {
@@ -2051,17 +2192,68 @@ public class GameMainUIController : MonoBehaviour
         });
     }
 
+    private void ApplyTutorialEntryToOpenPopup(HelpTutorialEntryData entry)
+    {
+        if (entry == null)
+            return;
+
+        activeTutorialEntry = entry;
+        if (tutorialTitleLabel != null)
+            tutorialTitleLabel.text = ResolveTutorialTitle(entry);
+        if (tutorialDescriptionLabel != null)
+            tutorialDescriptionLabel.text = ResolveTutorialDescription(entry);
+        if (tutorialConfirmButton != null)
+            tutorialConfirmButton.text = ResolveTutorialCloseButtonText(entry);
+        ConfigureTutorialDemo(entry);
+        StartTutorialAnimation(entry);
+        RefreshTutorialNavigation();
+    }
+
+    private void ShowNextSettingsTutorial()
+    {
+        if (!isTutorialPopupOpen || !activeTutorialOpenedFromSettings || helpTutorialEntries.Count <= 1)
+            return;
+
+        int currentIndex = GetHelpTutorialEntryIndex(activeTutorialEntry);
+        int nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % helpTutorialEntries.Count;
+        HelpTutorialEntryData nextEntry = helpTutorialEntries[nextIndex];
+        if (nextEntry == null)
+            return;
+
+        ApplyTutorialEntryToOpenPopup(nextEntry);
+
+        FirebaseBootstrap.LogEvent("help_tutorial_next", new Dictionary<string, object>
+        {
+            { "tutorial_id", nextEntry.id },
+            { "stage_index", nextEntry.stageIndex },
+            { "tutorial_index", nextIndex + 1 },
+            { "tutorial_count", helpTutorialEntries.Count }
+        });
+    }
+
+    private void RefreshTutorialNavigation()
+    {
+        bool showNextButton = isTutorialPopupOpen && activeTutorialOpenedFromSettings && helpTutorialEntries.Count > 1;
+        if (tutorialNextButton != null)
+            tutorialNextButton.style.display = showNextButton ? DisplayStyle.Flex : DisplayStyle.None;
+        if (tutorialNextButtonLabel != null)
+            tutorialNextButtonLabel.text = "›";
+    }
+
     private void CloseTutorialPopup()
     {
         if (!isTutorialPopupOpen)
             return;
 
         string tutorialId = activeTutorialEntry != null ? activeTutorialEntry.id : string.Empty;
-        if (!string.IsNullOrEmpty(tutorialId))
+        bool openedFromSettings = activeTutorialOpenedFromSettings;
+        if (!openedFromSettings && !string.IsNullOrEmpty(tutorialId))
             MarkTutorialDismissed(tutorialId);
 
         StopTutorialAnimation();
         isTutorialPopupOpen = false;
+        activeTutorialOpenedFromSettings = false;
+        RefreshTutorialNavigation();
 
         if (tutorialDialog != null)
         {
@@ -2088,16 +2280,90 @@ public class GameMainUIController : MonoBehaviour
         if (entry == null)
             return;
 
-        if (string.Equals(entry.tutorialType, TutorialTypeBasicPath, StringComparison.OrdinalIgnoreCase))
+        string tutorialType = NormalizeTutorialType(entry.tutorialType);
+        if (string.Equals(tutorialType, TutorialTypeBasicPath, StringComparison.OrdinalIgnoreCase))
         {
             tutorialAnimationVersion++;
             tutorialAnimationRoutine = StartCoroutine(PlayBasicTutorialAnimationLoop(tutorialAnimationVersion));
         }
-        else if (string.Equals(entry.tutorialType, TutorialTypeShortCircuit, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(tutorialType, TutorialTypeShortCircuit, StringComparison.OrdinalIgnoreCase))
         {
             tutorialAnimationVersion++;
             tutorialAnimationRoutine = StartCoroutine(PlayShortCircuitTutorialAnimationLoop(tutorialAnimationVersion));
         }
+        else if (string.Equals(tutorialType, TutorialTypeCrossBlast, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayCrossBlastTutorialAnimationLoop(tutorialAnimationVersion));
+        }
+        else if (string.Equals(tutorialType, TutorialTypeFixedKnot, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayFixedKnotTutorialAnimationLoop(tutorialAnimationVersion));
+        }
+        else if (string.Equals(tutorialType, TutorialTypeTwinLink, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayTwinLinkTutorialAnimationLoop(tutorialAnimationVersion));
+        }
+        else if (string.Equals(tutorialType, TutorialTypeIgniter, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayIgniterTutorialAnimationLoop(tutorialAnimationVersion));
+        }
+        else if (string.Equals(tutorialType, TutorialTypeBlindCurtain, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayBlindCurtainTutorialAnimationLoop(tutorialAnimationVersion));
+        }
+        else if (string.Equals(tutorialType, TutorialTypeBlackout, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayBlackoutTutorialAnimationLoop(tutorialAnimationVersion));
+        }
+        else
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayBasicTutorialAnimationLoop(tutorialAnimationVersion));
+        }
+    }
+
+    private static string NormalizeTutorialType(string tutorialType)
+    {
+        if (string.IsNullOrWhiteSpace(tutorialType))
+            return TutorialTypeBasicPath;
+
+        if (string.Equals(tutorialType, TutorialTypeBlackOutAlias, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeBlackout;
+        if (string.Equals(tutorialType, TutorialTypeBlackout, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeBlackout;
+        if (string.Equals(tutorialType, TutorialTypeShortCircuit, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeShortCircuit;
+        if (string.Equals(tutorialType, TutorialTypeCrossBlast, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeCrossBlast;
+        if (string.Equals(tutorialType, TutorialTypeFixedKnot, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeFixedKnot;
+        if (string.Equals(tutorialType, TutorialTypeTwinLink, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeTwinLink;
+        if (string.Equals(tutorialType, TutorialTypeIgniter, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeIgniter;
+        if (string.Equals(tutorialType, TutorialTypeBlindCurtain, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeBlindCurtain;
+        if (string.Equals(tutorialType, TutorialTypeBasicPath, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeBasicPath;
+
+        return TutorialTypeBasicPath;
+    }
+
+    private static bool IsSpecialTutorialType(string tutorialType)
+    {
+        string normalized = NormalizeTutorialType(tutorialType);
+        return string.Equals(normalized, TutorialTypeCrossBlast, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, TutorialTypeFixedKnot, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, TutorialTypeTwinLink, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, TutorialTypeIgniter, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, TutorialTypeBlindCurtain, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, TutorialTypeBlackout, StringComparison.OrdinalIgnoreCase);
     }
 
     private void StopTutorialAnimation()
@@ -2117,31 +2383,31 @@ public class GameMainUIController : MonoBehaviour
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
-            ApplyTutorialStepState(1, 2, 1, T("tutorial_step_start"));
+            ApplyBasicTutorialStepState(1, 2, 1, T("tutorial_step_start"), trailPhase: 0);
             SetTutorialHandPosition(0, instant: true);
             yield return new WaitForSecondsRealtime(0.42f);
 
             if (!IsTutorialAnimationActive(animationVersion))
                 yield break;
             SetTutorialHandPosition(1, instant: false);
-            ApplyTutorialStepState(0, 2, 1, T("tutorial_step_left"), pulseLeft: true);
+            ApplyBasicTutorialStepState(0, 2, 1, T("tutorial_step_left"), pulseLeft: true, trailPhase: 1);
             yield return stepWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
                 yield break;
             SetTutorialHandPosition(2, instant: false);
-            ApplyTutorialStepState(0, 1, 1, T("tutorial_step_center"), pulseCenter: true);
+            ApplyBasicTutorialStepState(0, 1, 1, T("tutorial_step_center"), pulseCenter: true, trailPhase: 2);
             yield return stepWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
                 yield break;
             SetTutorialHandPosition(1, instant: false);
-            ApplyTutorialStepState(0, 1, 0, T("tutorial_step_right"), pulseRight: true);
+            ApplyBasicTutorialStepState(0, 1, 0, T("tutorial_step_right"), pulseRight: true, trailPhase: 3);
             yield return stepWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
                 yield break;
-            ApplyTutorialStepState(0, 0, 0, T("tutorial_step_clear"), pulseCenter: true);
+            ApplyBasicTutorialStepState(0, 0, 0, T("tutorial_step_clear"), pulseCenter: true, trailPhase: 4);
             yield return cycleWait;
         }
 
@@ -2160,7 +2426,8 @@ public class GameMainUIController : MonoBehaviour
                 1, 1, 1, 1,
                 T("tutorial_short_circuit_hint_intro"),
                 pulseBottomLeft: true,
-                pulseArrow: true);
+                pulseArrow: true,
+                pathPhase: 0);
             SetShortCircuitTutorialHandPosition(0, instant: true);
             yield return introWait;
 
@@ -2172,7 +2439,20 @@ public class GameMainUIController : MonoBehaviour
                 T("tutorial_short_circuit_step_exit"),
                 pulseBottomLeft: true,
                 pulseBottomRight: true,
-                pulseArrow: true);
+                pulseArrow: true,
+                pathPhase: 1);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            SetShortCircuitTutorialHandPosition(3, instant: false);
+            ApplyShortCircuitTutorialStepState(
+                1, 1, 0, 1,
+                T("tutorial_short_circuit_step_blocked_entry"),
+                pulseBottomRight: true,
+                pulseArrow: true,
+                pathPhase: 2,
+                showBlockedEntry: true);
             yield return stepWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
@@ -2181,7 +2461,8 @@ public class GameMainUIController : MonoBehaviour
             ApplyShortCircuitTutorialStepState(
                 1, 1, 0, 0,
                 T("tutorial_short_circuit_step_follow"),
-                pulseTopRight: true);
+                pulseTopRight: true,
+                pathPhase: 2);
             yield return stepWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
@@ -2190,7 +2471,194 @@ public class GameMainUIController : MonoBehaviour
                 1, 1, 0, 0,
                 T("tutorial_short_circuit_step_remember"),
                 pulseTopRight: true,
-                pulseArrow: true);
+                pulseArrow: true,
+                pathPhase: 2,
+                showBlockedEntry: true);
+            yield return cycleWait;
+        }
+
+        tutorialAnimationRoutine = null;
+    }
+
+    private IEnumerator PlayCrossBlastTutorialAnimationLoop(int animationVersion)
+    {
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+
+        while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
+        {
+            ApplyCrossBlastTutorialState(0);
+            SetSpecialTutorialHandToCell(4, instant: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyCrossBlastTutorialState(1);
+            SetSpecialTutorialHandToCell(4, instant: false);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyCrossBlastTutorialState(2);
+            SetSpecialTutorialHandToCell(5, instant: false);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyCrossBlastTutorialState(3);
+            yield return cycleWait;
+        }
+
+        tutorialAnimationRoutine = null;
+    }
+
+    private IEnumerator PlayFixedKnotTutorialAnimationLoop(int animationVersion)
+    {
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+
+        while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
+        {
+            ApplyFixedKnotTutorialState(0);
+            SetSpecialTutorialHandToCell(3, instant: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyFixedKnotTutorialState(1);
+            SetSpecialTutorialHandToCell(4, instant: false);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyFixedKnotTutorialState(2);
+            SetSpecialTutorialHandToCell(5, instant: false);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyFixedKnotTutorialState(3);
+            yield return cycleWait;
+        }
+
+        tutorialAnimationRoutine = null;
+    }
+
+    private IEnumerator PlayTwinLinkTutorialAnimationLoop(int animationVersion)
+    {
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+
+        while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
+        {
+            ApplyTwinLinkTutorialState(0);
+            SetSpecialTutorialHandToCell(3, instant: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyTwinLinkTutorialState(1);
+            SetSpecialTutorialHandToCell(4, instant: false);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyTwinLinkTutorialState(2);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyTwinLinkTutorialState(3);
+            yield return cycleWait;
+        }
+
+        tutorialAnimationRoutine = null;
+    }
+
+    private IEnumerator PlayIgniterTutorialAnimationLoop(int animationVersion)
+    {
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+
+        while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
+        {
+            ApplyIgniterTutorialState(0);
+            SetSpecialTutorialHandToCell(3, instant: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyIgniterTutorialState(1);
+            SetSpecialTutorialHandToCell(4, instant: false);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyIgniterTutorialState(2);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyIgniterTutorialState(3);
+            SetSpecialTutorialHandToCell(5, instant: false);
+            yield return cycleWait;
+        }
+
+        tutorialAnimationRoutine = null;
+    }
+
+    private IEnumerator PlayBlindCurtainTutorialAnimationLoop(int animationVersion)
+    {
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+
+        while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
+        {
+            ApplyBlindCurtainTutorialState(0);
+            SetSpecialTutorialHandToCell(3, instant: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyBlindCurtainTutorialState(1);
+            SetSpecialTutorialHandToCell(4, instant: false);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyBlindCurtainTutorialState(2);
+            SetSpecialTutorialHandToCell(5, instant: false);
+            yield return cycleWait;
+        }
+
+        tutorialAnimationRoutine = null;
+    }
+
+    private IEnumerator PlayBlackoutTutorialAnimationLoop(int animationVersion)
+    {
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+
+        while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
+        {
+            ApplyBlackoutTutorialState(0);
+            SetSpecialTutorialHandToCell(3, instant: true);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyBlackoutTutorialState(1);
+            SetSpecialTutorialHandToCell(4, instant: false);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyBlackoutTutorialState(2);
+            yield return stepWait;
+
+            if (!IsTutorialAnimationActive(animationVersion))
+                yield break;
+            ApplyBlackoutTutorialState(3);
             yield return cycleWait;
         }
 
@@ -2202,11 +2670,20 @@ public class GameMainUIController : MonoBehaviour
         return isTutorialPopupOpen && animationVersion == tutorialAnimationVersion;
     }
 
-    private void ApplyTutorialStepState(int leftCount, int centerCount, int rightCount, string hint, bool pulseLeft = false, bool pulseCenter = false, bool pulseRight = false)
+    private void ApplyBasicTutorialStepState(
+        int leftCount,
+        int centerCount,
+        int rightCount,
+        string hint,
+        bool pulseLeft = false,
+        bool pulseCenter = false,
+        bool pulseRight = false,
+        int trailPhase = 0)
     {
-        ApplyTutorialTileState(tutorialTileLeft, tutorialTileLeftCount, leftCount, pulseLeft);
-        ApplyTutorialTileState(tutorialTileCenter, tutorialTileCenterCount, centerCount, pulseCenter);
-        ApplyTutorialTileState(tutorialTileRight, tutorialTileRightCount, rightCount, pulseRight);
+        ApplyBasicTutorialTileState(tutorialTileLeft, tutorialTileLeftCount, leftCount, pulseLeft);
+        ApplyBasicTutorialTileState(tutorialTileCenter, tutorialTileCenterCount, centerCount, pulseCenter);
+        ApplyBasicTutorialTileState(tutorialTileRight, tutorialTileRightCount, rightCount, pulseRight);
+        ApplyBasicTutorialTrailState(trailPhase);
 
         if (tutorialStepHintLabel != null)
             tutorialStepHintLabel.text = hint;
@@ -2222,15 +2699,714 @@ public class GameMainUIController : MonoBehaviour
         bool pulseTopRight = false,
         bool pulseBottomLeft = false,
         bool pulseBottomRight = false,
-        bool pulseArrow = false)
+        bool pulseArrow = false,
+        int pathPhase = 0,
+        bool showBlockedEntry = false)
     {
         ApplyTutorialTileState(tutorialShortTileTopLeft, tutorialShortTileTopLeftCount, topLeftCount, pulseTopLeft);
         ApplyTutorialTileState(tutorialShortTileTopRight, tutorialShortTileTopRightCount, topRightCount, pulseTopRight);
         ApplyShortCircuitTileState(tutorialShortTileBottomLeft, tutorialShortTileBottomLeftCount, bottomLeftCount, pulseBottomLeft, pulseArrow);
         ApplyTutorialTileState(tutorialShortTileBottomRight, tutorialShortTileBottomRightCount, bottomRightCount, pulseBottomRight);
+        ApplyShortCircuitTutorialPathState(pathPhase, showBlockedEntry);
 
         if (tutorialStepHintLabel != null)
             tutorialStepHintLabel.text = hint;
+    }
+
+    private void ApplyShortCircuitTutorialPathState(int pathPhase, bool showBlockedEntry)
+    {
+        UpdateShortCircuitTutorialGeometry();
+
+        bool exitActive = pathPhase >= 1;
+        ApplyShortCircuitExitTrail(tutorialShortCircuitExitTrail, exitActive, pathPhase == 1);
+        ApplyShortCircuitBlockedEntry(showBlockedEntry);
+    }
+
+    private void ApplyShortCircuitBlockedEntry(bool showBlockedEntry)
+    {
+        if (tutorialShortCircuitBlockedEntry == null)
+            return;
+
+        tutorialShortCircuitBlockedEntry.style.opacity = showBlockedEntry ? 1f : 0f;
+        tutorialShortCircuitBlockedEntry.style.scale = new StyleScale(
+            new Scale(showBlockedEntry ? new Vector3(1.08f, 1.08f, 1f) : Vector3.one));
+
+        if (tutorialShortCircuitBlockedEntryLabel != null)
+            tutorialShortCircuitBlockedEntryLabel.style.opacity = showBlockedEntry ? 1f : 0f;
+    }
+
+    private static void ApplyShortCircuitExitTrail(VisualElement trail, bool active, bool pulse)
+    {
+        if (trail == null)
+            return;
+
+        trail.style.opacity = active ? 0.9f : 0.16f;
+        trail.style.backgroundColor = active
+            ? new StyleColor(new Color(1f, 0.72f, 0.31f, 0.32f))
+            : new StyleColor(new Color(0.45f, 0.32f, 0.18f, 0.12f));
+        SetElementBorderColor(trail, active
+            ? new Color(1f, 0.92f, 0.64f, 0.92f)
+            : new Color(0.68f, 0.54f, 0.36f, 0.36f));
+
+        if (pulse)
+        {
+            trail.style.scale = new StyleScale(new Scale(new Vector3(1f, 1.45f, 1f)));
+            trail.schedule.Execute(() =>
+            {
+                trail.style.scale = new StyleScale(new Scale(Vector3.one));
+            }).StartingIn(150);
+        }
+        else
+        {
+            trail.style.scale = new StyleScale(new Scale(Vector3.one));
+        }
+    }
+
+    private void ApplyCrossBlastTutorialState(int phase)
+    {
+        ResetSpecialTutorialBoard();
+
+        bool exploded = phase >= 2;
+        SetSpecialCell(1, exploded ? "1" : "2", null, string.Empty, active: true);
+        SetSpecialCell(3, exploded ? "1" : "2", null, string.Empty, active: true);
+        SetSpecialCell(4, exploded ? "0" : "1", CrossBlastSpriteResourcePath, "tutorial-special-cell-cross", active: true, pulse: phase == 1);
+        SetSpecialCell(5, "2", null, string.Empty, active: true, pulse: phase == 2, badge: phase >= 2 ? "OUT" : string.Empty);
+        SetSpecialCell(7, exploded ? "1" : "2", null, string.Empty, active: true);
+
+        if (phase >= 1)
+        {
+            ShowSpecialLineBetween(tutorialSpecialBeamHorizontal, 3, 5, new Color(0.55f, 1f, 1f, 0.95f), pulse: phase == 1);
+            ShowSpecialLineBetween(tutorialSpecialBeamVertical, 1, 7, new Color(0.55f, 1f, 1f, 0.95f), pulse: phase == 1);
+            ShowSpecialPulseAtCell(tutorialSpecialPulse, 4, new Color(0.55f, 1f, 1f, 0.92f), phase == 1);
+        }
+
+        if (phase >= 2)
+            ShowSpecialLineBetween(tutorialSpecialTrailA, 4, 5, new Color(0.94f, 1f, 0.64f, 0.92f), pulse: phase == 2);
+
+        string hintKey = phase == 0 ? "tutorial_cross_blast_step_intro" :
+            phase == 1 ? "tutorial_cross_blast_step_blast" :
+            phase == 2 ? "tutorial_cross_blast_step_adjacent" :
+            "tutorial_cross_blast_step_exclude";
+        SetSpecialHint(T(hintKey));
+    }
+
+    private void ApplyFixedKnotTutorialState(int phase)
+    {
+        ResetSpecialTutorialBoard();
+
+        SetSpecialCell(3, phase >= 1 ? "0" : "1", null, string.Empty, active: true, pulse: phase == 0);
+        SetSpecialCell(4, phase >= 2 ? "0" : "1", null, string.Empty, active: true, pulse: phase == 1);
+
+        string fixedCount = phase == 0 ? "3" : phase == 1 ? "2" : phase == 2 ? "1" : "0";
+        SetSpecialCell(5, fixedCount, FixedKnotSpriteResourcePath, "tutorial-special-cell-fixed", active: true, pulse: phase == 2, badge: "3");
+
+        if (phase >= 1)
+            ShowSpecialLineBetween(tutorialSpecialTrailA, 3, 4, new Color(1f, 0.82f, 0.48f, 0.92f), pulse: phase == 1);
+        if (phase >= 2)
+            ShowSpecialLineBetween(tutorialSpecialTrailB, 4, 5, new Color(1f, 0.82f, 0.48f, 0.92f), pulse: phase == 2);
+        if (phase == 3)
+            ShowSpecialBlockedMarkerAtCell(5);
+
+        string hintKey = phase == 0 ? "tutorial_fixed_knot_step_intro" :
+            phase == 1 ? "tutorial_fixed_knot_step_countdown" :
+            phase == 2 ? "tutorial_fixed_knot_step_exact" :
+            "tutorial_fixed_knot_step_missed";
+        SetSpecialHint(T(hintKey));
+    }
+
+    private void ApplyTwinLinkTutorialState(int phase)
+    {
+        ResetSpecialTutorialBoard();
+
+        string twinCount = phase >= 2 ? "1" : "2";
+        if (phase == 3)
+            twinCount = "0";
+
+        SetSpecialCell(3, twinCount, null, "tutorial-special-cell-twin", active: true, pulse: phase == 2, badge: "A");
+        SetSpecialCell(5, twinCount, null, "tutorial-special-cell-twin", active: true, pulse: phase == 2, badge: "A");
+        SetSpecialCell(4, phase >= 1 ? "0" : "1", null, string.Empty, active: true, pulse: phase == 1);
+
+        ShowSpecialLineBetween(tutorialSpecialPairLine, 3, 5, new Color(0.72f, 0.48f, 1f, 0.96f), pulse: phase == 2);
+        if (phase >= 1)
+            ShowSpecialLineBetween(tutorialSpecialTrailA, 3, 4, new Color(0.72f, 0.48f, 1f, 0.76f), pulse: phase == 1);
+        if (phase == 3)
+            ShowSpecialPulseAtCell(tutorialSpecialPulse, 5, new Color(0.72f, 0.48f, 1f, 0.9f), true);
+
+        string hintKey = phase == 0 ? "tutorial_twin_link_step_intro" :
+            phase == 1 ? "tutorial_twin_link_step_leave" :
+            phase == 2 ? "tutorial_twin_link_step_pair" :
+            "tutorial_twin_link_step_together";
+        SetSpecialHint(T(hintKey));
+    }
+
+    private void ApplyIgniterTutorialState(int phase)
+    {
+        ResetSpecialTutorialBoard();
+
+        SetSpecialCell(3, phase >= 1 ? "0" : "1", null, string.Empty, active: true);
+        SetSpecialCell(4, "1", IgniterSpriteResourcePath, "tutorial-special-cell-igniter", active: true, pulse: phase == 1);
+        SetSpecialCell(1, phase >= 2 ? "1" : string.Empty, null, string.Empty, active: phase >= 2, pulse: phase == 2, hidden: phase < 2);
+        SetSpecialCell(5, phase >= 2 ? "1" : string.Empty, null, string.Empty, active: phase >= 2, pulse: phase == 2, hidden: phase < 2);
+
+        if (phase >= 1)
+            ShowSpecialPulseAtCell(tutorialSpecialPulse, 4, new Color(1f, 0.66f, 0.26f, 0.94f), phase == 1);
+        if (phase >= 2)
+        {
+            ShowSpecialLineBetween(tutorialSpecialTrailA, 4, 1, new Color(1f, 0.66f, 0.26f, 0.82f), pulse: phase == 2);
+            ShowSpecialLineBetween(tutorialSpecialTrailB, 4, 5, new Color(1f, 0.66f, 0.26f, 0.82f), pulse: phase == 2);
+            ShowSpecialPulseAtCell(tutorialSpecialRevealPulseA, 1, new Color(1f, 0.72f, 0.34f, 0.86f), phase == 2);
+            ShowSpecialPulseAtCell(tutorialSpecialRevealPulseB, 5, new Color(1f, 0.72f, 0.34f, 0.86f), phase == 2);
+        }
+
+        string hintKey = phase == 0 ? "tutorial_igniter_step_intro" :
+            phase == 1 ? "tutorial_igniter_step_trigger" :
+            phase == 2 ? "tutorial_igniter_step_reveal" :
+            "tutorial_igniter_step_continue";
+        SetSpecialHint(T(hintKey));
+    }
+
+    private void ApplyBlindCurtainTutorialState(int phase)
+    {
+        ResetSpecialTutorialBoard();
+
+        SetSpecialCell(3, phase >= 1 ? "0" : "1", null, string.Empty, active: true);
+        SetSpecialCell(4, "?", BlindCurtainSpriteResourcePath, "tutorial-special-cell-blind", active: phase < 2, pulse: phase == 1);
+        SetSpecialCell(5, "1", null, string.Empty, active: true, pulse: phase == 2);
+
+        if (phase >= 1)
+            ShowSpecialLineBetween(tutorialSpecialTrailA, 3, 4, new Color(0.75f, 0.9f, 1f, 0.82f), pulse: phase == 1);
+        if (phase >= 2)
+            ShowSpecialLineBetween(tutorialSpecialTrailB, 4, 5, new Color(0.75f, 0.9f, 1f, 0.82f), pulse: phase == 2);
+
+        string hintKey = phase == 0 ? "tutorial_blind_curtain_step_intro" :
+            phase == 1 ? "tutorial_blind_curtain_step_unknown" :
+            "tutorial_blind_curtain_step_normal";
+        SetSpecialHint(T(hintKey));
+    }
+
+    private void ApplyBlackoutTutorialState(int phase)
+    {
+        ResetSpecialTutorialBoard();
+
+        for (int i = 0; i < TutorialSpecialCellCount; i++)
+        {
+            bool center = i == 4;
+            bool question = phase >= 2 || center;
+            string text = question ? "?" : ((i % 3) + 1).ToString();
+            string theme = center || phase >= 2 ? "tutorial-special-cell-blackout" : string.Empty;
+            string sprite = center ? BlindCurtainSpriteResourcePath : null;
+            SetSpecialCell(i, text, sprite, theme, active: true, pulse: center && phase == 1);
+        }
+
+        if (phase >= 1)
+            ShowSpecialPulseAtCell(tutorialSpecialPulse, 4, new Color(0.82f, 0.86f, 1f, 0.88f), phase == 1);
+        if (phase >= 2)
+        {
+            ShowSpecialLineBetween(tutorialSpecialBeamHorizontal, 3, 5, new Color(0.82f, 0.86f, 1f, 0.68f), pulse: phase == 2);
+            ShowSpecialLineBetween(tutorialSpecialBeamVertical, 1, 7, new Color(0.82f, 0.86f, 1f, 0.68f), pulse: phase == 2);
+            ShowSpecialPulseAtCell(tutorialSpecialRevealPulseA, 0, new Color(0.82f, 0.86f, 1f, 0.58f), phase == 2);
+            ShowSpecialPulseAtCell(tutorialSpecialRevealPulseB, 8, new Color(0.82f, 0.86f, 1f, 0.58f), phase == 2);
+        }
+
+        string hintKey = phase == 0 ? "tutorial_blackout_step_intro" :
+            phase == 1 ? "tutorial_blackout_step_trigger" :
+            phase == 2 ? "tutorial_blackout_step_flip" :
+            "tutorial_blackout_step_memory";
+        SetSpecialHint(T(hintKey));
+    }
+
+    private void ResetSpecialTutorialBoard()
+    {
+        for (int i = 0; i < TutorialSpecialCellCount; i++)
+        {
+            VisualElement cell = tutorialSpecialCells[i];
+            if (cell != null)
+            {
+                foreach (string themeClass in TutorialSpecialCellThemeClasses)
+                    cell.RemoveFromClassList(themeClass);
+                cell.style.opacity = 0.16f;
+                cell.style.scale = new StyleScale(new Scale(Vector3.one));
+                cell.style.backgroundColor = new StyleColor(new Color(0.04f, 0.1f, 0.14f, 0.5f));
+                SetElementBorderColor(cell, new Color(0.38f, 0.58f, 0.68f, 0.32f));
+            }
+
+            if (tutorialSpecialSprites[i] != null)
+            {
+                tutorialSpecialSprites[i].image = null;
+                tutorialSpecialSprites[i].style.opacity = 0f;
+                tutorialSpecialSprites[i].style.scale = new StyleScale(new Scale(Vector3.one));
+                tutorialSpecialSprites[i].style.rotate = new StyleRotate(new Rotate(0f));
+            }
+
+            if (tutorialSpecialCounts[i] != null)
+            {
+                tutorialSpecialCounts[i].text = string.Empty;
+                tutorialSpecialCounts[i].style.opacity = 1f;
+                tutorialSpecialCounts[i].style.color = new StyleColor(new Color(0.86f, 0.98f, 1f, 0.34f));
+            }
+
+            if (tutorialSpecialBadges[i] != null)
+            {
+                tutorialSpecialBadges[i].text = string.Empty;
+                tutorialSpecialBadges[i].style.opacity = 0f;
+            }
+        }
+
+        ResetSpecialEffect(tutorialSpecialTrailA);
+        ResetSpecialEffect(tutorialSpecialTrailB);
+        ResetSpecialEffect(tutorialSpecialTrailC);
+        ResetSpecialEffect(tutorialSpecialBeamHorizontal);
+        ResetSpecialEffect(tutorialSpecialBeamVertical);
+        ResetSpecialEffect(tutorialSpecialPairLine);
+        ResetSpecialEffect(tutorialSpecialPulse);
+        ResetSpecialEffect(tutorialSpecialRevealPulseA);
+        ResetSpecialEffect(tutorialSpecialRevealPulseB);
+        ResetSpecialEffect(tutorialSpecialBlockedMarker);
+
+        if (tutorialSpecialBlockedLabel != null)
+            tutorialSpecialBlockedLabel.style.opacity = 0f;
+        if (tutorialSpecialHandImage != null)
+        {
+            tutorialSpecialHandImage.style.opacity = 0f;
+            tutorialSpecialHandImage.style.scale = new StyleScale(new Scale(Vector3.one));
+        }
+    }
+
+    private static void ResetSpecialEffect(VisualElement element)
+    {
+        if (element == null)
+            return;
+
+        element.style.opacity = 0f;
+        element.style.scale = new StyleScale(new Scale(Vector3.one));
+        element.style.rotate = new StyleRotate(new Rotate(0f));
+    }
+
+    private void SetSpecialCell(
+        int index,
+        string countText,
+        string spritePath,
+        string themeClass,
+        bool active,
+        bool pulse = false,
+        string badge = "",
+        bool hidden = false)
+    {
+        if (index < 0 || index >= TutorialSpecialCellCount)
+            return;
+
+        VisualElement cell = tutorialSpecialCells[index];
+        if (cell != null)
+        {
+            if (!string.IsNullOrEmpty(themeClass))
+                cell.AddToClassList(themeClass);
+            if (hidden)
+                cell.AddToClassList("tutorial-special-cell-hidden");
+
+            ApplySpecialCellTheme(cell, themeClass, active, hidden);
+            cell.style.opacity = hidden ? 0.24f : active ? 1f : 0.36f;
+            if (pulse)
+            {
+                cell.style.scale = new StyleScale(new Scale(new Vector3(1.13f, 1.13f, 1f)));
+                cell.schedule.Execute(() =>
+                {
+                    cell.style.scale = new StyleScale(new Scale(Vector3.one));
+                }).StartingIn(140);
+            }
+        }
+
+        Label countLabel = tutorialSpecialCounts[index];
+        if (countLabel != null)
+        {
+            countLabel.text = countText ?? string.Empty;
+            countLabel.style.opacity = string.IsNullOrEmpty(countLabel.text) ? 0f : 1f;
+            countLabel.style.color = new StyleColor(countLabel.text == "?"
+                ? new Color(0.92f, 0.97f, 1f, 0.72f)
+                : new Color(0.86f, 0.98f, 1f, active ? 0.36f : 0.18f));
+        }
+
+        Label badgeLabel = tutorialSpecialBadges[index];
+        if (badgeLabel != null)
+        {
+            badgeLabel.text = badge ?? string.Empty;
+            badgeLabel.style.opacity = string.IsNullOrEmpty(badgeLabel.text) ? 0f : 1f;
+        }
+
+        Image spriteImage = tutorialSpecialSprites[index];
+        if (spriteImage != null)
+        {
+            Sprite sprite = LoadTutorialSprite(spritePath);
+            if (sprite != null)
+            {
+                spriteImage.image = sprite.texture;
+                spriteImage.scaleMode = ScaleMode.ScaleToFit;
+                spriteImage.style.overflow = Overflow.Visible;
+                spriteImage.uv = new Rect(0f, 0f, 1f, 1f);
+                spriteImage.style.opacity = active ? 0.94f : 0.28f;
+            }
+            else
+            {
+                spriteImage.image = null;
+                spriteImage.style.opacity = 0f;
+            }
+        }
+    }
+
+    private static void ApplySpecialCellTheme(VisualElement cell, string themeClass, bool active, bool hidden)
+    {
+        if (cell == null)
+            return;
+
+        Color backgroundColor = new Color(0.1f, 0.22f, 0.29f, 0.8f);
+        Color borderColor = new Color(0.6f, 0.9f, 1f, 0.84f);
+
+        if (hidden)
+        {
+            backgroundColor = new Color(0.02f, 0.04f, 0.07f, 0.88f);
+            borderColor = new Color(0.16f, 0.22f, 0.3f, 0.72f);
+        }
+        else
+        {
+            switch (themeClass)
+            {
+                case "tutorial-special-cell-cross":
+                    backgroundColor = new Color(0.05f, 0.29f, 0.34f, 0.82f);
+                    borderColor = new Color(0.36f, 0.96f, 1f, 0.96f);
+                    break;
+                case "tutorial-special-cell-fixed":
+                    backgroundColor = new Color(0.32f, 0.09f, 0.12f, 0.82f);
+                    borderColor = new Color(1f, 0.48f, 0.48f, 0.96f);
+                    break;
+                case "tutorial-special-cell-twin":
+                    backgroundColor = new Color(0.22f, 0.11f, 0.4f, 0.82f);
+                    borderColor = new Color(0.72f, 0.52f, 1f, 0.98f);
+                    break;
+                case "tutorial-special-cell-igniter":
+                    backgroundColor = new Color(0.36f, 0.18f, 0.04f, 0.84f);
+                    borderColor = new Color(1f, 0.78f, 0.22f, 0.98f);
+                    break;
+                case "tutorial-special-cell-blind":
+                    backgroundColor = new Color(0.03f, 0.09f, 0.14f, 0.9f);
+                    borderColor = new Color(0.6f, 0.78f, 0.92f, 0.92f);
+                    break;
+                case "tutorial-special-cell-blackout":
+                    backgroundColor = new Color(0.01f, 0.015f, 0.025f, 0.94f);
+                    borderColor = new Color(0.8f, 0.85f, 1f, 0.8f);
+                    break;
+            }
+
+            if (!active)
+            {
+                backgroundColor.a *= 0.55f;
+                borderColor.a *= 0.55f;
+            }
+        }
+
+        cell.style.backgroundColor = new StyleColor(backgroundColor);
+        SetElementBorderColor(cell, borderColor);
+    }
+
+    private Sprite LoadTutorialSprite(string resourcePath)
+    {
+        if (string.IsNullOrEmpty(resourcePath))
+            return null;
+
+        if (tutorialSpriteCache.TryGetValue(resourcePath, out Sprite cachedSprite))
+            return cachedSprite;
+
+        Sprite sprite = Resources.Load<Sprite>(resourcePath);
+        if (sprite == null)
+            Debug.LogWarning($"[GameMainUIController] Resources/{resourcePath} 도움말 스프라이트를 찾을 수 없습니다.");
+
+        tutorialSpriteCache[resourcePath] = sprite;
+        return sprite;
+    }
+
+    private void SetSpecialHint(string hint)
+    {
+        if (tutorialStepHintLabel != null)
+            tutorialStepHintLabel.text = hint;
+    }
+
+    private void ShowSpecialBlockedMarkerAtCell(int cellIndex)
+    {
+        PositionSpecialElementAtCell(tutorialSpecialBlockedMarker, cellIndex, TutorialSpecialMarkerSize, TutorialSpecialMarkerSize);
+        if (tutorialSpecialBlockedMarker != null)
+        {
+            tutorialSpecialBlockedMarker.style.opacity = 1f;
+            tutorialSpecialBlockedMarker.style.scale = new StyleScale(new Scale(new Vector3(1.08f, 1.08f, 1f)));
+        }
+        if (tutorialSpecialBlockedLabel != null)
+            tutorialSpecialBlockedLabel.style.opacity = 1f;
+    }
+
+    private void ShowSpecialPulseAtCell(VisualElement pulseElement, int cellIndex, Color color, bool pulse)
+    {
+        PositionSpecialElementAtCell(pulseElement, cellIndex, TutorialSpecialPulseSize, TutorialSpecialPulseSize);
+        if (pulseElement == null)
+            return;
+
+        pulseElement.style.opacity = 0.9f;
+        pulseElement.style.backgroundColor = new StyleColor(new Color(color.r, color.g, color.b, 0.14f));
+        SetElementBorderColor(pulseElement, color);
+        pulseElement.style.scale = new StyleScale(new Scale(pulse ? new Vector3(1.24f, 1.24f, 1f) : Vector3.one));
+    }
+
+    private void ShowSpecialLineBetween(VisualElement line, int fromCellIndex, int toCellIndex, Color color, bool pulse)
+    {
+        PositionSpecialLineBetween(line, fromCellIndex, toCellIndex);
+        if (line == null)
+            return;
+
+        line.style.opacity = 0.88f;
+        line.style.backgroundColor = new StyleColor(new Color(color.r, color.g, color.b, 0.22f));
+        SetElementBorderColor(line, color);
+        line.style.scale = new StyleScale(new Scale(pulse ? new Vector3(1f, 1.35f, 1f) : Vector3.one));
+    }
+
+    private void PositionSpecialLineBetween(VisualElement line, int fromCellIndex, int toCellIndex)
+    {
+        if (line == null || !TryGetSpecialCellBounds(fromCellIndex, out Rect fromBounds) || !TryGetSpecialCellBounds(toCellIndex, out Rect toBounds) || tutorialSpecialDemoBoard == null)
+            return;
+
+        Rect boardBounds = tutorialSpecialDemoBoard.worldBound;
+        if (boardBounds.width <= 0f || boardBounds.height <= 0f)
+            return;
+
+        Vector2 fromCenter = fromBounds.center;
+        Vector2 toCenter = toBounds.center;
+        bool horizontal = Mathf.Abs(toCenter.x - fromCenter.x) >= Mathf.Abs(toCenter.y - fromCenter.y);
+
+        if (horizontal)
+        {
+            float left = Mathf.Min(fromCenter.x, toCenter.x) - boardBounds.x;
+            float top = ((fromCenter.y + toCenter.y) * 0.5f) - boardBounds.y - TutorialSpecialLineThickness * 0.5f;
+            line.style.left = Mathf.Clamp(left, 0f, Mathf.Max(0f, boardBounds.width));
+            line.style.top = Mathf.Clamp(top, 0f, Mathf.Max(0f, boardBounds.height - TutorialSpecialLineThickness));
+            line.style.width = Mathf.Abs(toCenter.x - fromCenter.x);
+            line.style.height = TutorialSpecialLineThickness;
+        }
+        else
+        {
+            float left = ((fromCenter.x + toCenter.x) * 0.5f) - boardBounds.x - TutorialSpecialLineThickness * 0.5f;
+            float top = Mathf.Min(fromCenter.y, toCenter.y) - boardBounds.y;
+            line.style.left = Mathf.Clamp(left, 0f, Mathf.Max(0f, boardBounds.width - TutorialSpecialLineThickness));
+            line.style.top = Mathf.Clamp(top, 0f, Mathf.Max(0f, boardBounds.height));
+            line.style.width = TutorialSpecialLineThickness;
+            line.style.height = Mathf.Abs(toCenter.y - fromCenter.y);
+        }
+    }
+
+    private void PositionSpecialElementAtCell(VisualElement element, int cellIndex, float width, float height)
+    {
+        if (element == null || !TryGetSpecialCellBounds(cellIndex, out Rect cellBounds) || tutorialSpecialDemoBoard == null)
+            return;
+
+        Rect boardBounds = tutorialSpecialDemoBoard.worldBound;
+        if (boardBounds.width <= 0f || boardBounds.height <= 0f)
+            return;
+
+        element.style.left = Mathf.Clamp(cellBounds.center.x - boardBounds.x - width * 0.5f, 0f, Mathf.Max(0f, boardBounds.width - width));
+        element.style.top = Mathf.Clamp(cellBounds.center.y - boardBounds.y - height * 0.5f, 0f, Mathf.Max(0f, boardBounds.height - height));
+        element.style.width = width;
+        element.style.height = height;
+    }
+
+    private bool TryGetSpecialCellBounds(int cellIndex, out Rect bounds)
+    {
+        bounds = default(Rect);
+        if (cellIndex < 0 || cellIndex >= TutorialSpecialCellCount)
+            return false;
+
+        VisualElement cell = tutorialSpecialCells[cellIndex];
+        if (cell == null || cell.panel == null)
+            return false;
+
+        bounds = cell.worldBound;
+        return bounds.width > 0f && bounds.height > 0f;
+    }
+
+    private void SetSpecialTutorialHandToCell(int cellIndex, bool instant)
+    {
+        if (tutorialSpecialHandImage == null)
+            return;
+
+        if (TrySetSpecialTutorialHandToCell(cellIndex, instant))
+            return;
+
+        int col = Mathf.Clamp(cellIndex % 3, 0, 2);
+        int row = Mathf.Clamp(cellIndex / 3, 0, 2);
+        tutorialSpecialHandImage.style.left = Length.Percent(31f + col * 17f);
+        tutorialSpecialHandImage.style.top = 38f + row * 96f;
+        tutorialSpecialHandImage.style.opacity = 1f;
+        tutorialSpecialHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
+
+        if (tutorialSpecialDemoBoard != null)
+        {
+            tutorialSpecialDemoBoard.schedule.Execute(() =>
+            {
+                TrySetSpecialTutorialHandToCell(cellIndex, instant);
+            }).StartingIn(32);
+        }
+    }
+
+    private bool TrySetSpecialTutorialHandToCell(int cellIndex, bool instant)
+    {
+        if (tutorialSpecialDemoBoard == null || tutorialSpecialHandImage == null || !TryGetSpecialCellBounds(cellIndex, out Rect cellBounds))
+            return false;
+        if (tutorialSpecialDemoBoard.panel == null)
+            return false;
+
+        Rect boardBounds = tutorialSpecialDemoBoard.worldBound;
+        if (boardBounds.width <= 0f || boardBounds.height <= 0f)
+            return false;
+
+        float handWidth = GetResolvedDimension(tutorialSpecialHandImage, useWidth: true, 88f);
+        float handHeight = GetResolvedDimension(tutorialSpecialHandImage, useWidth: false, 88f);
+        float left = cellBounds.center.x - boardBounds.x - handWidth * 0.5f;
+        float top = cellBounds.yMax - boardBounds.y - handHeight * 0.34f;
+
+        tutorialSpecialHandImage.style.left = Mathf.Clamp(left, 0f, Mathf.Max(0f, boardBounds.width - handWidth));
+        tutorialSpecialHandImage.style.top = Mathf.Clamp(top, 0f, Mathf.Max(0f, boardBounds.height - handHeight));
+        tutorialSpecialHandImage.style.opacity = 1f;
+        tutorialSpecialHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
+        return true;
+    }
+
+    private SpecialTutorialPreset GetSpecialTutorialPreset(string tutorialType)
+    {
+        string normalized = NormalizeTutorialType(tutorialType);
+        switch (normalized)
+        {
+            case TutorialTypeCrossBlast:
+                return new SpecialTutorialPreset(normalized, "tutorial-special-cell-cross", CrossBlastSpriteResourcePath, "tutorial_cross_blast_step_intro", 4);
+            case TutorialTypeFixedKnot:
+                return new SpecialTutorialPreset(normalized, "tutorial-special-cell-fixed", FixedKnotSpriteResourcePath, "tutorial_fixed_knot_step_intro", 5);
+            case TutorialTypeTwinLink:
+                return new SpecialTutorialPreset(normalized, "tutorial-special-cell-twin", null, "tutorial_twin_link_step_intro", 3);
+            case TutorialTypeIgniter:
+                return new SpecialTutorialPreset(normalized, "tutorial-special-cell-igniter", IgniterSpriteResourcePath, "tutorial_igniter_step_intro", 4);
+            case TutorialTypeBlindCurtain:
+                return new SpecialTutorialPreset(normalized, "tutorial-special-cell-blind", null, "tutorial_blind_curtain_step_intro", 4);
+            case TutorialTypeBlackout:
+                return new SpecialTutorialPreset(normalized, "tutorial-special-cell-blackout", BlindCurtainSpriteResourcePath, "tutorial_blackout_step_intro", 4);
+            default:
+                return null;
+        }
+    }
+
+    private void ConfigureSpecialTutorialDemo(string tutorialType)
+    {
+        SpecialTutorialPreset preset = GetSpecialTutorialPreset(tutorialType);
+        ResetSpecialTutorialBoard();
+        if (preset == null)
+            return;
+
+        SetSpecialHint(T(preset.initialHintKey));
+        switch (preset.tutorialType)
+        {
+            case TutorialTypeCrossBlast:
+                ApplyCrossBlastTutorialState(0);
+                break;
+            case TutorialTypeFixedKnot:
+                ApplyFixedKnotTutorialState(0);
+                break;
+            case TutorialTypeTwinLink:
+                ApplyTwinLinkTutorialState(0);
+                break;
+            case TutorialTypeIgniter:
+                ApplyIgniterTutorialState(0);
+                break;
+            case TutorialTypeBlindCurtain:
+                ApplyBlindCurtainTutorialState(0);
+                break;
+            case TutorialTypeBlackout:
+                ApplyBlackoutTutorialState(0);
+                break;
+        }
+
+        SetSpecialTutorialHandToCell(preset.focusCell, instant: true);
+    }
+
+    private void ApplyBasicTutorialTrailState(int trailPhase)
+    {
+        UpdateBasicTutorialTrailGeometry();
+
+        bool leftActive = trailPhase >= 1;
+        bool rightActive = trailPhase >= 2;
+        bool complete = trailPhase >= 4;
+
+        ApplyBasicTrailElement(tutorialBasicTrailLeftCenter, leftActive, complete, trailPhase == 1);
+        ApplyBasicTrailElement(tutorialBasicTrailCenterRight, rightActive, complete, trailPhase == 2 || trailPhase == 3);
+    }
+
+    private static void ApplyBasicTutorialTileState(VisualElement tile, Label countLabel, int count, bool pulse)
+    {
+        int shownCount = Mathf.Max(0, count);
+        if (countLabel != null)
+        {
+            countLabel.text = shownCount.ToString();
+
+            Color countColor = GetTutorialNumberColor(shownCount);
+            countLabel.style.color = new StyleColor(count > 0
+                ? new Color(countColor.r, countColor.g, countColor.b, 0.34f)
+                : new Color(0.62f, 0.72f, 0.78f, 0.18f));
+        }
+
+        if (tile == null)
+            return;
+
+        bool active = count > 0;
+        Color displayColor = GetTutorialNumberColor(shownCount);
+        tile.style.opacity = active ? 1f : 0.42f;
+        tile.style.backgroundColor = active
+            ? new StyleColor(new Color(displayColor.r, displayColor.g, displayColor.b, 0.14f))
+            : new StyleColor(new Color(0.05f, 0.08f, 0.11f, 0.72f));
+
+        Color borderColor = active
+            ? new Color(displayColor.r, displayColor.g, displayColor.b, 0.94f)
+            : new Color(0.34f, 0.47f, 0.55f, 0.58f);
+        SetElementBorderColor(tile, borderColor);
+
+        if (pulse)
+        {
+            tile.style.scale = new StyleScale(new Scale(new Vector3(1.14f, 1.14f, 1f)));
+            tile.schedule.Execute(() =>
+            {
+                tile.style.scale = new StyleScale(new Scale(Vector3.one));
+            }).StartingIn(130);
+        }
+        else
+        {
+            tile.style.scale = new StyleScale(new Scale(Vector3.one));
+        }
+    }
+
+    private static void ApplyBasicTrailElement(VisualElement trail, bool active, bool complete, bool pulse)
+    {
+        if (trail == null)
+            return;
+
+        trail.style.opacity = complete ? 0.62f : active ? 0.92f : 0.16f;
+        trail.style.backgroundColor = active || complete
+            ? new StyleColor(new Color(0.44f, 0.92f, 1f, complete ? 0.22f : 0.32f))
+            : new StyleColor(new Color(0.24f, 0.48f, 0.56f, 0.12f));
+        SetElementBorderColor(trail, active || complete
+            ? new Color(0.74f, 0.97f, 1f, complete ? 0.62f : 0.92f)
+            : new Color(0.46f, 0.68f, 0.76f, 0.36f));
+
+        if (pulse)
+        {
+            trail.style.scale = new StyleScale(new Scale(new Vector3(1f, 1.45f, 1f)));
+            trail.schedule.Execute(() =>
+            {
+                trail.style.scale = new StyleScale(new Scale(Vector3.one));
+            }).StartingIn(150);
+        }
+        else
+        {
+            trail.style.scale = new StyleScale(new Scale(Vector3.one));
+        }
     }
 
     private static void ApplyTutorialTileState(VisualElement tile, Label countLabel, int count, bool pulse)
@@ -2244,10 +3420,7 @@ public class GameMainUIController : MonoBehaviour
         tile.style.opacity = active ? 1f : 0.3f;
         tile.style.backgroundColor = active ? new StyleColor(new Color(0.24f, 0.72f, 0.99f, 0.23f)) : new StyleColor(new Color(0.08f, 0.13f, 0.2f, 0.46f));
         Color borderColor = active ? new Color(0.73f, 0.93f, 1f, 0.95f) : new Color(0.45f, 0.61f, 0.72f, 0.58f);
-        tile.style.borderLeftColor = borderColor;
-        tile.style.borderRightColor = borderColor;
-        tile.style.borderTopColor = borderColor;
-        tile.style.borderBottomColor = borderColor;
+        SetElementBorderColor(tile, borderColor);
 
         if (pulse)
         {
@@ -2260,6 +3433,52 @@ public class GameMainUIController : MonoBehaviour
         else
         {
             tile.style.scale = new StyleScale(new Scale(Vector3.one));
+        }
+    }
+
+    private static Color GetTutorialNumberColor(int count)
+    {
+        if (count <= 0)
+            return new Color(0.42f, 0.5f, 0.56f, 1f);
+
+        int paletteIndex = Mathf.Clamp(count, 1, TutorialNumberPalette.Length) - 1;
+        return TutorialNumberPalette[paletteIndex];
+    }
+
+    private static void SetElementBorderColor(VisualElement element, Color color)
+    {
+        if (element == null)
+            return;
+
+        element.style.borderLeftColor = color;
+        element.style.borderRightColor = color;
+        element.style.borderTopColor = color;
+        element.style.borderBottomColor = color;
+    }
+
+    private void ApplyShortCircuitTutorialSpriteRotation()
+    {
+        if (tutorialShortCircuitTileImage == null)
+            return;
+
+        float rotationZ = GetShortCircuitSpriteRotationZ(ShortCircuitTutorialDemoDirection);
+        tutorialShortCircuitTileImage.style.rotate = new StyleRotate(new Rotate(rotationZ));
+    }
+
+    private static float GetShortCircuitSpriteRotationZ(string direction)
+    {
+        string normalized = string.IsNullOrEmpty(direction) ? "LEFT" : direction.ToUpperInvariant();
+        switch (normalized)
+        {
+            case "RIGHT":
+                return 180f;
+            case "UP":
+                return -90f;
+            case "DOWN":
+                return 90f;
+            case "LEFT":
+            default:
+                return 0f;
         }
     }
 
@@ -2277,16 +3496,15 @@ public class GameMainUIController : MonoBehaviour
             Color borderColor = active
                 ? new Color(1f, 0.89f, 0.63f, 0.96f)
                 : new Color(0.69f, 0.58f, 0.42f, 0.62f);
-            tile.style.borderLeftColor = borderColor;
-            tile.style.borderRightColor = borderColor;
-            tile.style.borderTopColor = borderColor;
-            tile.style.borderBottomColor = borderColor;
+            SetElementBorderColor(tile, borderColor);
         }
+
+        bool showArrow = count > 0;
+        ApplyShortCircuitTileImageState(showArrow, pulseArrow);
 
         if (tutorialShortTileBottomLeftArrow == null)
             return;
 
-        bool showArrow = count > 0;
         tutorialShortTileBottomLeftArrow.style.opacity = showArrow ? 1f : 0.42f;
         tutorialShortTileBottomLeftArrow.style.scale = new StyleScale(
             new Scale(pulseArrow && showArrow ? new Vector3(1.18f, 1.18f, 1f) : Vector3.one));
@@ -2302,9 +3520,31 @@ public class GameMainUIController : MonoBehaviour
         }
     }
 
+    private void ApplyShortCircuitTileImageState(bool active, bool pulse)
+    {
+        if (tutorialShortCircuitTileImage == null)
+            return;
+
+        tutorialShortCircuitTileImage.style.opacity = active ? 0.98f : 0.34f;
+        tutorialShortCircuitTileImage.style.scale = new StyleScale(
+            new Scale(pulse && active ? new Vector3(1.12f, 1.12f, 1f) : Vector3.one));
+
+        if (pulse && active)
+        {
+            tutorialShortCircuitTileImage.schedule.Execute(() =>
+            {
+                tutorialShortCircuitTileImage.style.scale = new StyleScale(new Scale(Vector3.one));
+            }).StartingIn(140);
+        }
+    }
+
     private void SetTutorialHandPosition(int laneIndex, bool instant)
     {
         if (tutorialHandImage == null)
+            return;
+
+        UpdateBasicTutorialTrailGeometry();
+        if (TrySetTutorialHandPositionFromTile(laneIndex, instant))
             return;
 
         float leftPercent;
@@ -2328,11 +3568,104 @@ public class GameMainUIController : MonoBehaviour
         tutorialHandImage.style.top = 226f;
         tutorialHandImage.style.opacity = 1f;
         tutorialHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
+
+        if (tutorialBasicDemoBoard != null)
+        {
+            tutorialBasicDemoBoard.schedule.Execute(() =>
+            {
+                UpdateBasicTutorialTrailGeometry();
+                TrySetTutorialHandPositionFromTile(laneIndex, instant);
+            }).StartingIn(32);
+        }
+    }
+
+    private bool TrySetTutorialHandPositionFromTile(int laneIndex, bool instant)
+    {
+        VisualElement targetTile = GetBasicTutorialTileByLane(laneIndex);
+        if (targetTile == null || tutorialBasicDemoBoard == null || tutorialHandImage == null)
+            return false;
+        if (targetTile.panel == null || tutorialBasicDemoBoard.panel == null)
+            return false;
+
+        Rect boardBounds = tutorialBasicDemoBoard.worldBound;
+        Rect tileBounds = targetTile.worldBound;
+        if (boardBounds.width <= 0f || boardBounds.height <= 0f || tileBounds.width <= 0f || tileBounds.height <= 0f)
+            return false;
+
+        float handWidth = GetResolvedDimension(tutorialHandImage, useWidth: true, TutorialHandFallbackSize);
+        float handHeight = GetResolvedDimension(tutorialHandImage, useWidth: false, TutorialHandFallbackSize);
+        float left = tileBounds.center.x - boardBounds.x - handWidth * 0.5f;
+        float top = tileBounds.yMax - boardBounds.y - handHeight * 0.36f;
+
+        tutorialHandImage.style.left = Mathf.Clamp(left, 0f, Mathf.Max(0f, boardBounds.width - handWidth));
+        tutorialHandImage.style.top = Mathf.Clamp(top, 0f, Mathf.Max(0f, boardBounds.height - handHeight));
+        tutorialHandImage.style.opacity = 1f;
+        tutorialHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
+        return true;
+    }
+
+    private VisualElement GetBasicTutorialTileByLane(int laneIndex)
+    {
+        switch (laneIndex)
+        {
+            case 0:
+                return tutorialTileLeft;
+            case 1:
+                return tutorialTileCenter;
+            case 2:
+                return tutorialTileRight;
+            default:
+                return tutorialTileCenter;
+        }
+    }
+
+    private void UpdateBasicTutorialTrailGeometry()
+    {
+        PositionBasicTutorialTrail(tutorialBasicTrailLeftCenter, tutorialTileLeft, tutorialTileCenter);
+        PositionBasicTutorialTrail(tutorialBasicTrailCenterRight, tutorialTileCenter, tutorialTileRight);
+    }
+
+    private void PositionBasicTutorialTrail(VisualElement trail, VisualElement fromTile, VisualElement toTile)
+    {
+        if (trail == null || fromTile == null || toTile == null || tutorialBasicDemoBoard == null)
+            return;
+        if (trail.panel == null || fromTile.panel == null || toTile.panel == null || tutorialBasicDemoBoard.panel == null)
+            return;
+
+        Rect boardBounds = tutorialBasicDemoBoard.worldBound;
+        Rect fromBounds = fromTile.worldBound;
+        Rect toBounds = toTile.worldBound;
+        if (boardBounds.width <= 0f || fromBounds.width <= 0f || toBounds.width <= 0f)
+            return;
+
+        float startX = fromBounds.center.x;
+        float endX = toBounds.center.x;
+        float left = Mathf.Min(startX, endX) - boardBounds.x;
+        float width = Mathf.Abs(endX - startX);
+        float top = ((fromBounds.center.y + toBounds.center.y) * 0.5f) - boardBounds.y - TutorialTrailHeight * 0.5f;
+
+        trail.style.left = Mathf.Clamp(left, 0f, Mathf.Max(0f, boardBounds.width));
+        trail.style.top = Mathf.Clamp(top, 0f, Mathf.Max(0f, boardBounds.height - TutorialTrailHeight));
+        trail.style.width = Mathf.Max(0f, width);
+        trail.style.height = TutorialTrailHeight;
+    }
+
+    private static float GetResolvedDimension(VisualElement element, bool useWidth, float fallback)
+    {
+        if (element == null)
+            return fallback;
+
+        float value = useWidth ? element.resolvedStyle.width : element.resolvedStyle.height;
+        return float.IsNaN(value) || value <= 0f ? fallback : value;
     }
 
     private void SetShortCircuitTutorialHandPosition(int pointIndex, bool instant)
     {
         if (tutorialShortCircuitHandImage == null)
+            return;
+
+        UpdateShortCircuitTutorialGeometry();
+        if (TrySetShortCircuitTutorialHandPositionFromTile(pointIndex, instant))
             return;
 
         float leftPercent;
@@ -2352,8 +3685,8 @@ public class GameMainUIController : MonoBehaviour
                 top = 48f;
                 break;
             case 3:
-                leftPercent = 26f;
-                top = 48f;
+                leftPercent = 56f;
+                top = 206f;
                 break;
             default:
                 leftPercent = 26f;
@@ -2365,31 +3698,149 @@ public class GameMainUIController : MonoBehaviour
         tutorialShortCircuitHandImage.style.top = top;
         tutorialShortCircuitHandImage.style.opacity = 1f;
         tutorialShortCircuitHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
+
+        if (tutorialShortCircuitDemoBoard != null)
+        {
+            tutorialShortCircuitDemoBoard.schedule.Execute(() =>
+            {
+                UpdateShortCircuitTutorialGeometry();
+                TrySetShortCircuitTutorialHandPositionFromTile(pointIndex, instant);
+            }).StartingIn(32);
+        }
+    }
+
+    private bool TrySetShortCircuitTutorialHandPositionFromTile(int pointIndex, bool instant)
+    {
+        VisualElement targetTile = GetShortCircuitTutorialTileByPoint(pointIndex);
+        if (targetTile == null || tutorialShortCircuitDemoBoard == null || tutorialShortCircuitHandImage == null)
+            return false;
+        if (targetTile.panel == null || tutorialShortCircuitDemoBoard.panel == null)
+            return false;
+
+        Rect boardBounds = tutorialShortCircuitDemoBoard.worldBound;
+        Rect tileBounds = targetTile.worldBound;
+        if (boardBounds.width <= 0f || boardBounds.height <= 0f || tileBounds.width <= 0f || tileBounds.height <= 0f)
+            return false;
+
+        float handWidth = GetResolvedDimension(tutorialShortCircuitHandImage, useWidth: true, TutorialHandFallbackSize);
+        float handHeight = GetResolvedDimension(tutorialShortCircuitHandImage, useWidth: false, TutorialHandFallbackSize);
+        float left = tileBounds.center.x - boardBounds.x - handWidth * 0.5f;
+        float top = tileBounds.yMax - boardBounds.y - handHeight * 0.36f;
+
+        tutorialShortCircuitHandImage.style.left = Mathf.Clamp(left, 0f, Mathf.Max(0f, boardBounds.width - handWidth));
+        tutorialShortCircuitHandImage.style.top = Mathf.Clamp(top, 0f, Mathf.Max(0f, boardBounds.height - handHeight));
+        tutorialShortCircuitHandImage.style.opacity = 1f;
+        tutorialShortCircuitHandImage.style.scale = new StyleScale(new Scale(instant ? Vector3.one : new Vector3(1.04f, 1.04f, 1f)));
+        return true;
+    }
+
+    private VisualElement GetShortCircuitTutorialTileByPoint(int pointIndex)
+    {
+        switch (pointIndex)
+        {
+            case 0:
+                return tutorialShortTileBottomLeft;
+            case 1:
+            case 3:
+                return tutorialShortTileBottomRight;
+            case 2:
+                return tutorialShortTileTopRight;
+            default:
+                return tutorialShortTileBottomLeft;
+        }
+    }
+
+    private void UpdateShortCircuitTutorialGeometry()
+    {
+        PositionShortCircuitExitTrail();
+        PositionShortCircuitBlockedEntry();
+    }
+
+    private void PositionShortCircuitExitTrail()
+    {
+        if (tutorialShortCircuitExitTrail == null || tutorialShortTileBottomLeft == null || tutorialShortTileBottomRight == null || tutorialShortCircuitDemoBoard == null)
+            return;
+        if (tutorialShortCircuitExitTrail.panel == null || tutorialShortTileBottomLeft.panel == null || tutorialShortTileBottomRight.panel == null || tutorialShortCircuitDemoBoard.panel == null)
+            return;
+
+        Rect boardBounds = tutorialShortCircuitDemoBoard.worldBound;
+        Rect fromBounds = tutorialShortTileBottomLeft.worldBound;
+        Rect toBounds = tutorialShortTileBottomRight.worldBound;
+        if (boardBounds.width <= 0f || fromBounds.width <= 0f || toBounds.width <= 0f)
+            return;
+
+        float left = fromBounds.center.x - boardBounds.x;
+        float width = toBounds.center.x - fromBounds.center.x;
+        float top = ((fromBounds.center.y + toBounds.center.y) * 0.5f) - boardBounds.y - TutorialTrailHeight * 0.5f;
+
+        tutorialShortCircuitExitTrail.style.left = Mathf.Clamp(left, 0f, Mathf.Max(0f, boardBounds.width));
+        tutorialShortCircuitExitTrail.style.top = Mathf.Clamp(top, 0f, Mathf.Max(0f, boardBounds.height - TutorialTrailHeight));
+        tutorialShortCircuitExitTrail.style.width = Mathf.Max(0f, width);
+        tutorialShortCircuitExitTrail.style.height = TutorialTrailHeight;
+    }
+
+    private void PositionShortCircuitBlockedEntry()
+    {
+        if (tutorialShortCircuitBlockedEntry == null || tutorialShortTileBottomLeft == null || tutorialShortTileBottomRight == null || tutorialShortCircuitDemoBoard == null)
+            return;
+        if (tutorialShortCircuitBlockedEntry.panel == null || tutorialShortTileBottomLeft.panel == null || tutorialShortTileBottomRight.panel == null || tutorialShortCircuitDemoBoard.panel == null)
+            return;
+
+        Rect boardBounds = tutorialShortCircuitDemoBoard.worldBound;
+        Rect fromBounds = tutorialShortTileBottomRight.worldBound;
+        Rect toBounds = tutorialShortTileBottomLeft.worldBound;
+        if (boardBounds.width <= 0f || fromBounds.width <= 0f || toBounds.width <= 0f)
+            return;
+
+        float centerX = (fromBounds.center.x + toBounds.center.x) * 0.5f;
+        float centerY = (fromBounds.center.y + toBounds.center.y) * 0.5f;
+        float left = centerX - boardBounds.x - TutorialBlockedMarkerSize * 0.5f;
+        float top = centerY - boardBounds.y - TutorialBlockedMarkerSize * 0.5f;
+
+        tutorialShortCircuitBlockedEntry.style.left = Mathf.Clamp(left, 0f, Mathf.Max(0f, boardBounds.width - TutorialBlockedMarkerSize));
+        tutorialShortCircuitBlockedEntry.style.top = Mathf.Clamp(top, 0f, Mathf.Max(0f, boardBounds.height - TutorialBlockedMarkerSize));
+        tutorialShortCircuitBlockedEntry.style.width = TutorialBlockedMarkerSize;
+        tutorialShortCircuitBlockedEntry.style.height = TutorialBlockedMarkerSize;
     }
 
     private void ConfigureTutorialDemo(HelpTutorialEntryData entry)
     {
-        bool isShortCircuit = entry != null &&
-            string.Equals(entry.tutorialType, TutorialTypeShortCircuit, StringComparison.OrdinalIgnoreCase);
+        string tutorialType = NormalizeTutorialType(entry != null ? entry.tutorialType : TutorialTypeBasicPath);
+        bool isShortCircuit = string.Equals(tutorialType, TutorialTypeShortCircuit, StringComparison.OrdinalIgnoreCase);
+        bool isSpecial = IsSpecialTutorialType(tutorialType);
+        bool isBasic = !isShortCircuit && !isSpecial;
 
         if (tutorialBasicDemoBoard != null)
-            tutorialBasicDemoBoard.style.display = isShortCircuit ? DisplayStyle.None : DisplayStyle.Flex;
+            tutorialBasicDemoBoard.style.display = isBasic ? DisplayStyle.Flex : DisplayStyle.None;
         if (tutorialShortCircuitDemoBoard != null)
             tutorialShortCircuitDemoBoard.style.display = isShortCircuit ? DisplayStyle.Flex : DisplayStyle.None;
+        if (tutorialSpecialDemoBoard != null)
+            tutorialSpecialDemoBoard.style.display = isSpecial ? DisplayStyle.Flex : DisplayStyle.None;
 
-        if (tutorialHandImage != null && !isShortCircuit)
+        if (tutorialHandImage != null && isBasic)
         {
-            ApplyTutorialStepState(1, 2, 1, T("tutorial_hint_connect"));
+            ApplyBasicTutorialStepState(1, 2, 1, T("tutorial_hint_connect"));
             SetTutorialHandPosition(0, instant: true);
         }
 
         if (tutorialShortCircuitHandImage != null)
             tutorialShortCircuitHandImage.style.opacity = isShortCircuit ? 1f : 0f;
-        if (tutorialHandImage != null && isShortCircuit)
+        if (tutorialSpecialHandImage != null)
+            tutorialSpecialHandImage.style.opacity = isSpecial ? 1f : 0f;
+        if (tutorialHandImage != null && !isBasic)
             tutorialHandImage.style.opacity = 0f;
 
-        if (!isShortCircuit)
+        if (isSpecial)
+        {
+            ConfigureSpecialTutorialDemo(tutorialType);
             return;
+        }
+
+        if (!isShortCircuit)
+        {
+            ResetSpecialTutorialBoard();
+            return;
+        }
 
         ApplyShortCircuitTutorialStepState(
             1, 1, 1, 1,
@@ -2605,6 +4056,7 @@ public class GameMainUIController : MonoBehaviour
             tutorialDescriptionLabel.text = ResolveTutorialDescription(activeTutorialEntry);
         if (tutorialConfirmButton != null)
             tutorialConfirmButton.text = ResolveTutorialCloseButtonText(activeTutorialEntry);
+        RefreshTutorialNavigation();
     }
 
     private string ResolveTutorialTitle(HelpTutorialEntryData entry)

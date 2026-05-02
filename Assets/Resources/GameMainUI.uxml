@@ -134,6 +134,9 @@
         <ui:VisualElement name="TutorialDialog" style="width: 94%; max-width: 960px; min-height: 760px; background-color: rgba(7, 11, 18, 0.98); border-left-width: 4px; border-right-width: 4px; border-top-width: 4px; border-bottom-width: 4px; border-left-color: rgba(156, 227, 255, 0.95); border-right-color: rgba(156, 227, 255, 0.95); border-top-color: rgba(156, 227, 255, 0.95); border-bottom-color: rgba(156, 227, 255, 0.95); border-radius: 28px; padding-left: 34px; padding-right: 34px; padding-top: 30px; padding-bottom: 30px;">
             <ui:VisualElement style="height: 92px; flex-direction: row; justify-content: space-between; align-items: center;">
                 <ui:Label name="TutorialTitleLabel" text="기본 플레이 방법" style="font-size: 50px; color: rgb(255, 255, 255); -unity-font-style: bold; letter-spacing: 0.8px;"/>
+                <ui:Button name="TutorialNextButton" text="" class="tutorial-nav-button" style="display: none;">
+                    <ui:Label name="TutorialNextButtonLabel" text="›" class="tutorial-nav-label"/>
+                </ui:Button>
                 <ui:Button name="TutorialCloseButton" text="" style="width: 96px; height: 96px; background-color: rgba(0, 0, 0, 0); border-left-width: 0; border-right-width: 0; border-top-width: 0; border-bottom-width: 0; border-radius: 0; justify-content: center; align-items: center;">
                     <ui:Image name="TutorialCloseIcon" style="width: 62px; height: 62px;"/>
                 </ui:Button>
@@ -141,20 +144,33 @@
             <ui:Label name="TutorialDescriptionLabel" text="왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다." style="font-size: 34px; color: rgba(205, 233, 255, 1); -unity-text-align: middle-center; margin-top: 12px; margin-bottom: 18px;"/>
             <ui:VisualElement name="TutorialDemoBoard" style="height: 340px; margin-top: 8px; margin-bottom: 18px; justify-content: center; align-items: center; position: relative;">
                 <ui:VisualElement name="TutorialBasicDemoBoard" style="width: 100%; height: 100%; justify-content: center; align-items: center; position: relative;">
-                    <ui:VisualElement style="flex-direction: row; justify-content: center; align-items: center;">
-                        <ui:VisualElement name="TutorialTileLeft" class="tutorial-demo-tile">
-                            <ui:Label name="TutorialTileLeftCount" text="1" class="tutorial-demo-count"/>
+                    <ui:VisualElement name="TutorialBasicPathLayer" class="tutorial-basic-path-layer">
+                        <ui:VisualElement name="TutorialBasicTrailLeftCenter" class="tutorial-basic-trail"/>
+                        <ui:VisualElement name="TutorialBasicTrailCenterRight" class="tutorial-basic-trail"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="TutorialBasicTileRow" class="tutorial-basic-tile-row">
+                        <ui:VisualElement name="TutorialTileLeft" class="tutorial-demo-tile tutorial-basic-tile">
+                            <ui:VisualElement class="tutorial-basic-tile-inner"/>
+                            <ui:Label name="TutorialTileLeftCount" text="1" class="tutorial-demo-count tutorial-basic-count"/>
                         </ui:VisualElement>
-                        <ui:VisualElement name="TutorialTileCenter" class="tutorial-demo-tile">
-                            <ui:Label name="TutorialTileCenterCount" text="2" class="tutorial-demo-count"/>
+                        <ui:VisualElement name="TutorialTileCenter" class="tutorial-demo-tile tutorial-basic-tile">
+                            <ui:VisualElement class="tutorial-basic-tile-inner"/>
+                            <ui:Label name="TutorialTileCenterCount" text="2" class="tutorial-demo-count tutorial-basic-count"/>
                         </ui:VisualElement>
-                        <ui:VisualElement name="TutorialTileRight" class="tutorial-demo-tile">
-                            <ui:Label name="TutorialTileRightCount" text="1" class="tutorial-demo-count"/>
+                        <ui:VisualElement name="TutorialTileRight" class="tutorial-demo-tile tutorial-basic-tile">
+                            <ui:VisualElement class="tutorial-basic-tile-inner"/>
+                            <ui:Label name="TutorialTileRightCount" text="1" class="tutorial-demo-count tutorial-basic-count"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:Image name="TutorialHandImage" style="position: absolute; width: 100px; height: 100px; left: 19%; top: 226px;"/>
                 </ui:VisualElement>
                 <ui:VisualElement name="TutorialShortCircuitDemoBoard" style="display: none; width: 100%; height: 100%; justify-content: center; align-items: center; position: relative;">
+                    <ui:VisualElement name="TutorialShortCircuitPathLayer" class="tutorial-short-circuit-path-layer">
+                        <ui:VisualElement name="TutorialShortCircuitExitTrail" class="tutorial-short-circuit-exit-trail"/>
+                        <ui:VisualElement name="TutorialShortCircuitBlockedEntry" class="tutorial-short-circuit-blocked-entry">
+                            <ui:Label name="TutorialShortCircuitBlockedEntryLabel" text="×" class="tutorial-short-circuit-blocked-entry-label"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
                     <ui:VisualElement class="tutorial-grid-demo-wrap">
                         <ui:VisualElement class="tutorial-grid-row">
                             <ui:VisualElement name="TutorialShortTileTopLeft" class="tutorial-demo-tile tutorial-demo-grid-tile">
@@ -166,6 +182,7 @@
                         </ui:VisualElement>
                         <ui:VisualElement class="tutorial-grid-row">
                             <ui:VisualElement name="TutorialShortTileBottomLeft" class="tutorial-demo-tile tutorial-demo-grid-tile tutorial-demo-short-circuit">
+                                <ui:Image name="TutorialShortCircuitTileImage" class="tutorial-short-circuit-tile-image"/>
                                 <ui:Label name="TutorialShortTileBottomLeftArrow" text="→" class="tutorial-demo-arrow"/>
                                 <ui:Label name="TutorialShortTileBottomLeftCount" text="1" class="tutorial-demo-count"/>
                             </ui:VisualElement>
@@ -175,6 +192,40 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:Image name="TutorialShortCircuitHandImage" style="position: absolute; width: 100px; height: 100px; left: 26%; top: 206px;"/>
+                </ui:VisualElement>
+                <ui:VisualElement name="TutorialSpecialDemoBoard" class="tutorial-special-board" style="display: none;">
+                    <ui:VisualElement name="TutorialSpecialGrid" class="tutorial-special-grid">
+                        <ui:VisualElement class="tutorial-special-row">
+                            <ui:VisualElement name="TutorialSpecialCell0" class="tutorial-special-cell"><ui:Image name="TutorialSpecialSprite0" class="tutorial-special-sprite"/><ui:Label name="TutorialSpecialCount0" text="" class="tutorial-special-count"/><ui:Label name="TutorialSpecialBadge0" text="" class="tutorial-special-badge"/></ui:VisualElement>
+                            <ui:VisualElement name="TutorialSpecialCell1" class="tutorial-special-cell"><ui:Image name="TutorialSpecialSprite1" class="tutorial-special-sprite"/><ui:Label name="TutorialSpecialCount1" text="" class="tutorial-special-count"/><ui:Label name="TutorialSpecialBadge1" text="" class="tutorial-special-badge"/></ui:VisualElement>
+                            <ui:VisualElement name="TutorialSpecialCell2" class="tutorial-special-cell"><ui:Image name="TutorialSpecialSprite2" class="tutorial-special-sprite"/><ui:Label name="TutorialSpecialCount2" text="" class="tutorial-special-count"/><ui:Label name="TutorialSpecialBadge2" text="" class="tutorial-special-badge"/></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="tutorial-special-row">
+                            <ui:VisualElement name="TutorialSpecialCell3" class="tutorial-special-cell"><ui:Image name="TutorialSpecialSprite3" class="tutorial-special-sprite"/><ui:Label name="TutorialSpecialCount3" text="" class="tutorial-special-count"/><ui:Label name="TutorialSpecialBadge3" text="" class="tutorial-special-badge"/></ui:VisualElement>
+                            <ui:VisualElement name="TutorialSpecialCell4" class="tutorial-special-cell"><ui:Image name="TutorialSpecialSprite4" class="tutorial-special-sprite"/><ui:Label name="TutorialSpecialCount4" text="" class="tutorial-special-count"/><ui:Label name="TutorialSpecialBadge4" text="" class="tutorial-special-badge"/></ui:VisualElement>
+                            <ui:VisualElement name="TutorialSpecialCell5" class="tutorial-special-cell"><ui:Image name="TutorialSpecialSprite5" class="tutorial-special-sprite"/><ui:Label name="TutorialSpecialCount5" text="" class="tutorial-special-count"/><ui:Label name="TutorialSpecialBadge5" text="" class="tutorial-special-badge"/></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="tutorial-special-row">
+                            <ui:VisualElement name="TutorialSpecialCell6" class="tutorial-special-cell"><ui:Image name="TutorialSpecialSprite6" class="tutorial-special-sprite"/><ui:Label name="TutorialSpecialCount6" text="" class="tutorial-special-count"/><ui:Label name="TutorialSpecialBadge6" text="" class="tutorial-special-badge"/></ui:VisualElement>
+                            <ui:VisualElement name="TutorialSpecialCell7" class="tutorial-special-cell"><ui:Image name="TutorialSpecialSprite7" class="tutorial-special-sprite"/><ui:Label name="TutorialSpecialCount7" text="" class="tutorial-special-count"/><ui:Label name="TutorialSpecialBadge7" text="" class="tutorial-special-badge"/></ui:VisualElement>
+                            <ui:VisualElement name="TutorialSpecialCell8" class="tutorial-special-cell"><ui:Image name="TutorialSpecialSprite8" class="tutorial-special-sprite"/><ui:Label name="TutorialSpecialCount8" text="" class="tutorial-special-count"/><ui:Label name="TutorialSpecialBadge8" text="" class="tutorial-special-badge"/></ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="TutorialSpecialEffectLayer" class="tutorial-special-effect-layer">
+                        <ui:VisualElement name="TutorialSpecialTrailA" class="tutorial-special-trail"/>
+                        <ui:VisualElement name="TutorialSpecialTrailB" class="tutorial-special-trail"/>
+                        <ui:VisualElement name="TutorialSpecialTrailC" class="tutorial-special-trail"/>
+                        <ui:VisualElement name="TutorialSpecialBeamHorizontal" class="tutorial-special-beam"/>
+                        <ui:VisualElement name="TutorialSpecialBeamVertical" class="tutorial-special-beam"/>
+                        <ui:VisualElement name="TutorialSpecialPairLine" class="tutorial-special-pair-line"/>
+                        <ui:VisualElement name="TutorialSpecialPulse" class="tutorial-special-pulse"/>
+                        <ui:VisualElement name="TutorialSpecialRevealPulseA" class="tutorial-special-reveal-pulse"/>
+                        <ui:VisualElement name="TutorialSpecialRevealPulseB" class="tutorial-special-reveal-pulse"/>
+                        <ui:VisualElement name="TutorialSpecialBlockedMarker" class="tutorial-special-blocked-marker">
+                            <ui:Label name="TutorialSpecialBlockedLabel" text="×" class="tutorial-special-blocked-label"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Image name="TutorialSpecialHandImage" class="tutorial-special-hand"/>
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:Label name="TutorialStepHintLabel" text="왼쪽 타일에서 시작해 경로를 연결해보세요." style="font-size: 32px; color: rgba(174, 228, 255, 1); -unity-text-align: middle-center; margin-bottom: 22px; min-height: 46px;"/>
