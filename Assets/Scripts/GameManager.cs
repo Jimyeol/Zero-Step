@@ -132,6 +132,7 @@ public class GameManager : MonoBehaviour
     private const string StageClearTypeLastTileRule = "last_tile_rule";
     private const string StageFailReasonDeadlock = "deadlock";
     private const string StageFailReasonFixedKnotMissed = "fixed_knot_missed";
+    private const int ManualRetryHeartPenaltyMoveThreshold = 2;
     private const float FixedKnotMissedSnackbarDuration = 2.2f;
     private const int VerboseDebugStageIndex = 6;
     private const float SessionFreeHeartRefillFirstThresholdSeconds = 10f * 60f;
@@ -2027,9 +2028,22 @@ public class GameManager : MonoBehaviour
     public void ResetCurrentStage()
     {
         if (isGameOverSequencePlaying || tiles == null) return;
-        TrackStageReset("manual_reset");
+        bool consumedRetryHeart = ConsumeHeartForManualRetryIfNeeded();
+        TrackStageReset(consumedRetryHeart ? "manual_reset_retry_penalty" : "manual_reset");
         isGameOverSequencePlaying = true;
         StartCoroutine(ResetCurrentStageRoutine());
+    }
+
+    private bool ConsumeHeartForManualRetryIfNeeded()
+    {
+        int retryMoveCount = GetTotalPathCount();
+        if (retryMoveCount < ManualRetryHeartPenaltyMoveThreshold)
+            return false;
+
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+
+        return mainUI != null && mainUI.ConsumeHeartOnManualRetry(retryMoveCount);
     }
 
     private IEnumerator ResetCurrentStageRoutine()

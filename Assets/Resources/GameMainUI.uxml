@@ -1,33 +1,92 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <ui:VisualElement name="TopBar" style="flex-direction: row; align-items: center; justify-content: space-between; width: 100%; height: auto; min-height: 130px; background-color: rgba(0, 0, 0, 0); padding-left: 50px; padding-right: 50px; padding-top: 130px; padding-bottom: 32px;">
-        <ui:VisualElement name="StageContainer" style="flex-direction: column; align-items: center; padding-left: 8px; padding-right: 24px; -unity-font-definition: url(&quot;project://database/Assets/Fonts/Orbitron-Medium.ttf?fileID=12800000&amp;guid=d788a3059e71747c680a1ce1e963cd99&amp;type=3#Orbitron-Medium&quot;); -unity-font-style: bold;">
-            <ui:Label name="StageTitle" text="STAGE" style="-unity-font-definition: url(&quot;project://database/Assets/Fonts/Orbitron-Medium.ttf?fileID=12800000&amp;guid=d788a3059e71747c680a1ce1e963cd99&amp;type=3#Orbitron-Medium&quot;); font-size: 44px; color: rgb(255, 255, 255); -unity-font-style: bold; letter-spacing: 1px;"/>
-            <ui:Label name="StageNumber" text="01" style="-unity-font-definition: url(&quot;project://database/Assets/Fonts/Orbitron-Medium.ttf?fileID=12800000&amp;guid=d788a3059e71747c680a1ce1e963cd99&amp;type=3#Orbitron-Medium&quot;); font-size: 36px; color: rgb(255, 255, 255); -unity-font-style: bold; margin-top: 8px;"/>
+    <ui:VisualElement name="TopBar" class="top-hud">
+        <ui:VisualElement name="TopHudBackdrop" class="top-hud-backdrop" picking-mode="Ignore">
+            <ui:VisualElement class="top-hud-circuit-line top-hud-circuit-line-a"/>
+            <ui:VisualElement class="top-hud-circuit-line top-hud-circuit-line-b"/>
+            <ui:VisualElement class="top-hud-circuit-line top-hud-circuit-line-c"/>
+            <ui:VisualElement class="top-hud-circuit-dot top-hud-circuit-dot-a"/>
+            <ui:VisualElement class="top-hud-circuit-dot top-hud-circuit-dot-b"/>
+            <ui:VisualElement class="top-hud-circuit-dot top-hud-circuit-dot-c"/>
+            <ui:VisualElement class="top-hud-corner top-hud-corner-left"/>
+            <ui:VisualElement class="top-hud-corner top-hud-corner-right"/>
         </ui:VisualElement>
-        <ui:VisualElement name="CenterContainer" style="flex-grow: 1; flex-direction: column; justify-content: center; align-items: center; padding-left: 60px; padding-right: 60px;">
-            <ui:ProgressBar name="GameProgress" value="0" title="" style="width: 460px; height: 44px; color: rgb(255, 255, 255); font-size: 22px;"/>
-            <ui:VisualElement name="HeartContainer" style="flex-direction: row; justify-content: center; align-items: center; margin-top: 18px;">
-                <ui:Image name="Heart1Image" class="heart-icon" style="width: 58px; height: 58px; margin-left: 10px; margin-right: 10px;"/>
-                <ui:Image name="Heart2Image" class="heart-icon" style="width: 58px; height: 58px; margin-left: 10px; margin-right: 10px;"/>
-                <ui:Image name="Heart3Image" class="heart-icon" style="width: 58px; height: 58px; margin-left: 10px; margin-right: 10px;"/>
+        <ui:VisualElement name="StageContainer" class="top-stage-panel">
+            <ui:VisualElement class="top-stage-panel-glow" picking-mode="Ignore"/>
+            <ui:Label name="StageTitle" text="STAGE" class="top-stage-title"/>
+            <ui:Label name="StageNumber" text="01" class="top-stage-number"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="CenterContainer" class="top-center-panel">
+            <ui:VisualElement name="TopProgressFrame" class="top-progress-frame">
+                <ui:VisualElement class="top-progress-glow" picking-mode="Ignore"/>
+                <ui:ProgressBar name="GameProgress" value="0" title="" class="top-progress-bar"/>
+                <ui:VisualElement class="top-progress-segment top-progress-segment-a" picking-mode="Ignore"/>
+                <ui:VisualElement class="top-progress-segment top-progress-segment-b" picking-mode="Ignore"/>
+                <ui:VisualElement class="top-progress-segment top-progress-segment-c" picking-mode="Ignore"/>
+                <ui:VisualElement class="top-progress-segment top-progress-segment-d" picking-mode="Ignore"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="HeartContainer" class="top-heart-row">
+                <ui:VisualElement class="top-heart-glow top-heart-glow-a" picking-mode="Ignore"/>
+                <ui:VisualElement class="top-heart-glow top-heart-glow-b" picking-mode="Ignore"/>
+                <ui:VisualElement class="top-heart-glow top-heart-glow-c" picking-mode="Ignore"/>
+                <ui:Image name="Heart1Image" class="heart-icon top-heart-icon"/>
+                <ui:Image name="Heart2Image" class="heart-icon top-heart-icon"/>
+                <ui:Image name="Heart3Image" class="heart-icon top-heart-icon"/>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:Button name="SettingButton" text="" style="width: 110px; height: 110px; background-color: rgba(0, 0, 0, 0); border-left-color: rgb(255, 255, 255); border-right-color: rgb(255, 255, 255); border-top-color: rgb(255, 255, 255); border-bottom-color: rgb(255, 255, 255); border-left-width: 4px; border-right-width: 4px; border-top-width: 4px; border-bottom-width: 4px; border-radius: 999px; justify-content: center; align-items: center; padding-left: 8px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px;">
-            <ui:Image name="SettingIcon" style="width: 50px; height: 50px;"/>
+        <ui:Button name="SettingButton" text="" class="top-setting-button">
+            <ui:VisualElement class="top-setting-glow" picking-mode="Ignore"/>
+            <ui:VisualElement class="top-setting-ring" picking-mode="Ignore"/>
+            <ui:VisualElement class="top-setting-frame" picking-mode="Ignore"/>
+            <ui:VisualElement class="top-setting-disc" picking-mode="Ignore"/>
+            <ui:VisualElement class="top-setting-icon-slot" picking-mode="Ignore">
+                <ui:Image name="SettingIcon" class="top-setting-icon"/>
+            </ui:VisualElement>
         </ui:Button>
     </ui:VisualElement>
-    <ui:VisualElement name="BottomBar" style="position: absolute; bottom: 80px; left: 0; right: 0; flex-direction: row; justify-content: space-around; align-items: center; padding-left: 80px; padding-right: 80px; background-color: rgba(0, 0, 0, 0); margin-bottom: 40px;">
-        <ui:Button name="SkipButton" text="" style="width: 160px; height: 160px; background-color: rgba(0, 0, 0, 0); border-left-color: rgb(255, 255, 255); border-right-color: rgb(255, 255, 255); border-top-color: rgb(255, 255, 255); border-bottom-color: rgb(255, 255, 255); border-left-width: 6px; border-right-width: 6px; border-top-width: 6px; border-bottom-width: 6px; border-radius: 999px; justify-content: center; align-items: center; padding-left: 8px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px;">
-            <ui:Image name="SkipIcon" style="width: 100px; height: 100px; align-items: center; justify-content: center; align-self: center; align-content: auto;"/>
-            <ui:VisualElement name="SkipAdBadge" style="position: absolute; right: 4px; top: 4px; width: 46px; height: 46px; border-radius: 999px; background-color: rgb(255, 153, 153); justify-content: center; align-items: center;">
-                <ui:Label name="SkipAdBadgeText" text="AD" style="-unity-font-style: bold; font-size: 17px; color: rgb(255, 255, 255); -unity-text-align: middle-center; letter-spacing: 0.5px;"/>
+    <ui:VisualElement name="BottomBar" class="bottom-bar-neon">
+        <ui:VisualElement name="BottomBarCircuitBackdrop" class="bottom-bar-circuit-backdrop" picking-mode="Ignore">
+            <ui:VisualElement class="bottom-circuit-line bottom-circuit-line-a"/>
+            <ui:VisualElement class="bottom-circuit-line bottom-circuit-line-b"/>
+            <ui:VisualElement class="bottom-circuit-line bottom-circuit-line-c"/>
+            <ui:VisualElement class="bottom-circuit-dot bottom-circuit-dot-a"/>
+            <ui:VisualElement class="bottom-circuit-dot bottom-circuit-dot-b"/>
+            <ui:VisualElement class="bottom-circuit-dot bottom-circuit-dot-c"/>
+        </ui:VisualElement>
+        <ui:Button name="SkipButton" text="" class="neon-action-button neon-action-button-skip">
+            <ui:VisualElement class="neon-button-glow" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-outer" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-bright" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-a" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-b" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-disc" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-icon-slot" picking-mode="Ignore">
+                <ui:Image name="SkipIcon" class="neon-button-icon"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="SkipAdBadge" class="neon-ad-badge" picking-mode="Ignore">
+                <ui:Label name="SkipAdBadgeText" text="AD" class="neon-ad-badge-text"/>
             </ui:VisualElement>
         </ui:Button>
-        <ui:Button name="ResetButton" text="" style="width: 160px; height: 160px; background-color: rgba(0, 0, 0, 0); border-left-color: rgb(255, 255, 255); border-right-color: rgb(255, 255, 255); border-top-color: rgb(255, 255, 255); border-bottom-color: rgb(255, 255, 255); border-left-width: 6px; border-right-width: 6px; border-top-width: 6px; border-bottom-width: 6px; border-radius: 999px; justify-content: center; align-items: center; padding-left: 8px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px;">
-            <ui:Image name="ResetIcon" style="width: 100px; height: 100px; justify-content: center; align-self: center; align-items: center; align-content: auto;"/>
+        <ui:Button name="ResetButton" text="" class="neon-action-button neon-action-button-reset">
+            <ui:VisualElement class="neon-button-glow" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-outer" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-bright" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-a" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-b" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-disc" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-icon-slot" picking-mode="Ignore">
+                <ui:Image name="ResetIcon" class="neon-button-icon"/>
+            </ui:VisualElement>
         </ui:Button>
-        <ui:Button name="BlockAdsButton" text="" style="width: 160px; height: 160px; background-color: rgba(0, 0, 0, 0); border-left-color: rgb(255, 255, 255); border-right-color: rgb(255, 255, 255); border-top-color: rgb(255, 255, 255); border-bottom-color: rgb(255, 255, 255); border-left-width: 6px; border-right-width: 6px; border-top-width: 6px; border-bottom-width: 6px; border-radius: 999px; justify-content: center; align-items: center; padding-left: 8px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px;">
-            <ui:Image name="BlockIcon" style="width: 100px; height: 100px; align-items: center; justify-content: center; align-self: center; align-content: auto;"/>
+        <ui:Button name="BlockAdsButton" text="" class="neon-action-button neon-action-button-block">
+            <ui:VisualElement class="neon-button-glow" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-outer" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-bright" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-a" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-b" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-disc" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-icon-slot" picking-mode="Ignore">
+                <ui:Image name="BlockIcon" class="neon-button-icon"/>
+            </ui:VisualElement>
         </ui:Button>
     </ui:VisualElement>
     <ui:VisualElement name="StageSnackbar" picking-mode="Ignore" style="position: absolute; left: 5%; right: 5%; bottom: 300px; min-height: 92px; padding-left: 30px; padding-right: 30px; padding-top: 20px; padding-bottom: 20px; border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(168, 234, 255, 0.94); border-right-color: rgba(168, 234, 255, 0.94); border-top-color: rgba(168, 234, 255, 0.94); border-bottom-color: rgba(168, 234, 255, 0.94); border-radius: 22px; background-color: rgba(6, 17, 28, 0.92); justify-content: center; align-items: center; display: none;">

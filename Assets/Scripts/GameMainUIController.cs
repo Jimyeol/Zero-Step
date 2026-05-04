@@ -44,6 +44,8 @@ public class GameMainUIController : MonoBehaviour
     private const int StageSkipRewardAmount = 1;
     private const int StageTransitionInterstitialInterval = 15;
     private const int MaxHearts = 3;
+    private const float TopHudBasePaddingPx = 64f;
+    private const float TopHudBackdropBaseTopPx = 26f;
     private const string TutorialScheduleResourcePath = "Tutorials/help_tutorial_schedule";
     private const string StageSnackbarScheduleResourcePath = "Tutorials/stage_snackbar_schedule";
     private const string TutorialDismissedKeyPrefix = "TutorialDismissed_";
@@ -186,6 +188,8 @@ public class GameMainUIController : MonoBehaviour
     private ProgressBar gameProgressBar;
     private Button settingButton;
     private Image settingIcon;
+    private VisualElement topBar;
+    private VisualElement topHudBackdrop;
 
     private Button skipButton;
     private Image skipIcon;
@@ -408,6 +412,8 @@ public class GameMainUIController : MonoBehaviour
             root.styleSheets.Add(mainStyleSheet);
         InitializeSplashState();
 
+        topBar = root.Q<VisualElement>("TopBar");
+        topHudBackdrop = root.Q<VisualElement>("TopHudBackdrop");
         stageTitleLabel = root.Q<Label>("StageTitle");
         stageNumberLabel = root.Q<Label>("StageNumber");
         gameProgressBar = root.Q<ProgressBar>("GameProgress");
@@ -561,19 +567,19 @@ public class GameMainUIController : MonoBehaviour
             displayedProgressValue = 0f;
             gameProgressBar.title = string.Empty;
             gameProgressBar.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, 0f));
-            gameProgressBar.style.borderLeftColor = Color.white;
-            gameProgressBar.style.borderRightColor = Color.white;
-            gameProgressBar.style.borderTopColor = Color.white;
-            gameProgressBar.style.borderBottomColor = Color.white;
-            gameProgressBar.style.borderLeftWidth = 3f;
-            gameProgressBar.style.borderRightWidth = 3f;
-            gameProgressBar.style.borderTopWidth = 3f;
-            gameProgressBar.style.borderBottomWidth = 3f;
+            gameProgressBar.style.borderLeftColor = new StyleColor(new Color32(0x00, 0xE5, 0xFF, 0x00));
+            gameProgressBar.style.borderRightColor = new StyleColor(new Color32(0x00, 0xE5, 0xFF, 0x00));
+            gameProgressBar.style.borderTopColor = new StyleColor(new Color32(0x00, 0xE5, 0xFF, 0x00));
+            gameProgressBar.style.borderBottomColor = new StyleColor(new Color32(0x00, 0xE5, 0xFF, 0x00));
+            gameProgressBar.style.borderLeftWidth = 0f;
+            gameProgressBar.style.borderRightWidth = 0f;
+            gameProgressBar.style.borderTopWidth = 0f;
+            gameProgressBar.style.borderBottomWidth = 0f;
 
             VisualElement progressBackground = gameProgressBar.Q(className: ProgressBar.backgroundUssClassName);
             if (progressBackground != null)
             {
-                progressBackground.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, 0f));
+                progressBackground.style.backgroundColor = new StyleColor(new Color32(0x02, 0x13, 0x1F, 0xD9));
                 progressBackground.style.marginTop = 0f;
                 progressBackground.style.marginBottom = 0f;
                 progressBackground.style.marginLeft = 0f;
@@ -588,7 +594,7 @@ public class GameMainUIController : MonoBehaviour
             VisualElement progressFill = gameProgressBar.Q(className: ProgressBar.progressUssClassName);
             if (progressFill != null)
             {
-                progressFill.style.backgroundColor = new StyleColor(Color.white);
+                progressFill.style.backgroundColor = new StyleColor(new Color32(0x00, 0xEF, 0xE6, 0xFF));
                 progressFill.style.marginTop = 0f;
                 progressFill.style.marginBottom = 0f;
                 progressFill.style.marginLeft = 0f;
@@ -1403,16 +1409,47 @@ public class GameMainUIController : MonoBehaviour
 
     public bool ConsumeHeartOnGameOver()
     {
+        ConsumeHeartAndHandleDepletion("game_over", -1, out bool hasHeartsRemaining);
+        return hasHeartsRemaining;
+    }
+
+    public bool ConsumeHeartOnManualRetry(int moveCount)
+    {
+        return ConsumeHeartAndHandleDepletion("manual_retry", moveCount, out _);
+    }
+
+    private bool ConsumeHeartAndHandleDepletion(string consumeReason, int moveCount, out bool hasHeartsRemaining)
+    {
+        hasHeartsRemaining = false;
+        if (currentHearts <= 0)
+        {
+            PrepareHeartRefillOffer(consumeReason);
+            ShowHeartDepletedPopup();
+            return false;
+        }
+
         int nextHeartCount = Mathf.Max(0, currentHearts - 1);
         SetHeartCount(nextHeartCount, animated: true);
-        FirebaseBootstrap.LogEvent("heart_consumed", new Dictionary<string, object>
+        var eventData = new Dictionary<string, object>
         {
+            { "reason", consumeReason },
             { "remaining_hearts", currentHearts }
-        });
+        };
+        if (moveCount >= 0)
+            eventData["move_count"] = moveCount;
+        FirebaseBootstrap.LogEvent("heart_consumed", eventData);
 
-        if (currentHearts > 0)
+        hasHeartsRemaining = currentHearts > 0;
+        if (hasHeartsRemaining)
             return true;
 
+        PrepareHeartRefillOffer(consumeReason);
+        ShowHeartDepletedPopup();
+        return true;
+    }
+
+    private void PrepareHeartRefillOffer(string offerContext)
+    {
         isWaitingForHeartRefill = true;
         GameManager gm = FindFirstObjectByType<GameManager>();
         if (gm != null && gm.TryPeekSessionFreeHeartRefill(out int thresholdMinutes))
@@ -1420,6 +1457,7 @@ public class GameMainUIController : MonoBehaviour
             ConfigureHeartDepletedPopupForSessionReward(thresholdMinutes);
             FirebaseBootstrap.LogEvent("heart_refill_offer", new Dictionary<string, object>
             {
+                { "context", offerContext },
                 { "type", "session_play_reward" },
                 { "threshold_minutes", thresholdMinutes },
                 { "pending_free_refills", gm.PendingSessionFreeHeartRefillCount }
@@ -1430,6 +1468,7 @@ public class GameMainUIController : MonoBehaviour
             ConfigureHeartDepletedPopupForRewardedAd();
             FirebaseBootstrap.LogEvent("heart_refill_offer", new Dictionary<string, object>
             {
+                { "context", offerContext },
                 { "type", "rewarded_ad" }
             });
 
@@ -1438,9 +1477,6 @@ public class GameMainUIController : MonoBehaviour
                 LoadRewardedAd();
 #endif
         }
-
-        ShowHeartDepletedPopup();
-        return false;
     }
 
     private void SetHeartCount(int newHeartCount, bool animated)
@@ -4860,7 +4896,13 @@ public class GameMainUIController : MonoBehaviour
         cachedSafeArea = currentSafeArea;
 
         float safeBottomPx = Mathf.Max(0f, currentSafeArea.yMin);
+        float safeTopPx = Mathf.Max(0f, Screen.height - currentSafeArea.yMax);
         float totalReservedBottomPx = safeBottomPx + Mathf.Max(0f, reservedBannerHeightPx);
+
+        if (topBar != null)
+            topBar.style.paddingTop = TopHudBasePaddingPx + safeTopPx;
+        if (topHudBackdrop != null)
+            topHudBackdrop.style.top = TopHudBackdropBaseTopPx + safeTopPx;
 
         if (bannerAdContainer != null)
         {

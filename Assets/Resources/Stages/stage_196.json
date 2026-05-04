@@ -1,9 +1,9 @@
 {
-  "stageID": 196,
-  "width": 6,
-  "height": 6,
+  "stageID": 0,
+  "width": 4,
+  "height": 3,
   "startPoint": {
-    "x": 0,
+    "x": 2,
     "y": 0
   },
   "config": {
@@ -14,191 +14,71 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "type": "Normal",
-      "count": 3
-    },
-    {
       "x": 1,
       "y": 0,
-      "type": "Normal",
-      "count": 4
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 9,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 2,
       "y": 0,
-      "type": "Normal",
-      "count": 6
+      "count": 5,
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 0,
-      "type": "Normal",
-      "count": 5
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "type": "Normal",
-      "count": 3
-    },
-    {
-      "x": 5,
-      "y": 0,
-      "type": "Normal",
-      "count": 2
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "type": "Normal",
-      "count": 5
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "type": "Normal",
-      "count": 3
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "type": "Normal",
-      "count": 3
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "type": "Normal",
-      "count": 5
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "type": "Normal",
-      "count": 5
-    },
-    {
-      "x": 5,
-      "y": 1,
-      "type": "Normal",
-      "count": 4
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "type": "Normal",
-      "count": 4
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "type": "Normal",
-      "count": 2
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "type": "Normal",
-      "count": 2
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "type": "Normal",
-      "count": 4
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "type": "Normal",
-      "count": 4
-    },
-    {
-      "x": 5,
-      "y": 2,
-      "type": "Normal",
-      "count": 5
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "type": "Normal",
-      "count": 2
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "type": "Normal",
-      "count": 3
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "type": "Normal",
-      "count": 3
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "type": "Normal",
-      "count": 1
-    },
-    {
-      "x": 5,
-      "y": 3,
-      "type": "Normal",
-      "count": 2
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "type": "Normal",
-      "count": 2
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "type": "Normal",
-      "count": 2
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "type": "Normal",
-      "count": 2
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "type": "Normal",
-      "count": 2
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "type": "Normal",
-      "count": 1
-    },
-    {
-      "x": 1,
-      "y": 5,
-      "type": "Normal",
-      "count": 1
-    },
-    {
-      "x": 2,
-      "y": 5,
-      "type": "Normal",
-      "count": 1
-    },
-    {
-      "x": 3,
-      "y": 5,
+      "count": 1,
       "type": "ShortCircuit",
-      "count": 2,
-      "direction": "Down"
+      "direction": "Right"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 5,
+      "type": "Igniter",
+      "targetID": "G10"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G10"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

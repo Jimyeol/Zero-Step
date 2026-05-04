@@ -142,14 +142,14 @@ TextureImporter:
       name: blind_curtain_tile_0
       rect:
         serializedVersion: 2
-        x: 75
-        y: 96
-        width: 359
-        height: 324
+        x: 16
+        y: 88
+        width: 477
+        height: 339
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
+      customData:
       outline: []
       physicsShape: []
       tessellationDetail: -1
@@ -157,17 +157,17 @@ TextureImporter:
       spriteID: a1b95d4bc8b56eca0800000000000000
       internalID: -5987997994655048934
       vertices: []
-      indices: 
+      indices:
       edges: []
       weights: []
     outline: []
-    customData: 
+    customData:
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID:
     internalID: 0
     vertices: []
-    indices: 
+    indices:
     edges: []
     weights: []
     secondaryTextures: []
@@ -175,8 +175,8 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       blind_curtain_tile_0: -5987997994655048934
-  mipmapLimitGroupName: 
+  mipmapLimitGroupName:
   pSDRemoveMatte: 0
-  userData: 
-  assetBundleName: 
-  assetBundleVariant: 
+  userData:
+  assetBundleName:
+  assetBundleVariant:
