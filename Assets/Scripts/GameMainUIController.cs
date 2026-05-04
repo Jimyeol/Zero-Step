@@ -115,6 +115,8 @@ public class GameMainUIController : MonoBehaviour
         public string title = "기본 플레이 방법";
         public string descriptionKey;
         public string description = "왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다.";
+        public string instructionTextKey;
+        public string instructionText;
         public string closeButtonTextKey;
         public string closeButtonText = "확인";
     }
@@ -264,6 +266,8 @@ public class GameMainUIController : MonoBehaviour
     private Button tutorialCloseButton;
     private Image tutorialCloseIcon;
     private Button tutorialConfirmButton;
+    private Button tutorialPreviousButton;
+    private Label tutorialPreviousButtonLabel;
     private Button tutorialNextButton;
     private Label tutorialNextButtonLabel;
     private VisualElement tutorialTileLeft;
@@ -333,6 +337,7 @@ public class GameMainUIController : MonoBehaviour
     private bool isLanguageSelectionPopupOpen;
     private bool isTutorialPopupOpen;
     private bool activeTutorialOpenedFromSettings;
+    private bool hasStaticTutorialInstructionText;
     private int currentStageIndexForUI = 1;
     private Coroutine tutorialAnimationRoutine;
     private HelpTutorialEntryData activeTutorialEntry;
@@ -490,6 +495,8 @@ public class GameMainUIController : MonoBehaviour
         tutorialCloseButton = root.Q<Button>("TutorialCloseButton");
         tutorialCloseIcon = root.Q<Image>("TutorialCloseIcon");
         tutorialConfirmButton = root.Q<Button>("TutorialConfirmButton");
+        tutorialPreviousButton = root.Q<Button>("TutorialPreviousButton");
+        tutorialPreviousButtonLabel = root.Q<Label>("TutorialPreviousButtonLabel");
         tutorialNextButton = root.Q<Button>("TutorialNextButton");
         tutorialNextButtonLabel = root.Q<Label>("TutorialNextButtonLabel");
         tutorialTileLeft = root.Q<VisualElement>("TutorialTileLeft");
@@ -688,6 +695,8 @@ public class GameMainUIController : MonoBehaviour
             tutorialCloseButton.clicked += CloseTutorialPopup;
         if (tutorialConfirmButton != null)
             tutorialConfirmButton.clicked += CloseTutorialPopup;
+        if (tutorialPreviousButton != null)
+            tutorialPreviousButton.clicked += ShowPreviousSettingsTutorial;
         if (tutorialNextButton != null)
             tutorialNextButton.clicked += ShowNextSettingsTutorial;
         if (heartRefillAdButton != null)
@@ -846,6 +855,7 @@ public class GameMainUIController : MonoBehaviour
         RegisterButtonClickAnimation(privacyPolicyButton);
         RegisterButtonClickAnimation(termsButton);
         RegisterButtonClickAnimation(tutorialCloseButton);
+        RegisterButtonClickAnimation(tutorialPreviousButton);
         RegisterButtonClickAnimation(tutorialNextButton);
         RegisterButtonClickAnimation(tutorialConfirmButton, useWarmPulse: true);
         RegisterButtonClickAnimation(resetConfirmCancelButton);
@@ -1834,6 +1844,7 @@ public class GameMainUIController : MonoBehaviour
             tutorialType = TutorialTypeBasicPath,
             titleKey = "tutorial_basic_title",
             descriptionKey = "tutorial_basic_description",
+            instructionTextKey = "tutorial_basic_instructions",
             closeButtonTextKey = "help_close_button"
         };
         helpTutorialEntries.Add(fallback);
@@ -2236,10 +2247,10 @@ public class GameMainUIController : MonoBehaviour
         activeTutorialEntry = entry;
         if (tutorialTitleLabel != null)
             tutorialTitleLabel.text = ResolveTutorialTitle(entry);
-        if (tutorialDescriptionLabel != null)
-            tutorialDescriptionLabel.text = ResolveTutorialDescription(entry);
+        ApplyTutorialDescriptionText(entry);
         if (tutorialConfirmButton != null)
             tutorialConfirmButton.text = ResolveTutorialCloseButtonText(entry);
+        ApplyTutorialInstructionText(entry);
         ConfigureTutorialDemo(entry);
         StartTutorialAnimation(entry);
         RefreshTutorialNavigation();
@@ -2247,18 +2258,28 @@ public class GameMainUIController : MonoBehaviour
 
     private void ShowNextSettingsTutorial()
     {
+        ShowSettingsTutorialByOffset(1, "help_tutorial_next");
+    }
+
+    private void ShowPreviousSettingsTutorial()
+    {
+        ShowSettingsTutorialByOffset(-1, "help_tutorial_previous");
+    }
+
+    private void ShowSettingsTutorialByOffset(int offset, string eventName)
+    {
         if (!isTutorialPopupOpen || !activeTutorialOpenedFromSettings || helpTutorialEntries.Count <= 1)
             return;
 
         int currentIndex = GetHelpTutorialEntryIndex(activeTutorialEntry);
-        int nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % helpTutorialEntries.Count;
+        int nextIndex = currentIndex < 0 ? 0 : (currentIndex + offset + helpTutorialEntries.Count) % helpTutorialEntries.Count;
         HelpTutorialEntryData nextEntry = helpTutorialEntries[nextIndex];
         if (nextEntry == null)
             return;
 
         ApplyTutorialEntryToOpenPopup(nextEntry);
 
-        FirebaseBootstrap.LogEvent("help_tutorial_next", new Dictionary<string, object>
+        FirebaseBootstrap.LogEvent(eventName, new Dictionary<string, object>
         {
             { "tutorial_id", nextEntry.id },
             { "stage_index", nextEntry.stageIndex },
@@ -2269,9 +2290,13 @@ public class GameMainUIController : MonoBehaviour
 
     private void RefreshTutorialNavigation()
     {
-        bool showNextButton = isTutorialPopupOpen && activeTutorialOpenedFromSettings && helpTutorialEntries.Count > 1;
+        bool showNavigation = isTutorialPopupOpen && activeTutorialOpenedFromSettings && helpTutorialEntries.Count > 1;
+        if (tutorialPreviousButton != null)
+            tutorialPreviousButton.style.display = showNavigation ? DisplayStyle.Flex : DisplayStyle.None;
+        if (tutorialPreviousButtonLabel != null)
+            tutorialPreviousButtonLabel.text = "‹";
         if (tutorialNextButton != null)
-            tutorialNextButton.style.display = showNextButton ? DisplayStyle.Flex : DisplayStyle.None;
+            tutorialNextButton.style.display = showNavigation ? DisplayStyle.Flex : DisplayStyle.None;
         if (tutorialNextButtonLabel != null)
             tutorialNextButtonLabel.text = "›";
     }
@@ -2301,6 +2326,7 @@ public class GameMainUIController : MonoBehaviour
             tutorialOverlay.style.display = DisplayStyle.None;
 
         activeTutorialEntry = null;
+        hasStaticTutorialInstructionText = false;
         if (tutorialStepHintLabel != null)
             tutorialStepHintLabel.text = string.Empty;
 
@@ -2414,14 +2440,15 @@ public class GameMainUIController : MonoBehaviour
 
     private IEnumerator PlayBasicTutorialAnimationLoop(int animationVersion)
     {
-        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.58f);
-        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.82f);
+        WaitForSecondsRealtime introWait = new WaitForSecondsRealtime(0.55f);
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.72f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(1f);
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
             ApplyBasicTutorialStepState(1, 2, 1, T("tutorial_step_start"), trailPhase: 0);
             SetTutorialHandPosition(0, instant: true);
-            yield return new WaitForSecondsRealtime(0.42f);
+            yield return introWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
                 yield break;
@@ -2452,9 +2479,9 @@ public class GameMainUIController : MonoBehaviour
 
     private IEnumerator PlayShortCircuitTutorialAnimationLoop(int animationVersion)
     {
-        WaitForSecondsRealtime introWait = new WaitForSecondsRealtime(0.5f);
-        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
-        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+        WaitForSecondsRealtime introWait = new WaitForSecondsRealtime(0.62f);
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.76f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(1.05f);
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
@@ -2487,8 +2514,7 @@ public class GameMainUIController : MonoBehaviour
                 T("tutorial_short_circuit_step_blocked_entry"),
                 pulseBottomRight: true,
                 pulseArrow: true,
-                pathPhase: 2,
-                showBlockedEntry: true);
+                pathPhase: 2);
             yield return stepWait;
 
             if (!IsTutorialAnimationActive(animationVersion))
@@ -2508,8 +2534,7 @@ public class GameMainUIController : MonoBehaviour
                 T("tutorial_short_circuit_step_remember"),
                 pulseTopRight: true,
                 pulseArrow: true,
-                pathPhase: 2,
-                showBlockedEntry: true);
+                pathPhase: 2);
             yield return cycleWait;
         }
 
@@ -2518,8 +2543,8 @@ public class GameMainUIController : MonoBehaviour
 
     private IEnumerator PlayCrossBlastTutorialAnimationLoop(int animationVersion)
     {
-        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
-        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.76f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(1.05f);
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
@@ -2550,8 +2575,8 @@ public class GameMainUIController : MonoBehaviour
 
     private IEnumerator PlayFixedKnotTutorialAnimationLoop(int animationVersion)
     {
-        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
-        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.76f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(1.05f);
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
@@ -2582,8 +2607,8 @@ public class GameMainUIController : MonoBehaviour
 
     private IEnumerator PlayTwinLinkTutorialAnimationLoop(int animationVersion)
     {
-        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
-        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.76f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(1.05f);
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
@@ -2595,16 +2620,6 @@ public class GameMainUIController : MonoBehaviour
                 yield break;
             ApplyTwinLinkTutorialState(1);
             SetSpecialTutorialHandToCell(4, instant: false);
-            yield return stepWait;
-
-            if (!IsTutorialAnimationActive(animationVersion))
-                yield break;
-            ApplyTwinLinkTutorialState(2);
-            yield return stepWait;
-
-            if (!IsTutorialAnimationActive(animationVersion))
-                yield break;
-            ApplyTwinLinkTutorialState(3);
             yield return cycleWait;
         }
 
@@ -2613,8 +2628,8 @@ public class GameMainUIController : MonoBehaviour
 
     private IEnumerator PlayIgniterTutorialAnimationLoop(int animationVersion)
     {
-        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
-        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.76f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(1.05f);
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
@@ -2645,8 +2660,8 @@ public class GameMainUIController : MonoBehaviour
 
     private IEnumerator PlayBlindCurtainTutorialAnimationLoop(int animationVersion)
     {
-        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
-        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.76f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(1.05f);
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
@@ -2672,8 +2687,8 @@ public class GameMainUIController : MonoBehaviour
 
     private IEnumerator PlayBlackoutTutorialAnimationLoop(int animationVersion)
     {
-        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.62f);
-        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(0.86f);
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.76f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(1.05f);
 
         while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
         {
@@ -2721,8 +2736,7 @@ public class GameMainUIController : MonoBehaviour
         ApplyBasicTutorialTileState(tutorialTileRight, tutorialTileRightCount, rightCount, pulseRight);
         ApplyBasicTutorialTrailState(trailPhase);
 
-        if (tutorialStepHintLabel != null)
-            tutorialStepHintLabel.text = hint;
+        SetTutorialStepHint(hint);
     }
 
     private void ApplyShortCircuitTutorialStepState(
@@ -2745,8 +2759,7 @@ public class GameMainUIController : MonoBehaviour
         ApplyTutorialTileState(tutorialShortTileBottomRight, tutorialShortTileBottomRightCount, bottomRightCount, pulseBottomRight);
         ApplyShortCircuitTutorialPathState(pathPhase, showBlockedEntry);
 
-        if (tutorialStepHintLabel != null)
-            tutorialStepHintLabel.text = hint;
+        SetTutorialStepHint(hint);
     }
 
     private void ApplyShortCircuitTutorialPathState(int pathPhase, bool showBlockedEntry)
@@ -2806,7 +2819,7 @@ public class GameMainUIController : MonoBehaviour
         SetSpecialCell(1, exploded ? "1" : "2", null, string.Empty, active: true);
         SetSpecialCell(3, exploded ? "1" : "2", null, string.Empty, active: true);
         SetSpecialCell(4, exploded ? "0" : "1", CrossBlastSpriteResourcePath, "tutorial-special-cell-cross", active: true, pulse: phase == 1);
-        SetSpecialCell(5, "2", null, string.Empty, active: true, pulse: phase == 2, badge: phase >= 2 ? "OUT" : string.Empty);
+        SetSpecialCell(5, "2", null, string.Empty, active: true, pulse: phase == 2);
         SetSpecialCell(7, exploded ? "1" : "2", null, string.Empty, active: true);
 
         if (phase >= 1)
@@ -2840,9 +2853,6 @@ public class GameMainUIController : MonoBehaviour
             ShowSpecialLineBetween(tutorialSpecialTrailA, 3, 4, new Color(1f, 0.82f, 0.48f, 0.92f), pulse: phase == 1);
         if (phase >= 2)
             ShowSpecialLineBetween(tutorialSpecialTrailB, 4, 5, new Color(1f, 0.82f, 0.48f, 0.92f), pulse: phase == 2);
-        if (phase == 3)
-            ShowSpecialBlockedMarkerAtCell(5);
-
         string hintKey = phase == 0 ? "tutorial_fixed_knot_step_intro" :
             phase == 1 ? "tutorial_fixed_knot_step_countdown" :
             phase == 2 ? "tutorial_fixed_knot_step_exact" :
@@ -2854,24 +2864,18 @@ public class GameMainUIController : MonoBehaviour
     {
         ResetSpecialTutorialBoard();
 
-        string twinCount = phase >= 2 ? "1" : "2";
-        if (phase == 3)
-            twinCount = "0";
+        string twinCount = phase >= 1 ? "1" : "2";
 
-        SetSpecialCell(3, twinCount, null, "tutorial-special-cell-twin", active: true, pulse: phase == 2, badge: "A");
-        SetSpecialCell(5, twinCount, null, "tutorial-special-cell-twin", active: true, pulse: phase == 2, badge: "A");
-        SetSpecialCell(4, phase >= 1 ? "0" : "1", null, string.Empty, active: true, pulse: phase == 1);
+        SetSpecialCell(3, twinCount, null, "tutorial-special-cell-twin", active: true, pulse: phase == 1, badge: "A");
+        SetSpecialCell(5, twinCount, null, "tutorial-special-cell-twin", active: true, pulse: phase == 1, badge: "A");
+        SetSpecialCell(4, "1", null, string.Empty, active: true, pulse: phase == 1);
 
-        ShowSpecialLineBetween(tutorialSpecialPairLine, 3, 5, new Color(0.72f, 0.48f, 1f, 0.96f), pulse: phase == 2);
+        ShowSpecialLineBetween(tutorialSpecialPairLine, 3, 5, new Color(0.72f, 0.48f, 1f, 0.96f), pulse: phase == 1);
         if (phase >= 1)
             ShowSpecialLineBetween(tutorialSpecialTrailA, 3, 4, new Color(0.72f, 0.48f, 1f, 0.76f), pulse: phase == 1);
-        if (phase == 3)
-            ShowSpecialPulseAtCell(tutorialSpecialPulse, 5, new Color(0.72f, 0.48f, 1f, 0.9f), true);
 
         string hintKey = phase == 0 ? "tutorial_twin_link_step_intro" :
-            phase == 1 ? "tutorial_twin_link_step_leave" :
-            phase == 2 ? "tutorial_twin_link_step_pair" :
-            "tutorial_twin_link_step_together";
+            "tutorial_twin_link_step_pair";
         SetSpecialHint(T(hintKey));
     }
 
@@ -2930,18 +2934,8 @@ public class GameMainUIController : MonoBehaviour
             bool question = phase >= 2 || center;
             string text = question ? "?" : ((i % 3) + 1).ToString();
             string theme = center || phase >= 2 ? "tutorial-special-cell-blackout" : string.Empty;
-            string sprite = center ? BlindCurtainSpriteResourcePath : null;
+            string sprite = null;
             SetSpecialCell(i, text, sprite, theme, active: true, pulse: center && phase == 1);
-        }
-
-        if (phase >= 1)
-            ShowSpecialPulseAtCell(tutorialSpecialPulse, 4, new Color(0.82f, 0.86f, 1f, 0.88f), phase == 1);
-        if (phase >= 2)
-        {
-            ShowSpecialLineBetween(tutorialSpecialBeamHorizontal, 3, 5, new Color(0.82f, 0.86f, 1f, 0.68f), pulse: phase == 2);
-            ShowSpecialLineBetween(tutorialSpecialBeamVertical, 1, 7, new Color(0.82f, 0.86f, 1f, 0.68f), pulse: phase == 2);
-            ShowSpecialPulseAtCell(tutorialSpecialRevealPulseA, 0, new Color(0.82f, 0.86f, 1f, 0.58f), phase == 2);
-            ShowSpecialPulseAtCell(tutorialSpecialRevealPulseB, 8, new Color(0.82f, 0.86f, 1f, 0.58f), phase == 2);
         }
 
         string hintKey = phase == 0 ? "tutorial_blackout_step_intro" :
@@ -3160,7 +3154,12 @@ public class GameMainUIController : MonoBehaviour
 
     private void SetSpecialHint(string hint)
     {
-        if (tutorialStepHintLabel != null)
+        SetTutorialStepHint(hint);
+    }
+
+    private void SetTutorialStepHint(string hint)
+    {
+        if (tutorialStepHintLabel != null && !hasStaticTutorialInstructionText)
             tutorialStepHintLabel.text = hint;
     }
 
@@ -3325,7 +3324,7 @@ public class GameMainUIController : MonoBehaviour
             case TutorialTypeBlindCurtain:
                 return new SpecialTutorialPreset(normalized, "tutorial-special-cell-blind", null, "tutorial_blind_curtain_step_intro", 4);
             case TutorialTypeBlackout:
-                return new SpecialTutorialPreset(normalized, "tutorial-special-cell-blackout", BlindCurtainSpriteResourcePath, "tutorial_blackout_step_intro", 4);
+                return new SpecialTutorialPreset(normalized, "tutorial-special-cell-blackout", null, "tutorial_blackout_step_intro", 4);
             default:
                 return null;
         }
@@ -4088,11 +4087,31 @@ public class GameMainUIController : MonoBehaviour
 
         if (tutorialTitleLabel != null)
             tutorialTitleLabel.text = ResolveTutorialTitle(activeTutorialEntry);
-        if (tutorialDescriptionLabel != null)
-            tutorialDescriptionLabel.text = ResolveTutorialDescription(activeTutorialEntry);
+        ApplyTutorialDescriptionText(activeTutorialEntry);
         if (tutorialConfirmButton != null)
             tutorialConfirmButton.text = ResolveTutorialCloseButtonText(activeTutorialEntry);
+        ApplyTutorialInstructionText(activeTutorialEntry);
         RefreshTutorialNavigation();
+    }
+
+    private void ApplyTutorialDescriptionText(HelpTutorialEntryData entry)
+    {
+        string description = ResolveTutorialDescription(entry);
+        if (tutorialDescriptionLabel == null)
+            return;
+
+        bool hasDescription = !string.IsNullOrWhiteSpace(description);
+        tutorialDescriptionLabel.text = hasDescription ? description : string.Empty;
+        tutorialDescriptionLabel.style.display = hasDescription ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+    private void ApplyTutorialInstructionText(HelpTutorialEntryData entry)
+    {
+        string instructionText = ResolveTutorialInstructionText(entry);
+        hasStaticTutorialInstructionText = !string.IsNullOrWhiteSpace(instructionText);
+
+        if (tutorialStepHintLabel != null)
+            tutorialStepHintLabel.text = hasStaticTutorialInstructionText ? instructionText : string.Empty;
     }
 
     private string ResolveTutorialTitle(HelpTutorialEntryData entry)
@@ -4111,10 +4130,27 @@ public class GameMainUIController : MonoBehaviour
         if (entry == null)
             return T("help_generic_description");
         if (!string.IsNullOrWhiteSpace(entry.descriptionKey))
+        {
+            if (string.Equals(entry.descriptionKey, "tutorial_basic_description", StringComparison.Ordinal))
+                return string.Empty;
             return T(entry.descriptionKey);
+        }
         if (!string.IsNullOrWhiteSpace(entry.description))
             return entry.description;
+        if (string.Equals(NormalizeTutorialType(entry.tutorialType), TutorialTypeBasicPath, StringComparison.OrdinalIgnoreCase))
+            return string.Empty;
         return T("help_generic_description");
+    }
+
+    private string ResolveTutorialInstructionText(HelpTutorialEntryData entry)
+    {
+        if (entry == null)
+            return string.Empty;
+        if (!string.IsNullOrWhiteSpace(entry.instructionTextKey))
+            return T(entry.instructionTextKey);
+        if (!string.IsNullOrWhiteSpace(entry.instructionText))
+            return entry.instructionText;
+        return string.Empty;
     }
 
     private string ResolveTutorialCloseButtonText(HelpTutorialEntryData entry)

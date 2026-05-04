@@ -968,11 +968,12 @@
 }
 
 .tutorial-nav-button {
+    position: absolute;
     width: 78px;
     height: 78px;
     min-width: 78px;
     min-height: 78px;
-    margin-right: 8px;
+    top: 131px;
     background-color: rgba(18, 52, 70, 0.7);
     border-left-width: 3px;
     border-right-width: 3px;
@@ -985,6 +986,14 @@
     border-radius: 39px;
     justify-content: center;
     align-items: center;
+}
+
+.tutorial-nav-button-left {
+    left: 8px;
+}
+
+.tutorial-nav-button-right {
+    right: 8px;
 }
 
 .tutorial-nav-button:hover {

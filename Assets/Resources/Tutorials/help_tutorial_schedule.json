@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 2,
   "entries": [
     {
       "id": "basic_stage_1",
@@ -6,9 +7,11 @@
       "tutorialType": "BasicPath",
       "titleKey": "tutorial_basic_title",
       "descriptionKey": "tutorial_basic_description",
+      "instructionTextKey": "tutorial_basic_instructions",
       "closeButtonTextKey": "help_close_button",
       "title": "기본 플레이 방법",
-      "description": "왼쪽(1) → 중앙(2) → 오른쪽(1) → 중앙으로 이동하면 카운트가 줄어들며 클리어됩니다.",
+      "description": "",
+      "instructionText": "1. 옆 타일로 이어가기\n   손가락을 끌어서 상하좌우로 붙어 있는 타일로 이동하세요.\n2. 지나간 타일 숫자 줄이기\n   타일에 들어갈 때가 아니라, 그 타일에서 나갈 때 숫자가 1 줄어듭니다.\n3. 모든 숫자 0 만들기\n   보드에 남은 모든 타일 숫자를 0으로 만들면 스테이지를 클리어합니다.",
       "closeButtonText": "확인"
     },
     {
@@ -17,9 +20,11 @@
       "tutorialType": "ShortCircuit",
       "titleKey": "tutorial_short_circuit_title",
       "descriptionKey": "tutorial_short_circuit_description",
+      "instructionTextKey": "tutorial_short_circuit_instructions",
       "closeButtonTextKey": "help_close_button",
       "title": "한방향 타일",
       "description": "화살표 방향으로만 나갈 수 있고, 그 방향 쪽에서는 들어올 수 없습니다.",
+      "instructionText": "1. 화살표 방향으로 나가기\n   이 타일에서는 화살표가 가리키는 방향으로만 이동할 수 있습니다.\n2. 반대쪽에서는 못 들어와요\n   화살표가 가리키는 쪽에서는 이 타일로 거꾸로 들어올 수 없습니다.",
       "closeButtonText": "확인"
     },
     {
@@ -28,9 +33,11 @@
       "tutorialType": "CrossBlast",
       "titleKey": "tutorial_cross_blast_title",
       "descriptionKey": "tutorial_cross_blast_description",
+      "instructionTextKey": "tutorial_cross_blast_instructions",
       "closeButtonTextKey": "help_close_button",
       "title": "십자폭발 타일",
-      "description": "이 타일에서 나가면 위, 아래, 왼쪽, 오른쪽 타일의 카운트가 1 줄어듭니다.",
+      "description": "이 타일에서 나가면 십자방향으로 타일 숫자가 1 줄어듭니다.",
+      "instructionText": "1. 십자방향도 줄어들어요\n   십자폭발 타일에서 다른 타일로 이동하면 십자방향으로 타일 숫자가 1씩 줄어듭니다.\n2. 방금 간 타일은 제외\n   방금 이동한 다음 타일은 폭발 효과를 받지 않습니다.",
       "closeButtonText": "확인"
     },
     {
@@ -39,9 +46,11 @@
       "tutorialType": "FixedKnot",
       "titleKey": "tutorial_fixed_knot_title",
       "descriptionKey": "tutorial_fixed_knot_description",
+      "instructionTextKey": "tutorial_fixed_knot_instructions",
       "closeButtonTextKey": "help_close_button",
       "title": "순서 타일",
       "description": "표시된 순서에 꼭 밟아야 하는 타일입니다.",
+      "instructionText": "1. 정해진 순서에 밟기\n   타일에 표시된 순서가 되었을 때 이 타일을 밟아야 합니다.\n2. 순서를 놓치면 실패\n   밟아야 할 차례를 지나치거나 순서를 틀리면 게임오버가 됩니다.",
       "closeButtonText": "확인"
     },
     {
@@ -50,9 +59,11 @@
       "tutorialType": "TwinLink",
       "titleKey": "tutorial_twin_link_title",
       "descriptionKey": "tutorial_twin_link_description",
+      "instructionTextKey": "tutorial_twin_link_instructions",
       "closeButtonTextKey": "help_close_button",
       "title": "짝꿍 타일",
       "description": "같은 색 짝꿍 타일은 연결되어 함께 카운트가 줄어듭니다.",
+      "instructionText": "1. 같은 색은 연결된 타일\n   같은 색으로 빛나는 타일들은 하나의 그룹으로 연결되어 있습니다.\n2. 하나를 줄이면 같이 줄어요\n   짝꿍 타일 하나에서 나가면 같은 색 그룹의 타일 숫자도 함께 줄어듭니다.",
       "closeButtonText": "확인"
     },
     {
@@ -61,9 +72,11 @@
       "tutorialType": "Igniter",
       "titleKey": "tutorial_igniter_title",
       "descriptionKey": "tutorial_igniter_description",
+      "instructionTextKey": "tutorial_igniter_instructions",
       "closeButtonTextKey": "help_close_button",
       "title": "켜기 타일",
       "description": "밟으면 숨은 타일들이 켜져서 밟을 수 있게 됩니다.",
+      "instructionText": "1. 숨은 타일 켜기\n   켜기 타일을 밟으면 감춰져 있던 타일들이 보이게 됩니다.\n2. 새로운 길로 이어가기\n   나타난 타일을 이용해서 막혀 있던 길을 이어가세요.",
       "closeButtonText": "확인"
     },
     {
@@ -72,9 +85,11 @@
       "tutorialType": "BlindCurtain",
       "titleKey": "tutorial_blind_curtain_title",
       "descriptionKey": "tutorial_blind_curtain_description",
+      "instructionTextKey": "tutorial_blind_curtain_instructions",
       "closeButtonTextKey": "help_close_button",
       "title": "가림 타일",
       "description": "카운트가 ?로 가려져 있지만 일반 타일처럼 줄어듭니다.",
+      "instructionText": "1. 숫자가 보이지 않아요\n   가림 타일은 숫자가 ?로 보이지만, 안에는 실제 숫자가 숨겨져 있습니다.\n2. 지나가면 숫자가 줄어요\n   일반 타일처럼 이 타일에서 나가면 숨겨진 숫자가 1 줄어듭니다.",
       "closeButtonText": "확인"
     },
     {
@@ -83,9 +98,11 @@
       "tutorialType": "Blackout",
       "titleKey": "tutorial_blackout_title",
       "descriptionKey": "tutorial_blackout_description",
+      "instructionTextKey": "tutorial_blackout_instructions",
       "closeButtonTextKey": "help_close_button",
       "title": "깜깜 타일",
       "description": "밟으면 모든 타일 숫자가 ?로 바뀝니다.",
+      "instructionText": "1. 모든 숫자가 가려져요\n   깜깜 타일을 밟으면 보드 위 숫자가 모두 ?로 바뀝니다.\n2. 기억해서 움직이기\n   숫자가 가려지기 전에 타일의 숫자와 위치를 기억해 두세요.",
       "closeButtonText": "확인"
     }
   ]

@@ -207,6 +207,7 @@ public class GameManager : MonoBehaviour
     /// <summary>트레일 터치 시작 시 1프레임 뒤 emitting 재개하는 코루틴.</summary>
     private Coroutine trailEmitDelayRoutine;
     private Coroutine blackoutQuestionFlipRoutine;
+    private bool blackoutQuestionFlipPlayed;
     /// <summary>손가락 궤적 네온 트레일. 드래그 중에만 emitting, 위치는 포인터 월드 좌표.</summary>
     private TrailRenderer neonTrail;
     private Transform neonTrailTransform;
@@ -1403,6 +1404,17 @@ public class GameManager : MonoBehaviour
 
     private void TriggerBlackoutQuestionFlip()
     {
+        if (blackoutQuestionFlipPlayed)
+        {
+            if (blackoutQuestionFlipRoutine == null)
+            {
+                SetAllTilesDisplayAsQuestion(true);
+                ResetAllTileQuestionRotations();
+            }
+            return;
+        }
+
+        blackoutQuestionFlipPlayed = true;
         if (blackoutQuestionFlipRoutine != null)
         {
             StopCoroutine(blackoutQuestionFlipRoutine);
@@ -1818,6 +1830,7 @@ public class GameManager : MonoBehaviour
     private IEnumerator GameOverAndResetSequence()
     {
         totalStepsCommitted = 0;
+        blackoutQuestionFlipPlayed = false;
         if (blackoutQuestionFlipRoutine != null)
         {
             StopCoroutine(blackoutQuestionFlipRoutine);
@@ -2015,6 +2028,7 @@ public class GameManager : MonoBehaviour
     private IEnumerator ResetCurrentStageRoutine()
     {
         totalStepsCommitted = 0;
+        blackoutQuestionFlipPlayed = false;
         if (blackoutQuestionFlipRoutine != null)
         {
             StopCoroutine(blackoutQuestionFlipRoutine);
@@ -2570,6 +2584,7 @@ public class GameManager : MonoBehaviour
     private void CreateGridFromStageData(StageData data)
     {
         if (data.cells == null || data.startPoint == null) return;
+        blackoutQuestionFlipPlayed = false;
         UpdateVerboseStage6DebugState(data);
         LogVerboseStage6Summary(data);
 
