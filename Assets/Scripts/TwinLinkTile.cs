@@ -48,6 +48,7 @@ public class TwinLinkTile : MonoBehaviour
     private LightningBoltScript[] boltScripts = new LightningBoltScript[4];
     private LineRenderer[] boltLineRenderers = new LineRenderer[4];
     private float boltTimer;
+    private Tween flashResetTween;
 
     private void Awake()
     {
@@ -189,7 +190,7 @@ public class TwinLinkTile : MonoBehaviour
         if (GameManager.IsPerformanceOverlayOpen)
             return;
 
-        if (tile != null && !tile.IsActive)
+        if (tile != null && (!tile.IsActive || transform.localScale.sqrMagnitude <= 0.0001f))
         {
             SetBoltsActive(false);
             return;
@@ -230,11 +231,13 @@ public class TwinLinkTile : MonoBehaviour
     }
 
     /// <summary>짝 타일들이 이번 스텝에 함께 감소 가능한지 검사.</summary>
-    public bool CanConsumePartners()
+    public bool CanConsumePartners(System.Predicate<Tile> shouldExcludePartner = null)
     {
         foreach (var p in partners)
         {
             if (p == null || p.tile == null) continue;
+            if (shouldExcludePartner != null && shouldExcludePartner(p.tile))
+                continue;
             if (p.tile.CurrentNumber <= 0)
                 return false;
         }
@@ -269,8 +272,22 @@ public class TwinLinkTile : MonoBehaviour
         return sum;
     }
 
+    public bool HasPartner(Tile candidate)
+    {
+        if (candidate == null)
+            return false;
+
+        foreach (var p in partners)
+        {
+            if (p != null && p.tile == candidate)
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>짝 타일들을 직접 1 감소시키고 전기 연출을 재생한다.</summary>
-    public void ConsumePartners(System.Action<Tile> consumeTile)
+    public void ConsumePartners(System.Action<Tile> consumeTile, System.Predicate<Tile> shouldExcludePartner = null)
     {
         if (consumeTile == null)
             return;
@@ -278,6 +295,8 @@ public class TwinLinkTile : MonoBehaviour
         foreach (var p in partners)
         {
             if (p == null || p.tile == null) continue;
+            if (shouldExcludePartner != null && shouldExcludePartner(p.tile))
+                continue;
             consumeTile(p.tile);
             p.FlashBolt();
             p.Shake();
@@ -287,15 +306,38 @@ public class TwinLinkTile : MonoBehaviour
         Shake();
     }
 
+    public void ResetTransientVisualState()
+    {
+        DOTween.Kill(transform);
+        if (flashResetTween != null && flashResetTween.IsActive())
+            flashResetTween.Kill();
+        flashResetTween = null;
+        ApplyBoltColor(normalLineColor);
+        ClearBoltLines();
+        SetBoltsActive(false);
+    }
+
+    private void ClearBoltLines()
+    {
+        for (int i = 0; i < boltLineRenderers.Length; i++)
+        {
+            if (boltLineRenderers[i] != null)
+                boltLineRenderers[i].positionCount = 0;
+        }
+    }
+
     private void FlashBolt()
     {
         Color bright = linkColor * flashIntensityMult;
         bright.a = 1f;
         ApplyBoltColor(bright);
-        DOVirtual.DelayedCall(flashDuration, () =>
+        if (flashResetTween != null && flashResetTween.IsActive())
+            flashResetTween.Kill();
+        flashResetTween = DOVirtual.DelayedCall(flashDuration, () =>
         {
             if (this != null)
                 ApplyBoltColor(normalLineColor);
+            flashResetTween = null;
         });
     }
 

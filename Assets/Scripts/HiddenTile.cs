@@ -46,9 +46,11 @@ public class HiddenTile : MonoBehaviour
     /// </summary>
     public void ResetToHiddenState()
     {
+        StopAllCoroutines();
         isActivated = false;
         DOTween.Kill(transform);
         if (spriteRenderer != null) DOTween.Kill(spriteRenderer);
+        if (numberText != null) DOTween.Kill(numberText.transform);
         CacheTargetVisualState();
         if (spriteRenderer != null)
         {

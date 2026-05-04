@@ -944,18 +944,6 @@ public class GameManager : MonoBehaviour
                         canStep = false;
                     }
                 }
-                // Igniter가 연 Hidden 목표가 아직 남아 있으면, 그 Igniter 이전 구간으로의 복귀만 차단한다.
-                // Hidden 쪽을 모두 소진했다면 이전 일반 경로로 이어서 드래그할 수 있어야 한다.
-                if (canStep && currentPath.Contains(hit))
-                {
-                    int hitIdx = currentPath.IndexOf(hit);
-                    if (TryFindBlockingIgniterBacktrack(hitIdx, out int igniterIdx, out string pendingHiddenSummary))
-                    {
-                        if (ShouldLogVerboseStage6Debug())
-                            Debug.Log($"[Stage6 Igniter 백트래킹 차단] hit={DescribeTileForDebug(hit)} igniterIdx={igniterIdx} hitIdx={hitIdx} pending=[{pendingHiddenSummary}] path={DescribeCurrentPathForDebug()}");
-                        canStep = false;
-                    }
-                }
                 if (canStep)
                     TryStepToTile(last, hit);
             }
@@ -1085,7 +1073,7 @@ public class GameManager : MonoBehaviour
         }
 
         var twinLinkLast = last.GetComponent<TwinLinkTile>();
-        if (twinLinkLast != null && !twinLinkLast.CanConsumePartners())
+        if (twinLinkLast != null && !twinLinkLast.CanConsumePartners(partner => ShouldExcludeTwinLinkPartnerFromStep(twinLinkLast, partner, hit)))
         {
             if (ShouldLogVerboseStage6Debug())
                 Debug.Log($"[Stage6 이동 거부] reason=twin_link_partner last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
@@ -1101,7 +1089,7 @@ public class GameManager : MonoBehaviour
         var twinLink = last.GetComponent<TwinLinkTile>();
         if (twinLink != null)
         {
-            twinLink.ConsumePartners(DecreaseTileAndPlayBlockNote);
+            twinLink.ConsumePartners(DecreaseTileAndPlayBlockNote, partner => ShouldExcludeTwinLinkPartnerFromStep(twinLink, partner, hit));
             RefreshMainUIProgress();
         }
         NotifyFixedKnotLeft(last);
@@ -1109,6 +1097,28 @@ public class GameManager : MonoBehaviour
         var crossBlast = last.GetComponent<CrossBlastTile>();
         if (crossBlast != null)
             crossBlast.TriggerExplosion(this, hit);
+    }
+
+    private bool ShouldExcludeTwinLinkPartnerFromStep(TwinLinkTile sourceTwinLink, Tile partnerTile, Tile enteredTile)
+    {
+        if (sourceTwinLink == null || partnerTile == null)
+            return false;
+
+        if (!sourceTwinLink.HasPartner(partnerTile))
+            return false;
+
+        if (partnerTile == enteredTile)
+            return true;
+
+        return IsImmediatelyPreviousPathTile(partnerTile);
+    }
+
+    private bool IsImmediatelyPreviousPathTile(Tile tile)
+    {
+        if (tile == null || currentPath == null || currentPath.Count < 2)
+            return false;
+
+        return currentPath[currentPath.Count - 2] == tile;
     }
 
     private void ApplyEnterTileEffects(Tile hit, FixedKnotTile fixedKnotHit, int totalPathCount)
@@ -1330,69 +1340,6 @@ public class GameManager : MonoBehaviour
             Debug.Log($"[Stage6 Igniter 트리거] stepped={DescribeTileForDebug(steppedTile)} targetID={igniter.TargetID} instant={instant} relay={relayInterval:F3} targets=[{string.Join(" | ", hiddenSummaries)}]");
         }
         igniter.TriggerHiddenTiles(list, instant, relayInterval);
-    }
-
-    private bool TryFindBlockingIgniterBacktrack(int hitIdx, out int igniterIdx, out string pendingHiddenSummary)
-    {
-        igniterIdx = -1;
-        pendingHiddenSummary = string.Empty;
-
-        if (hitIdx < 0 || currentPath == null || currentPath.Count == 0)
-            return false;
-
-        for (int i = 0; i < currentPath.Count; i++)
-        {
-            if (i <= hitIdx)
-                continue;
-
-            Tile pathTile = currentPath[i];
-            if (pathTile == null)
-                continue;
-
-            IgniterTile igniter = pathTile.GetComponent<IgniterTile>();
-            if (igniter == null)
-                continue;
-
-            if (!HasPendingHiddenTargetsForIgniter(igniter, out pendingHiddenSummary))
-                continue;
-
-            igniterIdx = i;
-            return true;
-        }
-
-        pendingHiddenSummary = string.Empty;
-        return false;
-    }
-
-    private bool HasPendingHiddenTargetsForIgniter(IgniterTile igniter, out string pendingHiddenSummary)
-    {
-        pendingHiddenSummary = string.Empty;
-        if (igniter == null || hiddenGroups == null || string.IsNullOrEmpty(igniter.TargetID))
-            return false;
-
-        if (!hiddenGroups.TryGetValue(igniter.TargetID, out List<HiddenTile> hiddenList) || hiddenList == null || hiddenList.Count == 0)
-            return false;
-
-        List<string> pendingTiles = null;
-        foreach (HiddenTile hidden in hiddenList)
-        {
-            if (hidden == null)
-                continue;
-
-            Tile hiddenTile = hidden.GetComponent<Tile>();
-            if (hiddenTile == null || hiddenTile.CurrentNumber <= 0)
-                continue;
-
-            if (pendingTiles == null)
-                pendingTiles = new List<string>();
-            pendingTiles.Add(DescribeTileForDebug(hiddenTile));
-        }
-
-        if (pendingTiles == null || pendingTiles.Count == 0)
-            return false;
-
-        pendingHiddenSummary = string.Join(" | ", pendingTiles);
-        return true;
     }
 
     private void ActivateStartIgniterIfNeeded()
@@ -1958,18 +1905,7 @@ public class GameManager : MonoBehaviour
             for (int col = 0; col < stageWidth; col++)
             {
                 if (tiles[row, col] == null) continue;
-                Tile t = tiles[row, col];
-                t.ResetToInitial();
-                var hidden = t.GetComponent<HiddenTile>();
-                var igniter = t.GetComponent<IgniterTile>();
-                if (hidden != null)
-                    hidden.ResetToHiddenState();
-                else if (igniter != null)
-                    igniter.ResetToInitialState();
-                if (hidden == null)
-                    t.SetScaleZero();
-                var fixedKnot = t.GetComponent<FixedKnotTile>();
-                if (fixedKnot != null) fixedKnot.ResetGearVisibility();
+                ResetTileForStageRestart(tiles[row, col]);
             }
         }
 
@@ -2046,6 +1982,36 @@ public class GameManager : MonoBehaviour
         return mainUI != null && mainUI.ConsumeHeartOnManualRetry(retryMoveCount);
     }
 
+    private void ResetTileForStageRestart(Tile tile)
+    {
+        if (tile == null)
+            return;
+
+        var crossBlast = tile.GetComponent<CrossBlastTile>();
+        if (crossBlast != null)
+            crossBlast.ResetTransientVisualState();
+
+        var twinLink = tile.GetComponent<TwinLinkTile>();
+        if (twinLink != null)
+            twinLink.ResetTransientVisualState();
+
+        tile.ResetToInitial();
+
+        var hidden = tile.GetComponent<HiddenTile>();
+        var igniter = tile.GetComponent<IgniterTile>();
+        if (hidden != null)
+            hidden.ResetToHiddenState();
+        else if (igniter != null)
+            igniter.ResetToInitialState();
+
+        if (hidden == null)
+            tile.SetScaleZero();
+
+        var fixedKnot = tile.GetComponent<FixedKnotTile>();
+        if (fixedKnot != null)
+            fixedKnot.ResetGearVisibility();
+    }
+
     private IEnumerator ResetCurrentStageRoutine()
     {
         totalStepsCommitted = 0;
@@ -2067,18 +2033,7 @@ public class GameManager : MonoBehaviour
             for (int col = 0; col < stageWidth; col++)
             {
                 if (tiles[row, col] == null) continue;
-                Tile t = tiles[row, col];
-                t.ResetToInitial();
-                var hidden = t.GetComponent<HiddenTile>();
-                var igniter = t.GetComponent<IgniterTile>();
-                if (hidden != null)
-                    hidden.ResetToHiddenState();
-                else if (igniter != null)
-                    igniter.ResetToInitialState();
-                if (hidden == null)
-                    t.SetScaleZero();
-                var fixedKnot = t.GetComponent<FixedKnotTile>();
-                if (fixedKnot != null) fixedKnot.ResetGearVisibility();
+                ResetTileForStageRestart(tiles[row, col]);
             }
         }
 

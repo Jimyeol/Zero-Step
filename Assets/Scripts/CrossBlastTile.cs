@@ -24,6 +24,7 @@ public class CrossBlastTile : MonoBehaviour
     private Vector3 baseScale;
     private Color baseBeamColor;
     private bool isExploding;
+    private Coroutine explosionRoutine;
 
     private void Awake()
     {
@@ -54,7 +55,28 @@ public class CrossBlastTile : MonoBehaviour
     public void TriggerExplosion(GameManager gameManager, Tile nextTile)
     {
         if (isExploding || gameManager == null) return;
-        StartCoroutine(FlashAndDecreaseAdjacentRoutine(gameManager, nextTile));
+        explosionRoutine = StartCoroutine(FlashAndDecreaseAdjacentRoutine(gameManager, nextTile));
+    }
+
+    public void ResetTransientVisualState()
+    {
+        if (explosionRoutine != null)
+        {
+            StopCoroutine(explosionRoutine);
+            explosionRoutine = null;
+        }
+
+        isExploding = false;
+        DOTween.Kill(transform);
+        if (spriteRenderer != null)
+        {
+            DOTween.Kill(spriteRenderer);
+            spriteRenderer.color = Color.white;
+        }
+        if (baseScale != Vector3.zero)
+            transform.localScale = baseScale;
+        if (tile != null)
+            tile.RestoreNeonColor();
     }
 
     private void ParseBeamColor(string hex)
@@ -113,5 +135,6 @@ public class CrossBlastTile : MonoBehaviour
         yield return new WaitForSeconds(0.05f);
 
         isExploding = false;
+        explosionRoutine = null;
     }
 }
