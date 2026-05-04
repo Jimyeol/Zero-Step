@@ -50,6 +50,16 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float twinLinkFlashDuration = 0.2f;
     [Tooltip("밟을 때 흔들림 강도")]
     [SerializeField] private float twinLinkShakeStrength = 0.08f;
+    [Tooltip("대기 중 전기 테두리 알파. 낮을수록 조용하게 보임")]
+    [SerializeField] [Range(0.1f, 1f)] private float twinLinkIdleAlphaMultiplier = 0.34f;
+    [Tooltip("대기 중 한 번에 갱신할 테두리 변 개수. 낮을수록 덜 산만함")]
+    [SerializeField] [Range(1, 4)] private int twinLinkIdleEdgesPerPulse = 2;
+    [Tooltip("발동 순간 같은 그룹을 잇는 연결선 두께 배율")]
+    [SerializeField] private float twinLinkActivationLineWidthScale = 0.12f;
+    [Tooltip("발동 연결선이 사라지는 시간(초)")]
+    [SerializeField] private float twinLinkActivationLineDuration = 0.22f;
+    [Tooltip("발동 연결선 최대 알파")]
+    [SerializeField] [Range(0.1f, 1f)] private float twinLinkActivationLineAlpha = 0.9f;
 
     [Header("네온 트레일 (손가락 궤적)")]
     [SerializeField] private Color trailColor = new Color(1f, 0.4f, 1f, 1f);
@@ -2710,7 +2720,12 @@ public class GameManager : MonoBehaviour
                         boltGenerations = twinLinkBoltGenerations,
                         boltWidthScale = twinLinkBoltWidthScale,
                         flashDuration = twinLinkFlashDuration,
-                        shakeStrength = twinLinkShakeStrength
+                        shakeStrength = twinLinkShakeStrength,
+                        idleAlphaMultiplier = twinLinkIdleAlphaMultiplier,
+                        idleEdgesPerPulse = twinLinkIdleEdgesPerPulse,
+                        activationLineWidthScale = twinLinkActivationLineWidthScale,
+                        activationLineDuration = twinLinkActivationLineDuration,
+                        activationLineAlpha = twinLinkActivationLineAlpha
                     });
                     if (!twinLinkGroups.ContainsKey(id))
                         twinLinkGroups[id] = new List<TwinLinkTile>();

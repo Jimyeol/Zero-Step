@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
@@ -20,6 +21,11 @@ public class TwinLinkTile : MonoBehaviour
         public float boltWidthScale;
         public float flashDuration;
         public float shakeStrength;
+        public float idleAlphaMultiplier;
+        public int idleEdgesPerPulse;
+        public float activationLineWidthScale;
+        public float activationLineDuration;
+        public float activationLineAlpha;
     }
 
     [Header("LightningBolt 전기 효과 (기본값만 사용, 실제 조정은 GameManager에서)")]
@@ -35,8 +41,14 @@ public class TwinLinkTile : MonoBehaviour
     private float flashIntensityMult = 2.2f;
     private float shakeStrength = 0.08f;
     private float shakeDuration = 0.2f;
+    private float idleAlphaMultiplier = 0.34f;
+    private int idleEdgesPerPulse = 2;
+    private float activationLineWidthScale = 0.12f;
+    private float activationLineDuration = 0.22f;
+    private float activationLineAlpha = 0.9f;
 
     private Tile tile;
+    private SpriteRenderer spriteRenderer;
     private int linkID;
     private Color linkColor;
     private List<TwinLinkTile> partners = new List<TwinLinkTile>();
@@ -47,12 +59,27 @@ public class TwinLinkTile : MonoBehaviour
     private readonly Vector3[] edgeEndLocal = new Vector3[4];
     private LightningBoltScript[] boltScripts = new LightningBoltScript[4];
     private LineRenderer[] boltLineRenderers = new LineRenderer[4];
+    private LineRenderer[] activationLines = new LineRenderer[0];
+    private readonly List<TwinLinkTile> activationTargets = new List<TwinLinkTile>();
     private float boltTimer;
+    private int nextIdleEdgeIndex;
     private Tween flashResetTween;
+    private Coroutine activationFadeRoutine;
+    private static Material fallbackActivationLineMaterial;
 
     private void Awake()
     {
         tile = GetComponent<Tile>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
+    private void OnDestroy()
+    {
+        DOTween.Kill(transform);
+        StopActivationFadeRoutine();
+        if (flashResetTween != null && flashResetTween.IsActive())
+            flashResetTween.Kill();
+        flashResetTween = null;
     }
 
     /// <summary>
@@ -65,7 +92,6 @@ public class TwinLinkTile : MonoBehaviour
         linkID = id;
         linkColor = assignedColor;
 
-        normalLineColor = linkColor;
         if (tile != null)
             tile.SetNumberColorOverride(linkColor);
 
@@ -79,7 +105,13 @@ public class TwinLinkTile : MonoBehaviour
             boltWidthScale = s.boltWidthScale > 0f ? s.boltWidthScale : boltWidthScale;
             flashDuration = s.flashDuration >= 0f ? s.flashDuration : flashDuration;
             shakeStrength = s.shakeStrength >= 0f ? s.shakeStrength : shakeStrength;
+            idleAlphaMultiplier = s.idleAlphaMultiplier > 0f ? Mathf.Clamp01(s.idleAlphaMultiplier) : idleAlphaMultiplier;
+            idleEdgesPerPulse = s.idleEdgesPerPulse > 0 ? Mathf.Clamp(s.idleEdgesPerPulse, 1, 4) : idleEdgesPerPulse;
+            activationLineWidthScale = s.activationLineWidthScale > 0f ? s.activationLineWidthScale : activationLineWidthScale;
+            activationLineDuration = s.activationLineDuration > 0f ? Mathf.Clamp(s.activationLineDuration, 0.05f, 0.5f) : activationLineDuration;
+            activationLineAlpha = s.activationLineAlpha > 0f ? Mathf.Clamp01(s.activationLineAlpha) : activationLineAlpha;
         }
+        normalLineColor = WithAlpha(linkColor, idleAlphaMultiplier);
 
         if (boltPrefabOverride != null)
             lightningBoltPrefab = boltPrefabOverride;
@@ -145,8 +177,8 @@ public class TwinLinkTile : MonoBehaviour
             script.StartObject = null;
             script.EndObject = null;
             script.ManualMode = true;
-            // 번개가 사라지기 전에 여러 번 겹쳐 갱신되도록 유지 시간을 충분히 둔다.
-            script.Duration = Mathf.Max(boltInterval * 6f, 0.18f);
+            // Idle 테두리는 조용하게 보이도록 이전보다 짧게 남긴다.
+            script.Duration = Mathf.Max(boltInterval * 2.2f, 0.08f);
             script.Generations = boltGenerations;
             script.ChaosFactor = Mathf.Clamp01(chaosFactor);
 
@@ -203,8 +235,10 @@ public class TwinLinkTile : MonoBehaviour
         if (boltTimer <= 0f)
         {
             boltTimer = boltInterval;
-            for (int i = 0; i < 4; i++)
+            int triggerCount = Mathf.Clamp(idleEdgesPerPulse, 1, 4);
+            for (int step = 0; step < triggerCount; step++)
             {
+                int i = (nextIdleEdgeIndex + step) % boltScripts.Length;
                 if (boltScripts[i] == null) continue;
                 Vector3 wStart = transform.TransformPoint(edgeStartLocal[i]);
                 Vector3 wEnd = transform.TransformPoint(edgeEndLocal[i]);
@@ -212,6 +246,7 @@ public class TwinLinkTile : MonoBehaviour
                 boltScripts[i].EndPosition = wEnd;
                 boltScripts[i].Trigger();
             }
+            nextIdleEdgeIndex = (nextIdleEdgeIndex + triggerCount) % boltScripts.Length;
             ApplyBoltColor(normalLineColor);
         }
     }
@@ -228,6 +263,9 @@ public class TwinLinkTile : MonoBehaviour
                 if (p != null && p != this)
                     partners.Add(p);
         }
+
+        EnsureActivationLines(partners.Count);
+        ClearActivationLines();
     }
 
     /// <summary>짝 타일들이 이번 스텝에 함께 감소 가능한지 검사.</summary>
@@ -292,16 +330,19 @@ public class TwinLinkTile : MonoBehaviour
         if (consumeTile == null)
             return;
 
+        activationTargets.Clear();
         foreach (var p in partners)
         {
             if (p == null || p.tile == null) continue;
             if (shouldExcludePartner != null && shouldExcludePartner(p.tile))
                 continue;
             consumeTile(p.tile);
+            activationTargets.Add(p);
             p.FlashBolt();
             p.Shake();
         }
 
+        PlayActivationNetwork(activationTargets);
         FlashBolt();
         Shake();
     }
@@ -309,11 +350,14 @@ public class TwinLinkTile : MonoBehaviour
     public void ResetTransientVisualState()
     {
         DOTween.Kill(transform);
+        StopActivationFadeRoutine();
         if (flashResetTween != null && flashResetTween.IsActive())
             flashResetTween.Kill();
         flashResetTween = null;
+        nextIdleEdgeIndex = 0;
         ApplyBoltColor(normalLineColor);
         ClearBoltLines();
+        ClearActivationLines();
         SetBoltsActive(false);
     }
 
@@ -323,6 +367,151 @@ public class TwinLinkTile : MonoBehaviour
         {
             if (boltLineRenderers[i] != null)
                 boltLineRenderers[i].positionCount = 0;
+        }
+    }
+
+    private void EnsureActivationLines(int requiredCount)
+    {
+        if (requiredCount <= activationLines.Length)
+            return;
+
+        int oldLength = activationLines.Length;
+        System.Array.Resize(ref activationLines, requiredCount);
+        for (int i = oldLength; i < activationLines.Length; i++)
+            activationLines[i] = CreateActivationLine();
+    }
+
+    private LineRenderer CreateActivationLine()
+    {
+        LineRenderer line = gameObject.AddComponent<LineRenderer>();
+        line.enabled = false;
+        line.useWorldSpace = true;
+        line.positionCount = 0;
+        line.numCapVertices = 4;
+        line.numCornerVertices = 2;
+        line.alignment = LineAlignment.View;
+        line.textureMode = LineTextureMode.Stretch;
+        line.widthMultiplier = GetActivationLineWidth();
+        line.sharedMaterial = ResolveLineMaterial(spriteRenderer);
+        if (spriteRenderer != null)
+        {
+            line.sortingLayerID = spriteRenderer.sortingLayerID;
+            line.sortingOrder = spriteRenderer.sortingOrder + 20;
+        }
+        return line;
+    }
+
+    private static Material ResolveLineMaterial(SpriteRenderer renderer)
+    {
+        if (renderer != null && renderer.sharedMaterial != null)
+            return renderer.sharedMaterial;
+        if (fallbackActivationLineMaterial != null)
+            return fallbackActivationLineMaterial;
+
+        Shader shader = Shader.Find("Sprites/Default");
+        if (shader == null)
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null)
+            return null;
+
+        fallbackActivationLineMaterial = new Material(shader)
+        {
+            name = "TwinLink Activation Line (Runtime)",
+            hideFlags = HideFlags.DontSave
+        };
+        return fallbackActivationLineMaterial;
+    }
+
+    private void PlayActivationNetwork(List<TwinLinkTile> targets)
+    {
+        if (targets == null || targets.Count == 0)
+            return;
+
+        StopActivationFadeRoutine();
+        EnsureActivationLines(targets.Count);
+        ClearActivationLines();
+
+        Vector3 sourcePosition = GetCuePosition(transform.position);
+        int lineIndex = 0;
+        for (int i = 0; i < targets.Count; i++)
+        {
+            TwinLinkTile target = targets[i];
+            if (target == null)
+                continue;
+
+            LineRenderer line = activationLines[lineIndex++];
+            if (line == null)
+                continue;
+
+            line.enabled = true;
+            line.positionCount = 2;
+            line.widthMultiplier = GetActivationLineWidth();
+            line.SetPosition(0, sourcePosition);
+            line.SetPosition(1, GetCuePosition(target.transform.position));
+            ApplyActivationLineColor(line, activationLineAlpha);
+        }
+
+        if (lineIndex > 0)
+            activationFadeRoutine = StartCoroutine(FadeActivationLinesRoutine(lineIndex));
+    }
+
+    private float GetActivationLineWidth()
+    {
+        return Mathf.Max(0.035f, TileHalfSize() * 2f * activationLineWidthScale);
+    }
+
+    private void ApplyActivationLineColor(LineRenderer line, float alpha)
+    {
+        Color start = WithAlpha(linkColor, alpha);
+        Color end = WithAlpha(linkColor, alpha * 0.55f);
+        line.startColor = start;
+        line.endColor = end;
+    }
+
+    private void HideActivationLine(LineRenderer line)
+    {
+        if (line == null)
+            return;
+
+        line.enabled = false;
+        line.positionCount = 0;
+    }
+
+    private void ClearActivationLines()
+    {
+        for (int i = 0; i < activationLines.Length; i++)
+            HideActivationLine(activationLines[i]);
+    }
+
+    private IEnumerator FadeActivationLinesRoutine(int activeLineCount)
+    {
+        float elapsed = 0f;
+        while (elapsed < activationLineDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / activationLineDuration);
+            float eased = 1f - (1f - t) * (1f - t);
+            float alpha = Mathf.Lerp(activationLineAlpha, 0f, eased);
+            for (int i = 0; i < activeLineCount && i < activationLines.Length; i++)
+            {
+                LineRenderer line = activationLines[i];
+                if (line != null && line.enabled)
+                    ApplyActivationLineColor(line, alpha);
+            }
+            yield return null;
+        }
+
+        for (int i = 0; i < activeLineCount && i < activationLines.Length; i++)
+            HideActivationLine(activationLines[i]);
+        activationFadeRoutine = null;
+    }
+
+    private void StopActivationFadeRoutine()
+    {
+        if (activationFadeRoutine != null)
+        {
+            StopCoroutine(activationFadeRoutine);
+            activationFadeRoutine = null;
         }
     }
 
@@ -344,6 +533,17 @@ public class TwinLinkTile : MonoBehaviour
     private void Shake()
     {
         transform.DOShakePosition(shakeDuration, shakeStrength, 14, 90f, false, true).SetUpdate(true);
+    }
+
+    private static Vector3 GetCuePosition(Vector3 source)
+    {
+        return new Vector3(source.x, source.y, source.z - 0.05f);
+    }
+
+    private static Color WithAlpha(Color color, float alpha)
+    {
+        color.a = Mathf.Clamp01(alpha);
+        return color;
     }
 
     public int LinkID => linkID;
