@@ -1208,6 +1208,9 @@ public class GameManager : MonoBehaviour
     private const int ImmediateBacktrackIgnoreFrames = 15;
     /// <summary>직전 타일로 되돌아가려면 현재 타일보다 이 거리만큼 더 가까워야 함(경계 오락가락 방지).</summary>
     private const float BacktrackDistanceMarginRatio = 0.12f;
+    private static readonly int[] CrossBlastDx = { -1, 1, 0, 0 };
+    private static readonly int[] CrossBlastDy = { 0, 0, -1, 1 };
+    private readonly Tile[] crossBlastScratchTiles = new Tile[4];
 
     private Vector2 ScreenToWorld2D(Vector2 screenPoint)
     {
@@ -1253,22 +1256,66 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void DecreaseAdjacentTiles(int centerX, int centerY, int excludeX = -999, int excludeY = -999)
     {
-        if (tiles == null) return;
-        int[] dx = { -1, 1, 0, 0 };
-        int[] dy = { 0, 0, -1, 1 };
-        for (int i = 0; i < 4; i++)
+        int affectedCount = GetCrossBlastAffectedTiles(centerX, centerY, excludeX, excludeY, crossBlastScratchTiles);
+        DecreaseCrossBlastAffectedTiles(crossBlastScratchTiles, affectedCount);
+    }
+
+    /// <summary>
+    /// CrossBlast가 실제로 영향을 줄 타일을 GameManager에서 단일 계산한다.
+    /// </summary>
+    public int GetCrossBlastAffectedTiles(Tile centerTile, Tile nextTile, Tile[] results)
+    {
+        if (centerTile == null)
         {
-            int nx = centerX + dx[i];
-            int ny = centerY + dy[i];
+            ClearCrossBlastResultBuffer(results);
+            return 0;
+        }
+
+        int excludeX = nextTile != null ? nextTile.X : -999;
+        int excludeY = nextTile != null ? nextTile.Y : -999;
+        return GetCrossBlastAffectedTiles(centerTile.X, centerTile.Y, excludeX, excludeY, results);
+    }
+
+    private int GetCrossBlastAffectedTiles(int centerX, int centerY, int excludeX, int excludeY, Tile[] results)
+    {
+        ClearCrossBlastResultBuffer(results);
+        if (tiles == null || results == null || results.Length == 0)
+            return 0;
+
+        int count = 0;
+        for (int i = 0; i < CrossBlastDx.Length && count < results.Length; i++)
+        {
+            int nx = centerX + CrossBlastDx[i];
+            int ny = centerY + CrossBlastDy[i];
             if (nx == excludeX && ny == excludeY) continue; // 다음 타일은 CrossBlast 효과 제외
             if (ny >= 0 && ny < stageHeight && nx >= 0 && nx < stageWidth)
             {
                 Tile t = tiles[ny, nx];
                 if (t != null && t.IsActive)
-                {
-                    DecreaseTileAndPlayBlockNote(t);
-                }
+                    results[count++] = t;
             }
+        }
+
+        return count;
+    }
+
+    private static void ClearCrossBlastResultBuffer(Tile[] results)
+    {
+        if (results == null) return;
+        Array.Clear(results, 0, results.Length);
+    }
+
+    public void DecreaseCrossBlastAffectedTiles(Tile[] affectedTiles, int affectedCount)
+    {
+        if (affectedTiles == null)
+            return;
+
+        int count = Mathf.Min(affectedCount, affectedTiles.Length);
+        for (int i = 0; i < count; i++)
+        {
+            Tile tile = affectedTiles[i];
+            if (tile != null && tile.IsActive)
+                DecreaseTileAndPlayBlockNote(tile);
         }
 
         // CrossBlast로 인한 주변 타일 감소 후 진행도 갱신
