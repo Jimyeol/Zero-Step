@@ -1979,12 +1979,7 @@ public class GameManager : MonoBehaviour
                 yield return new WaitForSeconds(tileAppearInterval);
                 Tile tile = tiles[row, col];
                 tile.PlayBounceAppearance();
-                var igniter = tile.GetComponent<IgniterTile>();
-                if (igniter != null)
-                    igniter.RefreshVisualState();
-                var blindCurtain = tile.GetComponent<BlindCurtainTile>();
-                if (blindCurtain != null)
-                    blindCurtain.RefreshVisualState();
+                RefreshSpecialTileVisualStateAfterAppearance(tile);
             }
         }
 
@@ -2108,12 +2103,7 @@ public class GameManager : MonoBehaviour
                 yield return new WaitForSeconds(tileAppearInterval);
                 Tile tile = tiles[row, col];
                 tile.PlayBounceAppearance();
-                var igniter = tile.GetComponent<IgniterTile>();
-                if (igniter != null)
-                    igniter.RefreshVisualState();
-                var blindCurtain = tile.GetComponent<BlindCurtainTile>();
-                if (blindCurtain != null)
-                    blindCurtain.RefreshVisualState();
+                RefreshSpecialTileVisualStateAfterAppearance(tile);
             }
         }
 
@@ -2141,6 +2131,24 @@ public class GameManager : MonoBehaviour
         PlayNewStageSfx();
         HandleStageStarted("manual_reset");
         isGameOverSequencePlaying = false;
+    }
+
+    private void RefreshSpecialTileVisualStateAfterAppearance(Tile tile)
+    {
+        if (tile == null)
+            return;
+
+        var fixedKnot = tile.GetComponent<FixedKnotTile>();
+        if (fixedKnot != null)
+            fixedKnot.RefreshVisualState();
+
+        var igniter = tile.GetComponent<IgniterTile>();
+        if (igniter != null)
+            igniter.RefreshVisualState();
+
+        var blindCurtain = tile.GetComponent<BlindCurtainTile>();
+        if (blindCurtain != null)
+            blindCurtain.RefreshVisualState();
     }
 
     /// <summary>
