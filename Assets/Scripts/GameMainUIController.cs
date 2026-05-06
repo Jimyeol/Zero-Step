@@ -332,6 +332,9 @@ public class GameMainUIController : MonoBehaviour
     private int cachedScreenWidth = -1;
     private int cachedScreenHeight = -1;
     private Rect cachedSafeArea;
+    private float topGameplayMarginNormalized;
+    private float bottomGameplayMarginNormalized;
+    private bool hasResolvedGameplayLayout;
     private int currentHearts = MaxHearts;
     private bool isWaitingForHeartRefill;
     private bool isLanguageSelectionPopupOpen;
@@ -1006,6 +1009,10 @@ public class GameMainUIController : MonoBehaviour
     public bool IsTutorialPopupOpen => isTutorialPopupOpen;
     public bool IsWaitingForHeartRefill => isWaitingForHeartRefill;
     public bool IsSplashActive => isSplashActive;
+    public bool HasResolvedGameplayLayout => hasResolvedGameplayLayout;
+    public float TopGameplayMarginNormalized => topGameplayMarginNormalized;
+    public float BottomGameplayMarginNormalized => bottomGameplayMarginNormalized;
+    public event Action GameplayLayoutChanged;
 
     public void NotifyStageBootstrapCompleted()
     {
@@ -4907,6 +4914,7 @@ public class GameMainUIController : MonoBehaviour
         Rect currentSafeArea = Screen.safeArea;
         bool screenChanged = cachedScreenWidth != Screen.width || cachedScreenHeight != Screen.height;
         bool safeAreaChanged = !IsSameRect(cachedSafeArea, currentSafeArea);
+        bool gameplayLayoutPending = !hasResolvedGameplayLayout;
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         if (bannerView != null)
@@ -4924,7 +4932,7 @@ public class GameMainUIController : MonoBehaviour
         }
 #endif
 
-        if (!force && !screenChanged && !safeAreaChanged)
+        if (!force && !screenChanged && !safeAreaChanged && !gameplayLayoutPending)
             return;
 
         cachedScreenWidth = Screen.width;
@@ -4954,6 +4962,48 @@ public class GameMainUIController : MonoBehaviour
 
         if (stageSnackbar != null)
             stageSnackbar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, stageSnackbarExtraSpacing);
+
+        UpdateGameplayLayoutMetrics();
+    }
+
+    private void UpdateGameplayLayoutMetrics()
+    {
+        if (uiDocument == null)
+            return;
+
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root == null)
+            return;
+
+        float rootHeight = root.resolvedStyle.height;
+        if (float.IsNaN(rootHeight) || float.IsInfinity(rootHeight) || rootHeight <= 1f)
+            return;
+
+        bool topLayoutResolved = topBar == null || (topBar.worldBound.height > 1f && !float.IsNaN(topBar.worldBound.yMax));
+        bool bottomLayoutResolved = bottomBar == null || (bottomBar.worldBound.height > 1f && !float.IsNaN(bottomBar.worldBound.yMin));
+        if (!topLayoutResolved || !bottomLayoutResolved)
+            return;
+
+        float topReservedPx = 0f;
+        if (topBar != null)
+            topReservedPx = Mathf.Clamp(topBar.worldBound.yMax, 0f, rootHeight);
+
+        float bottomReservedPx = 0f;
+        if (bottomBar != null)
+            bottomReservedPx = Mathf.Clamp(rootHeight - bottomBar.worldBound.yMin, 0f, rootHeight);
+
+        float nextTop = Mathf.Clamp01(topReservedPx / rootHeight);
+        float nextBottom = Mathf.Clamp01(bottomReservedPx / rootHeight);
+        bool changed = !hasResolvedGameplayLayout ||
+                       Mathf.Abs(nextTop - topGameplayMarginNormalized) > 0.002f ||
+                       Mathf.Abs(nextBottom - bottomGameplayMarginNormalized) > 0.002f;
+
+        topGameplayMarginNormalized = nextTop;
+        bottomGameplayMarginNormalized = nextBottom;
+        hasResolvedGameplayLayout = true;
+
+        if (changed)
+            GameplayLayoutChanged?.Invoke();
     }
 
     private static bool IsSameRect(Rect a, Rect b)

@@ -186,6 +186,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] [Range(0f, 0.4f)] private float uiTopMarginNormalized = 0.22f;
     [Tooltip("하단 버튼 바(BottomBar) 높이에 대응하는 화면 비율 (0~0.4 정도 권장)")]
     [SerializeField] [Range(0f, 0.4f)] private float uiBottomMarginNormalized = 0.18f;
+    [Tooltip("실제 하단 UI 위에 추가로 비워둘 게임 보드 여백. 태블릿에서 하단 UI와 보드가 붙는 것을 방지")]
+    [SerializeField] [Range(0f, 0.15f)] private float uiBottomGameplayGapNormalized = 0.04f;
 
     private int currentStageIndex;
     private float tileWidth;
@@ -282,6 +284,7 @@ public class GameManager : MonoBehaviour
     [Header("UI Toolkit 상단 UI")]
     [Tooltip("GameMainUI.uxml을 사용하는 UIDocument가 있는 오브젝트에 붙은 컨트롤러")]
     [SerializeField] private GameMainUIController mainUI;
+    private GameMainUIController subscribedGameplayLayoutUI;
     [SerializeField] [Range(0.8f, 3f)] private float gameplayRuleSnackbarDuration = 1.6f;
     /// <summary>각 스테이지 시작 시 전체 타일 카운트(합). 진행도 계산용.</summary>
     private int initialTileCountForUI;
@@ -337,6 +340,7 @@ public class GameManager : MonoBehaviour
         CreateNeonTrail();
         CacheTileSizeFromPrefab();
         InitializeAudioSystem();
+        CacheMainUIReference();
 
         // 저장된 진행도가 있으면 해당 스테이지부터, 없으면 startStageIndex부터
         currentStageIndex = LoadSavedStageIndex();
@@ -519,8 +523,7 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        if (mainUI == null)
-            mainUI = FindFirstObjectByType<GameMainUIController>();
+        CacheMainUIReference();
         bool overlayOpen = mainUI != null && (mainUI.IsSettingPopupOpen || mainUI.IsTutorialPopupOpen || mainUI.IsWaitingForHeartRefill || mainUI.IsSplashActive);
         IsPerformanceOverlayOpen = overlayOpen;
 
@@ -2609,25 +2612,80 @@ public class GameManager : MonoBehaviour
     {
         if (mainCamera == null || !mainCamera.orthographic) return;
 
-        mainCamera.orthographicSize = CalculateCameraOrthographicSizeForGrid(totalGridWidth, totalGridHeight, GetCameraAspect());
-        mainCamera.transform.position = new Vector3(0f, 0f, mainCamera.transform.position.z);
+        GetGameplayMarginsNormalized(out float topMargin, out float bottomMargin);
+        float orthographicSize = CalculateCameraOrthographicSizeForGrid(totalGridWidth, totalGridHeight, GetCameraAspect(), topMargin, bottomMargin);
+        mainCamera.orthographicSize = orthographicSize;
+        float yOffset = (topMargin - bottomMargin) * orthographicSize;
+        mainCamera.transform.position = new Vector3(0f, yOffset, mainCamera.transform.position.z);
         mainCamera.rect = new Rect(0f, 0f, 1f, 1f);
     }
 
     private float CalculateCameraOrthographicSizeForGrid(float gridWidth, float gridHeight, float aspect)
     {
+        GetGameplayMarginsNormalized(out float top, out float bottom);
+        return CalculateCameraOrthographicSizeForGrid(gridWidth, gridHeight, aspect, top, bottom);
+    }
+
+    private float CalculateCameraOrthographicSizeForGrid(float gridWidth, float gridHeight, float aspect, float topMargin, float bottomMargin)
+    {
         float safeAspect = Mathf.Max(0.01f, aspect);
 
         // 뷰포트를 자르지 않고 전체 화면을 써서 발광(블룸)이 경계에서 잘리지 않도록 함.
         // 대신 orthographicSize를 키워 그리드가 상·하단 UI 사이 '중앙 밴드'에만 들어가게 함.
-        float top = Mathf.Clamp01(uiTopMarginNormalized);
-        float bottom = Mathf.Clamp01(uiBottomMarginNormalized);
+        float top = Mathf.Clamp01(topMargin);
+        float bottom = Mathf.Clamp01(bottomMargin);
         float centerBandHeight = Mathf.Clamp(1f - top - bottom, 0.2f, 1f);
 
         float sizeByHeight = (gridHeight * 0.5f * fitMargin) / centerBandHeight;
         float sizeByWidth = (gridWidth * 0.5f) / safeAspect * fitMargin;
         float fitSize = Mathf.Max(sizeByHeight, sizeByWidth);
         return fitSize * screenEdgePadding;
+    }
+
+    private void GetGameplayMarginsNormalized(out float top, out float bottom)
+    {
+        top = Mathf.Clamp01(uiTopMarginNormalized);
+        bottom = Mathf.Clamp01(uiBottomMarginNormalized);
+
+        if (mainUI != null && mainUI.HasResolvedGameplayLayout)
+        {
+            top = Mathf.Max(top, mainUI.TopGameplayMarginNormalized);
+            bottom = Mathf.Max(bottom, mainUI.BottomGameplayMarginNormalized + uiBottomGameplayGapNormalized);
+        }
+
+        top = Mathf.Clamp01(top);
+        bottom = Mathf.Clamp01(bottom);
+    }
+
+    private void CacheMainUIReference()
+    {
+        GameMainUIController resolvedUI = mainUI != null ? mainUI : FindFirstObjectByType<GameMainUIController>();
+        if (resolvedUI == mainUI && subscribedGameplayLayoutUI == mainUI)
+            return;
+
+        if (subscribedGameplayLayoutUI != null)
+            subscribedGameplayLayoutUI.GameplayLayoutChanged -= HandleGameplayLayoutChanged;
+
+        mainUI = resolvedUI;
+        subscribedGameplayLayoutUI = mainUI;
+        if (mainUI != null)
+            mainUI.GameplayLayoutChanged += HandleGameplayLayoutChanged;
+    }
+
+    private void HandleGameplayLayoutChanged()
+    {
+        if (!isActiveAndEnabled || mainCamera == null || tiles == null)
+            return;
+
+        AdjustCameraToFitGrid();
+        SyncBackgroundGridReferenceCameraSize();
+    }
+
+    private void OnDestroy()
+    {
+        if (subscribedGameplayLayoutUI != null)
+            subscribedGameplayLayoutUI.GameplayLayoutChanged -= HandleGameplayLayoutChanged;
+        subscribedGameplayLayoutUI = null;
     }
 
     private float GetCameraAspect()
