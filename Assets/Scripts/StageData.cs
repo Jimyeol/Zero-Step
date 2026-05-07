@@ -71,7 +71,7 @@ public class CellData
 
 /// <summary>
 /// CrossBlast 타일용 옵션: 맥동 속도/범위, 레이저 색상.
-/// FixedKnot 타일용: isAbsolute — 순서가 틀리면 진입 불가(게임오버).
+/// FixedKnot 타일용: isAbsolute — 런타임에서는 현재 진입 거부 피드백만 사용한다.
 /// </summary>
 [Serializable]
 public class CellProperties
@@ -79,6 +79,6 @@ public class CellProperties
     public float pulseSpeed = 2f;
     public float pulseRange = 0.1f;
     public string beamColor = "#00FFFF";
-    /// <summary>FixedKnot 전용. true면 순서가 틀리면 진입 불가 후 게임오버(암전·리셋).</summary>
+    /// <summary>FixedKnot 전용 플래그. 현재 규칙은 잘못된 순서 진입 거부 피드백만 처리한다.</summary>
     public bool isAbsolute;
 }

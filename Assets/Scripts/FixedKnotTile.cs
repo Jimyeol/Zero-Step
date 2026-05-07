@@ -66,7 +66,7 @@ public class FixedKnotTile : MonoBehaviour
 
     /// <summary>반드시 이 스텝 수에만 진입 가능 (1-based).</summary>
     public int TargetOrder => targetOrderValue;
-    /// <summary>순서가 틀리면 진입 불가 후 게임오버(암전·리셋).</summary>
+    /// <summary>스테이지 데이터의 절대 순서 플래그. 현재 런타임 규칙은 진입 거부 피드백만 사용한다.</summary>
     public bool IsAbsolute => isAbsoluteValue;
     public int CurrentRequiredOrder => Mathf.Max(1, displayRemaining);
 

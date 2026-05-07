@@ -31,6 +31,9 @@ public class CrossBlastTile : MonoBehaviour
     private Coroutine explosionRoutine;
     private readonly Tile[] affectedTilesBuffer = new Tile[4];
     private readonly LineRenderer[] burstLines = new LineRenderer[4];
+    private GameManager pendingMutationOwner;
+    private Tile pendingMutationClearReferenceTile;
+    private bool hasPendingBoardMutation;
     private static Material fallbackBurstLineMaterial;
 
     private void Awake()
@@ -63,12 +66,14 @@ public class CrossBlastTile : MonoBehaviour
         if (gameManager == null) return;
         if (explosionRoutine != null)
         {
+            CompletePendingBoardMutation(false);
             StopCoroutine(explosionRoutine);
             explosionRoutine = null;
             HideBurstLines();
         }
 
         int affectedCount = gameManager.GetCrossBlastAffectedTiles(tile, nextTile, affectedTilesBuffer);
+        BeginPendingBoardMutation(gameManager, null, affectedCount);
         explosionRoutine = StartCoroutine(FlashAndDecreaseAdjacentRoutine(gameManager, affectedCount));
     }
 
@@ -76,6 +81,7 @@ public class CrossBlastTile : MonoBehaviour
     {
         if (explosionRoutine != null)
         {
+            CompletePendingBoardMutation(false);
             StopCoroutine(explosionRoutine);
             explosionRoutine = null;
         }
@@ -178,6 +184,7 @@ public class CrossBlastTile : MonoBehaviour
         yield return new WaitForSeconds(chargeDuration);
 
         gameManager.DecreaseCrossBlastAffectedTiles(affectedTilesBuffer, affectedCount);
+        CompletePendingBoardMutation(true);
         yield return AnimateBurstLines(affectedCount);
 
         if (tile != null)
@@ -185,6 +192,33 @@ public class CrossBlastTile : MonoBehaviour
 
         HideBurstLines();
         explosionRoutine = null;
+    }
+
+    private void BeginPendingBoardMutation(GameManager owner, Tile clearReferenceTile, int affectedCount)
+    {
+        CompletePendingBoardMutation(false);
+        if (owner == null || affectedCount <= 0)
+            return;
+
+        pendingMutationOwner = owner;
+        pendingMutationClearReferenceTile = clearReferenceTile;
+        hasPendingBoardMutation = true;
+        pendingMutationOwner.RegisterPendingBoardMutation("cross_blast");
+    }
+
+    private void CompletePendingBoardMutation(bool requestFailureCheck)
+    {
+        if (!hasPendingBoardMutation)
+            return;
+
+        GameManager owner = pendingMutationOwner;
+        Tile clearReferenceTile = pendingMutationClearReferenceTile;
+        pendingMutationOwner = null;
+        pendingMutationClearReferenceTile = null;
+        hasPendingBoardMutation = false;
+
+        if (owner != null)
+            owner.CompletePendingBoardMutation("cross_blast", clearReferenceTile, requestFailureCheck);
     }
 
     private IEnumerator AnimateBurstLines(int affectedCount)

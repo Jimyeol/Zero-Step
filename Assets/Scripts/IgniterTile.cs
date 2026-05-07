@@ -86,24 +86,28 @@ public class IgniterTile : MonoBehaviour
     /// <summary>
     /// 플레이어가 이 타일을 밟은 순간 호출. targetID에 해당하는 Hidden 그룹 활성화 (GameManager에서 호출).
     /// </summary>
-    public void TriggerHiddenTiles(System.Collections.Generic.List<HiddenTile> hiddenTiles, bool instant = false, float relayInterval = 0.08f)
+    public int TriggerHiddenTiles(System.Collections.Generic.List<HiddenTile> hiddenTiles, bool instant = false, float relayInterval = 0.08f, System.Action<HiddenTile> onHiddenLive = null)
     {
-        if (hasTriggered || hiddenTiles == null) return;
+        if (hasTriggered || hiddenTiles == null) return 0;
         hasTriggered = true;
         if (GameManager.VerboseStage6DebugEnabled)
             Debug.Log($"[Stage6 Igniter 실행] source={GameManager.DescribeTileForDebug(tile)} targetID={targetID} instant={instant} relay={relayInterval:F3} hiddenCount={hiddenTiles.Count}");
         float delay = 0f;
+        int scheduledCount = 0;
         foreach (var h in hiddenTiles)
         {
             if (h != null && !h.IsActivated)
             {
                 if (GameManager.VerboseStage6DebugEnabled)
                     Debug.Log($"[Stage6 Igniter 예약] source={GameManager.DescribeTileForDebug(tile)} target={GameManager.DescribeTileForDebug(h.GetComponent<Tile>())} delay={(instant ? 0f : delay):F3}");
-                h.ActivateWithDelay(instant ? 0f : delay);
+                h.ActivateWithDelay(instant ? 0f : delay, onHiddenLive);
+                scheduledCount++;
                 if (!instant)
                     delay += relayInterval;
             }
         }
+
+        return scheduledCount;
     }
 
     /// <summary>트레일 등 연출용 대표 컬러.</summary>
@@ -163,4 +167,5 @@ public class IgniterTile : MonoBehaviour
     }
 
     public string TargetID => targetID;
+    public bool HasTriggered => hasTriggered;
 }

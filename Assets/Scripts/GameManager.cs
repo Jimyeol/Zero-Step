@@ -140,7 +140,12 @@ public class GameManager : MonoBehaviour
     private const string SaveKeyStage = "StageProgress";
     private const string StageClearTypeAllTilesZero = "all_tiles_zero";
     private const string StageClearTypeLastTileRule = "last_tile_rule";
-    private const string StageFailReasonDeadlock = "deadlock";
+    private const string StageFailReasonNoLegalMove = "deadlock_no_legal_move";
+    private const string StageFailReasonUnreachableRemainingTiles = "unreachable_remaining_tiles";
+    private const string StageFailReasonHiddenUntriggerable = "hidden_untriggerable";
+    private const string StageFailReasonShortCircuitBlocked = "short_circuit_blocked";
+    private const string StageFailReasonTwinLinkUnsatisfiable = "twin_link_unsatisfiable";
+    private const string StageFailReasonInvalidCurrentStart = "invalid_current_start";
     private const string StageFailReasonFixedKnotMissed = "fixed_knot_missed";
     private const int ManualRetryHeartPenaltyMoveThreshold = 2;
     private const float FixedKnotMissedSnackbarDuration = 2.2f;
@@ -236,6 +241,12 @@ public class GameManager : MonoBehaviour
     private readonly List<Color> twinLinkAvailablePalette = new List<Color>();
     /// <summary>Hidden 타일: groupID별 그룹 (Igniter 트리거 시 활성화용).</summary>
     private Dictionary<string, List<HiddenTile>> hiddenGroups = new Dictionary<string, List<HiddenTile>>();
+    /// <summary>CrossBlast/Hidden 릴레이처럼 보드 접근성이 지연 변경 중이면 실패 확정을 미룬다.</summary>
+    private int pendingBoardMutationCount;
+    private bool pendingBoardFailureRecheck;
+    private Tile pendingBoardFailureClearReferenceTile;
+    private Coroutine deferredBoardFailureCheckRoutine;
+    private Coroutine postStageStartedFailureCheckRoutine;
     private static readonly Color[] TwinLinkRandomPalette =
     {
         new Color(1f, 0.55f, 0.12f, 1f),
@@ -370,6 +381,7 @@ public class GameManager : MonoBehaviour
         SyncBackgroundGridReferenceCameraSize();
         RandomizeBackgroundGridFlow();
         TrackStageStarted(entryType);
+        SchedulePostStageStartedFailureCheck();
     }
 
     private void RandomizeBackgroundGridFlow()
@@ -977,8 +989,8 @@ public class GameManager : MonoBehaviour
             CheckVictoryCondition(currentStartTile);
             // 클리어를 먼저 검사. 모든 타일 0이면 데드락 검사와 겹치므로 클리어 우선 (그렇지 않으면 게임오버로 잘못 처리됨)
             CheckStageClear();
-            if (!stageCleared && CheckAndHandleDeadlock())
-            { /* 데드락이면 GameOver 연출은 CheckAndHandleDeadlock 내부에서 시작 */ }
+            if (!stageCleared && CheckAndHandleBoardFailure(currentStartTile))
+            { /* 실패 판정이면 GameOver 연출은 CheckAndHandleBoardFailure 내부에서 시작 */ }
         }
 
         if (isDragging)
@@ -1385,6 +1397,15 @@ public class GameManager : MonoBehaviour
             return da.CompareTo(db);
         });
         float relayInterval = (list.Count > 0 && list[0] != null) ? list[0].RelayInterval : 0.08f;
+        int pendingHiddenActivations = 0;
+        if (!igniter.HasTriggered)
+        {
+            foreach (var hidden in list)
+                if (hidden != null && !hidden.IsActivated)
+                    pendingHiddenActivations++;
+        }
+        if (pendingHiddenActivations > 0)
+            RegisterPendingBoardMutation("hidden_relay", pendingHiddenActivations);
         if (ShouldLogVerboseStage6Debug())
         {
             List<string> hiddenSummaries = new List<string>();
@@ -1400,7 +1421,15 @@ public class GameManager : MonoBehaviour
             }
             Debug.Log($"[Stage6 Igniter 트리거] stepped={DescribeTileForDebug(steppedTile)} targetID={igniter.TargetID} instant={instant} relay={relayInterval:F3} targets=[{string.Join(" | ", hiddenSummaries)}]");
         }
-        igniter.TriggerHiddenTiles(list, instant, relayInterval);
+        int scheduledHiddenActivations = igniter.TriggerHiddenTiles(list, instant, relayInterval, OnHiddenTileBecameLiveForFailureCheck);
+        int unscheduledHiddenActivations = pendingHiddenActivations - scheduledHiddenActivations;
+        for (int i = 0; i < unscheduledHiddenActivations; i++)
+            CompletePendingBoardMutation("hidden_relay_unscheduled", steppedTile, false);
+    }
+
+    private void OnHiddenTileBecameLiveForFailureCheck(HiddenTile hidden)
+    {
+        CompletePendingBoardMutation("hidden_relay", GetFailureCurrentTile());
     }
 
     private void ActivateStartIgniterIfNeeded()
@@ -1774,51 +1803,942 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 데드락(게임오버) 여부: 현재 위치에서 인접(상하좌우) 중 이동 가능(숫자 1 이상) 타일이 하나도 없으면 true.
-    /// ShortCircuit: 화살표 방향(출구) 셀만 검사.
-    /// </summary>
-    private bool IsDeadlock()
+    private enum BoardFailureReason
     {
-        if (currentStartTile == null || tiles == null) return false;
-        var shortCircuit = currentStartTile.GetComponent<ShortCircuitTile>();
-        if (shortCircuit != null)
+        None,
+        NoLegalMove,
+        UnreachableRemainingTiles,
+        HiddenUntriggerable,
+        ShortCircuitBlocked,
+        TwinLinkUnsatisfiable,
+        InvalidCurrentStart
+    }
+
+    private enum HiddenSnapshotState
+    {
+        None,
+        Locked,
+        Pending,
+        Live
+    }
+
+    private enum LegalMoveBlockReason
+    {
+        None,
+        NullOrInactive,
+        HiddenLocked,
+        ShortCircuitBlocked,
+        FixedKnotOrder,
+        TwinLinkPartner
+    }
+
+    private struct BoardFailureAnalysisResult
+    {
+        public bool ShouldFail;
+        public bool ShouldDefer;
+        public BoardFailureReason Reason;
+        public Tile FocusTile;
+
+        public static BoardFailureAnalysisResult Safe()
         {
-            (int ex, int ey) = shortCircuit.ExitCell;
-            if (ey >= 0 && ey < stageHeight && ex >= 0 && ex < stageWidth)
+            return new BoardFailureAnalysisResult { Reason = BoardFailureReason.None };
+        }
+
+        public static BoardFailureAnalysisResult Defer()
+        {
+            return new BoardFailureAnalysisResult { ShouldDefer = true, Reason = BoardFailureReason.None };
+        }
+
+        public static BoardFailureAnalysisResult Fail(BoardFailureReason reason, Tile focusTile = null)
+        {
+            return new BoardFailureAnalysisResult
             {
-                Tile t = tiles[ey, ex];
-                if (t != null && t.IsActive)
-                    return false;
+                ShouldFail = true,
+                Reason = reason,
+                FocusTile = focusTile
+            };
+        }
+    }
+
+    private struct TwinLinkLegalMoveContext
+    {
+        public Tile CandidateNextTile;
+        public Tile PreviousTile;
+        public int NextStepNumber;
+        public BoardFailureSnapshot Snapshot;
+
+        public int GetRemainingCount(Tile tile)
+        {
+            return Snapshot != null ? Snapshot.GetRemainingCount(tile) : 0;
+        }
+    }
+
+    private struct ReachabilityState : IEquatable<ReachabilityState>
+    {
+        public Tile Current;
+        public Tile Previous;
+
+        public bool Equals(ReachabilityState other)
+        {
+            return Current == other.Current && Previous == other.Previous;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is ReachabilityState other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int currentHash = Current != null ? Current.GetHashCode() : 0;
+                int previousHash = Previous != null ? Previous.GetHashCode() : 0;
+                return (currentHash * 397) ^ previousHash;
             }
+        }
+    }
+
+    private sealed class BoardFailureSnapshot
+    {
+        public readonly Tile CurrentTile;
+        public readonly Tile PreviousTile;
+        public readonly int NextStepNumber;
+        public readonly List<Tile> AllTiles = new List<Tile>();
+        public readonly Dictionary<string, List<Tile>> IgniterTilesByTarget = new Dictionary<string, List<Tile>>(StringComparer.OrdinalIgnoreCase);
+
+        private readonly Dictionary<Tile, int> remainingCounts = new Dictionary<Tile, int>();
+        private readonly Dictionary<Tile, HiddenSnapshotState> hiddenStates = new Dictionary<Tile, HiddenSnapshotState>();
+
+        public bool HasPendingHidden { get; private set; }
+
+        public BoardFailureSnapshot(Tile[,] sourceTiles, int width, int height, Tile currentTile, Tile previousTile, int nextStepNumber)
+        {
+            CurrentTile = currentTile;
+            PreviousTile = previousTile;
+            NextStepNumber = nextStepNumber;
+
+            if (sourceTiles == null)
+                return;
+
+            for (int row = 0; row < height; row++)
+            {
+                for (int col = 0; col < width; col++)
+                {
+                    Tile tile = sourceTiles[row, col];
+                    if (tile == null)
+                        continue;
+
+                    AllTiles.Add(tile);
+                    remainingCounts[tile] = tile.CurrentNumber;
+
+                    var hidden = tile.GetComponent<HiddenTile>();
+                    if (hidden != null)
+                    {
+                        HiddenSnapshotState state = ResolveHiddenState(tile, hidden);
+                        hiddenStates[tile] = state;
+                        HasPendingHidden |= state == HiddenSnapshotState.Pending;
+                    }
+
+                    var igniter = tile.GetComponent<IgniterTile>();
+                    if (igniter != null)
+                        AddTileByKey(IgniterTilesByTarget, ResolveIgniterTargetID(igniter), tile);
+                }
+            }
+        }
+
+        public int GetRemainingCount(Tile tile)
+        {
+            if (tile == null)
+                return 0;
+            return remainingCounts.TryGetValue(tile, out int value) ? value : tile.CurrentNumber;
+        }
+
+        public HiddenSnapshotState GetHiddenState(Tile tile)
+        {
+            if (tile == null)
+                return HiddenSnapshotState.None;
+            return hiddenStates.TryGetValue(tile, out HiddenSnapshotState state) ? state : HiddenSnapshotState.None;
+        }
+
+        private static HiddenSnapshotState ResolveHiddenState(Tile tile, HiddenTile hidden)
+        {
+            if (hidden == null)
+                return HiddenSnapshotState.None;
+            if (tile != null && !tile.IsActive)
+                return HiddenSnapshotState.None;
+            if (hidden.IsColliderEnabled && tile != null && tile.IsActive)
+                return HiddenSnapshotState.Live;
+            if (hidden.IsActivated)
+                return HiddenSnapshotState.Pending;
+            return HiddenSnapshotState.Locked;
+        }
+
+        private static string ResolveIgniterTargetID(IgniterTile igniter)
+        {
+            string id = igniter != null ? igniter.TargetID : "";
+            return string.IsNullOrEmpty(id) ? "default" : id;
+        }
+
+        private static void AddTileByKey(Dictionary<string, List<Tile>> map, string key, Tile tile)
+        {
+            if (map == null || tile == null)
+                return;
+
+            string safeKey = string.IsNullOrEmpty(key) ? "default" : key;
+            if (!map.TryGetValue(safeKey, out List<Tile> list))
+            {
+                list = new List<Tile>();
+                map[safeKey] = list;
+            }
+            list.Add(tile);
+        }
+    }
+
+    public void RegisterPendingBoardMutation(string source, int count = 1)
+    {
+        if (count <= 0)
+            return;
+
+        pendingBoardMutationCount += count;
+        if (ShouldLogVerboseStage6Debug())
+            Debug.Log($"[실패 판정 지연] begin source={source} pending={pendingBoardMutationCount}");
+    }
+
+    public void CompletePendingBoardMutation(string source, Tile clearReferenceTile = null, bool requestFailureCheck = true)
+    {
+        if (pendingBoardMutationCount > 0)
+            pendingBoardMutationCount--;
+
+        if (ShouldLogVerboseStage6Debug())
+            Debug.Log($"[실패 판정 지연] end source={source} pending={pendingBoardMutationCount}");
+
+        if (clearReferenceTile != null)
+            pendingBoardFailureClearReferenceTile = clearReferenceTile;
+
+        if (pendingBoardMutationCount <= 0 && (requestFailureCheck || pendingBoardFailureRecheck))
+            ScheduleDeferredBoardFailureCheck(pendingBoardFailureClearReferenceTile);
+    }
+
+    private void ResetBoardFailureTracking()
+    {
+        pendingBoardMutationCount = 0;
+        pendingBoardFailureRecheck = false;
+        pendingBoardFailureClearReferenceTile = null;
+        if (deferredBoardFailureCheckRoutine != null)
+        {
+            StopCoroutine(deferredBoardFailureCheckRoutine);
+            deferredBoardFailureCheckRoutine = null;
+        }
+        if (postStageStartedFailureCheckRoutine != null)
+        {
+            StopCoroutine(postStageStartedFailureCheckRoutine);
+            postStageStartedFailureCheckRoutine = null;
+        }
+    }
+
+    private void ScheduleDeferredBoardFailureCheck(Tile clearReferenceTile = null)
+    {
+        if (stageCleared)
+            return;
+
+        pendingBoardFailureRecheck = true;
+        if (clearReferenceTile != null)
+            pendingBoardFailureClearReferenceTile = clearReferenceTile;
+
+        if (pendingBoardMutationCount > 0 || deferredBoardFailureCheckRoutine != null)
+            return;
+
+        deferredBoardFailureCheckRoutine = StartCoroutine(DeferredBoardFailureCheckRoutine());
+    }
+
+    private IEnumerator DeferredBoardFailureCheckRoutine()
+    {
+        yield return null;
+
+        deferredBoardFailureCheckRoutine = null;
+        if (!pendingBoardFailureRecheck)
+            yield break;
+        if (isDragging)
+            yield break;
+
+        pendingBoardFailureRecheck = false;
+        Tile clearReferenceTile = pendingBoardFailureClearReferenceTile;
+        pendingBoardFailureClearReferenceTile = null;
+        CheckAndHandleBoardFailure(clearReferenceTile);
+    }
+
+    private void SchedulePostStageStartedFailureCheck()
+    {
+        if (postStageStartedFailureCheckRoutine != null)
+            StopCoroutine(postStageStartedFailureCheckRoutine);
+
+        postStageStartedFailureCheckRoutine = StartCoroutine(PostStageStartedFailureCheckRoutine());
+    }
+
+    private IEnumerator PostStageStartedFailureCheckRoutine()
+    {
+        yield return null;
+        yield return null;
+
+        postStageStartedFailureCheckRoutine = null;
+        CheckAndHandleBoardFailure(currentStartTile);
+    }
+
+    private bool CheckAndHandleBoardFailure(Tile clearReferenceTile = null)
+    {
+        if (stageCleared || isGameOverSequencePlaying || tiles == null)
+            return false;
+        if (isDragging)
+        {
+            pendingBoardFailureRecheck = true;
+            if (clearReferenceTile != null)
+                pendingBoardFailureClearReferenceTile = clearReferenceTile;
+            return false;
+        }
+
+        if (RunClearChecksBeforeFailure(clearReferenceTile))
+            return false;
+
+        if (pendingBoardMutationCount > 0)
+        {
+            pendingBoardFailureRecheck = true;
+            if (clearReferenceTile != null)
+                pendingBoardFailureClearReferenceTile = clearReferenceTile;
+            return false;
+        }
+
+        BoardFailureSnapshot snapshot = CreateBoardFailureSnapshot();
+        BoardFailureAnalysisResult result = AnalyzeBoardFailure(snapshot);
+        if (result.ShouldDefer)
+        {
+            ScheduleDeferredBoardFailureCheck(clearReferenceTile);
+            return false;
+        }
+
+        if (!result.ShouldFail)
+            return false;
+
+        string reason = StageFailureReasonFromBoardFailure(result.Reason);
+        Debug.Log($"Game Over: {reason} focus={DescribeTileForDebug(result.FocusTile)}");
+        return BeginGameOverSequence(reason, result.FocusTile);
+    }
+
+    private bool RunClearChecksBeforeFailure(Tile clearReferenceTile)
+    {
+        Tile currentTileForClear = clearReferenceTile != null ? clearReferenceTile : GetFailureCurrentTile();
+        if (currentTileForClear != null && CheckVictoryCondition(currentTileForClear))
             return true;
-        }
-        int x = currentStartTile.X;
-        int y = currentStartTile.Y;
-        int[] dx = { -1, 1, 0, 0 };
-        int[] dy = { 0, 0, -1, 1 };
-        for (int i = 0; i < 4; i++)
+
+        CheckStageClear();
+        return stageCleared;
+    }
+
+    private BoardFailureSnapshot CreateBoardFailureSnapshot()
+    {
+        return new BoardFailureSnapshot(
+            tiles,
+            stageWidth,
+            stageHeight,
+            GetFailureCurrentTile(),
+            GetFailurePreviousTile(),
+            GetTotalPathCount() + 1);
+    }
+
+    private Tile GetFailureCurrentTile()
+    {
+        if (isDragging && currentPath != null && currentPath.Count > 0)
+            return currentPath[currentPath.Count - 1];
+        return currentStartTile;
+    }
+
+    private Tile GetFailurePreviousTile()
+    {
+        if (currentPath != null && currentPath.Count >= 2)
+            return currentPath[currentPath.Count - 2];
+        return null;
+    }
+
+    private BoardFailureAnalysisResult AnalyzeBoardFailure(BoardFailureSnapshot snapshot)
+    {
+        if (snapshot == null || tiles == null)
+            return BoardFailureAnalysisResult.Safe();
+
+        Tile currentTile = snapshot.CurrentTile;
+        if (currentTile == null)
+            return BoardFailureAnalysisResult.Fail(BoardFailureReason.InvalidCurrentStart);
+
+        HiddenSnapshotState currentHiddenState = snapshot.GetHiddenState(currentTile);
+        if (currentHiddenState == HiddenSnapshotState.Pending || snapshot.HasPendingHidden)
+            return BoardFailureAnalysisResult.Defer();
+
+        if (!IsLiveRemainingTile(currentTile, snapshot))
+            return BoardFailureAnalysisResult.Fail(BoardFailureReason.InvalidCurrentStart, currentTile);
+
+        LegalMoveBlockReason strongestBlockReason;
+        int legalMoveCount = CountLegalMovesFrom(currentTile, snapshot, out strongestBlockReason);
+        if (legalMoveCount == 0)
+            return BoardFailureAnalysisResult.Fail(ResolveNoLegalMoveReason(currentTile, strongestBlockReason), currentTile);
+
+        HashSet<Tile> reachableTiles = CollectReachableTiles(snapshot);
+        if (TryFindUntriggerableHiddenTile(snapshot, reachableTiles, out Tile hiddenTile))
+            return BoardFailureAnalysisResult.Fail(BoardFailureReason.HiddenUntriggerable, hiddenTile);
+
+        if (TryFindUnreachableRemainingTile(snapshot, reachableTiles, out Tile unreachableTile))
+            return BoardFailureAnalysisResult.Fail(BoardFailureReason.UnreachableRemainingTiles, unreachableTile);
+
+        return BoardFailureAnalysisResult.Safe();
+    }
+
+    private int CountLegalMovesFrom(Tile from, BoardFailureSnapshot snapshot, out LegalMoveBlockReason strongestBlockReason)
+    {
+        strongestBlockReason = LegalMoveBlockReason.None;
+        int count = 0;
+
+        for (int i = 0; i < CrossBlastDx.Length; i++)
         {
-            int nx = x + dx[i];
-            int ny = y + dy[i];
-            if (ny >= 0 && ny < stageHeight && nx >= 0 && nx < stageWidth)
+            Tile candidate = GetTileAtGrid(from.X + CrossBlastDx[i], from.Y + CrossBlastDy[i]);
+            var context = new TwinLinkLegalMoveContext
             {
-                Tile t = tiles[ny, nx];
-                if (t != null && t.IsActive)
-                    return false;
+                CandidateNextTile = candidate,
+                PreviousTile = snapshot.PreviousTile,
+                NextStepNumber = snapshot.NextStepNumber,
+                Snapshot = snapshot
+            };
+
+            if (CanLegallyMoveForFailureCheck(from, candidate, context, out LegalMoveBlockReason blockReason))
+            {
+                count++;
+                continue;
+            }
+
+            strongestBlockReason = PickMoreSpecificBlockReason(strongestBlockReason, blockReason);
+        }
+
+        return count;
+    }
+
+    private bool CanLegallyMoveForFailureCheck(
+        Tile from,
+        Tile to,
+        TwinLinkLegalMoveContext context,
+        out LegalMoveBlockReason blockReason,
+        bool ignoreFixedKnotOrder = false,
+        bool ignoreTwinLinkPartners = false)
+    {
+        blockReason = LegalMoveBlockReason.None;
+        BoardFailureSnapshot snapshot = context.Snapshot;
+        if (from == null || to == null || snapshot == null)
+        {
+            blockReason = LegalMoveBlockReason.NullOrInactive;
+            return false;
+        }
+
+        if (!IsLiveRemainingTile(from, snapshot) || !IsLiveRemainingTile(to, snapshot))
+        {
+            blockReason = snapshot.GetHiddenState(to) == HiddenSnapshotState.Locked || snapshot.GetHiddenState(to) == HiddenSnapshotState.Pending
+                ? LegalMoveBlockReason.HiddenLocked
+                : LegalMoveBlockReason.NullOrInactive;
+            return false;
+        }
+
+        if (!IsAdjacent(from, to))
+        {
+            blockReason = LegalMoveBlockReason.NullOrInactive;
+            return false;
+        }
+
+        var shortCircuitHit = to.GetComponent<ShortCircuitTile>();
+        if (shortCircuitHit != null && shortCircuitHit.IsBlockedEntryFrom(from.X, from.Y))
+        {
+            blockReason = LegalMoveBlockReason.ShortCircuitBlocked;
+            return false;
+        }
+
+        var shortCircuitFrom = from.GetComponent<ShortCircuitTile>();
+        if (shortCircuitFrom != null && !shortCircuitFrom.IsExitCell(to.X, to.Y))
+        {
+            blockReason = LegalMoveBlockReason.ShortCircuitBlocked;
+            return false;
+        }
+
+        if (!ignoreFixedKnotOrder)
+        {
+            var fixedKnotHit = to.GetComponent<FixedKnotTile>();
+            if (fixedKnotHit != null && !fixedKnotHit.CanEnter(context.NextStepNumber))
+            {
+                blockReason = LegalMoveBlockReason.FixedKnotOrder;
+                return false;
             }
         }
+
+        if (!ignoreTwinLinkPartners)
+        {
+            var twinLinkFrom = from.GetComponent<TwinLinkTile>();
+            if (twinLinkFrom != null && !CanConsumeTwinLinkPartnersForFailure(twinLinkFrom, context))
+            {
+                blockReason = LegalMoveBlockReason.TwinLinkPartner;
+                return false;
+            }
+        }
+
         return true;
     }
 
-    /// <summary>
-    /// 데드락이면 Game Over 로그 후 글리치·암전·리셋 연출 코루틴 시작. true 반환(Stage Clear 검사 생략).
-    /// </summary>
-    private bool CheckAndHandleDeadlock()
+    private bool CanConsumeTwinLinkPartnersForFailure(TwinLinkTile sourceTwinLink, TwinLinkLegalMoveContext context)
     {
-        if (!IsDeadlock()) return false;
+        if (sourceTwinLink == null || context.Snapshot == null)
+            return true;
 
-        return BeginGameOverSequence(StageFailReasonDeadlock);
+        foreach (TwinLinkTile partner in sourceTwinLink.Partners)
+        {
+            if (partner == null)
+                continue;
+
+            Tile partnerTile = partner.GetComponent<Tile>();
+            if (partnerTile == null)
+                continue;
+
+            if (partnerTile == context.CandidateNextTile || partnerTile == context.PreviousTile)
+                continue;
+
+            if (context.GetRemainingCount(partnerTile) <= 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    private HashSet<Tile> CollectReachableTiles(BoardFailureSnapshot snapshot)
+    {
+        HashSet<Tile> reachable = new HashSet<Tile>();
+        if (snapshot == null || !IsLiveRemainingTile(snapshot.CurrentTile, snapshot))
+            return reachable;
+
+        Queue<ReachabilityState> queue = new Queue<ReachabilityState>();
+        HashSet<ReachabilityState> visitedStates = new HashSet<ReachabilityState>();
+        ReachabilityState initialState = new ReachabilityState
+        {
+            Current = snapshot.CurrentTile,
+            Previous = snapshot.PreviousTile
+        };
+        visitedStates.Add(initialState);
+        reachable.Add(snapshot.CurrentTile);
+        queue.Enqueue(initialState);
+
+        while (queue.Count > 0)
+        {
+            ReachabilityState state = queue.Dequeue();
+            Tile from = state.Current;
+            for (int i = 0; i < CrossBlastDx.Length; i++)
+            {
+                Tile candidate = GetTileAtGrid(from.X + CrossBlastDx[i], from.Y + CrossBlastDy[i]);
+                var context = new TwinLinkLegalMoveContext
+                {
+                    CandidateNextTile = candidate,
+                    PreviousTile = state.Previous,
+                    NextStepNumber = snapshot.NextStepNumber,
+                    Snapshot = snapshot
+                };
+
+                if (!CanLegallyMoveForFailureCheck(from, candidate, context, out _, true))
+                    continue;
+
+                reachable.Add(candidate);
+                ReachabilityState nextState = new ReachabilityState
+                {
+                    Current = candidate,
+                    Previous = from
+                };
+                if (visitedStates.Add(nextState))
+                    queue.Enqueue(nextState);
+            }
+        }
+
+        return reachable;
+    }
+
+    private bool TryFindUntriggerableHiddenTile(BoardFailureSnapshot snapshot, HashSet<Tile> reachableTiles, out Tile hiddenTile)
+    {
+        hiddenTile = null;
+        HashSet<string> triggerableHiddenGroups = CollectTriggerableHiddenGroups(snapshot, reachableTiles);
+        foreach (Tile tile in snapshot.AllTiles)
+        {
+            if (tile == null || snapshot.GetRemainingCount(tile) <= 0)
+                continue;
+
+            var hidden = tile.GetComponent<HiddenTile>();
+            if (hidden == null)
+                continue;
+
+            HiddenSnapshotState state = snapshot.GetHiddenState(tile);
+            if (state == HiddenSnapshotState.Live)
+                continue;
+            if (state == HiddenSnapshotState.Pending)
+                return false;
+
+            string groupID = GetHiddenGroupID(hidden);
+            if (!triggerableHiddenGroups.Contains(groupID))
+            {
+                hiddenTile = tile;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private HashSet<string> CollectTriggerableHiddenGroups(BoardFailureSnapshot snapshot, HashSet<Tile> reachableTiles)
+    {
+        HashSet<string> triggerableGroups = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (snapshot == null)
+            return triggerableGroups;
+
+        HashSet<Tile> potentialReachable = reachableTiles != null
+            ? new HashSet<Tile>(reachableTiles)
+            : new HashSet<Tile>();
+
+        bool changed;
+        do
+        {
+            changed = false;
+
+            foreach (Tile tile in snapshot.AllTiles)
+            {
+                if (tile == null || !potentialReachable.Contains(tile))
+                    continue;
+
+                var igniter = tile.GetComponent<IgniterTile>();
+                if (igniter == null || igniter.HasTriggered || !IsPotentiallyEnterableTile(tile, snapshot, triggerableGroups))
+                    continue;
+
+                string targetID = GetIgniterTargetID(igniter);
+                if (triggerableGroups.Add(targetID))
+                    changed = true;
+            }
+
+            foreach (Tile tile in snapshot.AllTiles)
+            {
+                if (tile == null || potentialReachable.Contains(tile) || snapshot.GetRemainingCount(tile) <= 0)
+                    continue;
+
+                var hidden = tile.GetComponent<HiddenTile>();
+                if (hidden == null || !triggerableGroups.Contains(GetHiddenGroupID(hidden)))
+                    continue;
+
+                potentialReachable.Add(tile);
+                changed = true;
+            }
+
+            changed |= ExpandPotentialReachability(snapshot, potentialReachable, triggerableGroups);
+        }
+        while (changed);
+
+        return triggerableGroups;
+    }
+
+    private bool ExpandPotentialReachability(BoardFailureSnapshot snapshot, HashSet<Tile> potentialReachable, HashSet<string> triggerableGroups)
+    {
+        bool changed = false;
+        Queue<Tile> queue = new Queue<Tile>(potentialReachable);
+
+        while (queue.Count > 0)
+        {
+            Tile from = queue.Dequeue();
+            for (int i = 0; i < CrossBlastDx.Length; i++)
+            {
+                Tile candidate = GetTileAtGrid(from.X + CrossBlastDx[i], from.Y + CrossBlastDy[i]);
+                if (potentialReachable.Contains(candidate))
+                    continue;
+                if (!CanTraversePotentialReachability(from, candidate, snapshot, triggerableGroups))
+                    continue;
+
+                potentialReachable.Add(candidate);
+                queue.Enqueue(candidate);
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    private bool CanTraversePotentialReachability(Tile from, Tile to, BoardFailureSnapshot snapshot, HashSet<string> triggerableGroups)
+    {
+        if (from == null || to == null || snapshot == null)
+            return false;
+        if (!IsPotentiallyEnterableTile(from, snapshot, triggerableGroups) ||
+            !IsPotentiallyEnterableTile(to, snapshot, triggerableGroups))
+        {
+            return false;
+        }
+        if (!IsAdjacent(from, to))
+            return false;
+
+        var shortCircuitHit = to.GetComponent<ShortCircuitTile>();
+        if (shortCircuitHit != null && shortCircuitHit.IsBlockedEntryFrom(from.X, from.Y))
+            return false;
+
+        var shortCircuitFrom = from.GetComponent<ShortCircuitTile>();
+        if (shortCircuitFrom != null && !shortCircuitFrom.IsExitCell(to.X, to.Y))
+            return false;
+
+        return true;
+    }
+
+    private bool IsPotentiallyEnterableTile(Tile tile, BoardFailureSnapshot snapshot, HashSet<string> triggerableGroups)
+    {
+        if (tile == null || snapshot == null || snapshot.GetRemainingCount(tile) <= 0)
+            return false;
+
+        var hidden = tile.GetComponent<HiddenTile>();
+        if (hidden == null)
+            return true;
+
+        HiddenSnapshotState state = snapshot.GetHiddenState(tile);
+        if (state == HiddenSnapshotState.Live)
+            return true;
+        if (state == HiddenSnapshotState.Pending)
+            return false;
+
+        return triggerableGroups != null && triggerableGroups.Contains(GetHiddenGroupID(hidden));
+    }
+
+    private static string GetHiddenGroupID(HiddenTile hidden)
+    {
+        string id = hidden != null ? hidden.GroupID : "";
+        return string.IsNullOrEmpty(id) ? "default" : id;
+    }
+
+    private static string GetIgniterTargetID(IgniterTile igniter)
+    {
+        string id = igniter != null ? igniter.TargetID : "";
+        return string.IsNullOrEmpty(id) ? "default" : id;
+    }
+
+    private bool TryFindUnreachableRemainingTile(BoardFailureSnapshot snapshot, HashSet<Tile> reachableTiles, out Tile unreachableTile)
+    {
+        unreachableTile = null;
+        HashSet<string> triggerableHiddenGroups = CollectTriggerableHiddenGroups(snapshot, reachableTiles);
+        HashSet<Tile> potentiallyReachableTiles = CollectPotentiallyReachableTiles(snapshot, reachableTiles, triggerableHiddenGroups);
+
+        foreach (Tile tile in snapshot.AllTiles)
+        {
+            if (tile == null || snapshot.GetRemainingCount(tile) <= 0)
+                continue;
+
+            if (!IsLiveRemainingTile(tile, snapshot))
+                continue;
+
+            if (reachableTiles != null && reachableTiles.Contains(tile))
+                continue;
+
+            if (potentiallyReachableTiles.Contains(tile))
+                continue;
+
+            if (CanBeResolvedWithoutDirectReach(tile, snapshot, potentiallyReachableTiles))
+                continue;
+
+            unreachableTile = tile;
+            return true;
+        }
+
+        return false;
+    }
+
+    private HashSet<Tile> CollectPotentiallyReachableTiles(BoardFailureSnapshot snapshot, HashSet<Tile> reachableTiles, HashSet<string> triggerableHiddenGroups)
+    {
+        HashSet<Tile> potentialReachable = reachableTiles != null
+            ? new HashSet<Tile>(reachableTiles)
+            : new HashSet<Tile>();
+        if (snapshot == null)
+            return potentialReachable;
+
+        HashSet<string> groups = triggerableHiddenGroups ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        bool changed;
+        do
+        {
+            changed = false;
+            foreach (Tile tile in snapshot.AllTiles)
+            {
+                if (tile == null || potentialReachable.Contains(tile) || snapshot.GetRemainingCount(tile) <= 0)
+                    continue;
+
+                var hidden = tile.GetComponent<HiddenTile>();
+                if (hidden == null || !groups.Contains(GetHiddenGroupID(hidden)))
+                    continue;
+
+                potentialReachable.Add(tile);
+                changed = true;
+            }
+
+            changed |= ExpandPotentialReachability(snapshot, potentialReachable, groups);
+        }
+        while (changed);
+
+        return potentialReachable;
+    }
+
+    private bool CanBeResolvedWithoutDirectReach(Tile target, BoardFailureSnapshot snapshot, HashSet<Tile> reachableTiles)
+    {
+        if (target == null || snapshot == null || reachableTiles == null)
+            return false;
+
+        if (HasReachableTwinLinkPartner(target, snapshot, reachableTiles))
+            return true;
+
+        if (HasReachableCrossBlastAffecting(target, snapshot, reachableTiles))
+            return true;
+
+        return false;
+    }
+
+    private bool HasReachableTwinLinkPartner(Tile target, BoardFailureSnapshot snapshot, HashSet<Tile> reachableTiles)
+    {
+        var targetTwinLink = target != null ? target.GetComponent<TwinLinkTile>() : null;
+        if (targetTwinLink == null || snapshot == null || reachableTiles == null)
+            return false;
+
+        foreach (Tile reachable in reachableTiles)
+        {
+            if (reachable == null || reachable == target)
+                continue;
+
+            var reachableTwinLink = reachable.GetComponent<TwinLinkTile>();
+            if (reachableTwinLink != null &&
+                reachableTwinLink.LinkID == targetTwinLink.LinkID &&
+                CanTwinLinkConsumeTargetForFailure(reachable, target, snapshot))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool CanTwinLinkConsumeTargetForFailure(Tile sourceTile, Tile targetTile, BoardFailureSnapshot snapshot)
+    {
+        if (sourceTile == null || targetTile == null || snapshot == null)
+            return false;
+
+        for (int i = 0; i < CrossBlastDx.Length; i++)
+        {
+            Tile candidate = GetTileAtGrid(sourceTile.X + CrossBlastDx[i], sourceTile.Y + CrossBlastDy[i]);
+            if (candidate == null || candidate == targetTile)
+                continue;
+
+            var context = new TwinLinkLegalMoveContext
+            {
+                CandidateNextTile = candidate,
+                PreviousTile = null,
+                NextStepNumber = snapshot.NextStepNumber,
+                Snapshot = snapshot
+            };
+
+            if (CanLegallyMoveForFailureCheck(sourceTile, candidate, context, out _, true))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool HasReachableCrossBlastAffecting(Tile target, BoardFailureSnapshot snapshot, HashSet<Tile> reachableTiles)
+    {
+        if (target == null || snapshot == null || reachableTiles == null)
+            return false;
+
+        foreach (Tile reachable in reachableTiles)
+        {
+            if (reachable == null || reachable.GetComponent<CrossBlastTile>() == null)
+                continue;
+
+            if (Mathf.Abs(reachable.X - target.X) + Mathf.Abs(reachable.Y - target.Y) != 1)
+                continue;
+
+            if (HasCrossBlastExitOtherThanTarget(reachable, target, snapshot))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool HasCrossBlastExitOtherThanTarget(Tile crossBlastTile, Tile target, BoardFailureSnapshot snapshot)
+    {
+        for (int i = 0; i < CrossBlastDx.Length; i++)
+        {
+            Tile candidate = GetTileAtGrid(crossBlastTile.X + CrossBlastDx[i], crossBlastTile.Y + CrossBlastDy[i]);
+            if (candidate == null || candidate == target)
+                continue;
+
+            var context = new TwinLinkLegalMoveContext
+            {
+                CandidateNextTile = candidate,
+                PreviousTile = null,
+                NextStepNumber = snapshot.NextStepNumber,
+                Snapshot = snapshot
+            };
+
+            if (CanLegallyMoveForFailureCheck(crossBlastTile, candidate, context, out _, true, true))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsLiveRemainingTile(Tile tile, BoardFailureSnapshot snapshot)
+    {
+        if (tile == null || snapshot == null || snapshot.GetRemainingCount(tile) <= 0)
+            return false;
+
+        HiddenSnapshotState hiddenState = snapshot.GetHiddenState(tile);
+        return hiddenState == HiddenSnapshotState.None || hiddenState == HiddenSnapshotState.Live;
+    }
+
+    private Tile GetTileAtGrid(int x, int y)
+    {
+        if (tiles == null || x < 0 || x >= stageWidth || y < 0 || y >= stageHeight)
+            return null;
+
+        return tiles[y, x];
+    }
+
+    private LegalMoveBlockReason PickMoreSpecificBlockReason(LegalMoveBlockReason current, LegalMoveBlockReason candidate)
+    {
+        if (candidate == LegalMoveBlockReason.None)
+            return current;
+        if (current == LegalMoveBlockReason.None || current == LegalMoveBlockReason.NullOrInactive)
+            return candidate;
+        if (candidate == LegalMoveBlockReason.TwinLinkPartner || candidate == LegalMoveBlockReason.ShortCircuitBlocked)
+            return candidate;
+        return current;
+    }
+
+    private BoardFailureReason ResolveNoLegalMoveReason(Tile currentTile, LegalMoveBlockReason blockReason)
+    {
+        if (blockReason == LegalMoveBlockReason.TwinLinkPartner)
+            return BoardFailureReason.TwinLinkUnsatisfiable;
+        if (blockReason == LegalMoveBlockReason.ShortCircuitBlocked || (currentTile != null && currentTile.GetComponent<ShortCircuitTile>() != null))
+            return BoardFailureReason.ShortCircuitBlocked;
+        return BoardFailureReason.NoLegalMove;
+    }
+
+    private string StageFailureReasonFromBoardFailure(BoardFailureReason reason)
+    {
+        switch (reason)
+        {
+            case BoardFailureReason.UnreachableRemainingTiles:
+                return StageFailReasonUnreachableRemainingTiles;
+            case BoardFailureReason.HiddenUntriggerable:
+                return StageFailReasonHiddenUntriggerable;
+            case BoardFailureReason.ShortCircuitBlocked:
+                return StageFailReasonShortCircuitBlocked;
+            case BoardFailureReason.TwinLinkUnsatisfiable:
+                return StageFailReasonTwinLinkUnsatisfiable;
+            case BoardFailureReason.InvalidCurrentStart:
+                return StageFailReasonInvalidCurrentStart;
+            case BoardFailureReason.NoLegalMove:
+            default:
+                return StageFailReasonNoLegalMove;
+        }
     }
 
     private bool CheckAndHandleMissedFixedKnot(int totalPathCount)
@@ -1889,6 +2809,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private IEnumerator GameOverAndResetSequence()
     {
+        ResetBoardFailureTracking();
         totalStepsCommitted = 0;
         blackoutQuestionFlipPlayed = false;
         if (blackoutQuestionFlipRoutine != null)
@@ -2082,6 +3003,7 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator ResetCurrentStageRoutine()
     {
+        ResetBoardFailureTracking();
         totalStepsCommitted = 0;
         blackoutQuestionFlipPlayed = false;
         if (blackoutQuestionFlipRoutine != null)
@@ -2211,6 +3133,7 @@ public class GameManager : MonoBehaviour
 
     private void PrepareForStageTransition()
     {
+        ResetBoardFailureTracking();
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
@@ -2385,6 +3308,7 @@ public class GameManager : MonoBehaviour
 
     private void ClearTiles()
     {
+        ResetBoardFailureTracking();
         linkSystem?.ClearLinks();
         hiddenGroups.Clear();
         twinLinkGroups.Clear();
@@ -2792,8 +3716,8 @@ public class GameManager : MonoBehaviour
                 if (cell.type == "Hidden")
                 {
                     var hidden = tileObj.AddComponent<HiddenTile>();
-                    hidden.Setup();
                     string gid = !string.IsNullOrEmpty(cell.groupID) ? cell.groupID : "default";
+                    hidden.Setup(gid);
                     if (!hiddenGroups.ContainsKey(gid))
                         hiddenGroups[gid] = new List<HiddenTile>();
                     hiddenGroups[gid].Add(hidden);

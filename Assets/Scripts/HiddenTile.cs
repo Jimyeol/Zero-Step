@@ -36,8 +36,9 @@ public class HiddenTile : MonoBehaviour
     /// <summary>
     /// 그리드 생성 후 GameManager가 호출. 초기 상태: 테두리·숫자 없이 완전 빈 공간처럼.
     /// </summary>
-    public void Setup()
+    public void Setup(string groupID = "")
     {
+        GroupID = string.IsNullOrEmpty(groupID) ? "default" : groupID;
         ResetToHiddenState();
     }
 
@@ -68,16 +69,16 @@ public class HiddenTile : MonoBehaviour
     /// <summary>
     /// Igniter가 트리거 시 호출. delay 후 릴레이 점등 연출.
     /// </summary>
-    public void ActivateWithDelay(float delay)
+    public void ActivateWithDelay(float delay, System.Action<HiddenTile> onLive = null)
     {
         if (isActivated) return;
         isActivated = true;
         if (GameManager.VerboseStage6DebugEnabled)
             Debug.Log($"[Stage6 Hidden 예약] tile={GameManager.DescribeTileForDebug(tile)} delay={delay:F3} colliderBefore={IsColliderEnabled}");
-        StartCoroutine(ActivateAfterDelayRoutine(delay));
+        StartCoroutine(ActivateAfterDelayRoutine(delay, onLive));
     }
 
-    private IEnumerator ActivateAfterDelayRoutine(float delay)
+    private IEnumerator ActivateAfterDelayRoutine(float delay, System.Action<HiddenTile> onLive)
     {
         if (delay > 0f)
             yield return new WaitForSeconds(delay);
@@ -102,6 +103,7 @@ public class HiddenTile : MonoBehaviour
         }
         if (GameManager.VerboseStage6DebugEnabled)
             Debug.Log($"[Stage6 Hidden 활성화] tile={GameManager.DescribeTileForDebug(tile)} delay={delay:F3} collider={IsColliderEnabled} sprite={(spriteRenderer != null && spriteRenderer.enabled)} activated={isActivated}");
+        onLive?.Invoke(this);
     }
 
     private void CacheTargetVisualState()
@@ -140,4 +142,6 @@ public class HiddenTile : MonoBehaviour
 
     public bool IsActivated => isActivated;
     public bool IsColliderEnabled => boxCollider2D != null && boxCollider2D.enabled;
+    public bool IsLive => IsColliderEnabled && tile != null && tile.IsActive;
+    public string GroupID { get; private set; } = "default";
 }
