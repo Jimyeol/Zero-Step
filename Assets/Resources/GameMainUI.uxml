@@ -52,7 +52,7 @@
             <ui:VisualElement class="bottom-circuit-dot bottom-circuit-dot-b"/>
             <ui:VisualElement class="bottom-circuit-dot bottom-circuit-dot-c"/>
         </ui:VisualElement>
-        <ui:Button name="SkipButton" text="" class="neon-action-button neon-action-button-skip">
+        <ui:Button name="HintButton" text="" class="neon-action-button neon-action-button-hint">
             <ui:VisualElement class="neon-button-glow" picking-mode="Ignore"/>
             <ui:VisualElement class="neon-button-ring neon-button-ring-outer" picking-mode="Ignore"/>
             <ui:VisualElement class="neon-button-ring neon-button-ring-bright" picking-mode="Ignore"/>
@@ -60,10 +60,10 @@
             <ui:VisualElement class="neon-button-arc neon-button-arc-b" picking-mode="Ignore"/>
             <ui:VisualElement class="neon-button-disc" picking-mode="Ignore"/>
             <ui:VisualElement class="neon-button-icon-slot" picking-mode="Ignore">
-                <ui:Image name="SkipIcon" class="neon-button-icon"/>
+                <ui:Image name="HintIcon" class="neon-button-icon"/>
             </ui:VisualElement>
-            <ui:VisualElement name="SkipAdBadge" class="neon-ad-badge" picking-mode="Ignore">
-                <ui:Label name="SkipAdBadgeText" text="AD" class="neon-ad-badge-text"/>
+            <ui:VisualElement name="HintBadge" class="neon-ad-badge" picking-mode="Ignore">
+                <ui:Label name="HintBadgeText" text="x3" class="neon-ad-badge-text"/>
             </ui:VisualElement>
         </ui:Button>
         <ui:Button name="ResetButton" text="" class="neon-action-button neon-action-button-reset">
@@ -75,6 +75,20 @@
             <ui:VisualElement class="neon-button-disc" picking-mode="Ignore"/>
             <ui:VisualElement class="neon-button-icon-slot" picking-mode="Ignore">
                 <ui:Image name="ResetIcon" class="neon-button-icon"/>
+            </ui:VisualElement>
+        </ui:Button>
+        <ui:Button name="SkipButton" text="" class="neon-action-button neon-action-button-skip">
+            <ui:VisualElement class="neon-button-glow" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-outer" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-bright" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-a" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-b" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-disc" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-icon-slot" picking-mode="Ignore">
+                <ui:Image name="SkipIcon" class="neon-button-icon"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="SkipAdBadge" class="neon-ad-badge" picking-mode="Ignore">
+                <ui:Label name="SkipAdBadgeText" text="x1" class="neon-ad-badge-text"/>
             </ui:VisualElement>
         </ui:Button>
         <ui:Button name="BlockAdsButton" text="" class="neon-action-button neon-action-button-block">

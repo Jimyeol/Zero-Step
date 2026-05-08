@@ -5,7 +5,7 @@ using UnityEditor.Events;
 
 /// <summary>
 /// [Tools > Puzzle > Create Next Stage UI] 실행 시 현재 씬 Hierarchy에 Canvas → Panel → NextStageButton 추가.
-/// 버튼 클릭 시 GameManager.LoadNextStageImmediate() 호출되도록 영구 리스너 연결.
+/// 버튼 클릭 시 GameManager.LoadNextStageImmediateFromUI() 호출되도록 영구 리스너 연결.
 /// </summary>
 public static class CreateNextStageUI
 {
@@ -76,11 +76,11 @@ public static class CreateNextStageUI
 
         if (gm != null)
         {
-            UnityEventTools.AddVoidPersistentListener(button.onClick, gm.LoadNextStageImmediate);
+            UnityEventTools.AddVoidPersistentListener(button.onClick, gm.LoadNextStageImmediateFromUI);
         }
         else
         {
-            Debug.Log("[CreateNextStageUI] 버튼 생성 완료. Inspector에서 Button > On Click () 에 GameManager.LoadNextStageImmediate 를 수동으로 연결하세요.");
+            Debug.Log("[CreateNextStageUI] 버튼 생성 완료. Inspector에서 Button > On Click () 에 GameManager.LoadNextStageImmediateFromUI 를 수동으로 연결하세요.");
         }
 
         Undo.RegisterCreatedObjectUndo(canvasGo, "Create Next Stage UI");

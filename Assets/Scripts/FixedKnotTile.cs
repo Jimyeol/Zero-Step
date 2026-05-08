@@ -69,6 +69,7 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>스테이지 데이터의 절대 순서 플래그. 현재 런타임 규칙은 진입 거부 피드백만 사용한다.</summary>
     public bool IsAbsolute => isAbsoluteValue;
     public int CurrentRequiredOrder => Mathf.Max(1, displayRemaining);
+    public bool HasBeenSteppedCorrectly => hasBeenSteppedCorrectly;
 
     /// <summary>스테이지 데이터 기반 초기화. 그리드 생성 시 GameManager가 호출.</summary>
     public void Setup(int targetOrder, bool isAbsolute)

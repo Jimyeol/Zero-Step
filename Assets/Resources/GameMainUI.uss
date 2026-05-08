@@ -454,12 +454,12 @@
     bottom: 92px;
     left: 0;
     right: 0;
-    height: 186px;
+    height: 168px;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: space-evenly;
     align-items: center;
-    padding-left: 64px;
-    padding-right: 64px;
+    padding-left: 38px;
+    padding-right: 38px;
     background-color: rgba(0, 0, 0, 0);
     overflow: visible;
 }
@@ -539,19 +539,19 @@
 }
 
 .neon-action-button {
-    width: 168px;
-    height: 168px;
-    min-width: 156px;
-    min-height: 156px;
-    max-width: 176px;
-    max-height: 176px;
+    width: 140px;
+    height: 140px;
+    min-width: 126px;
+    min-height: 126px;
+    max-width: 150px;
+    max-height: 150px;
     border-left-width: 0;
     border-right-width: 0;
     border-top-width: 0;
     border-bottom-width: 0;
     border-radius: 999px;
-    margin-left: 10px;
-    margin-right: 10px;
+    margin-left: 5px;
+    margin-right: 5px;
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
@@ -572,10 +572,10 @@
 
 .neon-button-glow {
     position: absolute;
-    left: -12px;
-    top: -12px;
-    width: 192px;
-    height: 192px;
+    left: -9px;
+    top: -9px;
+    width: 158px;
+    height: 158px;
     border-radius: 999px;
     background-color: rgba(0, 163, 255, 0.1);
     border-left-width: 1px;
@@ -595,10 +595,10 @@
 }
 
 .neon-button-ring-outer {
-    left: 7px;
-    top: 7px;
-    width: 154px;
-    height: 154px;
+    left: 6px;
+    top: 6px;
+    width: 128px;
+    height: 128px;
     border-left-width: 3px;
     border-right-width: 3px;
     border-top-width: 3px;
@@ -610,10 +610,10 @@
 }
 
 .neon-button-ring-bright {
-    left: 18px;
-    top: 18px;
-    width: 132px;
-    height: 132px;
+    left: 15px;
+    top: 15px;
+    width: 110px;
+    height: 110px;
     border-left-width: 2px;
     border-right-width: 2px;
     border-top-width: 2px;
@@ -631,10 +631,10 @@
 }
 
 .neon-button-arc-a {
-    left: 12px;
-    top: 12px;
-    width: 144px;
-    height: 144px;
+    left: 10px;
+    top: 10px;
+    width: 120px;
+    height: 120px;
     border-left-width: 5px;
     border-top-width: 5px;
     border-right-width: 0;
@@ -644,10 +644,10 @@
 }
 
 .neon-button-arc-b {
-    left: 12px;
-    top: 12px;
-    width: 144px;
-    height: 144px;
+    left: 10px;
+    top: 10px;
+    width: 120px;
+    height: 120px;
     border-left-width: 0;
     border-top-width: 0;
     border-right-width: 5px;
@@ -658,10 +658,10 @@
 
 .neon-button-disc {
     position: absolute;
-    left: 33px;
-    top: 33px;
-    width: 102px;
-    height: 102px;
+    left: 27px;
+    top: 27px;
+    width: 86px;
+    height: 86px;
     border-radius: 999px;
     border-left-width: 2px;
     border-right-width: 2px;
@@ -676,27 +676,27 @@
 
 .neon-button-icon-slot {
     position: absolute;
-    left: 34px;
-    top: 34px;
-    width: 100px;
-    height: 100px;
+    left: 28px;
+    top: 28px;
+    width: 84px;
+    height: 84px;
     justify-content: center;
     align-items: center;
 }
 
 .neon-button-icon {
-    width: 92px;
-    height: 92px;
+    width: 76px;
+    height: 76px;
     align-self: center;
     -unity-background-scale-mode: scale-to-fit;
 }
 
 .neon-ad-badge {
     position: absolute;
-    right: 13px;
-    top: 18px;
-    width: 54px;
-    height: 38px;
+    right: 8px;
+    top: 11px;
+    width: 50px;
+    height: 34px;
     border-radius: 9px;
     border-left-width: 2px;
     border-right-width: 2px;
@@ -713,9 +713,63 @@
 
 .neon-ad-badge-text {
     color: rgba(255, 255, 255, 1);
-    font-size: 20px;
+    font-size: 18px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
+}
+
+.neon-ad-badge.neon-ad-badge-timer {
+    width: 68px;
+    background-color: rgba(12, 31, 48, 0.94);
+    border-left-color: rgba(96, 232, 255, 0.9);
+    border-right-color: rgba(96, 232, 255, 0.9);
+    border-top-color: rgba(96, 232, 255, 0.9);
+    border-bottom-color: rgba(96, 232, 255, 0.9);
+}
+
+.neon-ad-badge.neon-ad-badge-timer .neon-ad-badge-text {
+    font-size: 15px;
+}
+
+.bottom-bar-neon.bottom-bar-compact {
+    height: 150px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.bottom-bar-neon.bottom-bar-compact .neon-action-button {
+    width: 122px;
+    height: 122px;
+    min-width: 112px;
+    min-height: 112px;
+    margin-left: 1px;
+    margin-right: 1px;
+    scale: 0.92 0.92;
+}
+
+.bottom-bar-neon.bottom-bar-compact .neon-ad-badge {
+    width: 46px;
+    height: 32px;
+}
+
+.bottom-bar-neon.bottom-bar-compact .neon-ad-badge-text {
+    font-size: 16px;
+}
+
+.bottom-bar-neon.bottom-bar-ultra-compact {
+    height: 136px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.bottom-bar-neon.bottom-bar-ultra-compact .neon-action-button {
+    width: 104px;
+    height: 104px;
+    min-width: 96px;
+    min-height: 96px;
+    margin-left: -2px;
+    margin-right: -2px;
+    scale: 0.82 0.82;
 }
 
 .neon-action-button-reset .neon-button-arc-a {

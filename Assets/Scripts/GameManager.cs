@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
@@ -79,6 +80,24 @@ public class GameManager : MonoBehaviour
     [SerializeField] [Range(0f, 0.2f)] private float trailCenterAlpha = 0.015f;
     [Tooltip("손 뗀 후 경로(링크) 점등 해제까지 대기 시간(초)")]
     [SerializeField] private float pathLitClearDelay = 1f;
+
+    [Header("힌트 미리보기")]
+    [Tooltip("힌트 경로 밝기 pulse 반복 시간(초). 힌트는 유저가 다시 터치하기 전까지 유지됨")]
+    [SerializeField] private float hintPreviewDuration = 2.6f;
+    [Tooltip("타일 크기 대비 힌트 라인 두께")]
+    [SerializeField] private float hintPreviewLineWidthScale = 0.12f;
+    [Tooltip("힌트 라인의 최대 알파")]
+    [SerializeField] [Range(0.1f, 1f)] private float hintPreviewMaxAlpha = 0.96f;
+    [Tooltip("전체 힌트 경로를 흐리게 깔 때의 알파 배율")]
+    [SerializeField] [Range(0.05f, 0.8f)] private float hintPreviewBaseAlphaMultiplier = 0.48f;
+    [Tooltip("힌트 기본 경로 색. 어두운 보드와 네온 타일 위에서 보이도록 라임-시안 계열 사용")]
+    [SerializeField] private Color hintPreviewColor = new Color(0.58f, 1f, 0.08f, 1f);
+    [Tooltip("경로를 훑는 밝은 하이라이트 색")]
+    [SerializeField] private Color hintPreviewFlowColor = new Color(0.93f, 1f, 0.45f, 1f);
+    [Tooltip("밝은 하이라이트가 힌트 경로 전체를 한 번 훑는 시간(초)")]
+    [SerializeField] private float hintPreviewSweepDuration = 1.15f;
+    [Tooltip("힌트가 없을 때 스낵바 표시 시간")]
+    [SerializeField] private float hintSnackbarDuration = 1.6f;
 
     [Header("Multi-Color Neon Trail (그라데이션 순환 + 특수 타일 반응)")]
     [Tooltip("4가지 이상 네온 컬러. Cyan, Magenta, Purple, Electric Blue 등")]
@@ -247,6 +266,25 @@ public class GameManager : MonoBehaviour
     private Tile pendingBoardFailureClearReferenceTile;
     private Coroutine deferredBoardFailureCheckRoutine;
     private Coroutine postStageStartedFailureCheckRoutine;
+    private const int HintPreviewMaxMoves = 8;
+    private const int HintPreviewMaxPathTiles = HintPreviewMaxMoves + 1;
+    private const int HintSolverNodeLimit = 120000;
+    private const float HintSolverTimeLimitSeconds = 0.12f;
+    private int boardVersion;
+    private int cachedHintBoardVersion = -1;
+    private Tile cachedHintStartTile;
+    private Tile cachedHintPreviousTile;
+    private int cachedHintNextStepNumber = -1;
+    private bool cachedHintUnavailable;
+    private readonly List<Tile> cachedHintPath = new List<Tile>(HintPreviewMaxPathTiles);
+    private readonly List<Tile> cachedHintSolutionPath = new List<Tile>(64);
+    private string cachedHintSolverStatus = "";
+    private LineRenderer[] hintPreviewLines;
+    private LineRenderer hintPreviewFlowLine;
+    private Material hintPreviewMaterial;
+    private Coroutine hintPreviewRoutine;
+    private int activeHintPreviewLineCount;
+    private readonly List<Vector3> activeHintPreviewPoints = new List<Vector3>(HintPreviewMaxPathTiles);
     private static readonly Color[] TwinLinkRandomPalette =
     {
         new Color(1f, 0.55f, 0.12f, 1f),
@@ -371,6 +409,7 @@ public class GameManager : MonoBehaviour
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         PrewarmUpcomingStages();
+        IncrementBoardVersion("app_launch");
         NotifySplashStageBootstrapCompleted();
         HandleStageStarted("app_launch");
         ConfigureDeviceMaxFrameRate();
@@ -463,15 +502,20 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 다음 스테이지로 전환. 다음이 없으면 1스테이지로 반복.
     /// </summary>
-    public void LoadNextStageImmediate()
+    public void LoadNextStageImmediateFromUI()
+    {
+        LoadNextStageImmediate();
+    }
+
+    public bool LoadNextStageImmediate()
     {
         if (isGameOverSequencePlaying)
-            return;
+            return false;
 
         int skippedStageIndex = currentStageIndex;
         PrepareForStageTransition();
         if (!TryAdvanceToNextStage())
-            return;
+            return false;
 
         FirebaseBootstrap.LogEvent("stage_skip", new Dictionary<string, object>
         {
@@ -479,6 +523,7 @@ public class GameManager : MonoBehaviour
             { "to_stage_index", currentStageIndex }
         });
         HandleStageStarted("manual_skip");
+        return true;
     }
 
     /// <summary>데이터 초기화 직후 호출: 1스테이지로 즉시 복귀하고 진행도를 1로 저장.</summary>
@@ -497,6 +542,7 @@ public class GameManager : MonoBehaviour
         ResetTrail();
         ClearPendingBlockNoteQueue();
         linkSystem?.ClearPathLit();
+        ClearHintPreview();
         currentPath.Clear();
         isDragging = false;
         stageCleared = false;
@@ -525,6 +571,7 @@ public class GameManager : MonoBehaviour
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();
+        IncrementBoardVersion("progress_reset");
         FirebaseBootstrap.LogEvent("progress_reset", new Dictionary<string, object>
         {
             { "from_stage_index", previousStageIndex },
@@ -546,6 +593,7 @@ public class GameManager : MonoBehaviour
 
         if (overlayOpen)
         {
+            ClearHintPreview();
             if (isDragging)
             {
                 isDragging = false;
@@ -874,7 +922,10 @@ public class GameManager : MonoBehaviour
         int before = tile.CurrentNumber;
         tile.DecreaseNumber();
         if (before > tile.CurrentNumber)
+        {
             QueueNextMelodyBlockNote();
+            IncrementBoardVersion("tile_count_changed");
+        }
     }
 
     /// <summary>
@@ -893,6 +944,7 @@ public class GameManager : MonoBehaviour
             if (hit != currentStartTile || !CanEnterTile(hit))
                 return;
             ClearMoveRuleSnackbarState();
+            ClearHintPreview();
             if (ShouldLogVerboseStage6Debug())
             {
                 Vector2 pointerWorld = ScreenToWorld2D(screenPoint);
@@ -1042,28 +1094,41 @@ public class GameManager : MonoBehaviour
     private bool CanEnterTile(Tile hit)
     {
         // Hidden은 잠겨 있을 때 collider/활성 상태로 입력 단계에서 막히므로 IsActive 검사로 함께 정리한다.
-        return hit != null && hit.IsActive;
+        return IsCurrentBoardLiveRemainingTile(hit);
     }
 
     private bool ValidateMoveRules(Tile last, Tile hit, int nextStepNumber, out FixedKnotTile fixedKnotHit)
     {
-        fixedKnotHit = hit != null ? hit.GetComponent<FixedKnotTile>() : null;
-        if (last == null || !CanEnterTile(hit))
+        Tile previousTile = currentPath != null && currentPath.Count >= 2 ? currentPath[currentPath.Count - 2] : null;
+        var context = new TwinLinkLegalMoveContext
+        {
+            CandidateNextTile = hit,
+            PreviousTile = previousTile,
+            NextStepNumber = nextStepNumber,
+            Snapshot = null
+        };
+
+        bool legalMove = CanLegallyMoveWithKernel(
+            last,
+            hit,
+            context,
+            tile => tile != null ? tile.CurrentNumber : 0,
+            IsCurrentBoardLiveRemainingTile,
+            out fixedKnotHit,
+            out LegalMoveBlockReason blockReason);
+
+        if (legalMove)
+            return true;
+
+        if (blockReason == LegalMoveBlockReason.NullOrInactive || blockReason == LegalMoveBlockReason.HiddenLocked)
         {
             if (ShouldLogVerboseStage6Debug())
-                Debug.Log($"[Stage6 이동 거부] reason=null_or_inactive last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber} path={DescribeCurrentPathForDebug()}");
+                Debug.Log($"[Stage6 이동 거부] reason={blockReason} last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber} path={DescribeCurrentPathForDebug()}");
             return false;
         }
 
-        if (!IsAdjacent(last, hit))
-        {
-            if (ShouldLogVerboseStage6Debug())
-                Debug.Log($"[Stage6 이동 거부] reason=not_adjacent last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber} path={DescribeCurrentPathForDebug()}");
-            return false;
-        }
-
-        var shortCircuitHit = hit.GetComponent<ShortCircuitTile>();
-        if (shortCircuitHit != null && shortCircuitHit.IsBlockedEntryFrom(last.X, last.Y))
+        var shortCircuitHit = hit != null ? hit.GetComponent<ShortCircuitTile>() : null;
+        if (blockReason == LegalMoveBlockReason.ShortCircuitBlocked && shortCircuitHit != null && last != null && shortCircuitHit.IsBlockedEntryFrom(last.X, last.Y))
         {
             ShowMoveRuleSnackbar(
                 $"short_circuit_entry:{hit.X}:{hit.Y}:{shortCircuitHit.DirectionLocalizationKey}",
@@ -1074,8 +1139,8 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
-        var shortCircuitLast = last.GetComponent<ShortCircuitTile>();
-        if (shortCircuitLast != null && !shortCircuitLast.IsExitCell(hit.X, hit.Y))
+        var shortCircuitLast = last != null ? last.GetComponent<ShortCircuitTile>() : null;
+        if (blockReason == LegalMoveBlockReason.ShortCircuitBlocked && shortCircuitLast != null && hit != null && !shortCircuitLast.IsExitCell(hit.X, hit.Y))
         {
             ShowMoveRuleSnackbar(
                 $"short_circuit:{last.X}:{last.Y}:{shortCircuitLast.DirectionLocalizationKey}",
@@ -1086,7 +1151,7 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
-        if (fixedKnotHit != null && !fixedKnotHit.CanEnter(nextStepNumber))
+        if (blockReason == LegalMoveBlockReason.FixedKnotOrder && fixedKnotHit != null)
         {
             fixedKnotHit.PlayWrongOrderShake();
             ShowMoveRuleSnackbar(
@@ -1098,15 +1163,9 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
-        var twinLinkLast = last.GetComponent<TwinLinkTile>();
-        if (twinLinkLast != null && !twinLinkLast.CanConsumePartners(partner => ShouldExcludeTwinLinkPartnerFromStep(twinLinkLast, partner, hit)))
-        {
-            if (ShouldLogVerboseStage6Debug())
-                Debug.Log($"[Stage6 이동 거부] reason=twin_link_partner last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
-            return false;
-        }
-
-        return true;
+        if (ShouldLogVerboseStage6Debug())
+            Debug.Log($"[Stage6 이동 거부] reason={blockReason} last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
+        return false;
     }
 
     private void ApplyLeaveTileEffects(Tile last, Tile hit)
@@ -1429,6 +1488,7 @@ public class GameManager : MonoBehaviour
 
     private void OnHiddenTileBecameLiveForFailureCheck(HiddenTile hidden)
     {
+        IncrementBoardVersion("hidden_live");
         CompletePendingBoardMutation("hidden_relay", GetFailureCurrentTile());
     }
 
@@ -1438,6 +1498,7 @@ public class GameManager : MonoBehaviour
             return;
 
         TryTriggerIgniter(currentStartTile, true);
+        IncrementBoardVersion("start_igniter");
     }
 
     /// <summary>옮긴 횟수만 반환. 첫 구간·이어서 드래그 모두 currentPath.Count - 1 로 통일 (한 번 옮길 때마다 -1).</summary>
@@ -1456,6 +1517,1150 @@ public class GameManager : MonoBehaviour
                 if (tiles[row, col] != null)
                     sum += tiles[row, col].CurrentNumber;
         return sum;
+    }
+
+    private void IncrementBoardVersion(string reason)
+    {
+        boardVersion = boardVersion == int.MaxValue ? 1 : boardVersion + 1;
+        InvalidateHintCache();
+    }
+
+    private void InvalidateHintCache()
+    {
+        cachedHintBoardVersion = -1;
+        cachedHintStartTile = null;
+        cachedHintPreviousTile = null;
+        cachedHintNextStepNumber = -1;
+        cachedHintUnavailable = false;
+        cachedHintPath.Clear();
+        cachedHintSolutionPath.Clear();
+        cachedHintSolverStatus = "";
+    }
+
+    public bool HasAvailableHintPreview()
+    {
+        return TryGetHintPreviewPath(out _);
+    }
+
+    public bool ShowHintPreview()
+    {
+        ClearHintPreview();
+
+        if (!TryGetHintPreviewPath(out List<Tile> path))
+        {
+            LogHintUnavailable();
+            ShowHintSnackbar("snackbar_hint_no_path");
+            TrackHintEvent("hint_path_none", 0);
+            return false;
+        }
+
+        RenderHintPreview(path);
+        LogHintPreviewPlan(path);
+        TrackHintEvent("hint_use", path.Count - 1);
+        return true;
+    }
+
+    public void CancelHintPreview()
+    {
+        ClearHintPreview();
+    }
+
+    private void TrackHintEvent(string eventName, int moveCount)
+    {
+        FirebaseBootstrap.LogEvent(eventName, new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndex },
+            { "board_version", boardVersion },
+            { "moves", Mathf.Max(0, moveCount) }
+        });
+    }
+
+    private void ShowHintSnackbar(string localizationKey)
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI != null)
+            mainUI.ShowGameplaySnackbar(localizationKey, hintSnackbarDuration);
+    }
+
+    private bool TryGetHintPreviewPath(out List<Tile> path)
+    {
+        path = cachedHintPath;
+        if (stageCleared || isGameOverSequencePlaying || isDragging || tiles == null)
+            return false;
+        if (!IsCurrentBoardLiveRemainingTile(currentStartTile))
+            return false;
+
+        Tile previousTile = GetHintPreviousTile();
+        int nextStepNumber = GetTotalPathCount() + 1;
+        bool sameCacheKey = cachedHintBoardVersion == boardVersion &&
+            cachedHintStartTile == currentStartTile &&
+            cachedHintPreviousTile == previousTile &&
+            cachedHintNextStepNumber == nextStepNumber;
+
+        if (sameCacheKey && cachedHintPath.Count > 1)
+        {
+            return true;
+        }
+
+        if (sameCacheKey && cachedHintUnavailable)
+            return false;
+
+        cachedHintPath.Clear();
+        cachedHintSolutionPath.Clear();
+        cachedHintUnavailable = false;
+        cachedHintSolverStatus = "";
+        cachedHintBoardVersion = boardVersion;
+        cachedHintStartTile = currentStartTile;
+        cachedHintPreviousTile = previousTile;
+        cachedHintNextStepNumber = nextStepNumber;
+
+        HintSearchState initialState = new HintSearchState(this, currentStartTile, previousTile, nextStepNumber);
+        int targetMoveCount = CalculateHintTargetMoveCount(initialState.TotalRemainingCount);
+        if (targetMoveCount <= 0)
+        {
+            cachedHintUnavailable = true;
+            cachedHintSolverStatus = "target_move_count_zero";
+            return false;
+        }
+
+        List<Tile> workingPath = new List<Tile>(Mathf.Max(HintPreviewMaxPathTiles, initialState.TotalRemainingCount + 1)) { currentStartTile };
+        List<Tile> solutionPath = new List<Tile>(workingPath.Capacity);
+        HashSet<string> failedCache = new HashSet<string>();
+        HintSolverBudget budget = new HintSolverBudget(HintSolverNodeLimit, HintSolverTimeLimitSeconds);
+        bool solved = TrySolveHintPath(initialState, workingPath, failedCache, budget, solutionPath);
+
+        if (!solved || solutionPath.Count <= 1)
+        {
+            cachedHintUnavailable = true;
+            cachedHintSolverStatus = budget.IsExhausted ? budget.Status : "not_found";
+            Debug.Log($"[힌트 solver 실패] stage={currentStageIndex} boardVersion={boardVersion} start={FormatHintTile(currentStartTile)} remaining={initialState.TotalRemainingCount} nodes={budget.NodeCount} failedCache={failedCache.Count} status={cachedHintSolverStatus}");
+            return false;
+        }
+
+        cachedHintSolutionPath.AddRange(solutionPath);
+        int previewTileCount = Mathf.Min(solutionPath.Count, targetMoveCount + 1);
+        for (int i = 0; i < previewTileCount; i++)
+            cachedHintPath.Add(solutionPath[i]);
+        cachedHintSolverStatus = $"solved nodes={budget.NodeCount} failedCache={failedCache.Count} fullMoves={solutionPath.Count - 1}";
+        return true;
+    }
+
+    private void LogHintUnavailable()
+    {
+        Debug.Log($"[힌트 없음] stage={currentStageIndex} boardVersion={boardVersion} start={DescribeTileForDebug(currentStartTile)} previous={DescribeTileForDebug(GetHintPreviousTile())} remaining={GetTotalRemainingCount()} dragging={isDragging} cleared={stageCleared} gameOver={isGameOverSequencePlaying} solver={cachedHintSolverStatus}");
+    }
+
+    private void LogHintPreviewPlan(List<Tile> path)
+    {
+        if (path == null || path.Count <= 1)
+            return;
+
+        Tile previousTile = GetHintPreviousTile();
+        int nextStepNumber = GetTotalPathCount() + 1;
+        var state = new HintSearchState(this, currentStartTile, previousTile, nextStepNumber);
+        int beforeRemaining = state.TotalRemainingCount;
+        List<string> stepSummaries = new List<string>(path.Count - 1);
+
+        for (int i = 1; i < path.Count; i++)
+        {
+            Tile nextTile = path[i];
+            Tile leavingTile = state.Current;
+            List<string> effects = new List<string>();
+            ApplyHintStep(state, nextTile, effects);
+            string effectSummary = effects.Count > 0 ? string.Join(", ", effects) : "count 변화 없음";
+            stepSummaries.Add($"{i}. {FormatHintTile(leavingTile)} -> {FormatHintTile(nextTile)} | {effectSummary} | remaining={state.TotalRemainingCount}");
+        }
+
+        string finishIntent = BuildHintPreviewFinishIntent(path, state);
+        string solutionSummary = BuildHintSolutionSummary();
+
+        Debug.Log(
+            $"[힌트 표시] stage={currentStageIndex} boardVersion={boardVersion} start={FormatHintTile(currentStartTile)} previous={FormatHintTile(previousTile)} nextStep={nextStepNumber} moves={path.Count - 1} remaining {beforeRemaining}->{state.TotalRemainingCount}\n" +
+            $"[힌트 경로] {FormatHintPath(path)}\n" +
+            $"[힌트 스텝]\n{string.Join("\n", stepSummaries)}\n" +
+            $"{solutionSummary}\n" +
+            $"[힌트 마무리 의도] {finishIntent}");
+    }
+
+    private string BuildHintPreviewFinishIntent(List<Tile> previewPath, HintSearchState previewEndState)
+    {
+        if (previewEndState == null)
+            return "힌트 상태를 다시 계산할 수 없음";
+
+        if (IsHintSolvedState(previewEndState))
+            return DescribeHintSolvedState(previewEndState);
+
+        if (cachedHintSolutionPath.Count > previewPath.Count)
+        {
+            Tile nextTile = cachedHintSolutionPath[previewPath.Count];
+            int hiddenMoves = Mathf.Max(0, cachedHintSolutionPath.Count - previewPath.Count);
+            return $"전체 클리어 해답의 앞 {previewPath.Count - 1}칸만 표시함. 이후 {FormatHintTile(nextTile)} 방향으로 {hiddenMoves}칸 더 이어가면 solver 해답을 따라감";
+        }
+
+        return "전체 클리어 해답을 찾았지만 표시 경로 이후 요약할 다음 칸이 없음";
+    }
+
+    private string BuildHintSolutionSummary()
+    {
+        if (cachedHintSolutionPath.Count <= 1)
+            return $"[힌트 전체 해답] 없음 status={cachedHintSolverStatus}";
+
+        Tile previousTile = GetHintPreviousTile();
+        int nextStepNumber = GetTotalPathCount() + 1;
+        var solutionState = new HintSearchState(this, currentStartTile, previousTile, nextStepNumber);
+        int beforeRemaining = solutionState.TotalRemainingCount;
+        for (int i = 1; i < cachedHintSolutionPath.Count; i++)
+            ApplyHintStep(solutionState, cachedHintSolutionPath[i]);
+
+        return $"[힌트 전체 해답] moves={cachedHintSolutionPath.Count - 1} remaining {beforeRemaining}->{solutionState.TotalRemainingCount} status={cachedHintSolverStatus} finish={DescribeHintSolvedState(solutionState)} path={FormatHintPath(cachedHintSolutionPath)}";
+    }
+
+    private static string FormatHintPath(List<Tile> path)
+    {
+        if (path == null || path.Count == 0)
+            return "[]";
+
+        List<string> parts = new List<string>(path.Count);
+        for (int i = 0; i < path.Count; i++)
+            parts.Add(FormatHintTile(path[i]));
+        return string.Join(" -> ", parts);
+    }
+
+    private static string FormatHintTile(Tile tile)
+    {
+        if (tile == null)
+            return "null";
+
+        List<string> tags = new List<string>();
+        if (tile.GetComponent<IgniterTile>() != null) tags.Add("Igniter");
+        if (tile.GetComponent<HiddenTile>() != null) tags.Add("Hidden");
+        if (tile.GetComponent<BlackoutTile>() != null) tags.Add("Blackout");
+        if (tile.GetComponent<BlindCurtainTile>() != null) tags.Add("BlindCurtain");
+        if (tile.GetComponent<ShortCircuitTile>() != null) tags.Add("ShortCircuit");
+        if (tile.GetComponent<FixedKnotTile>() != null) tags.Add("FixedKnot");
+        if (tile.GetComponent<CrossBlastTile>() != null) tags.Add("CrossBlast");
+        if (tile.GetComponent<TwinLinkTile>() != null) tags.Add("TwinLink");
+        string typeSummary = tags.Count > 0 ? string.Join("+", tags) : "Normal";
+        return $"({tile.X},{tile.Y})#{tile.CurrentNumber}/{typeSummary}";
+    }
+
+    private Tile GetHintPreviousTile()
+    {
+        if (currentPath != null && currentPath.Count >= 2)
+            return currentPath[currentPath.Count - 2];
+        return null;
+    }
+
+    private int CalculateHintTargetMoveCount(int remainingCount)
+    {
+        if (remainingCount <= 0)
+            return 0;
+        if (remainingCount <= 5)
+            return Mathf.Min(HintPreviewMaxMoves, remainingCount);
+        return Mathf.Clamp(Mathf.CeilToInt(remainingCount * 0.2f), 3, HintPreviewMaxMoves);
+    }
+
+    private bool TrySolveHintPath(
+        HintSearchState state,
+        List<Tile> workingPath,
+        HashSet<string> failedCache,
+        HintSolverBudget budget,
+        List<Tile> solutionPath)
+    {
+        if (state == null || workingPath == null || failedCache == null || budget == null || solutionPath == null)
+            return false;
+        if (!budget.TryEnterNode())
+            return false;
+
+        if (IsHintSolvedState(state))
+        {
+            solutionPath.Clear();
+            solutionPath.AddRange(workingPath);
+            return true;
+        }
+
+        if (state.TotalRemainingCount > 0 && state.GetRemainingCount(state.Current) <= 0)
+            return false;
+
+        string stateKey = state.BuildCacheKey();
+        if (failedCache.Contains(stateKey))
+            return false;
+
+        List<HintMoveCandidate> candidates = CollectSortedHintCandidates(state);
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            if (budget.IsExhausted)
+                return false;
+
+            Tile candidate = candidates[i].Tile;
+            HintSearchState nextState = new HintSearchState(state);
+            if (!TryApplyHintStep(nextState, candidate, null, out _))
+                continue;
+
+            if (nextState.HasMissedFixedKnot(nextState.NextStepNumber - 1))
+                continue;
+            if (nextState.TotalRemainingCount > 0 && nextState.GetRemainingCount(nextState.Current) <= 0)
+                continue;
+
+            workingPath.Add(candidate);
+            if (TrySolveHintPath(nextState, workingPath, failedCache, budget, solutionPath))
+                return true;
+            workingPath.RemoveAt(workingPath.Count - 1);
+        }
+
+        if (!budget.IsExhausted)
+            failedCache.Add(stateKey);
+        return false;
+    }
+
+    private List<HintMoveCandidate> CollectSortedHintCandidates(HintSearchState state)
+    {
+        List<HintMoveCandidate> candidates = new List<HintMoveCandidate>(CrossBlastDx.Length);
+        if (state == null || state.Current == null)
+            return candidates;
+
+        for (int i = 0; i < CrossBlastDx.Length; i++)
+        {
+            Tile candidate = GetTileAtGrid(state.Current.X + CrossBlastDx[i], state.Current.Y + CrossBlastDy[i]);
+            if (!CanLegallyMoveForHint(state, candidate))
+                continue;
+
+            candidates.Add(new HintMoveCandidate(candidate, ScoreHintCandidate(state, candidate)));
+        }
+
+        candidates.Sort((a, b) => b.Score.CompareTo(a.Score));
+        return candidates;
+    }
+
+    private int ScoreHintCandidate(HintSearchState state, Tile candidate)
+    {
+        if (state == null || candidate == null)
+            return int.MinValue;
+
+        int score = state.GetRemainingCount(candidate) * 100;
+        score += CountLiveHintNeighbors(candidate, state) * 18;
+
+        if (candidate.GetComponent<IgniterTile>() != null)
+            score += 35;
+        if (candidate.GetComponent<FixedKnotTile>() != null)
+            score += 25;
+        if (candidate.GetComponent<CrossBlastTile>() != null)
+            score += 12;
+        if (candidate == state.Previous)
+            score -= 25;
+
+        return score;
+    }
+
+    private int CountLiveHintNeighbors(Tile tile, HintSearchState state)
+    {
+        if (tile == null || state == null)
+            return 0;
+
+        int count = 0;
+        for (int i = 0; i < CrossBlastDx.Length; i++)
+        {
+            Tile neighbor = GetTileAtGrid(tile.X + CrossBlastDx[i], tile.Y + CrossBlastDy[i]);
+            if (neighbor != null && state.IsLiveRemainingTile(neighbor))
+                count++;
+        }
+        return count;
+    }
+
+    private bool IsHintSolvedState(HintSearchState state)
+    {
+        if (state == null)
+            return false;
+        if (state.TotalRemainingCount <= 0)
+            return true;
+
+        Tile current = state.Current;
+        if (current == null || state.GetRemainingCount(current) != 1)
+            return false;
+
+        if (state.TotalRemainingCount == 1)
+            return true;
+
+        var twinLink = current.GetComponent<TwinLinkTile>();
+        if (twinLink == null || twinLink.Partners == null || twinLink.Partners.Count == 0)
+            return false;
+
+        int groupRemaining = 1;
+        foreach (TwinLinkTile partner in twinLink.Partners)
+        {
+            if (partner == null)
+                return false;
+
+            Tile partnerTile = partner.GetComponent<Tile>();
+            if (partnerTile == null || state.GetRemainingCount(partnerTile) != 1)
+                return false;
+
+            groupRemaining++;
+        }
+
+        return state.TotalRemainingCount == groupRemaining;
+    }
+
+    private string DescribeHintSolvedState(HintSearchState state)
+    {
+        if (state == null)
+            return "solver 상태 없음";
+        if (state.TotalRemainingCount <= 0)
+            return "모든 count가 0이 되는 클리어 해답";
+        if (state.TotalRemainingCount == 1 && state.GetRemainingCount(state.Current) == 1)
+            return $"마지막 타일 규칙으로 {FormatHintTile(state.Current)}을 소비하면 클리어";
+        return $"TwinLink 마지막 그룹 규칙으로 {FormatHintTile(state.Current)} 그룹을 소비하면 클리어";
+    }
+
+    private bool CanLegallyMoveForHint(HintSearchState state, Tile candidate)
+    {
+        if (state == null)
+            return false;
+
+        var context = new TwinLinkLegalMoveContext
+        {
+            CandidateNextTile = candidate,
+            PreviousTile = state.Previous,
+            NextStepNumber = state.NextStepNumber,
+            Snapshot = null
+        };
+
+        return CanLegallyMoveWithKernel(
+            state.Current,
+            candidate,
+            context,
+            state.GetRemainingCount,
+            state.IsLiveRemainingTile,
+            out _,
+            out _);
+    }
+
+    private bool HasAnyLegalHintMove(HintSearchState state)
+    {
+        if (state == null || state.Current == null)
+            return false;
+
+        for (int i = 0; i < CrossBlastDx.Length; i++)
+        {
+            Tile candidate = GetTileAtGrid(state.Current.X + CrossBlastDx[i], state.Current.Y + CrossBlastDy[i]);
+            if (CanLegallyMoveForHint(state, candidate))
+                return true;
+        }
+        return false;
+    }
+
+    private int ApplyHintStep(HintSearchState state, Tile nextTile, List<string> debugEffects = null)
+    {
+        return TryApplyHintStep(state, nextTile, debugEffects, out int score) ? score : int.MinValue;
+    }
+
+    private bool TryApplyHintStep(HintSearchState state, Tile nextTile, List<string> debugEffects, out int score)
+    {
+        if (state == null || nextTile == null)
+        {
+            score = 0;
+            return false;
+        }
+
+        Tile leavingTile = state.Current;
+        if (!state.TryDecrement(leavingTile, out int beforeLeaving, out int afterLeaving))
+        {
+            score = 0;
+            return false;
+        }
+        if (debugEffects != null)
+            debugEffects.Add($"떠난 타일 {FormatHintTile(leavingTile)} {beforeLeaving}->{afterLeaving}");
+        score = 12;
+
+        var twinLink = leavingTile.GetComponent<TwinLinkTile>();
+        if (twinLink != null)
+        {
+            foreach (TwinLinkTile partner in twinLink.Partners)
+            {
+                if (partner == null)
+                    continue;
+
+                Tile partnerTile = partner.GetComponent<Tile>();
+                if (partnerTile == null || partnerTile == nextTile || partnerTile == state.Previous)
+                    continue;
+
+                if (!state.TryDecrement(partnerTile, out int beforePartner, out int afterPartner))
+                {
+                    score = 0;
+                    return false;
+                }
+                if (debugEffects != null)
+                    debugEffects.Add($"TwinLink {FormatHintTile(partnerTile)} {beforePartner}->{afterPartner}");
+                score += 10;
+            }
+        }
+
+        if (leavingTile.GetComponent<CrossBlastTile>() != null)
+        {
+            int affected = CollectHintCrossBlastTargets(leavingTile, nextTile, state);
+            for (int i = 0; i < affected; i++)
+            {
+                Tile affectedTile = crossBlastScratchTiles[i];
+                if (!state.TryDecrement(affectedTile, out int beforeAffected, out int afterAffected))
+                {
+                    score = 0;
+                    return false;
+                }
+                if (debugEffects != null)
+                    debugEffects.Add($"CrossBlast {FormatHintTile(affectedTile)} {beforeAffected}->{afterAffected}");
+                score += 9;
+            }
+            if (affected > 0)
+                score += affected * 3;
+        }
+
+        var igniter = nextTile.GetComponent<IgniterTile>();
+        if (igniter != null && state.TryTriggerIgniter(igniter))
+        {
+            if (debugEffects != null)
+                debugEffects.Add($"Igniter target={igniter.TargetID} Hidden 활성화");
+            score += 18;
+        }
+
+        if (nextTile.GetComponent<FixedKnotTile>() != null)
+        {
+            state.MarkFixedKnotSolved(nextTile);
+            if (debugEffects != null)
+                debugEffects.Add($"FixedKnot 순서 타일 진입 {FormatHintTile(nextTile)}");
+            score += 8;
+        }
+        if (leavingTile.GetComponent<TwinLinkTile>() != null || leavingTile.GetComponent<CrossBlastTile>() != null)
+            score += 5;
+
+        state.Previous = leavingTile;
+        state.Current = nextTile;
+        state.NextStepNumber++;
+        return true;
+    }
+
+    private int CollectHintCrossBlastTargets(Tile centerTile, Tile nextTile, HintSearchState state)
+    {
+        ClearCrossBlastResultBuffer(crossBlastScratchTiles);
+        if (centerTile == null || nextTile == null || state == null)
+            return 0;
+
+        int count = 0;
+        for (int i = 0; i < CrossBlastDx.Length && count < crossBlastScratchTiles.Length; i++)
+        {
+            Tile candidate = GetTileAtGrid(centerTile.X + CrossBlastDx[i], centerTile.Y + CrossBlastDy[i]);
+            if (candidate == null || candidate == nextTile)
+                continue;
+            if (!state.IsLiveRemainingTile(candidate))
+                continue;
+            crossBlastScratchTiles[count++] = candidate;
+        }
+
+        return count;
+    }
+
+    private bool IsCurrentBoardLiveRemainingTile(Tile tile)
+    {
+        if (tile == null || tile.CurrentNumber <= 0)
+            return false;
+
+        var hidden = tile.GetComponent<HiddenTile>();
+        return hidden == null || hidden.IsLive;
+    }
+
+    private bool CanLegallyMoveWithKernel(
+        Tile from,
+        Tile to,
+        TwinLinkLegalMoveContext context,
+        Func<Tile, int> getRemainingCount,
+        Func<Tile, bool> isLiveRemainingTile,
+        out FixedKnotTile fixedKnotHit,
+        out LegalMoveBlockReason blockReason,
+        bool ignoreFixedKnotOrder = false,
+        bool ignoreTwinLinkPartners = false)
+    {
+        fixedKnotHit = to != null ? to.GetComponent<FixedKnotTile>() : null;
+        blockReason = LegalMoveBlockReason.None;
+        if (from == null || to == null || getRemainingCount == null || isLiveRemainingTile == null)
+        {
+            blockReason = LegalMoveBlockReason.NullOrInactive;
+            return false;
+        }
+
+        if (!isLiveRemainingTile(from) || !isLiveRemainingTile(to))
+        {
+            var hidden = to.GetComponent<HiddenTile>();
+            blockReason = hidden != null ? LegalMoveBlockReason.HiddenLocked : LegalMoveBlockReason.NullOrInactive;
+            return false;
+        }
+
+        if (!IsAdjacent(from, to))
+        {
+            blockReason = LegalMoveBlockReason.NullOrInactive;
+            return false;
+        }
+
+        var shortCircuitHit = to.GetComponent<ShortCircuitTile>();
+        if (shortCircuitHit != null && shortCircuitHit.IsBlockedEntryFrom(from.X, from.Y))
+        {
+            blockReason = LegalMoveBlockReason.ShortCircuitBlocked;
+            return false;
+        }
+
+        var shortCircuitFrom = from.GetComponent<ShortCircuitTile>();
+        if (shortCircuitFrom != null && !shortCircuitFrom.IsExitCell(to.X, to.Y))
+        {
+            blockReason = LegalMoveBlockReason.ShortCircuitBlocked;
+            return false;
+        }
+
+        if (!ignoreFixedKnotOrder && fixedKnotHit != null && !fixedKnotHit.CanEnter(context.NextStepNumber))
+        {
+            blockReason = LegalMoveBlockReason.FixedKnotOrder;
+            return false;
+        }
+
+        if (!ignoreTwinLinkPartners)
+        {
+            var twinLinkFrom = from.GetComponent<TwinLinkTile>();
+            if (twinLinkFrom != null && !CanConsumeTwinLinkPartnersForMoveKernel(twinLinkFrom, context.CandidateNextTile, context.PreviousTile, getRemainingCount))
+            {
+                blockReason = LegalMoveBlockReason.TwinLinkPartner;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool CanConsumeTwinLinkPartnersForMoveKernel(TwinLinkTile sourceTwinLink, Tile candidateNextTile, Tile previousTile, Func<Tile, int> getRemainingCount)
+    {
+        if (sourceTwinLink == null || getRemainingCount == null)
+            return true;
+
+        foreach (TwinLinkTile partner in sourceTwinLink.Partners)
+        {
+            if (partner == null)
+                continue;
+
+            Tile partnerTile = partner.GetComponent<Tile>();
+            if (partnerTile == null)
+                continue;
+
+            if (partnerTile == candidateNextTile || partnerTile == previousTile)
+                continue;
+
+            if (getRemainingCount(partnerTile) <= 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    private void RenderHintPreview(List<Tile> path)
+    {
+        if (path == null || path.Count <= 1)
+            return;
+
+        EnsureHintPreviewPool();
+        int segmentCount = Mathf.Min(path.Count - 1, HintPreviewMaxMoves);
+        float width = Mathf.Max(0.05f, Mathf.Min(tileWidth, tileHeight) * Mathf.Max(0.01f, hintPreviewLineWidthScale));
+        Color baseColor = GetHintPreviewColor(hintPreviewMaxAlpha * hintPreviewBaseAlphaMultiplier, false);
+
+        activeHintPreviewPoints.Clear();
+        for (int i = 0; i <= segmentCount; i++)
+        {
+            Vector3 point = path[i].transform.position;
+            point.z = -0.45f;
+            activeHintPreviewPoints.Add(point);
+        }
+
+        for (int i = 0; i < hintPreviewLines.Length; i++)
+        {
+            LineRenderer line = hintPreviewLines[i];
+            bool active = i < segmentCount;
+            line.enabled = active;
+            if (!active)
+                continue;
+
+            line.positionCount = 2;
+            line.SetPosition(0, activeHintPreviewPoints[i]);
+            line.SetPosition(1, activeHintPreviewPoints[i + 1]);
+            line.widthMultiplier = width;
+            line.startColor = baseColor;
+            line.endColor = baseColor;
+        }
+
+        activeHintPreviewLineCount = segmentCount;
+        ConfigureHintPreviewFlowLine(width);
+        if (hintPreviewRoutine != null)
+            StopCoroutine(hintPreviewRoutine);
+        hintPreviewRoutine = StartCoroutine(HintPreviewLifetimeRoutine());
+    }
+
+    private void EnsureHintPreviewPool()
+    {
+        if (hintPreviewLines != null && hintPreviewLines.Length >= HintPreviewMaxMoves)
+        {
+            EnsureHintPreviewFlowLine();
+            return;
+        }
+
+        hintPreviewLines = new LineRenderer[HintPreviewMaxMoves];
+        for (int i = 0; i < hintPreviewLines.Length; i++)
+        {
+            hintPreviewLines[i] = CreateHintPreviewLine($"HintPreviewLine_{i}", 80);
+        }
+        EnsureHintPreviewFlowLine();
+    }
+
+    private void EnsureHintPreviewFlowLine()
+    {
+        if (hintPreviewFlowLine != null)
+            return;
+
+        hintPreviewFlowLine = CreateHintPreviewLine("HintPreviewFlowLine", 82);
+    }
+
+    private LineRenderer CreateHintPreviewLine(string lineName, int sortingOrder)
+    {
+        GameObject lineObject = new GameObject(lineName);
+        lineObject.transform.SetParent(transform, false);
+        var line = lineObject.AddComponent<LineRenderer>();
+        line.useWorldSpace = true;
+        line.positionCount = 2;
+        line.numCapVertices = 6;
+        line.numCornerVertices = 4;
+        line.textureMode = LineTextureMode.Stretch;
+        line.alignment = LineAlignment.View;
+        line.material = ResolveHintPreviewMaterial();
+        line.sortingOrder = sortingOrder;
+        line.enabled = false;
+        return line;
+    }
+
+    private void ConfigureHintPreviewFlowLine(float baseWidth)
+    {
+        if (hintPreviewFlowLine == null || activeHintPreviewLineCount <= 0 || activeHintPreviewPoints.Count <= 1)
+            return;
+
+        hintPreviewFlowLine.enabled = true;
+        hintPreviewFlowLine.positionCount = 2;
+        hintPreviewFlowLine.widthMultiplier = baseWidth * 1.75f;
+        UpdateHintPreviewFlow(0f, 1f);
+    }
+
+    private Material ResolveHintPreviewMaterial()
+    {
+        if (hintPreviewMaterial != null)
+            return hintPreviewMaterial;
+
+        Shader shader = Shader.Find("Sprites/Default");
+        if (shader == null)
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null)
+            shader = Shader.Find("Default");
+        if (shader == null)
+        {
+            Debug.LogWarning("[GameManager] Hint preview line shader not found.");
+            return null;
+        }
+
+        hintPreviewMaterial = new Material(shader);
+        return hintPreviewMaterial;
+    }
+
+    private IEnumerator HintPreviewLifetimeRoutine()
+    {
+        float pulseDuration = Mathf.Max(0.6f, hintPreviewDuration);
+        float elapsed = 0f;
+        while (true)
+        {
+            elapsed += Time.deltaTime;
+            float pulse = 0.9f + 0.1f * Mathf.Sin((elapsed / pulseDuration) * Mathf.PI * 2f);
+            SetHintPreviewAlpha(hintPreviewMaxAlpha * pulse);
+            UpdateHintPreviewFlow(elapsed, 1f);
+            yield return null;
+        }
+    }
+
+    private void SetHintPreviewAlpha(float alpha)
+    {
+        Color baseColor = GetHintPreviewColor(Mathf.Clamp01(alpha * hintPreviewBaseAlphaMultiplier), false);
+        if (hintPreviewLines == null)
+            return;
+
+        int count = Mathf.Min(activeHintPreviewLineCount, hintPreviewLines.Length);
+        for (int i = 0; i < count; i++)
+        {
+            LineRenderer line = hintPreviewLines[i];
+            if (line == null || !line.enabled)
+                continue;
+            line.startColor = baseColor;
+            line.endColor = baseColor;
+        }
+    }
+
+    private void UpdateHintPreviewFlow(float elapsed, float fade)
+    {
+        if (hintPreviewFlowLine == null || activeHintPreviewLineCount <= 0 || activeHintPreviewPoints.Count <= activeHintPreviewLineCount)
+            return;
+
+        float sweepDuration = Mathf.Max(0.25f, hintPreviewSweepDuration);
+        float sweepProgress = Mathf.Repeat(elapsed, sweepDuration) / sweepDuration;
+        float segmentProgress = sweepProgress * activeHintPreviewLineCount;
+        int segmentIndex = Mathf.Clamp(Mathf.FloorToInt(segmentProgress), 0, activeHintPreviewLineCount - 1);
+        float t = Mathf.Clamp01(segmentProgress - segmentIndex);
+
+        Vector3 start = activeHintPreviewPoints[segmentIndex];
+        Vector3 end = activeHintPreviewPoints[segmentIndex + 1];
+        Vector3 head = Vector3.Lerp(start, end, Mathf.Max(t, 0.06f));
+
+        hintPreviewFlowLine.enabled = true;
+        hintPreviewFlowLine.SetPosition(0, start);
+        hintPreviewFlowLine.SetPosition(1, head);
+
+        float headPulse = 0.8f + 0.2f * Mathf.Sin(Time.time * 18f);
+        Color flowColor = GetHintPreviewColor(hintPreviewMaxAlpha * Mathf.Clamp01(fade) * headPulse, true);
+        hintPreviewFlowLine.startColor = flowColor;
+        hintPreviewFlowLine.endColor = flowColor;
+    }
+
+    private Color GetHintPreviewColor(float alpha, bool flow)
+    {
+        Color color = flow ? hintPreviewFlowColor : hintPreviewColor;
+        color.a = Mathf.Clamp01(alpha);
+        return color;
+    }
+
+    private void ClearHintPreview(bool stopRoutine = true)
+    {
+        if (stopRoutine && hintPreviewRoutine != null)
+        {
+            StopCoroutine(hintPreviewRoutine);
+            hintPreviewRoutine = null;
+        }
+
+        activeHintPreviewLineCount = 0;
+        activeHintPreviewPoints.Clear();
+        if (hintPreviewFlowLine != null)
+            hintPreviewFlowLine.enabled = false;
+        if (hintPreviewLines == null)
+            return;
+
+        for (int i = 0; i < hintPreviewLines.Length; i++)
+        {
+            if (hintPreviewLines[i] != null)
+                hintPreviewLines[i].enabled = false;
+        }
+    }
+
+    private struct HintMoveCandidate
+    {
+        public readonly Tile Tile;
+        public readonly int Score;
+
+        public HintMoveCandidate(Tile tile, int score)
+        {
+            Tile = tile;
+            Score = score;
+        }
+    }
+
+    private sealed class HintSolverBudget
+    {
+        private readonly int nodeLimit;
+        private readonly float timeLimitSeconds;
+        private readonly float startTime;
+        private string status = "running";
+
+        public int NodeCount { get; private set; }
+        public bool IsExhausted { get; private set; }
+        public string Status => IsExhausted ? status : "solved";
+
+        public HintSolverBudget(int nodeLimit, float timeLimitSeconds)
+        {
+            this.nodeLimit = Mathf.Max(1, nodeLimit);
+            this.timeLimitSeconds = Mathf.Max(0.01f, timeLimitSeconds);
+            startTime = Time.realtimeSinceStartup;
+        }
+
+        public bool TryEnterNode()
+        {
+            if (IsExhausted)
+                return false;
+
+            NodeCount++;
+            if (NodeCount > nodeLimit)
+            {
+                IsExhausted = true;
+                status = "node_limit";
+                return false;
+            }
+
+            if (Time.realtimeSinceStartup - startTime > timeLimitSeconds)
+            {
+                IsExhausted = true;
+                status = "time_limit";
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    private sealed class HintSearchState
+    {
+        private readonly GameManager owner;
+        private readonly Dictionary<Tile, int> remainingCounts;
+        private readonly HashSet<Tile> liveHiddenTiles;
+        private readonly HashSet<string> triggeredIgniterTargets;
+        private readonly HashSet<Tile> solvedFixedKnots;
+
+        public Tile Current;
+        public Tile Previous;
+        public int NextStepNumber;
+        public int TotalRemainingCount { get; private set; }
+
+        public HintSearchState(GameManager owner, Tile current, Tile previous, int nextStepNumber)
+        {
+            this.owner = owner;
+            Current = current;
+            Previous = previous;
+            NextStepNumber = nextStepNumber;
+            remainingCounts = new Dictionary<Tile, int>();
+            liveHiddenTiles = new HashSet<Tile>();
+            triggeredIgniterTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            solvedFixedKnots = new HashSet<Tile>();
+            CaptureCurrentBoard();
+        }
+
+        public HintSearchState(HintSearchState other)
+        {
+            owner = other.owner;
+            Current = other.Current;
+            Previous = other.Previous;
+            NextStepNumber = other.NextStepNumber;
+            TotalRemainingCount = other.TotalRemainingCount;
+            remainingCounts = new Dictionary<Tile, int>(other.remainingCounts);
+            liveHiddenTiles = new HashSet<Tile>(other.liveHiddenTiles);
+            triggeredIgniterTargets = new HashSet<string>(other.triggeredIgniterTargets, StringComparer.OrdinalIgnoreCase);
+            solvedFixedKnots = new HashSet<Tile>(other.solvedFixedKnots);
+        }
+
+        private void CaptureCurrentBoard()
+        {
+            if (owner == null || owner.tiles == null)
+                return;
+
+            for (int row = 0; row < owner.stageHeight; row++)
+            {
+                for (int col = 0; col < owner.stageWidth; col++)
+                {
+                    Tile tile = owner.tiles[row, col];
+                    if (tile == null)
+                        continue;
+
+                    int count = Mathf.Max(0, tile.CurrentNumber);
+                    remainingCounts[tile] = count;
+                    TotalRemainingCount += count;
+
+                    var hidden = tile.GetComponent<HiddenTile>();
+                    if (hidden != null && hidden.IsLive)
+                        liveHiddenTiles.Add(tile);
+
+                    var igniter = tile.GetComponent<IgniterTile>();
+                    if (igniter != null && igniter.HasTriggered)
+                        triggeredIgniterTargets.Add(GetIgniterTargetID(igniter));
+
+                    var fixedKnot = tile.GetComponent<FixedKnotTile>();
+                    if (fixedKnot != null && fixedKnot.HasBeenSteppedCorrectly)
+                        solvedFixedKnots.Add(tile);
+                }
+            }
+        }
+
+        public int GetRemainingCount(Tile tile)
+        {
+            if (tile == null)
+                return 0;
+            return remainingCounts.TryGetValue(tile, out int count) ? count : 0;
+        }
+
+        public bool IsLiveRemainingTile(Tile tile)
+        {
+            if (tile == null || GetRemainingCount(tile) <= 0)
+                return false;
+
+            var hidden = tile.GetComponent<HiddenTile>();
+            return hidden == null || liveHiddenTiles.Contains(tile);
+        }
+
+        public int Decrement(Tile tile)
+        {
+            return TryDecrement(tile, out _, out _) ? 1 : 0;
+        }
+
+        public bool TryDecrement(Tile tile, out int before, out int after)
+        {
+            before = 0;
+            after = 0;
+            if (tile == null)
+                return false;
+
+            if (!remainingCounts.TryGetValue(tile, out int count) || count <= 0)
+            {
+                before = count;
+                after = count;
+                return false;
+            }
+
+            before = count;
+            after = count - 1;
+            remainingCounts[tile] = after;
+            TotalRemainingCount = Mathf.Max(0, TotalRemainingCount - 1);
+            return true;
+        }
+
+        public bool TryTriggerIgniter(IgniterTile igniter)
+        {
+            if (owner == null || igniter == null)
+                return false;
+
+            string targetID = GetIgniterTargetID(igniter);
+            if (!triggeredIgniterTargets.Add(targetID))
+                return false;
+
+            if (owner.hiddenGroups == null || !owner.hiddenGroups.TryGetValue(targetID, out List<HiddenTile> hiddenTiles) || hiddenTiles == null)
+                return false;
+
+            bool activatedAny = false;
+            foreach (HiddenTile hidden in hiddenTiles)
+            {
+                if (hidden == null)
+                    continue;
+
+                Tile hiddenTile = hidden.GetComponent<Tile>();
+                if (hiddenTile == null || GetRemainingCount(hiddenTile) <= 0)
+                    continue;
+
+                if (liveHiddenTiles.Add(hiddenTile))
+                    activatedAny = true;
+            }
+
+            return activatedAny;
+        }
+
+        public void MarkFixedKnotSolved(Tile tile)
+        {
+            if (tile != null)
+                solvedFixedKnots.Add(tile);
+        }
+
+        public bool HasMissedFixedKnot(int completedStepNumber)
+        {
+            if (owner == null || owner.tiles == null)
+                return false;
+
+            for (int row = 0; row < owner.stageHeight; row++)
+            {
+                for (int col = 0; col < owner.stageWidth; col++)
+                {
+                    Tile tile = owner.tiles[row, col];
+                    if (tile == null || solvedFixedKnots.Contains(tile) || GetRemainingCount(tile) <= 0)
+                        continue;
+
+                    var fixedKnot = tile.GetComponent<FixedKnotTile>();
+                    if (fixedKnot != null && completedStepNumber >= fixedKnot.TargetOrder)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        public string BuildCacheKey()
+        {
+            StringBuilder sb = new StringBuilder(256);
+            AppendTileKey(sb, Current);
+            sb.Append('|');
+            AppendTileKey(sb, Previous);
+            sb.Append('|').Append(NextStepNumber).Append('|');
+
+            if (owner != null && owner.tiles != null)
+            {
+                for (int row = 0; row < owner.stageHeight; row++)
+                {
+                    for (int col = 0; col < owner.stageWidth; col++)
+                    {
+                        Tile tile = owner.tiles[row, col];
+                        if (tile == null)
+                        {
+                            sb.Append("x,");
+                            continue;
+                        }
+
+                        sb.Append(GetRemainingCount(tile)).Append(',');
+                    }
+                }
+
+                sb.Append('|');
+                for (int row = 0; row < owner.stageHeight; row++)
+                {
+                    for (int col = 0; col < owner.stageWidth; col++)
+                    {
+                        Tile tile = owner.tiles[row, col];
+                        if (tile == null)
+                            continue;
+
+                        if (tile.GetComponent<HiddenTile>() != null)
+                            sb.Append(liveHiddenTiles.Contains(tile) ? '1' : '0');
+                    }
+                }
+
+                sb.Append('|');
+                for (int row = 0; row < owner.stageHeight; row++)
+                {
+                    for (int col = 0; col < owner.stageWidth; col++)
+                    {
+                        Tile tile = owner.tiles[row, col];
+                        if (tile == null)
+                            continue;
+
+                        var igniter = tile.GetComponent<IgniterTile>();
+                        if (igniter != null)
+                            sb.Append(triggeredIgniterTargets.Contains(GetIgniterTargetID(igniter)) ? '1' : '0');
+                    }
+                }
+
+                sb.Append('|');
+                for (int row = 0; row < owner.stageHeight; row++)
+                {
+                    for (int col = 0; col < owner.stageWidth; col++)
+                    {
+                        Tile tile = owner.tiles[row, col];
+                        if (tile == null)
+                            continue;
+
+                        if (tile.GetComponent<FixedKnotTile>() != null)
+                            sb.Append(solvedFixedKnots.Contains(tile) ? '1' : '0');
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static void AppendTileKey(StringBuilder sb, Tile tile)
+        {
+            if (tile == null)
+            {
+                sb.Append("null");
+                return;
+            }
+
+            sb.Append(tile.X).Append(',').Append(tile.Y);
+        }
     }
 
     private void SetAllTilesDisplayAsQuestion(bool showAsQuestion)
@@ -1611,6 +2816,7 @@ public class GameManager : MonoBehaviour
                 DecreaseTileAndPlayBlockNote(currentTile);
                 RefreshMainUIProgress();
                 stageCleared = true;
+                ClearHintPreview();
                 Debug.Log("Clear");
                 PlayClearSfx();
                 PlayStageClearHaptic();
@@ -1629,6 +2835,7 @@ public class GameManager : MonoBehaviour
                     twinLink.ConsumePartners(DecreaseTileAndPlayBlockNote);
                     RefreshMainUIProgress();
                     stageCleared = true;
+                    ClearHintPreview();
                     Debug.Log("Clear");
                     PlayClearSfx();
                     PlayStageClearHaptic();
@@ -2226,63 +3433,23 @@ public class GameManager : MonoBehaviour
         bool ignoreFixedKnotOrder = false,
         bool ignoreTwinLinkPartners = false)
     {
-        blockReason = LegalMoveBlockReason.None;
         BoardFailureSnapshot snapshot = context.Snapshot;
-        if (from == null || to == null || snapshot == null)
+        if (snapshot == null)
         {
             blockReason = LegalMoveBlockReason.NullOrInactive;
             return false;
         }
 
-        if (!IsLiveRemainingTile(from, snapshot) || !IsLiveRemainingTile(to, snapshot))
-        {
-            blockReason = snapshot.GetHiddenState(to) == HiddenSnapshotState.Locked || snapshot.GetHiddenState(to) == HiddenSnapshotState.Pending
-                ? LegalMoveBlockReason.HiddenLocked
-                : LegalMoveBlockReason.NullOrInactive;
-            return false;
-        }
-
-        if (!IsAdjacent(from, to))
-        {
-            blockReason = LegalMoveBlockReason.NullOrInactive;
-            return false;
-        }
-
-        var shortCircuitHit = to.GetComponent<ShortCircuitTile>();
-        if (shortCircuitHit != null && shortCircuitHit.IsBlockedEntryFrom(from.X, from.Y))
-        {
-            blockReason = LegalMoveBlockReason.ShortCircuitBlocked;
-            return false;
-        }
-
-        var shortCircuitFrom = from.GetComponent<ShortCircuitTile>();
-        if (shortCircuitFrom != null && !shortCircuitFrom.IsExitCell(to.X, to.Y))
-        {
-            blockReason = LegalMoveBlockReason.ShortCircuitBlocked;
-            return false;
-        }
-
-        if (!ignoreFixedKnotOrder)
-        {
-            var fixedKnotHit = to.GetComponent<FixedKnotTile>();
-            if (fixedKnotHit != null && !fixedKnotHit.CanEnter(context.NextStepNumber))
-            {
-                blockReason = LegalMoveBlockReason.FixedKnotOrder;
-                return false;
-            }
-        }
-
-        if (!ignoreTwinLinkPartners)
-        {
-            var twinLinkFrom = from.GetComponent<TwinLinkTile>();
-            if (twinLinkFrom != null && !CanConsumeTwinLinkPartnersForFailure(twinLinkFrom, context))
-            {
-                blockReason = LegalMoveBlockReason.TwinLinkPartner;
-                return false;
-            }
-        }
-
-        return true;
+        return CanLegallyMoveWithKernel(
+            from,
+            to,
+            context,
+            context.GetRemainingCount,
+            tile => IsLiveRemainingTile(tile, snapshot),
+            out _,
+            out blockReason,
+            ignoreFixedKnotOrder,
+            ignoreTwinLinkPartners);
     }
 
     private bool CanConsumeTwinLinkPartnersForFailure(TwinLinkTile sourceTwinLink, TwinLinkLegalMoveContext context)
@@ -2797,6 +3964,7 @@ public class GameManager : MonoBehaviour
         }
 
         gameOverFocusTile = failFocusTile;
+        ClearHintPreview();
         currentPath.Clear();
         isDragging = false;
         isGameOverSequencePlaying = true;
@@ -2810,6 +3978,7 @@ public class GameManager : MonoBehaviour
     private IEnumerator GameOverAndResetSequence()
     {
         ResetBoardFailureTracking();
+        ClearHintPreview();
         totalStepsCommitted = 0;
         blackoutQuestionFlipPlayed = false;
         if (blackoutQuestionFlipRoutine != null)
@@ -2941,6 +4110,7 @@ public class GameManager : MonoBehaviour
         RefreshMainUIForStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
+        IncrementBoardVersion("auto_restart_after_fail");
         HandleStageStarted("auto_restart_after_fail");
 
         gameOverFocusTile = null;
@@ -3004,6 +4174,7 @@ public class GameManager : MonoBehaviour
     private IEnumerator ResetCurrentStageRoutine()
     {
         ResetBoardFailureTracking();
+        ClearHintPreview();
         totalStepsCommitted = 0;
         blackoutQuestionFlipPlayed = false;
         if (blackoutQuestionFlipRoutine != null)
@@ -3064,6 +4235,7 @@ public class GameManager : MonoBehaviour
         RefreshMainUIForStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
+        IncrementBoardVersion("manual_reset");
         HandleStageStarted("manual_reset");
         isGameOverSequencePlaying = false;
     }
@@ -3098,6 +4270,7 @@ public class GameManager : MonoBehaviour
                     return;
         stageCleared = true;
         Debug.Log("Clear");
+        ClearHintPreview();
         PlayClearSfx();
         PlayStageClearHaptic();
         TrackStageCleared(StageClearTypeAllTilesZero);
@@ -3134,6 +4307,7 @@ public class GameManager : MonoBehaviour
     private void PrepareForStageTransition()
     {
         ResetBoardFailureTracking();
+        ClearHintPreview();
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
@@ -3174,6 +4348,7 @@ public class GameManager : MonoBehaviour
         PlayNewStageSfx();
         SaveStageProgress();
         PrewarmUpcomingStages();
+        IncrementBoardVersion("stage_loaded");
         return true;
     }
 
@@ -3607,6 +4782,12 @@ public class GameManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        ClearHintPreview();
+        if (hintPreviewMaterial != null)
+        {
+            Destroy(hintPreviewMaterial);
+            hintPreviewMaterial = null;
+        }
         if (subscribedGameplayLayoutUI != null)
             subscribedGameplayLayoutUI.GameplayLayoutChanged -= HandleGameplayLayoutChanged;
         subscribedGameplayLayoutUI = null;

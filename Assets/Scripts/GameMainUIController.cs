@@ -19,6 +19,11 @@ public class GameMainUIController : MonoBehaviour
     private const string SaveKeySoundOn = "SettingSoundOn";
     private const string SaveKeyVibrationOn = "SettingVibrationOn";
     private const string SaveKeyLanguageSelection = "SettingLanguageSelection";
+    private const string SaveKeyRemoveAdsEntitlement = "RemoveAdsEntitled";
+    private const string SaveKeyHintCharges = "AssistHintCharges";
+    private const string SaveKeyHintNextRechargeUnix = "AssistHintNextRechargeUnix";
+    private const string SaveKeySkipCharges = "AssistSkipCharges";
+    private const string SaveKeySkipNextRechargeUnix = "AssistSkipNextRechargeUnix";
     private const string PrivacyUrl = "https://www.naver.com";
     private const string SupportEmailAddress = "crewoongcrewoong@gmail.com";
     private const string NeonPressBaseClass = "neon-press-button";
@@ -42,8 +47,14 @@ public class GameMainUIController : MonoBehaviour
     private const string IOSTestStageSkipRewardedAdUnitId = "ca-app-pub-3940256099942544/1712485313";
     private const string StageSkipRewardName = "Stage Skip";
     private const int StageSkipRewardAmount = 1;
+    private const string HintRewardName = "Hint Preview";
+    private const int HintRewardAmount = 1;
     private const int StageTransitionInterstitialInterval = 15;
     private const int MaxHearts = 3;
+    private const int MaxHintCharges = 3;
+    private const int MaxSkipCharges = 1;
+    private const long HintRechargeSeconds = 15L * 60L;
+    private const long SkipRechargeSeconds = 30L * 60L;
     private const float TopHudBasePaddingPx = 64f;
     private const float TopHudBackdropBaseTopPx = 26f;
     private const string TutorialScheduleResourcePath = "Tutorials/help_tutorial_schedule";
@@ -194,8 +205,14 @@ public class GameMainUIController : MonoBehaviour
     private VisualElement topBar;
     private VisualElement topHudBackdrop;
 
+    private Button hintButton;
+    private Image hintIcon;
+    private VisualElement hintBadge;
+    private Label hintBadgeText;
     private Button skipButton;
     private Image skipIcon;
+    private VisualElement skipBadge;
+    private Label skipBadgeText;
     private Button resetButton;
     private Image resetIcon;
     private Button blockAdsButton;
@@ -337,6 +354,11 @@ public class GameMainUIController : MonoBehaviour
     private float bottomGameplayMarginNormalized;
     private bool hasResolvedGameplayLayout;
     private int currentHearts = MaxHearts;
+    private int hintCharges = MaxHintCharges;
+    private long hintNextRechargeUnix;
+    private int skipCharges = MaxSkipCharges;
+    private long skipNextRechargeUnix;
+    private float nextAssistEconomyUiRefreshTime;
     private bool isWaitingForHeartRefill;
     private bool isLanguageSelectionPopupOpen;
     private bool isTutorialPopupOpen;
@@ -383,6 +405,7 @@ public class GameMainUIController : MonoBehaviour
     private bool isStageSkipRewardedAdLoading;
     private bool stageSkipRewardEarnedThisShow;
     private Action pendingStageSkipRewardCompletionAction;
+    private string pendingStageSkipRewardEventPrefix = "stage_skip";
     private InterstitialAd stageTransitionInterstitialAd;
     private bool isStageTransitionInterstitialAdLoading;
     private bool isStageTransitionInterstitialShowing;
@@ -403,6 +426,7 @@ public class GameMainUIController : MonoBehaviour
     {
         isDebugBuildCached = Debug.isDebugBuild;
         LoadSavedSettings();
+        LoadAssistEconomyState();
         IsVibrationEnabled = isVibrationOn;
 
         // UIDocument 자동 캐싱
@@ -429,8 +453,14 @@ public class GameMainUIController : MonoBehaviour
         settingButton = root.Q<Button>("SettingButton");
         settingIcon = root.Q<Image>("SettingIcon");
 
+        hintButton = root.Q<Button>("HintButton");
+        hintIcon = root.Q<Image>("HintIcon");
+        hintBadge = root.Q<VisualElement>("HintBadge");
+        hintBadgeText = root.Q<Label>("HintBadgeText");
         skipButton = root.Q<Button>("SkipButton");
         skipIcon = root.Q<Image>("SkipIcon");
+        skipBadge = root.Q<VisualElement>("SkipAdBadge");
+        skipBadgeText = root.Q<Label>("SkipAdBadgeText");
         resetButton = root.Q<Button>("ResetButton");
         resetIcon = root.Q<Image>("ResetIcon");
         blockAdsButton = root.Q<Button>("BlockAdsButton");
@@ -706,7 +736,15 @@ public class GameMainUIController : MonoBehaviour
         if (heartRefillAdButton != null)
             heartRefillAdButton.clicked += OnHeartRefillAdButtonClicked;
 
-        // 하단 스킵/리셋/광고제거 버튼 아이콘 및 클릭 로그
+        // 하단 힌트/리셋/스킵/광고제거 버튼 아이콘 및 클릭 로그
+        if (hintIcon != null)
+        {
+            Sprite sprite = Resources.Load<Sprite>("Sprites/help");
+            if (sprite != null)
+                hintIcon.sprite = sprite;
+            else
+                Debug.LogWarning("[GameMainUIController] Resources/Sprites/help.png 스프라이트를 찾을 수 없습니다.");
+        }
         if (skipIcon != null)
         {
             Sprite sprite = Resources.Load<Sprite>("Sprites/skip");
@@ -732,6 +770,8 @@ public class GameMainUIController : MonoBehaviour
                 Debug.LogWarning("[GameMainUIController] Resources/Sprites/block.png 스프라이트를 찾을 수 없습니다.");
         }
 
+        if (hintButton != null)
+            hintButton.clicked += OnHintClicked;
         if (skipButton != null)
             skipButton.clicked += OnSkipClicked;
         if (resetButton != null)
@@ -743,6 +783,8 @@ public class GameMainUIController : MonoBehaviour
         SetupButtonClickAnimations();
         ConfigureHeartDepletedPopupForRewardedAd();
         RefreshHeartVisuals();
+        RefillAssistChargesFromElapsedTime();
+        RefreshAssistButtons();
         reservedBannerHeightPx = EstimateInitialBannerHeightPx();
         RefreshBottomLayout(force: true);
         InitializeBannerAd();
@@ -783,6 +825,7 @@ public class GameMainUIController : MonoBehaviour
         }
 #endif
         RefreshBottomLayout(force: false);
+        RefreshAssistEconomyIfNeeded();
         EnsureSplashOverlayAttached();
         UpdateSplashVisual();
         TryCloseSplashIfReady();
@@ -844,6 +887,7 @@ public class GameMainUIController : MonoBehaviour
     private void SetupButtonClickAnimations()
     {
         RegisterButtonClickAnimation(settingButton);
+        RegisterButtonClickAnimation(hintButton);
         RegisterButtonClickAnimation(skipButton);
         RegisterButtonClickAnimation(resetButton);
         RegisterButtonClickAnimation(blockAdsButton, useWarmPulse: true);
@@ -924,7 +968,57 @@ public class GameMainUIController : MonoBehaviour
         uiButtonSfxAudioSource.PlayOneShot(uiButtonSfxClip, Mathf.Clamp01(uiButtonSfxVolume));
     }
 
-    /// <summary>스킵 버튼 클릭: 보상형 광고를 시청하면 현재 스테이지를 건너뛴다.</summary>
+    private void OnHintClicked()
+    {
+        FirebaseBootstrap.LogEvent("ui_button_click", new Dictionary<string, object>
+        {
+            { "button_name", "hint" }
+        });
+
+        var gm = FindFirstObjectByType<GameManager>();
+        if (gm == null)
+            return;
+
+        RefillAssistChargesFromElapsedTime();
+        bool hasAvailableHint = gm.HasAvailableHintPreview();
+        Debug.Log($"[힌트 버튼] pressed stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} removeAds={IsRemoveAdsEntitled()} hasPath={hasAvailableHint}");
+        if (!hasAvailableHint)
+        {
+            gm.ShowHintPreview();
+            return;
+        }
+
+        if (hintCharges > 0)
+        {
+            if (gm.ShowHintPreview())
+                ConsumeHintCharge();
+            return;
+        }
+
+        if (IsRemoveAdsEntitled())
+        {
+            ShowGameplaySnackbar("snackbar_hint_recharging", ("time", FormatAssistTimer(GetRemainingRechargeSeconds(hintNextRechargeUnix))));
+            return;
+        }
+
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        TryShowAssistRewardedAd("hint", HintRewardName, HintRewardAmount, () =>
+        {
+            if (gm != null)
+                gm.ShowHintPreview();
+        });
+#else
+        FirebaseBootstrap.LogEvent("hint_reward_earned", new Dictionary<string, object>
+        {
+            { "reward_name", HintRewardName },
+            { "reward_amount", HintRewardAmount },
+            { "source", "editor" }
+        });
+        gm.ShowHintPreview();
+#endif
+    }
+
+    /// <summary>스킵 버튼 클릭: 충전분을 사용하거나 보상형 광고를 시청하면 현재 스테이지를 건너뛴다.</summary>
     private void OnSkipClicked()
     {
         FirebaseBootstrap.LogEvent("ui_button_click", new Dictionary<string, object>
@@ -939,14 +1033,34 @@ public class GameMainUIController : MonoBehaviour
             return;
         }
 
+        RefillAssistChargesFromElapsedTime();
+        if (skipCharges > 0)
+        {
+            if (gm.LoadNextStageImmediate())
+                ConsumeSkipCharge();
+            return;
+        }
+
+        if (IsRemoveAdsEntitled())
+        {
+            ShowGameplaySnackbar("snackbar_skip_recharging", ("time", FormatAssistTimer(GetRemainingRechargeSeconds(skipNextRechargeUnix))));
+            return;
+        }
+
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
-        TryShowStageSkipRewardedAd(() =>
+        TryShowAssistRewardedAd("stage_skip", StageSkipRewardName, StageSkipRewardAmount, () =>
         {
             if (gm != null)
                 gm.LoadNextStageImmediate();
         });
 #else
         // 에디터에서는 광고 없이 즉시 동작.
+        FirebaseBootstrap.LogEvent("stage_skip_reward_earned", new Dictionary<string, object>
+        {
+            { "reward_name", StageSkipRewardName },
+            { "reward_amount", StageSkipRewardAmount },
+            { "source", "editor" }
+        });
         if (gm != null)
             gm.LoadNextStageImmediate();
 #endif
@@ -980,6 +1094,176 @@ public class GameMainUIController : MonoBehaviour
             gm.ResetCurrentStage();
         else
             Debug.Log("스테이지 리셋됨 (GameManager 없음)");
+    }
+
+    private void LoadAssistEconomyState()
+    {
+        hintCharges = Mathf.Clamp(LoadSettingInt(SaveKeyHintCharges, MaxHintCharges), 0, MaxHintCharges);
+        hintNextRechargeUnix = Math.Max(0L, LoadSettingLong(SaveKeyHintNextRechargeUnix, 0L));
+        skipCharges = Mathf.Clamp(LoadSettingInt(SaveKeySkipCharges, MaxSkipCharges), 0, MaxSkipCharges);
+        skipNextRechargeUnix = Math.Max(0L, LoadSettingLong(SaveKeySkipNextRechargeUnix, 0L));
+        NormalizeAssistRechargeTimers(GetUnixNowSeconds());
+    }
+
+    private void SaveAssistEconomyState()
+    {
+        SaveSettingInt(SaveKeyHintCharges, hintCharges);
+        SaveSettingLong(SaveKeyHintNextRechargeUnix, hintNextRechargeUnix);
+        SaveSettingInt(SaveKeySkipCharges, skipCharges);
+        SaveSettingLong(SaveKeySkipNextRechargeUnix, skipNextRechargeUnix);
+    }
+
+    private void RefreshAssistEconomyIfNeeded()
+    {
+        if (Time.unscaledTime < nextAssistEconomyUiRefreshTime)
+            return;
+
+        nextAssistEconomyUiRefreshTime = Time.unscaledTime + 0.5f;
+        RefillAssistChargesFromElapsedTime();
+    }
+
+    private void RefillAssistChargesFromElapsedTime()
+    {
+        long now = GetUnixNowSeconds();
+        bool changed = false;
+        changed |= RefillAssistCharge(ref hintCharges, MaxHintCharges, HintRechargeSeconds, ref hintNextRechargeUnix, now, "hint");
+        changed |= RefillAssistCharge(ref skipCharges, MaxSkipCharges, SkipRechargeSeconds, ref skipNextRechargeUnix, now, "skip");
+        if (changed)
+            SaveAssistEconomyState();
+        RefreshAssistButtons();
+    }
+
+    private bool RefillAssistCharge(ref int charges, int maxCharges, long rechargeSeconds, ref long nextRechargeUnix, long now, string assistType)
+    {
+        int before = charges;
+        if (charges >= maxCharges)
+        {
+            nextRechargeUnix = 0L;
+            return before != charges;
+        }
+
+        if (nextRechargeUnix <= 0L)
+            nextRechargeUnix = now + rechargeSeconds;
+
+        while (charges < maxCharges && nextRechargeUnix > 0L && now >= nextRechargeUnix)
+        {
+            charges++;
+            FirebaseBootstrap.LogEvent("assist_recharge_complete", new Dictionary<string, object>
+            {
+                { "assist_type", assistType },
+                { "charges", charges }
+            });
+
+            if (charges < maxCharges)
+                nextRechargeUnix += rechargeSeconds;
+            else
+                nextRechargeUnix = 0L;
+        }
+
+        return before != charges;
+    }
+
+    private void NormalizeAssistRechargeTimers(long now)
+    {
+        if (hintCharges >= MaxHintCharges)
+            hintNextRechargeUnix = 0L;
+        else if (hintNextRechargeUnix <= 0L)
+            hintNextRechargeUnix = now + HintRechargeSeconds;
+
+        if (skipCharges >= MaxSkipCharges)
+            skipNextRechargeUnix = 0L;
+        else if (skipNextRechargeUnix <= 0L)
+            skipNextRechargeUnix = now + SkipRechargeSeconds;
+    }
+
+    private void ConsumeHintCharge()
+    {
+        hintCharges = Mathf.Max(0, hintCharges - 1);
+        if (hintCharges < MaxHintCharges && hintNextRechargeUnix <= 0L)
+            hintNextRechargeUnix = GetUnixNowSeconds() + HintRechargeSeconds;
+        FirebaseBootstrap.LogEvent("hint_charge_use", new Dictionary<string, object>
+        {
+            { "remaining_charges", hintCharges }
+        });
+        SaveAssistEconomyState();
+        RefreshAssistButtons();
+    }
+
+    private void ConsumeSkipCharge()
+    {
+        skipCharges = Mathf.Max(0, skipCharges - 1);
+        if (skipCharges < MaxSkipCharges && skipNextRechargeUnix <= 0L)
+            skipNextRechargeUnix = GetUnixNowSeconds() + SkipRechargeSeconds;
+        FirebaseBootstrap.LogEvent("skip_charge_use", new Dictionary<string, object>
+        {
+            { "remaining_charges", skipCharges }
+        });
+        SaveAssistEconomyState();
+        RefreshAssistButtons();
+    }
+
+    private void RefreshAssistButtons()
+    {
+        RefreshAssistBadge(hintBadge, hintBadgeText, hintCharges, MaxHintCharges, hintNextRechargeUnix, "hint");
+        RefreshAssistBadge(skipBadge, skipBadgeText, skipCharges, MaxSkipCharges, skipNextRechargeUnix, "skip");
+    }
+
+    private void RefreshAssistBadge(VisualElement badge, Label label, int charges, int maxCharges, long nextRechargeUnix, string assistType)
+    {
+        if (badge == null || label == null)
+            return;
+
+        if (charges > 0)
+        {
+            label.text = $"x{Mathf.Clamp(charges, 0, maxCharges)}";
+            badge.RemoveFromClassList("neon-ad-badge-timer");
+        }
+        else if (IsRemoveAdsEntitled())
+        {
+            long remaining = GetRemainingRechargeSeconds(nextRechargeUnix);
+            label.text = ShouldUseCompactAssistBadge() && remaining >= 60L ? "◷" : FormatAssistTimer(remaining);
+            badge.AddToClassList("neon-ad-badge-timer");
+        }
+        else
+        {
+            label.text = "AD";
+            badge.RemoveFromClassList("neon-ad-badge-timer");
+        }
+
+        if (hintButton != null && assistType == "hint")
+            hintButton.SetEnabled(true);
+        if (skipButton != null && assistType == "skip")
+            skipButton.SetEnabled(true);
+    }
+
+    private bool IsRemoveAdsEntitled()
+    {
+        return LoadSettingBool(SaveKeyRemoveAdsEntitlement, false);
+    }
+
+    private long GetRemainingRechargeSeconds(long nextRechargeUnix)
+    {
+        if (nextRechargeUnix <= 0L)
+            return 0L;
+        return Math.Max(0L, nextRechargeUnix - GetUnixNowSeconds());
+    }
+
+    private static long GetUnixNowSeconds()
+    {
+        return DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    }
+
+    private string FormatAssistTimer(long seconds)
+    {
+        seconds = Math.Max(0L, seconds);
+        long minutes = seconds / 60L;
+        long remainderSeconds = seconds % 60L;
+        return $"{minutes:00}:{remainderSeconds:00}";
+    }
+
+    private bool ShouldUseCompactAssistBadge()
+    {
+        return Screen.width > 0 && Screen.width < 720;
     }
 
     private void ShowSettingPopup()
@@ -4436,6 +4720,71 @@ public class GameMainUIController : MonoBehaviour
         PlayerPrefs.Save();
     }
 
+    private static int LoadSettingInt(string key, int defaultValue)
+    {
+        try
+        {
+            if (ES3.KeyExists(key))
+                return ES3.Load<int>(key);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] 정수 설정 로드 실패({key}): {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, $"LoadSettingInt failed: {key}");
+        }
+
+        return PlayerPrefs.GetInt(key, defaultValue);
+    }
+
+    private static void SaveSettingInt(string key, int value)
+    {
+        try
+        {
+            ES3.Save(key, value);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] 정수 설정 저장 실패({key}): {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, $"SaveSettingInt failed: {key}");
+        }
+
+        PlayerPrefs.SetInt(key, value);
+        PlayerPrefs.Save();
+    }
+
+    private static long LoadSettingLong(string key, long defaultValue)
+    {
+        try
+        {
+            if (ES3.KeyExists(key))
+                return ES3.Load<long>(key);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] long 설정 로드 실패({key}): {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, $"LoadSettingLong failed: {key}");
+        }
+
+        string rawValue = PlayerPrefs.GetString(key, defaultValue.ToString());
+        return long.TryParse(rawValue, out long parsed) ? parsed : defaultValue;
+    }
+
+    private static void SaveSettingLong(string key, long value)
+    {
+        try
+        {
+            ES3.Save(key, value);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameMainUIController] long 설정 저장 실패({key}): {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, $"SaveSettingLong failed: {key}");
+        }
+
+        PlayerPrefs.SetString(key, value.ToString());
+        PlayerPrefs.Save();
+    }
+
     private static string LoadSettingString(string key, string defaultValue)
     {
         try
@@ -4689,25 +5038,26 @@ public class GameMainUIController : MonoBehaviour
         });
     }
 
-    private void TryShowStageSkipRewardedAd(Action onRewardEarned)
+    private void TryShowAssistRewardedAd(string assistType, string rewardName, int rewardAmount, Action onRewardEarned)
     {
         if (stageSkipRewardedAd == null || !stageSkipRewardedAd.CanShowAd())
         {
-            FirebaseBootstrap.LogEvent("stage_skip_reward_ad_not_ready");
+            FirebaseBootstrap.LogEvent($"{assistType}_reward_ad_not_ready");
             LoadStageSkipRewardedAd();
             return;
         }
 
         pendingStageSkipRewardCompletionAction = onRewardEarned;
+        pendingStageSkipRewardEventPrefix = assistType;
         stageSkipRewardEarnedThisShow = false;
-        FirebaseBootstrap.LogEvent("stage_skip_reward_ad_show");
+        FirebaseBootstrap.LogEvent($"{assistType}_reward_ad_show");
         stageSkipRewardedAd.Show(_ =>
         {
             stageSkipRewardEarnedThisShow = true;
-            FirebaseBootstrap.LogEvent("stage_skip_reward_earned", new Dictionary<string, object>
+            FirebaseBootstrap.LogEvent($"{assistType}_reward_earned", new Dictionary<string, object>
             {
-                { "reward_name", StageSkipRewardName },
-                { "reward_amount", StageSkipRewardAmount }
+                { "reward_name", rewardName },
+                { "reward_amount", rewardAmount }
             });
         });
     }
@@ -4761,10 +5111,11 @@ public class GameMainUIController : MonoBehaviour
     {
         bool shouldSkip = stageSkipRewardEarnedThisShow;
         Action completion = shouldSkip ? pendingStageSkipRewardCompletionAction : null;
+        string eventPrefix = string.IsNullOrEmpty(pendingStageSkipRewardEventPrefix) ? "stage_skip" : pendingStageSkipRewardEventPrefix;
         pendingStageSkipRewardCompletionAction = null;
 
         if (!shouldSkip)
-            FirebaseBootstrap.LogEvent("stage_skip_reward_not_earned");
+            FirebaseBootstrap.LogEvent($"{eventPrefix}_reward_not_earned");
 
         DestroyStageSkipRewardedAd();
         LoadStageSkipRewardedAd();
@@ -4777,7 +5128,8 @@ public class GameMainUIController : MonoBehaviour
     {
         string errorMessage = adError != null ? adError.GetMessage() : "unknown";
         Debug.LogWarning($"[GameMainUIController] Stage skip rewarded ad failed to show: {errorMessage}");
-        FirebaseBootstrap.LogEvent("stage_skip_reward_show_failed");
+        string eventPrefix = string.IsNullOrEmpty(pendingStageSkipRewardEventPrefix) ? "stage_skip" : pendingStageSkipRewardEventPrefix;
+        FirebaseBootstrap.LogEvent($"{eventPrefix}_reward_show_failed");
         pendingStageSkipRewardCompletionAction = null;
         DestroyStageSkipRewardedAd();
         LoadStageSkipRewardedAd();
@@ -5016,6 +5368,7 @@ public class GameMainUIController : MonoBehaviour
 
         if (bottomBar != null)
         {
+            ApplyBottomBarCompactMode();
             bottomBar.style.marginBottom = 0f;
             bottomBar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, bottomBarExtraSpacing);
         }
@@ -5024,6 +5377,18 @@ public class GameMainUIController : MonoBehaviour
             stageSnackbar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, stageSnackbarExtraSpacing);
 
         UpdateGameplayLayoutMetrics();
+    }
+
+    private void ApplyBottomBarCompactMode()
+    {
+        if (bottomBar == null)
+            return;
+
+        float width = Screen.width > 0 ? Screen.width : bottomBar.resolvedStyle.width;
+        bool ultraCompact = width > 0f && width < 620f;
+        bool compact = width > 0f && width < 820f;
+        bottomBar.EnableInClassList("bottom-bar-ultra-compact", ultraCompact);
+        bottomBar.EnableInClassList("bottom-bar-compact", compact && !ultraCompact);
     }
 
     private void UpdateGameplayLayoutMetrics()
