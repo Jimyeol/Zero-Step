@@ -49,6 +49,7 @@ public class GameMainUIController : MonoBehaviour
     private const string TutorialScheduleResourcePath = "Tutorials/help_tutorial_schedule";
     private const string StageSnackbarScheduleResourcePath = "Tutorials/stage_snackbar_schedule";
     private const string TutorialDismissedKeyPrefix = "TutorialDismissed_";
+    private const string TutorialSeenInSettingsKeyPrefix = "TutorialSeenInSettings_";
     private const string TutorialTypeBasicPath = "BasicPath";
     private const string TutorialTypeShortCircuit = "ShortCircuit";
     private const string TutorialTypeCrossBlast = "CrossBlast";
@@ -2137,22 +2138,51 @@ public class GameMainUIController : MonoBehaviour
 
     private HelpTutorialEntryData GetHelpTutorialForSettings()
     {
+        List<HelpTutorialEntryData> visibleEntries = GetSettingsHelpTutorialEntries();
+        if (visibleEntries.Count <= 0)
+            return null;
+
         HelpTutorialEntryData stageEntry = GetFirstTutorialEntryForStage(currentStageIndexForUI);
-        if (stageEntry != null)
+        if (stageEntry != null && IsTutorialVisibleInSettings(stageEntry))
             return stageEntry;
-        if (helpTutorialEntries.Count > 0)
-            return helpTutorialEntries[0];
-        return null;
+
+        return visibleEntries[0];
     }
 
-    private int GetHelpTutorialEntryIndex(HelpTutorialEntryData targetEntry)
+    private List<HelpTutorialEntryData> GetSettingsHelpTutorialEntries()
     {
-        if (targetEntry == null)
-            return -1;
-
+        List<HelpTutorialEntryData> visibleEntries = new List<HelpTutorialEntryData>();
         for (int i = 0; i < helpTutorialEntries.Count; i++)
         {
             HelpTutorialEntryData entry = helpTutorialEntries[i];
+            if (IsTutorialVisibleInSettings(entry))
+                visibleEntries.Add(entry);
+        }
+
+        return visibleEntries;
+    }
+
+    private static bool IsTutorialVisibleInSettings(HelpTutorialEntryData entry)
+    {
+        if (entry == null)
+            return false;
+
+        if (IsBasicTutorialEntry(entry))
+            return true;
+
+        return IsTutorialSeenInSettings(entry.id) || IsTutorialDismissed(entry.id);
+    }
+
+    private int GetHelpTutorialEntryIndex(HelpTutorialEntryData targetEntry, List<HelpTutorialEntryData> entries)
+    {
+        if (targetEntry == null)
+            return -1;
+        if (entries == null)
+            return -1;
+
+        for (int i = 0; i < entries.Count; i++)
+        {
+            HelpTutorialEntryData entry = entries[i];
             if (ReferenceEquals(entry, targetEntry))
                 return i;
         }
@@ -2160,9 +2190,9 @@ public class GameMainUIController : MonoBehaviour
         if (string.IsNullOrEmpty(targetEntry.id))
             return -1;
 
-        for (int i = 0; i < helpTutorialEntries.Count; i++)
+        for (int i = 0; i < entries.Count; i++)
         {
-            HelpTutorialEntryData entry = helpTutorialEntries[i];
+            HelpTutorialEntryData entry = entries[i];
             if (entry != null && string.Equals(entry.id, targetEntry.id, StringComparison.Ordinal))
                 return i;
         }
@@ -2182,6 +2212,11 @@ public class GameMainUIController : MonoBehaviour
         return TutorialDismissedKeyPrefix + tutorialId;
     }
 
+    private static string GetTutorialSeenInSettingsKey(string tutorialId)
+    {
+        return TutorialSeenInSettingsKeyPrefix + tutorialId;
+    }
+
     private static bool IsTutorialDismissed(string tutorialId)
     {
         if (string.IsNullOrEmpty(tutorialId))
@@ -2194,6 +2229,20 @@ public class GameMainUIController : MonoBehaviour
         if (string.IsNullOrEmpty(tutorialId))
             return;
         SaveSettingBool(GetTutorialDismissedKey(tutorialId), true);
+    }
+
+    private static bool IsTutorialSeenInSettings(string tutorialId)
+    {
+        if (string.IsNullOrEmpty(tutorialId))
+            return false;
+        return LoadSettingBool(GetTutorialSeenInSettingsKey(tutorialId), false);
+    }
+
+    private static void MarkTutorialSeenInSettings(string tutorialId)
+    {
+        if (string.IsNullOrEmpty(tutorialId))
+            return;
+        SaveSettingBool(GetTutorialSeenInSettingsKey(tutorialId), true);
     }
 
     private void OpenHelpTutorialFromSettings()
@@ -2216,6 +2265,9 @@ public class GameMainUIController : MonoBehaviour
 
         if (!ignoreDismissed && IsTutorialDismissed(entry.id))
             return;
+
+        if (!openedFromSettings)
+            MarkTutorialSeenInSettings(entry.id);
 
         isTutorialPopupOpen = true;
         activeTutorialOpenedFromSettings = openedFromSettings;
@@ -2275,12 +2327,13 @@ public class GameMainUIController : MonoBehaviour
 
     private void ShowSettingsTutorialByOffset(int offset, string eventName)
     {
-        if (!isTutorialPopupOpen || !activeTutorialOpenedFromSettings || helpTutorialEntries.Count <= 1)
+        List<HelpTutorialEntryData> visibleEntries = GetSettingsHelpTutorialEntries();
+        if (!isTutorialPopupOpen || !activeTutorialOpenedFromSettings || visibleEntries.Count <= 1)
             return;
 
-        int currentIndex = GetHelpTutorialEntryIndex(activeTutorialEntry);
-        int nextIndex = currentIndex < 0 ? 0 : (currentIndex + offset + helpTutorialEntries.Count) % helpTutorialEntries.Count;
-        HelpTutorialEntryData nextEntry = helpTutorialEntries[nextIndex];
+        int currentIndex = GetHelpTutorialEntryIndex(activeTutorialEntry, visibleEntries);
+        int nextIndex = currentIndex < 0 ? 0 : (currentIndex + offset + visibleEntries.Count) % visibleEntries.Count;
+        HelpTutorialEntryData nextEntry = visibleEntries[nextIndex];
         if (nextEntry == null)
             return;
 
@@ -2291,13 +2344,13 @@ public class GameMainUIController : MonoBehaviour
             { "tutorial_id", nextEntry.id },
             { "stage_index", nextEntry.stageIndex },
             { "tutorial_index", nextIndex + 1 },
-            { "tutorial_count", helpTutorialEntries.Count }
+            { "tutorial_count", visibleEntries.Count }
         });
     }
 
     private void RefreshTutorialNavigation()
     {
-        bool showNavigation = isTutorialPopupOpen && activeTutorialOpenedFromSettings && helpTutorialEntries.Count > 1;
+        bool showNavigation = isTutorialPopupOpen && activeTutorialOpenedFromSettings && GetSettingsHelpTutorialEntries().Count > 1;
         if (tutorialPreviousButton != null)
             tutorialPreviousButton.style.display = showNavigation ? DisplayStyle.Flex : DisplayStyle.None;
         if (tutorialPreviousButtonLabel != null)
@@ -2433,6 +2486,13 @@ public class GameMainUIController : MonoBehaviour
             string.Equals(normalized, TutorialTypeIgniter, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, TutorialTypeBlindCurtain, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, TutorialTypeBlackout, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsBasicTutorialEntry(HelpTutorialEntryData entry)
+    {
+        if (entry == null)
+            return false;
+        return string.Equals(NormalizeTutorialType(entry.tutorialType), TutorialTypeBasicPath, StringComparison.OrdinalIgnoreCase);
     }
 
     private void StopTutorialAnimation()
