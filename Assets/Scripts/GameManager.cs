@@ -1746,11 +1746,89 @@ public class GameManager : MonoBehaviour
         }
 
         cachedHintSolutionPath.AddRange(solutionPath);
-        int previewTileCount = Mathf.Min(solutionPath.Count, targetMoveCount + 1);
-        for (int i = 0; i < previewTileCount; i++)
-            cachedHintPath.Add(solutionPath[i]);
-        cachedHintSolverStatus = $"solved nodes={budget.NodeCount} failedCache={failedCache.Count} fullMoves={solutionPath.Count - 1}";
+        if (!TryBuildCommitSafeHintPreviewPath(solutionPath, initialState, targetMoveCount, cachedHintPath))
+        {
+            cachedHintSolverStatus = "commit_safe_preview_not_found";
+            cachedHintUnavailable = true;
+            Debug.Log($"[힌트 안전지점 없음] stage={currentStageIndex} boardVersion={boardVersion} start={FormatHintTile(currentStartTile)} remaining={initialState.TotalRemainingCount} fullMoves={solutionPath.Count - 1} path={FormatHintPath(solutionPath)}");
+            return false;
+        }
+
+        int previewMoves = Mathf.Max(0, cachedHintPath.Count - 1);
+        cachedHintSolverStatus = $"solved nodes={budget.NodeCount} failedCache={failedCache.Count} fullMoves={solutionPath.Count - 1} previewMoves={previewMoves} targetMoves={targetMoveCount}";
         return true;
+    }
+
+    private bool TryBuildCommitSafeHintPreviewPath(List<Tile> solutionPath, HintSearchState initialState, int targetMoveCount, List<Tile> previewPath)
+    {
+        previewPath?.Clear();
+        if (solutionPath == null || solutionPath.Count <= 1 || initialState == null || previewPath == null)
+            return false;
+
+        HintSearchState endpointState = new HintSearchState(initialState);
+        int firstCheckIndex = Mathf.Clamp(targetMoveCount, 1, solutionPath.Count - 1);
+        int selectedIndex = -1;
+
+        for (int i = 1; i < solutionPath.Count; i++)
+        {
+            if (!TryApplyHintStep(endpointState, solutionPath[i], null, out _))
+                return false;
+
+            if (endpointState.HasMissedFixedKnot(endpointState.NextStepNumber - 1))
+                return false;
+
+            if (i < firstCheckIndex)
+                continue;
+
+            if (IsHintCommitSafeEndpoint(endpointState, solutionPath, i))
+            {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        if (selectedIndex < 0)
+            return false;
+
+        for (int i = 0; i <= selectedIndex; i++)
+            previewPath.Add(solutionPath[i]);
+
+        return previewPath.Count > 1;
+    }
+
+    private bool IsHintCommitSafeEndpoint(HintSearchState endpointState, List<Tile> solutionPath, int endpointIndex)
+    {
+        if (endpointState == null)
+            return false;
+        if (IsHintSolvedState(endpointState))
+            return true;
+        if (endpointState.Current == null || !endpointState.IsLiveRemainingTile(endpointState.Current))
+            return false;
+        if (solutionPath == null || endpointIndex >= solutionPath.Count - 1)
+            return false;
+
+        HintSearchState resumeState = new HintSearchState(endpointState)
+        {
+            Previous = null
+        };
+
+        if (!HasAnyLegalHintMove(resumeState))
+            return false;
+
+        for (int i = endpointIndex + 1; i < solutionPath.Count; i++)
+        {
+            Tile nextTile = solutionPath[i];
+            if (!CanLegallyMoveForHint(resumeState, nextTile))
+                return false;
+            if (!TryApplyHintStep(resumeState, nextTile, null, out _))
+                return false;
+            if (resumeState.HasMissedFixedKnot(resumeState.NextStepNumber - 1))
+                return false;
+            if (resumeState.TotalRemainingCount > 0 && resumeState.GetRemainingCount(resumeState.Current) <= 0)
+                return false;
+        }
+
+        return IsHintSolvedState(resumeState);
     }
 
     private void LogHintUnavailable()
@@ -2269,8 +2347,8 @@ public class GameManager : MonoBehaviour
         if (path == null || path.Count <= 1)
             return;
 
-        EnsureHintPreviewPool();
-        int segmentCount = Mathf.Min(path.Count - 1, HintPreviewMaxMoves);
+        int segmentCount = path.Count - 1;
+        EnsureHintPreviewPool(segmentCount);
         float width = Mathf.Max(0.05f, Mathf.Min(tileWidth, tileHeight) * Mathf.Max(0.01f, hintPreviewLineWidthScale));
         Color baseColor = GetHintPreviewColor(hintPreviewMaxAlpha * hintPreviewBaseAlphaMultiplier, false);
 
@@ -2305,16 +2383,22 @@ public class GameManager : MonoBehaviour
         hintPreviewRoutine = StartCoroutine(HintPreviewLifetimeRoutine());
     }
 
-    private void EnsureHintPreviewPool()
+    private void EnsureHintPreviewPool(int requiredSegmentCount = HintPreviewMaxMoves)
     {
-        if (hintPreviewLines != null && hintPreviewLines.Length >= HintPreviewMaxMoves)
+        requiredSegmentCount = Mathf.Max(HintPreviewMaxMoves, requiredSegmentCount);
+        if (hintPreviewLines != null && hintPreviewLines.Length >= requiredSegmentCount)
         {
             EnsureHintPreviewFlowLine();
             return;
         }
 
-        hintPreviewLines = new LineRenderer[HintPreviewMaxMoves];
-        for (int i = 0; i < hintPreviewLines.Length; i++)
+        LineRenderer[] previousLines = hintPreviewLines;
+        hintPreviewLines = new LineRenderer[requiredSegmentCount];
+        int existingCount = previousLines != null ? previousLines.Length : 0;
+        for (int i = 0; i < existingCount; i++)
+            hintPreviewLines[i] = previousLines[i];
+
+        for (int i = existingCount; i < hintPreviewLines.Length; i++)
         {
             hintPreviewLines[i] = CreateHintPreviewLine($"HintPreviewLine_{i}", 80);
         }
