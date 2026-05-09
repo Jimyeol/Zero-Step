@@ -260,7 +260,9 @@ public class GameManager : MonoBehaviour
     /// <summary>TwinLink 타일: linkID별 그룹 (그리드 생성 후 파트너 등록용).</summary>
     private Dictionary<int, List<TwinLinkTile>> twinLinkGroups = new Dictionary<int, List<TwinLinkTile>>();
     private readonly Dictionary<int, Color> twinLinkAssignedColors = new Dictionary<int, Color>();
+    private readonly Dictionary<int, string> twinLinkAssignedLabels = new Dictionary<int, string>();
     private readonly List<Color> twinLinkAvailablePalette = new List<Color>();
+    private int nextTwinLinkLabelIndex;
     /// <summary>Hidden 타일: groupID별 그룹 (Igniter 트리거 시 활성화용).</summary>
     private Dictionary<string, List<HiddenTile>> hiddenGroups = new Dictionary<string, List<HiddenTile>>();
     /// <summary>CrossBlast/Hidden 릴레이처럼 보드 접근성이 지연 변경 중이면 실패 확정을 미룬다.</summary>
@@ -5129,6 +5131,7 @@ public class GameManager : MonoBehaviour
                     var twinLink = tileObj.AddComponent<TwinLinkTile>();
                     int id = cell.linkID != 0 ? cell.linkID : 101;
                     Color assignedColor = GetOrAssignTwinLinkColor(id);
+                    string assignedLabel = GetOrAssignTwinLinkLabel(id);
                     twinLink.Setup(id, assignedColor, twinLinkLightningPrefab, new TwinLinkTile.TwinLinkSettings
                     {
                         borderOffset = twinLinkBorderOffset,
@@ -5143,7 +5146,7 @@ public class GameManager : MonoBehaviour
                         activationLineWidthScale = twinLinkActivationLineWidthScale,
                         activationLineDuration = twinLinkActivationLineDuration,
                         activationLineAlpha = twinLinkActivationLineAlpha
-                    });
+                    }, assignedLabel);
                     if (!twinLinkGroups.ContainsKey(id))
                         twinLinkGroups[id] = new List<TwinLinkTile>();
                     twinLinkGroups[id].Add(twinLink);
@@ -5200,6 +5203,8 @@ public class GameManager : MonoBehaviour
     private void ResetTwinLinkPaletteAssignments()
     {
         twinLinkAssignedColors.Clear();
+        twinLinkAssignedLabels.Clear();
+        nextTwinLinkLabelIndex = 0;
         twinLinkAvailablePalette.Clear();
         twinLinkAvailablePalette.AddRange(TwinLinkRandomPalette);
         ShuffleTwinLinkPalette(twinLinkAvailablePalette);
@@ -5220,6 +5225,24 @@ public class GameManager : MonoBehaviour
         twinLinkAvailablePalette.RemoveAt(0);
         twinLinkAssignedColors[linkId] = assignedColor;
         return assignedColor;
+    }
+
+    private string GetOrAssignTwinLinkLabel(int linkId)
+    {
+        if (twinLinkAssignedLabels.TryGetValue(linkId, out string assignedLabel))
+            return assignedLabel;
+
+        assignedLabel = MakeTwinLinkGroupLabel(nextTwinLinkLabelIndex++);
+        twinLinkAssignedLabels[linkId] = assignedLabel;
+        return assignedLabel;
+    }
+
+    private static string MakeTwinLinkGroupLabel(int labelIndex)
+    {
+        int normalized = Mathf.Max(0, labelIndex);
+        char letter = (char)('A' + (normalized % 26));
+        int cycle = normalized / 26;
+        return cycle == 0 ? letter.ToString() : $"{letter}{cycle + 1}";
     }
 
     private static void ShuffleTwinLinkPalette(List<Color> palette)

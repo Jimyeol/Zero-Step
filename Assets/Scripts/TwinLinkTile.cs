@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
 using DigitalRuby.LightningBolt;
+using TMPro;
 
 /// <summary>
 /// TwinLink 타일: 같은 linkID끼리 연결된 짝 타일을 관리하고, 전기 테두리와 번쩍임 연출을 담당한다.
@@ -44,11 +45,15 @@ public class TwinLinkTile : MonoBehaviour
     private float activationLineWidthScale = 0.12f;
     private float activationLineDuration = 0.22f;
     private float activationLineAlpha = 0.9f;
+    private const float BadgeFontSize = 7f;
+    private const float BadgePulseScale = 1.32f;
+    private const float BadgePulseDuration = 0.16f;
 
     private Tile tile;
     private SpriteRenderer spriteRenderer;
     private int linkID;
     private Color linkColor;
+    private string groupBadgeLabel;
     private List<TwinLinkTile> partners = new List<TwinLinkTile>();
     private Color normalLineColor;
 
@@ -62,8 +67,13 @@ public class TwinLinkTile : MonoBehaviour
     private float boltTimer;
     private int nextIdleEdgeIndex;
     private Tween flashResetTween;
+    private Tween badgePulseTween;
     private Coroutine activationFadeRoutine;
     private static Material fallbackActivationLineMaterial;
+    private TMP_Text badgeText;
+    private Transform badgeTransform;
+    private Vector3 badgeBaseScale = Vector3.one;
+    private Material badgeMaterial;
 
     private void Awake()
     {
@@ -78,6 +88,14 @@ public class TwinLinkTile : MonoBehaviour
         if (flashResetTween != null && flashResetTween.IsActive())
             flashResetTween.Kill();
         flashResetTween = null;
+        if (badgePulseTween != null && badgePulseTween.IsActive())
+            badgePulseTween.Kill();
+        badgePulseTween = null;
+        if (badgeMaterial != null)
+        {
+            Destroy(badgeMaterial);
+            badgeMaterial = null;
+        }
     }
 
     /// <summary>
@@ -85,10 +103,11 @@ public class TwinLinkTile : MonoBehaviour
     /// boltPrefabOverride: GameManager에서 넘기면 이걸 사용.
     /// settings: GameManager Inspector 값. 값이 0이면 기본값 유지.
     /// </summary>
-    public void Setup(int id, Color assignedColor, GameObject boltPrefabOverride = null, TwinLinkSettings? settings = null)
+    public void Setup(int id, Color assignedColor, GameObject boltPrefabOverride = null, TwinLinkSettings? settings = null, string badgeLabel = null)
     {
         linkID = id;
         linkColor = assignedColor;
+        groupBadgeLabel = string.IsNullOrWhiteSpace(badgeLabel) ? MakeFallbackBadgeLabel(id) : badgeLabel;
 
         if (tile != null)
             tile.SetNumberColorOverride(linkColor);
@@ -124,8 +143,10 @@ public class TwinLinkTile : MonoBehaviour
         }
 
         BuildEdgePositions();
+        EnsureBadgeText();
         CreateBoltInstances();
         ApplyBoltColor(normalLineColor);
+        UpdateBadgeVisibility();
     }
 
     private float TileHalfSize()
@@ -221,9 +242,11 @@ public class TwinLinkTile : MonoBehaviour
         if (tile != null && (!tile.IsActive || transform.localScale.sqrMagnitude <= 0.0001f))
         {
             SetBoltsActive(false);
+            UpdateBadgeVisibility();
             return;
         }
         SetBoltsActive(true);
+        UpdateBadgeVisibility();
 
         if (lightningBoltPrefab == null || boltScripts[0] == null) return;
 
@@ -350,6 +373,10 @@ public class TwinLinkTile : MonoBehaviour
         if (flashResetTween != null && flashResetTween.IsActive())
             flashResetTween.Kill();
         flashResetTween = null;
+        if (badgePulseTween != null && badgePulseTween.IsActive())
+            badgePulseTween.Kill();
+        badgePulseTween = null;
+        ResetBadgeVisual();
         nextIdleEdgeIndex = 0;
         ApplyBoltColor(normalLineColor);
         ClearBoltLines();
@@ -516,6 +543,7 @@ public class TwinLinkTile : MonoBehaviour
         Color bright = linkColor * flashIntensityMult;
         bright.a = 1f;
         ApplyBoltColor(bright);
+        PulseBadge();
         if (flashResetTween != null && flashResetTween.IsActive())
             flashResetTween.Kill();
         flashResetTween = DOVirtual.DelayedCall(flashDuration, () =>
@@ -531,6 +559,142 @@ public class TwinLinkTile : MonoBehaviour
         transform.DOShakePosition(shakeDuration, shakeStrength, 14, 90f, false, true).SetUpdate(true);
     }
 
+    private void EnsureBadgeText()
+    {
+        if (badgeText != null)
+        {
+            ApplyBadgeVisual();
+            PositionBadge();
+            return;
+        }
+
+        GameObject badgeObj = new GameObject("TwinLinkGroupBadge");
+        badgeObj.transform.SetParent(transform);
+        badgeObj.transform.localRotation = Quaternion.identity;
+        badgeObj.transform.localScale = Vector3.one;
+
+        badgeText = badgeObj.AddComponent<TextMeshPro>();
+        badgeTransform = badgeText.transform;
+        badgeBaseScale = badgeTransform.localScale;
+        badgeText.text = groupBadgeLabel;
+        badgeText.fontSize = BadgeFontSize;
+        badgeText.alignment = TextAlignmentOptions.Center;
+        badgeText.raycastTarget = false;
+
+        TMP_Text numberText = tile != null ? tile.GetNumberText() : null;
+        if (numberText != null && numberText.font != null)
+            badgeText.font = numberText.font;
+        else
+        {
+            var defaultFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+            if (defaultFont != null)
+                badgeText.font = defaultFont;
+        }
+        if (badgeText.fontSharedMaterial != null)
+        {
+            badgeMaterial = new Material(badgeText.fontSharedMaterial)
+            {
+                name = "TwinLink Badge TMP Material (Runtime)",
+                hideFlags = HideFlags.DontSave
+            };
+            badgeText.fontMaterial = badgeMaterial;
+        }
+
+        var badgeRenderer = badgeObj.GetComponent<Renderer>();
+        if (badgeRenderer != null)
+        {
+            if (spriteRenderer != null)
+                badgeRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            badgeRenderer.sortingOrder = spriteRenderer != null ? spriteRenderer.sortingOrder + 4 : 4;
+        }
+
+        ApplyBadgeVisual();
+        PositionBadge();
+    }
+
+    private void PositionBadge()
+    {
+        if (badgeTransform == null)
+            return;
+
+        float h = TileHalfSize();
+        badgeTransform.localPosition = new Vector3(-h * 0.46f, h * 0.48f, -0.035f);
+    }
+
+    private void ApplyBadgeVisual()
+    {
+        if (badgeText == null)
+            return;
+
+        badgeText.text = groupBadgeLabel;
+        badgeText.color = WithAlpha(linkColor, 0.95f);
+
+        Material mat = badgeText.fontMaterial;
+        if (mat == null)
+            return;
+
+        Color face = WithAlpha(linkColor, 0.18f);
+        Color outline = WithAlpha(linkColor, 1f);
+        Color glow = WithAlpha(linkColor, 0.55f);
+        if (mat.HasProperty(ShaderUtilities.ID_FaceColor))
+            mat.SetColor(ShaderUtilities.ID_FaceColor, face);
+        if (mat.HasProperty(ShaderUtilities.ID_OutlineColor))
+            mat.SetColor(ShaderUtilities.ID_OutlineColor, outline);
+        if (mat.HasProperty(ShaderUtilities.ID_OutlineWidth))
+            mat.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.34f);
+        if (mat.HasProperty(ShaderUtilities.ID_GlowColor))
+        {
+            mat.EnableKeyword(ShaderUtilities.Keyword_Glow);
+            mat.SetColor(ShaderUtilities.ID_GlowColor, glow);
+            if (mat.HasProperty(ShaderUtilities.ID_GlowPower))
+                mat.SetFloat(ShaderUtilities.ID_GlowPower, 0.35f);
+            if (mat.HasProperty(ShaderUtilities.ID_GlowOuter))
+                mat.SetFloat(ShaderUtilities.ID_GlowOuter, 0.24f);
+            if (mat.HasProperty(ShaderUtilities.ID_GlowInner))
+                mat.SetFloat(ShaderUtilities.ID_GlowInner, 0.04f);
+        }
+
+        badgeText.UpdateMeshPadding();
+        badgeText.SetMaterialDirty();
+    }
+
+    private void PulseBadge()
+    {
+        if (badgeText == null || badgeTransform == null)
+            return;
+
+        UpdateBadgeVisibility();
+        badgePulseTween?.Kill();
+        badgeTransform.localScale = badgeBaseScale;
+        badgeText.color = WithAlpha(linkColor * flashIntensityMult, 1f);
+        badgePulseTween = DOTween.Sequence()
+            .Append(badgeTransform.DOScale(badgeBaseScale * BadgePulseScale, BadgePulseDuration).SetEase(Ease.OutQuad))
+            .Append(badgeTransform.DOScale(badgeBaseScale, BadgePulseDuration).SetEase(Ease.InQuad))
+            .OnComplete(() =>
+            {
+                badgePulseTween = null;
+                ResetBadgeVisual();
+            });
+    }
+
+    private void ResetBadgeVisual()
+    {
+        if (badgeTransform != null)
+            badgeTransform.localScale = badgeBaseScale;
+        ApplyBadgeVisual();
+        UpdateBadgeVisibility();
+    }
+
+    private void UpdateBadgeVisibility()
+    {
+        if (badgeText == null)
+            return;
+
+        bool shouldShow = tile == null || (tile.IsActive && transform.localScale.sqrMagnitude > 0.0001f);
+        if (badgeText.gameObject.activeSelf != shouldShow)
+            badgeText.gameObject.SetActive(shouldShow);
+    }
+
     private static Vector3 GetCuePosition(Vector3 source)
     {
         return new Vector3(source.x, source.y, source.z - 0.05f);
@@ -540,6 +704,12 @@ public class TwinLinkTile : MonoBehaviour
     {
         color.a = Mathf.Clamp01(alpha);
         return color;
+    }
+
+    private static string MakeFallbackBadgeLabel(int id)
+    {
+        int normalized = Mathf.Abs(id) % 26;
+        return ((char)('A' + normalized)).ToString();
     }
 
     public int LinkID => linkID;
