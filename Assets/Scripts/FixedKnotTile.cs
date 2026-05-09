@@ -50,7 +50,7 @@ public class FixedKnotTile : MonoBehaviour
 
     private static readonly Color LockedFutureColor = new Color(1.2f, 0.42f, 0.42f, 1f);
     private static readonly Color ReadyNowColor = new Color(0.49f, 1.4f, 0.63f, 1f);
-    private static readonly Color EnteredCorrectColor = Color.white;
+    private static readonly Color EnteredCorrectColor = ReadyNowColor;
     private static readonly Color DeniedColor = new Color(1f, 0.25f, 0.25f, 1f);
 
     private enum FixedKnotVisualState
