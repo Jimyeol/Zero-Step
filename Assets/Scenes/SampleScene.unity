@@ -573,9 +573,9 @@ MonoBehaviour:
   mainCamera: {fileID: 0}
   twinLinkLightningPrefab: {fileID: 178460, guid: 2736bbc2f2c78a949957b0719c2992bd, type: 3}
   twinLinkBorderOffset: 0.98
-  twinLinkBoltInterval: 0.03
-  twinLinkChaosFactor: 0.025
-  twinLinkBoltGenerations: 4
+  twinLinkBoltInterval: 0.2
+  twinLinkChaosFactor: 0.05
+  twinLinkBoltGenerations: 3
   twinLinkBoltWidthScale: 0.25
   twinLinkFlashDuration: 0.2
   twinLinkShakeStrength: 0.08

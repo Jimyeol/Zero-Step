@@ -30,12 +30,10 @@ public class TwinLinkTile : MonoBehaviour
 
     [Header("LightningBolt 전기 효과 (기본값만 사용, 실제 조정은 GameManager에서)")]
     [SerializeField] private GameObject lightningBoltPrefab;
-    private const float MinSmoothBoltInterval = 0.015f;
-    private const float MaxSmoothBoltInterval = 0.06f;
     private float borderOffset = 0.98f;
-    private float boltInterval = 0.03f;
-    private float chaosFactor = 0.025f;
-    private int boltGenerations = 4;
+    private float boltInterval = 0.04f;
+    private float chaosFactor = 0.03f;
+    private int boltGenerations = 3;
     private float boltWidthScale = 0.25f;
     private float flashDuration = 0.2f;
     private float flashIntensityMult = 2.2f;
@@ -99,7 +97,7 @@ public class TwinLinkTile : MonoBehaviour
         {
             var s = settings.Value;
             borderOffset = s.borderOffset > 0f ? s.borderOffset : borderOffset;
-            boltInterval = s.boltInterval > 0f ? Mathf.Clamp(s.boltInterval, MinSmoothBoltInterval, MaxSmoothBoltInterval) : boltInterval;
+            boltInterval = s.boltInterval > 0f ? s.boltInterval : boltInterval;
             chaosFactor = Mathf.Clamp01(s.chaosFactor);
             boltGenerations = Mathf.Clamp(s.boltGenerations, 2, 6);
             boltWidthScale = s.boltWidthScale > 0f ? s.boltWidthScale : boltWidthScale;
@@ -188,8 +186,6 @@ public class TwinLinkTile : MonoBehaviour
                 lr.sortingOrder = 10;
                 lr.useWorldSpace = true;
                 lr.widthMultiplier = widthMult;
-                lr.numCapVertices = 4;
-                lr.numCornerVertices = 4;
             }
 
             boltScripts[i] = script;
