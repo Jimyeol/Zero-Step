@@ -51,6 +51,12 @@ public class ShortCircuitTile : MonoBehaviour
         SyncDirectionVisualRenderer();
     }
 
+    private void OnDestroy()
+    {
+        if (tile != null && directionVisualRenderer != null)
+            tile.UnregisterLinkedTileRenderer(directionVisualRenderer);
+    }
+
     /// <summary>
     /// GameManager가 생성 시 호출. direction 문자열과 그리드 범위로 출구/입구 셀 계산.
     /// </summary>
@@ -121,6 +127,8 @@ public class ShortCircuitTile : MonoBehaviour
         directionVisualRenderer.sprite = tileSprite;
         if (spriteRenderer.sharedMaterial != null)
             directionVisualRenderer.sharedMaterial = spriteRenderer.sharedMaterial;
+        if (tile != null)
+            tile.RegisterLinkedTileRenderer(directionVisualRenderer);
     }
 
     private void SyncDirectionVisualRenderer()
@@ -129,11 +137,14 @@ public class ShortCircuitTile : MonoBehaviour
             return;
 
         directionVisualRenderer.sprite = tileSprite;
-        directionVisualRenderer.color = spriteRenderer.color;
         directionVisualRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
-        directionVisualRenderer.sortingOrder = spriteRenderer.sortingOrder;
         directionVisualRenderer.maskInteraction = spriteRenderer.maskInteraction;
-        directionVisualRenderer.enabled = tile == null || tile.IsActive;
+        if (tile == null)
+        {
+            directionVisualRenderer.color = spriteRenderer.color;
+            directionVisualRenderer.sortingOrder = spriteRenderer.sortingOrder;
+            directionVisualRenderer.enabled = true;
+        }
 
         if (spriteRenderer.enabled)
             spriteRenderer.enabled = false;

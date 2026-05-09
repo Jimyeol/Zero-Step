@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
@@ -54,6 +55,8 @@ public class Tile : MonoBehaviour
     private int baseTileImageSortingOrder;
     private int baseNumberTextSortingOrder;
     private int baseStartLabelSortingOrder;
+    private readonly List<SpriteRenderer> linkedTileRenderers = new List<SpriteRenderer>();
+    private MaterialPropertyBlock linkedRendererPropertyBlock;
 
     private static readonly Color[] NumberPalette =
     {
@@ -101,6 +104,7 @@ public class Tile : MonoBehaviour
     private const float NumberGlowPower = 0.45f;
     private const float NumberGlowOuter = 0.3f;
     private const float NumberGlowInner = 0.05f;
+    private static readonly int MaterialColorPropertyId = Shader.PropertyToID("_Color");
 
     private void Awake()
     {
@@ -236,10 +240,33 @@ public class Tile : MonoBehaviour
             spriteRenderer.sortingOrder = baseSpriteSortingOrder + offset;
         if (tileImage != null && tileImage != spriteRenderer)
             tileImage.sortingOrder = baseTileImageSortingOrder + offset;
+        ApplyLinkedRendererSorting(offset);
         if (numberTextRenderer != null)
             numberTextRenderer.sortingOrder = baseNumberTextSortingOrder + offset;
         if (startLabelRenderer != null)
             startLabelRenderer.sortingOrder = baseStartLabelSortingOrder + offset;
+    }
+
+    public void RegisterLinkedTileRenderer(SpriteRenderer renderer)
+    {
+        if (renderer == null || renderer == spriteRenderer || renderer == tileImage)
+            return;
+
+        PruneLinkedRenderers();
+        if (!linkedTileRenderers.Contains(renderer))
+            linkedTileRenderers.Add(renderer);
+
+        SetLinkedRendererColor(renderer, spriteRenderer != null ? spriteRenderer.color : renderer.color);
+        renderer.enabled = IsActive;
+        renderer.sortingOrder = spriteRenderer != null ? spriteRenderer.sortingOrder : renderer.sortingOrder;
+    }
+
+    public void UnregisterLinkedTileRenderer(SpriteRenderer renderer)
+    {
+        if (renderer == null)
+            return;
+
+        linkedTileRenderers.Remove(renderer);
     }
 
     /// <summary>
@@ -251,6 +278,7 @@ public class Tile : MonoBehaviour
         {
             if (spriteRenderer != null) spriteRenderer.color = Color.black;
             if (tileImage != null && tileImage != spriteRenderer) tileImage.color = Color.black;
+            ApplyLinkedRendererColor(Color.black);
             if (numberText != null) numberText.gameObject.SetActive(false);
             if (startLabel != null) startLabel.gameObject.SetActive(false);
         }
@@ -277,6 +305,7 @@ public class Tile : MonoBehaviour
     {
         if (spriteRenderer != null) spriteRenderer.color = c;
         if (tileImage != null && tileImage != spriteRenderer) tileImage.color = c;
+        ApplyLinkedRendererColor(c);
         ApplyTMPOutlineNumberStyle(numberText, c);
     }
 
@@ -403,6 +432,7 @@ public class Tile : MonoBehaviour
             spriteRenderer.color = Color.white;
         if (tileImage != null && tileImage != spriteRenderer)
             tileImage.color = Color.white;
+        ApplyLinkedRendererColor(Color.white);
         if (numberText != null)
             numberText.color = Color.white;
 
@@ -423,7 +453,9 @@ public class Tile : MonoBehaviour
         UpdateNumberDisplay();
         ApplyNumberColor();
 
-        if (currentNumber <= 0)
+        if (currentNumber > 0)
+            ApplyLinkedRendererEnabled(true);
+        else
             SetActiveState(false);
     }
 
@@ -521,6 +553,7 @@ public class Tile : MonoBehaviour
             spriteRenderer.color = hdrColor;
         if (tileImage != null && tileImage != spriteRenderer)
             tileImage.color = hdrColor;
+        ApplyLinkedRendererColor(hdrColor);
 
         if (numberText != null)
         {
@@ -541,6 +574,7 @@ public class Tile : MonoBehaviour
             hdrColor = numberDisplayColor * hdrIntensity;
             if (spriteRenderer != null) spriteRenderer.color = hdrColor;
             if (tileImage != null && tileImage != spriteRenderer) tileImage.color = hdrColor;
+            ApplyLinkedRendererColor(hdrColor);
             ApplyTMPOutlineNumberStyle(numberText, numberDisplayColor);
             return;
         }
@@ -552,6 +586,7 @@ public class Tile : MonoBehaviour
             spriteRenderer.color = hdrColor;
         if (tileImage != null && tileImage != spriteRenderer)
             tileImage.color = hdrColor;
+        ApplyLinkedRendererColor(hdrColor);
 
         if (numberText != null)
         {
@@ -619,10 +654,56 @@ public class Tile : MonoBehaviour
     {
         if (spriteRenderer != null)
             spriteRenderer.enabled = active;
+        ApplyLinkedRendererEnabled(active);
         if (boxCollider2D != null)
             boxCollider2D.enabled = active;
         if (numberText != null)
             numberText.gameObject.SetActive(active);
+    }
+
+    private void ApplyLinkedRendererColor(Color color)
+    {
+        PruneLinkedRenderers();
+        for (int i = 0; i < linkedTileRenderers.Count; i++)
+            SetLinkedRendererColor(linkedTileRenderers[i], color);
+    }
+
+    private void SetLinkedRendererColor(SpriteRenderer renderer, Color color)
+    {
+        if (renderer == null)
+            return;
+
+        if (linkedRendererPropertyBlock == null)
+            linkedRendererPropertyBlock = new MaterialPropertyBlock();
+
+        renderer.color = Color.white;
+        linkedRendererPropertyBlock.Clear();
+        linkedRendererPropertyBlock.SetColor(MaterialColorPropertyId, color);
+        renderer.SetPropertyBlock(linkedRendererPropertyBlock);
+    }
+
+    private void ApplyLinkedRendererEnabled(bool active)
+    {
+        PruneLinkedRenderers();
+        for (int i = 0; i < linkedTileRenderers.Count; i++)
+            linkedTileRenderers[i].enabled = active;
+    }
+
+    private void ApplyLinkedRendererSorting(int offset)
+    {
+        PruneLinkedRenderers();
+        int sortingOrder = baseSpriteSortingOrder + offset;
+        for (int i = 0; i < linkedTileRenderers.Count; i++)
+            linkedTileRenderers[i].sortingOrder = sortingOrder;
+    }
+
+    private void PruneLinkedRenderers()
+    {
+        for (int i = linkedTileRenderers.Count - 1; i >= 0; i--)
+        {
+            if (linkedTileRenderers[i] == null)
+                linkedTileRenderers.RemoveAt(i);
+        }
     }
 
     /// <summary>
