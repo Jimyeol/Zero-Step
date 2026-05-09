@@ -167,6 +167,7 @@ public class GameManager : MonoBehaviour
     private const string StageFailReasonInvalidCurrentStart = "invalid_current_start";
     private const string StageFailReasonFixedKnotMissed = "fixed_knot_missed";
     private const int ManualRetryHeartPenaltyMoveThreshold = 2;
+    private const float BoardFailureSnackbarDuration = 2.2f;
     private const float FixedKnotMissedSnackbarDuration = 2.2f;
     private const int VerboseDebugStageIndex = 6;
     private const float SessionFreeHeartRefillFirstThresholdSeconds = 10f * 60f;
@@ -228,6 +229,8 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private Tile currentStartTile;
     private Tile gameOverFocusTile;
+    private string pendingRestartGameOverSnackbarKey;
+    private float pendingRestartGameOverSnackbarDuration;
     /// <summary>게임오버 리셋 시 시작점 복원용. tiles[row, col] 인덱스.</summary>
     private int initialStartTileRow;
     private int initialStartTileCol;
@@ -3327,6 +3330,7 @@ public class GameManager : MonoBehaviour
             return false;
 
         string reason = StageFailureReasonFromBoardFailure(result.Reason);
+        ShowBoardFailureSnackbar(result.Reason);
         Debug.Log($"Game Over: {reason} focus={DescribeTileForDebug(result.FocusTile)}");
         return BeginGameOverSequence(reason, result.FocusTile);
     }
@@ -3908,6 +3912,37 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void ShowBoardFailureSnackbar(BoardFailureReason reason)
+    {
+        string localizationKey = BoardFailureSnackbarKey(reason);
+        if (string.IsNullOrEmpty(localizationKey))
+            return;
+
+        ShowGameOverSnackbar(localizationKey, Mathf.Max(gameplayRuleSnackbarDuration, BoardFailureSnackbarDuration));
+    }
+
+    private string BoardFailureSnackbarKey(BoardFailureReason reason)
+    {
+        switch (reason)
+        {
+            case BoardFailureReason.UnreachableRemainingTiles:
+                return "snackbar_gameover_unreachable_remaining_tiles";
+            case BoardFailureReason.HiddenUntriggerable:
+                return "snackbar_gameover_hidden_untriggerable";
+            case BoardFailureReason.ShortCircuitBlocked:
+                return "snackbar_gameover_short_circuit_blocked";
+            case BoardFailureReason.TwinLinkUnsatisfiable:
+                return "snackbar_gameover_twin_link_unsatisfiable";
+            case BoardFailureReason.InvalidCurrentStart:
+                return "snackbar_gameover_invalid_current_start";
+            case BoardFailureReason.NoLegalMove:
+                return "snackbar_gameover_no_legal_move";
+            case BoardFailureReason.None:
+            default:
+                return null;
+        }
+    }
+
     private bool CheckAndHandleMissedFixedKnot(int totalPathCount)
     {
         if (stageCleared || isGameOverSequencePlaying || tiles == null)
@@ -3940,14 +3975,41 @@ public class GameManager : MonoBehaviour
         if (tile == null || fixedKnot == null)
             return;
 
+        ShowGameOverSnackbar("snackbar_fixed_knot_missed", Mathf.Max(gameplayRuleSnackbarDuration, FixedKnotMissedSnackbarDuration));
+    }
+
+    private void ShowGameOverSnackbar(string localizationKey, float durationSeconds)
+    {
+        if (string.IsNullOrEmpty(localizationKey))
+            return;
+
+        pendingRestartGameOverSnackbarKey = localizationKey;
+        pendingRestartGameOverSnackbarDuration = Mathf.Max(0.1f, durationSeconds);
+
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
         if (mainUI == null)
             return;
 
-        mainUI.ShowGameplaySnackbar(
-            "snackbar_fixed_knot_missed",
-            Mathf.Max(gameplayRuleSnackbarDuration, FixedKnotMissedSnackbarDuration));
+        mainUI.ShowGameplaySnackbar(localizationKey, pendingRestartGameOverSnackbarDuration);
+    }
+
+    private void ReplayPendingGameOverSnackbarAfterRestart()
+    {
+        string localizationKey = pendingRestartGameOverSnackbarKey;
+        float durationSeconds = pendingRestartGameOverSnackbarDuration;
+        pendingRestartGameOverSnackbarKey = null;
+        pendingRestartGameOverSnackbarDuration = 0f;
+
+        if (string.IsNullOrEmpty(localizationKey))
+            return;
+
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI == null)
+            return;
+
+        mainUI.ShowGameplaySnackbar(localizationKey, Mathf.Max(0.1f, durationSeconds));
     }
 
     private bool BeginGameOverSequence(string reason, Tile failFocusTile = null)
@@ -4108,6 +4170,7 @@ public class GameManager : MonoBehaviour
 
         // 게임오버 후 리셋이 끝나면 진행도/스테이지 UI도 초기 상태로 복원
         RefreshMainUIForStage();
+        ReplayPendingGameOverSnackbarAfterRestart();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         IncrementBoardVersion("auto_restart_after_fail");

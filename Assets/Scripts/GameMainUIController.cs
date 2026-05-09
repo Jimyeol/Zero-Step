@@ -178,6 +178,7 @@ public class GameMainUIController : MonoBehaviour
     [SerializeField] private UIDocument uiDocument;
     [Header("배너 레이아웃")]
     [SerializeField] private float bottomBarExtraSpacing = 26f;
+    [SerializeField] private float bottomBarNoBannerReservePx = 80f;
     [SerializeField] [Range(0.1f, 1f)] private float bannerHeightPollInterval = 0.25f;
     [Header("스테이지 스낵바")]
     [SerializeField] private float stageSnackbarExtraSpacing = 220f;
@@ -5496,7 +5497,10 @@ public class GameMainUIController : MonoBehaviour
 
         float safeBottomPx = Mathf.Max(0f, currentSafeArea.yMin);
         float safeTopPx = Mathf.Max(0f, Screen.height - currentSafeArea.yMax);
-        float totalReservedBottomPx = safeBottomPx + Mathf.Max(0f, reservedBannerHeightPx);
+        float bannerReservedBottomPx = Mathf.Max(0f, reservedBannerHeightPx);
+        float noBannerReservedBottomPx = bannerReservedBottomPx > 0.5f ? 0f : Mathf.Max(0f, bottomBarNoBannerReservePx);
+        float contentReservedBottomPx = Mathf.Max(bannerReservedBottomPx, noBannerReservedBottomPx);
+        float totalReservedBottomPx = safeBottomPx + contentReservedBottomPx;
 
         if (topBar != null)
             topBar.style.paddingTop = TopHudBasePaddingPx + safeTopPx;
