@@ -5097,6 +5097,9 @@ public class GameManager : MonoBehaviour
                 tile.SetInitialNumber(cell.count);
                 if (data.startPoint.x == cell.x && data.startPoint.y == cell.y)
                     tile.SetAsStartPoint(true);
+                FixedKnotTile pendingFixedKnot = null;
+                int pendingFixedKnotTargetOrder = 1;
+                bool pendingFixedKnotIsAbsolute = false;
                 // CrossBlast/Blackout는 SetNumber 전에 추가 (Blackout은 초기화 시 숫자 노출 방지)
                 if (cell.type == "CrossBlast")
                 {
@@ -5117,9 +5120,9 @@ public class GameManager : MonoBehaviour
                 }
                 if (cell.type == "FixedKnot")
                 {
-                    var fixedKnot = tileObj.AddComponent<FixedKnotTile>();
-                    bool isAbsolute = cell.properties != null && cell.properties.isAbsolute;
-                    fixedKnot.Setup(cell.targetOrder > 0 ? cell.targetOrder : 1, isAbsolute);
+                    pendingFixedKnot = tileObj.AddComponent<FixedKnotTile>();
+                    pendingFixedKnotTargetOrder = cell.targetOrder > 0 ? cell.targetOrder : 1;
+                    pendingFixedKnotIsAbsolute = cell.properties != null && cell.properties.isAbsolute;
                 }
                 if (cell.type == "TwinLink")
                 {
@@ -5160,6 +5163,8 @@ public class GameManager : MonoBehaviour
                     igniter.Setup(cell.targetID ?? "");
                 }
                 tile.SetNumber(cell.count);
+                if (pendingFixedKnot != null)
+                    pendingFixedKnot.Setup(pendingFixedKnotTargetOrder, pendingFixedKnotIsAbsolute);
                 var placedIgniter = tileObj.GetComponent<IgniterTile>();
                 if (placedIgniter != null)
                     placedIgniter.RefreshVisualState();
