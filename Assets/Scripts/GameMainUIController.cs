@@ -968,6 +968,45 @@ public class GameMainUIController : MonoBehaviour
         uiButtonSfxAudioSource.PlayOneShot(uiButtonSfxClip, Mathf.Clamp01(uiButtonSfxVolume));
     }
 
+    private bool ShouldDisableAdsForDevelopmentBuild()
+    {
+        return isDebugBuildCached;
+    }
+
+    private void MarkAdsReadyWithoutLoading(string reason)
+    {
+        pendingBannerLoadFromInitialize = false;
+        pendingRewardedAdLoadFromInitialize = false;
+        pendingStageSkipRewardedAdLoadFromInitialize = false;
+        pendingInterstitialLoadFromInitialize = false;
+        splashBannerReady = true;
+        splashHeartRewardedReady = true;
+        splashStageSkipRewardedReady = true;
+        splashInterstitialReady = true;
+        reservedBannerHeightPx = 0f;
+        nextBannerHeightPollTime = 0f;
+
+        DestroyBannerAd();
+        DestroyRewardedAd();
+        DestroyStageSkipRewardedAd();
+        DestroyStageTransitionInterstitialAd();
+
+        if (bannerAdPlaceholder != null)
+        {
+            bannerAdPlaceholder.text = string.Empty;
+            bannerAdPlaceholder.style.display = DisplayStyle.None;
+        }
+
+        if (bannerAdContainer != null)
+        {
+            bannerAdContainer.style.display = DisplayStyle.None;
+            bannerAdContainer.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, 0f));
+        }
+
+        RefreshBottomLayout(force: true);
+        Debug.Log($"[GameMainUIController] Ads disabled for Development Build. reason={reason}");
+    }
+
     private void OnHintClicked()
     {
         FirebaseBootstrap.LogEvent("ui_button_click", new Dictionary<string, object>
@@ -992,6 +1031,18 @@ public class GameMainUIController : MonoBehaviour
         {
             if (gm.ShowHintPreview())
                 ConsumeHintCharge();
+            return;
+        }
+
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            FirebaseBootstrap.LogEvent("hint_reward_earned", new Dictionary<string, object>
+            {
+                { "reward_name", HintRewardName },
+                { "reward_amount", HintRewardAmount },
+                { "source", "development_build" }
+            });
+            gm.ShowHintPreview();
             return;
         }
 
@@ -1041,6 +1092,18 @@ public class GameMainUIController : MonoBehaviour
             return;
         }
 
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            FirebaseBootstrap.LogEvent("stage_skip_reward_earned", new Dictionary<string, object>
+            {
+                { "reward_name", StageSkipRewardName },
+                { "reward_amount", StageSkipRewardAmount },
+                { "source", "development_build" }
+            });
+            gm.LoadNextStageImmediate();
+            return;
+        }
+
         if (IsRemoveAdsEntitled())
         {
             ShowGameplaySnackbar("snackbar_skip_recharging", ("time", FormatAssistTimer(GetRemainingRechargeSeconds(skipNextRechargeUnix))));
@@ -1071,6 +1134,17 @@ public class GameMainUIController : MonoBehaviour
         Action completion = onCompleted ?? (() => { });
         if (completedStageIndex <= 0 || completedStageIndex % StageTransitionInterstitialInterval != 0)
         {
+            completion.Invoke();
+            return;
+        }
+
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            FirebaseBootstrap.LogEvent("stage_transition_interstitial_skipped_development", new Dictionary<string, object>
+            {
+                { "stage_index", completedStageIndex },
+                { "interval", StageTransitionInterstitialInterval }
+            });
             completion.Invoke();
             return;
         }
@@ -1775,7 +1849,7 @@ public class GameMainUIController : MonoBehaviour
             });
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
-            if (rewardedAd == null || !rewardedAd.CanShowAd())
+            if (!ShouldDisableAdsForDevelopmentBuild() && (rewardedAd == null || !rewardedAd.CanShowAd()))
                 LoadRewardedAd();
 #endif
         }
@@ -1943,6 +2017,13 @@ public class GameMainUIController : MonoBehaviour
         }
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            heartRefillAdButton.SetEnabled(true);
+            SetHeartRefillStatus(T("heart_status_editor"));
+            return;
+        }
+
         bool canShow = rewardedAd != null && rewardedAd.CanShowAd();
         heartRefillAdButton.SetEnabled(canShow);
         if (canShow)
@@ -1972,6 +2053,12 @@ public class GameMainUIController : MonoBehaviour
         }
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            CompleteHeartRefillAfterReward();
+            return;
+        }
+
         if (rewardedAd != null && rewardedAd.CanShowAd())
         {
             heartRefillAdButton?.SetEnabled(false);
@@ -1995,7 +2082,7 @@ public class GameMainUIController : MonoBehaviour
             ConfigureHeartDepletedPopupForRewardedAd();
             UpdateHeartRefillButtonState();
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
-            if (rewardedAd == null || !rewardedAd.CanShowAd())
+            if (!ShouldDisableAdsForDevelopmentBuild() && (rewardedAd == null || !rewardedAd.CanShowAd()))
                 LoadRewardedAd();
 #endif
             return;
@@ -4837,6 +4924,12 @@ public class GameMainUIController : MonoBehaviour
 
     private void InitializeBannerAd()
     {
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            MarkAdsReadyWithoutLoading("initialize");
+            return;
+        }
+
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         SetBannerPlaceholderText(isDebugBuildCached ? T("banner_loading_test") : T("banner_loading"));
         MobileAds.RaiseAdEventsOnUnityMainThread = true;
@@ -4895,6 +4988,13 @@ public class GameMainUIController : MonoBehaviour
 
     private void LoadRewardedAd()
     {
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            splashHeartRewardedReady = true;
+            UpdateHeartRefillButtonState();
+            return;
+        }
+
         if (isRewardedAdLoading)
             return;
 
@@ -4941,6 +5041,12 @@ public class GameMainUIController : MonoBehaviour
 
     private void LoadStageSkipRewardedAd()
     {
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            splashStageSkipRewardedReady = true;
+            return;
+        }
+
         if (isStageSkipRewardedAdLoading)
             return;
 
@@ -4982,6 +5088,12 @@ public class GameMainUIController : MonoBehaviour
 
     private void LoadStageTransitionInterstitialAd()
     {
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            splashInterstitialReady = true;
+            return;
+        }
+
         if (isStageTransitionInterstitialAdLoading)
             return;
 
@@ -5022,6 +5134,12 @@ public class GameMainUIController : MonoBehaviour
 
     private void ShowRewardedAdInternal()
     {
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            CompleteHeartRefillAfterReward();
+            return;
+        }
+
         if (rewardedAd == null || !rewardedAd.CanShowAd())
         {
             SetHeartRefillStatus(T("heart_status_prepare_retry"));
@@ -5040,6 +5158,18 @@ public class GameMainUIController : MonoBehaviour
 
     private void TryShowAssistRewardedAd(string assistType, string rewardName, int rewardAmount, Action onRewardEarned)
     {
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            FirebaseBootstrap.LogEvent($"{assistType}_reward_earned", new Dictionary<string, object>
+            {
+                { "reward_name", rewardName },
+                { "reward_amount", rewardAmount },
+                { "source", "development_build" }
+            });
+            onRewardEarned?.Invoke();
+            return;
+        }
+
         if (stageSkipRewardedAd == null || !stageSkipRewardedAd.CanShowAd())
         {
             FirebaseBootstrap.LogEvent($"{assistType}_reward_ad_not_ready");
@@ -5065,6 +5195,9 @@ public class GameMainUIController : MonoBehaviour
     private bool TryShowStageTransitionInterstitial(Action onCompleted)
     {
         if (onCompleted == null)
+            return false;
+
+        if (ShouldDisableAdsForDevelopmentBuild())
             return false;
 
         if (isStageTransitionInterstitialShowing)
@@ -5154,7 +5287,8 @@ public class GameMainUIController : MonoBehaviour
         isStageTransitionInterstitialShowing = false;
 
         DestroyStageTransitionInterstitialAd();
-        LoadStageTransitionInterstitialAd();
+        if (!ShouldDisableAdsForDevelopmentBuild())
+            LoadStageTransitionInterstitialAd();
 
         FirebaseBootstrap.LogEvent("stage_transition_interstitial_complete", new Dictionary<string, object>
         {
@@ -5167,6 +5301,12 @@ public class GameMainUIController : MonoBehaviour
     private void LoadBannerAd()
     {
         DestroyBannerAd();
+
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            MarkAdsReadyWithoutLoading("load_banner");
+            return;
+        }
 
         string adUnitId = ResolveBannerAdUnitId();
         if (string.IsNullOrEmpty(adUnitId))
@@ -5305,6 +5445,9 @@ public class GameMainUIController : MonoBehaviour
 
     private float EstimateInitialBannerHeightPx()
     {
+        if (ShouldDisableAdsForDevelopmentBuild())
+            return 0f;
+
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         AdSize estimatedSize = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(AdSize.FullWidth);
         if (estimatedSize != null && estimatedSize.Height > 0)
