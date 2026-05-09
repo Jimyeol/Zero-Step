@@ -271,8 +271,11 @@ public class GameManager : MonoBehaviour
     private Coroutine postStageStartedFailureCheckRoutine;
     private const int HintPreviewMaxMoves = 8;
     private const int HintPreviewMaxPathTiles = HintPreviewMaxMoves + 1;
-    private const int HintSolverNodeLimit = 120000;
-    private const float HintSolverTimeLimitSeconds = 0.12f;
+    private const int HintQuickSolverNodeLimit = 120000;
+    private const float HintQuickSolverTimeLimitSeconds = 0.12f;
+    private const int HintSolverNodeLimit = 3000000;
+    private const float HintSolverTimeLimitSeconds = 3f;
+    private const float HintLoadingMinimumVisibleSeconds = 0.45f;
     private int boardVersion;
     private int cachedHintBoardVersion = -1;
     private Tile cachedHintStartTile;
@@ -286,6 +289,8 @@ public class GameManager : MonoBehaviour
     private LineRenderer hintPreviewFlowLine;
     private Material hintPreviewMaterial;
     private Coroutine hintPreviewRoutine;
+    private Coroutine hintPreviewRequestRoutine;
+    private bool isHintPreviewRequestRunning;
     private int activeHintPreviewLineCount;
     private readonly List<Vector3> activeHintPreviewPoints = new List<Vector3>(HintPreviewMaxPathTiles);
     private static readonly Color[] TwinLinkRandomPalette =
@@ -1545,6 +1550,67 @@ public class GameManager : MonoBehaviour
         return TryGetHintPreviewPath(out _);
     }
 
+    public bool IsHintPreviewRequestRunning => isHintPreviewRequestRunning;
+
+    public void CheckHintPreviewAvailabilityWithLoading(Action<bool> onComplete)
+    {
+        if (isHintPreviewRequestRunning)
+            return;
+
+        hintPreviewRequestRoutine = StartCoroutine(CheckHintPreviewAvailabilityRoutine(onComplete));
+    }
+
+    private IEnumerator CheckHintPreviewAvailabilityRoutine(Action<bool> onComplete)
+    {
+        isHintPreviewRequestRunning = true;
+
+        bool hasPath = false;
+        bool loadingShown = false;
+        float loadingStartedAt = 0f;
+        try
+        {
+            hasPath = TryGetHintPreviewPath(out _, useQuickBudget: true);
+            if (!hasPath && IsHintSolverBudgetExhaustedStatus())
+            {
+                SetHintLoadingVisible(true);
+                loadingShown = true;
+                loadingStartedAt = Time.realtimeSinceStartup;
+                yield return null;
+
+                hasPath = TryGetHintPreviewPath(out _, useQuickBudget: false);
+
+                float remainingVisibleTime = HintLoadingMinimumVisibleSeconds - (Time.realtimeSinceStartup - loadingStartedAt);
+                if (remainingVisibleTime > 0f)
+                    yield return new WaitForSecondsRealtime(remainingVisibleTime);
+            }
+        }
+        finally
+        {
+            if (loadingShown)
+                SetHintLoadingVisible(false);
+            isHintPreviewRequestRunning = false;
+            hintPreviewRequestRoutine = null;
+        }
+
+        if (!hasPath)
+        {
+            LogHintUnavailable();
+            ShowHintSnackbar(GetHintUnavailableSnackbarKey());
+            TrackHintEvent("hint_path_none", 0);
+        }
+
+        onComplete?.Invoke(hasPath);
+    }
+
+    public void ShowHintPreviewWithLoading(Action<bool> onComplete = null)
+    {
+        CheckHintPreviewAvailabilityWithLoading(hasPath =>
+        {
+            bool shown = hasPath && ShowHintPreview();
+            onComplete?.Invoke(shown);
+        });
+    }
+
     public bool ShowHintPreview()
     {
         ClearHintPreview();
@@ -1552,7 +1618,7 @@ public class GameManager : MonoBehaviour
         if (!TryGetHintPreviewPath(out List<Tile> path))
         {
             LogHintUnavailable();
-            ShowHintSnackbar("snackbar_hint_no_path");
+            ShowHintSnackbar(GetHintUnavailableSnackbarKey());
             TrackHintEvent("hint_path_none", 0);
             return false;
         }
@@ -1565,7 +1631,28 @@ public class GameManager : MonoBehaviour
 
     public void CancelHintPreview()
     {
+        if (hintPreviewRequestRoutine != null)
+        {
+            StopCoroutine(hintPreviewRequestRoutine);
+            hintPreviewRequestRoutine = null;
+        }
+
+        isHintPreviewRequestRunning = false;
+        SetHintLoadingVisible(false);
         ClearHintPreview();
+    }
+
+    private void SetHintLoadingVisible(bool visible)
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI == null)
+            return;
+
+        if (visible)
+            mainUI.ShowHintLoading(HintSolverTimeLimitSeconds);
+        else
+            mainUI.HideHintLoading();
     }
 
     private void TrackHintEvent(string eventName, int moveCount)
@@ -1586,7 +1673,22 @@ public class GameManager : MonoBehaviour
             mainUI.ShowGameplaySnackbar(localizationKey, hintSnackbarDuration);
     }
 
-    private bool TryGetHintPreviewPath(out List<Tile> path)
+    private string GetHintUnavailableSnackbarKey()
+    {
+        if (string.IsNullOrEmpty(cachedHintSolverStatus))
+            return "snackbar_hint_no_path";
+        if (IsHintSolverBudgetExhaustedStatus())
+            return "snackbar_hint_solver_timeout";
+
+        return "snackbar_hint_no_solution_restart";
+    }
+
+    private bool IsHintSolverBudgetExhaustedStatus()
+    {
+        return cachedHintSolverStatus == "time_limit" || cachedHintSolverStatus == "node_limit";
+    }
+
+    private bool TryGetHintPreviewPath(out List<Tile> path, bool useQuickBudget = false)
     {
         path = cachedHintPath;
         if (stageCleared || isGameOverSequencePlaying || isDragging || tiles == null)
@@ -1630,13 +1732,15 @@ public class GameManager : MonoBehaviour
         List<Tile> workingPath = new List<Tile>(Mathf.Max(HintPreviewMaxPathTiles, initialState.TotalRemainingCount + 1)) { currentStartTile };
         List<Tile> solutionPath = new List<Tile>(workingPath.Capacity);
         HashSet<string> failedCache = new HashSet<string>();
-        HintSolverBudget budget = new HintSolverBudget(HintSolverNodeLimit, HintSolverTimeLimitSeconds);
+        int nodeLimit = useQuickBudget ? HintQuickSolverNodeLimit : HintSolverNodeLimit;
+        float timeLimitSeconds = useQuickBudget ? HintQuickSolverTimeLimitSeconds : HintSolverTimeLimitSeconds;
+        HintSolverBudget budget = new HintSolverBudget(nodeLimit, timeLimitSeconds);
         bool solved = TrySolveHintPath(initialState, workingPath, failedCache, budget, solutionPath);
 
         if (!solved || solutionPath.Count <= 1)
         {
-            cachedHintUnavailable = true;
             cachedHintSolverStatus = budget.IsExhausted ? budget.Status : "not_found";
+            cachedHintUnavailable = !budget.IsExhausted;
             Debug.Log($"[힌트 solver 실패] stage={currentStageIndex} boardVersion={boardVersion} start={FormatHintTile(currentStartTile)} remaining={initialState.TotalRemainingCount} nodes={budget.NodeCount} failedCache={failedCache.Count} status={cachedHintSolverStatus}");
             return false;
         }

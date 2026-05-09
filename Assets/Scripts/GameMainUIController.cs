@@ -210,6 +210,11 @@ public class GameMainUIController : MonoBehaviour
     private Image hintIcon;
     private VisualElement hintBadge;
     private Label hintBadgeText;
+    private VisualElement hintLoadingOverlay;
+    private ProgressBar hintLoadingProgress;
+    private Label hintLoadingLabel;
+    private Coroutine hintLoadingRoutine;
+    private bool isHintLoadingVisible;
     private Button skipButton;
     private Image skipIcon;
     private VisualElement skipBadge;
@@ -458,6 +463,9 @@ public class GameMainUIController : MonoBehaviour
         hintIcon = root.Q<Image>("HintIcon");
         hintBadge = root.Q<VisualElement>("HintBadge");
         hintBadgeText = root.Q<Label>("HintBadgeText");
+        hintLoadingOverlay = root.Q<VisualElement>("HintLoadingOverlay");
+        hintLoadingProgress = root.Q<ProgressBar>("HintLoadingProgress");
+        hintLoadingLabel = root.Q<Label>("HintLoadingLabel");
         skipButton = root.Q<Button>("SkipButton");
         skipIcon = root.Q<Image>("SkipIcon");
         skipBadge = root.Q<VisualElement>("SkipAdBadge");
@@ -588,6 +596,8 @@ public class GameMainUIController : MonoBehaviour
             heartDepletedOverlay.style.display = DisplayStyle.None;
         if (tutorialOverlay != null)
             tutorialOverlay.style.display = DisplayStyle.None;
+        if (hintLoadingOverlay != null)
+            hintLoadingOverlay.style.display = DisplayStyle.None;
         if (stageSnackbar != null)
         {
             stageSnackbar.style.display = DisplayStyle.None;
@@ -836,6 +846,7 @@ public class GameMainUIController : MonoBehaviour
     {
         StopStageSnackbarPlayback();
         StopTutorialAnimation();
+        HideHintLoading();
         if (splashFadeRoutine != null)
             StopCoroutine(splashFadeRoutine);
         splashFadeRoutine = null;
@@ -1018,56 +1029,59 @@ public class GameMainUIController : MonoBehaviour
         var gm = FindFirstObjectByType<GameManager>();
         if (gm == null)
             return;
+        if (gm.IsHintPreviewRequestRunning)
+            return;
 
         RefillAssistChargesFromElapsedTime();
-        bool hasAvailableHint = gm.HasAvailableHintPreview();
-        Debug.Log($"[힌트 버튼] pressed stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} removeAds={IsRemoveAdsEntitled()} hasPath={hasAvailableHint}");
-        if (!hasAvailableHint)
-        {
-            gm.ShowHintPreview();
-            return;
-        }
+        Debug.Log($"[힌트 버튼] pressed stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} removeAds={IsRemoveAdsEntitled()} solving=True");
 
-        if (hintCharges > 0)
+        gm.CheckHintPreviewAvailabilityWithLoading(hasAvailableHint =>
         {
-            if (gm.ShowHintPreview())
-                ConsumeHintCharge();
-            return;
-        }
+            Debug.Log($"[힌트 버튼] solved stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} removeAds={IsRemoveAdsEntitled()} hasPath={hasAvailableHint}");
+            if (gm == null || !hasAvailableHint)
+                return;
 
-        if (ShouldDisableAdsForDevelopmentBuild())
-        {
+            if (hintCharges > 0)
+            {
+                if (gm.ShowHintPreview())
+                    ConsumeHintCharge();
+                return;
+            }
+
+            if (ShouldDisableAdsForDevelopmentBuild())
+            {
+                FirebaseBootstrap.LogEvent("hint_reward_earned", new Dictionary<string, object>
+                {
+                    { "reward_name", HintRewardName },
+                    { "reward_amount", HintRewardAmount },
+                    { "source", "development_build" }
+                });
+                gm.ShowHintPreview();
+                return;
+            }
+
+            if (IsRemoveAdsEntitled())
+            {
+                ShowGameplaySnackbar("snackbar_hint_recharging", ("time", FormatAssistTimer(GetRemainingRechargeSeconds(hintNextRechargeUnix))));
+                return;
+            }
+
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+            TryShowAssistRewardedAd("hint", HintRewardName, HintRewardAmount, () =>
+            {
+                if (gm != null)
+                    gm.ShowHintPreview();
+            });
+#else
             FirebaseBootstrap.LogEvent("hint_reward_earned", new Dictionary<string, object>
             {
                 { "reward_name", HintRewardName },
                 { "reward_amount", HintRewardAmount },
-                { "source", "development_build" }
+                { "source", "editor" }
             });
             gm.ShowHintPreview();
-            return;
-        }
-
-        if (IsRemoveAdsEntitled())
-        {
-            ShowGameplaySnackbar("snackbar_hint_recharging", ("time", FormatAssistTimer(GetRemainingRechargeSeconds(hintNextRechargeUnix))));
-            return;
-        }
-
-#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
-        TryShowAssistRewardedAd("hint", HintRewardName, HintRewardAmount, () =>
-        {
-            if (gm != null)
-                gm.ShowHintPreview();
-        });
-#else
-        FirebaseBootstrap.LogEvent("hint_reward_earned", new Dictionary<string, object>
-        {
-            { "reward_name", HintRewardName },
-            { "reward_amount", HintRewardAmount },
-            { "source", "editor" }
-        });
-        gm.ShowHintPreview();
 #endif
+        });
     }
 
     /// <summary>스킵 버튼 클릭: 충전분을 사용하거나 보상형 광고를 시청하면 현재 스테이지를 건너뛴다.</summary>
@@ -1283,6 +1297,70 @@ public class GameMainUIController : MonoBehaviour
         RefreshAssistBadge(skipBadge, skipBadgeText, skipCharges, MaxSkipCharges, skipNextRechargeUnix, "skip");
     }
 
+    public void ShowHintLoading(float durationSeconds)
+    {
+        isHintLoadingVisible = true;
+        if (hintButton != null)
+            hintButton.SetEnabled(false);
+        if (hintLoadingOverlay == null)
+            return;
+
+        if (hintLoadingRoutine != null)
+        {
+            StopCoroutine(hintLoadingRoutine);
+            hintLoadingRoutine = null;
+        }
+
+        hintLoadingOverlay.style.display = DisplayStyle.Flex;
+        hintLoadingOverlay.style.opacity = 1f;
+        if (hintLoadingLabel != null)
+            hintLoadingLabel.text = T("hint_loading");
+        if (hintLoadingProgress != null)
+        {
+            hintLoadingProgress.lowValue = 0f;
+            hintLoadingProgress.highValue = 100f;
+            hintLoadingProgress.value = 4f;
+        }
+
+        hintLoadingRoutine = StartCoroutine(PlayHintLoadingProgress(Mathf.Max(0.3f, durationSeconds)));
+    }
+
+    public void HideHintLoading()
+    {
+        isHintLoadingVisible = false;
+        if (hintLoadingRoutine != null)
+        {
+            StopCoroutine(hintLoadingRoutine);
+            hintLoadingRoutine = null;
+        }
+
+        if (hintLoadingProgress != null)
+            hintLoadingProgress.value = 100f;
+        if (hintLoadingOverlay != null)
+        {
+            hintLoadingOverlay.style.opacity = 0f;
+            hintLoadingOverlay.style.display = DisplayStyle.None;
+        }
+
+        RefreshAssistButtons();
+    }
+
+    private IEnumerator PlayHintLoadingProgress(float durationSeconds)
+    {
+        float elapsed = 0f;
+        while (isHintLoadingVisible)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            if (hintLoadingProgress != null)
+            {
+                float normalized = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, durationSeconds));
+                hintLoadingProgress.value = Mathf.Lerp(4f, 96f, normalized);
+            }
+
+            yield return null;
+        }
+    }
+
     private void RefreshAssistBadge(VisualElement badge, Label label, int charges, int maxCharges, long nextRechargeUnix, string assistType)
     {
         if (badge == null || label == null)
@@ -1306,7 +1384,7 @@ public class GameMainUIController : MonoBehaviour
         }
 
         if (hintButton != null && assistType == "hint")
-            hintButton.SetEnabled(true);
+            hintButton.SetEnabled(!isHintLoadingVisible);
         if (skipButton != null && assistType == "skip")
             skipButton.SetEnabled(true);
     }
