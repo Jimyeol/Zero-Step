@@ -28,6 +28,8 @@ public class FixedKnotTile : MonoBehaviour
     [SerializeField] private float readyPulseDuration = 0.65f;
     [Tooltip("잠금 해제 burst 시간(초)")]
     [SerializeField] private float unlockBurstDuration = 0.24f;
+    [Tooltip("count 감소 시 빠르게 한 바퀴 회전하는 시간(초)")]
+    [SerializeField] private float countSpinDuration = 0.18f;
 
     private Tile tile;
     private SpriteRenderer tileSpriteRenderer;
@@ -40,11 +42,15 @@ public class FixedKnotTile : MonoBehaviour
     private Sequence solvedLeaveSequence;
     private Sequence deniedColorSequence;
     private Tween positionShakeTween;
+    private Tween countSpinTween;
     private int displayRemaining = 99;
     private Sprite defaultSprite;
     private Sprite lockedSprite;
     private Vector3 baseLocalPosition;
+    private Quaternion baseLocalRotation;
     private bool hasBaseLocalPosition;
+    private bool hasBaseLocalRotation;
+    private bool hasDisplayRemainingInitialized;
     private bool hasBeenSteppedCorrectly;
     private FixedKnotVisualState visualState = FixedKnotVisualState.None;
 
@@ -93,6 +99,7 @@ public class FixedKnotTile : MonoBehaviour
     private void Start()
     {
         CacheBaseLocalPosition();
+        CacheBaseLocalRotation();
     }
 
     private TMP_Text GetTileNumberText()
@@ -388,8 +395,7 @@ public class FixedKnotTile : MonoBehaviour
         ApplyLockedSprite();
         ApplySpriteColor(ReadyNowColor);
         ApplyOrderBaseline(ReadyNowColor, tile != null && tile.IsActive && displayRemaining > 0);
-        ApplyAccentBaseline(ReadyNowColor, 0.16f, 1.08f);
-        StartPulseLoop(ReadyNowColor, 0.14f, 0.34f, 1.08f, 1.2f, readyPulseDuration, true);
+        ApplyAccentBaseline(ReadyNowColor, 0.12f, 1.08f);
     }
 
     private void ApplyEnteredCorrectVisual(bool force)
@@ -463,13 +469,27 @@ public class FixedKnotTile : MonoBehaviour
     /// </summary>
     public void UpdateVisual(int totalPathCount)
     {
+        int previousRemaining = displayRemaining;
         int remaining = Mathf.Max(0, targetOrderValue - totalPathCount);
+        bool shouldSpinForCountdown = ShouldPlayCountdownSpin(previousRemaining, remaining);
         displayRemaining = remaining;
+        hasDisplayRemainingInitialized = true;
 
         if (orderText != null)
             orderText.text = remaining.ToString();
 
         ApplyVisualForCurrentState();
+        if (shouldSpinForCountdown)
+            PlayCountDecrementSpin();
+    }
+
+    private bool ShouldPlayCountdownSpin(int previousRemaining, int nextRemaining)
+    {
+        if (!hasDisplayRemainingInitialized)
+            return false;
+        if (tile == null || !tile.IsActive || hasBeenSteppedCorrectly || IsSolvedState())
+            return false;
+        return previousRemaining > 0 && nextRemaining > 0 && nextRemaining < previousRemaining;
     }
 
     public void RefreshVisualState()
@@ -513,6 +533,12 @@ public class FixedKnotTile : MonoBehaviour
         PlayCorrectEntryFeedback();
     }
 
+    /// <summary>FixedKnot count가 1 감소했을 때 호출.</summary>
+    public void OnCountDecreased()
+    {
+        PlayCountDecrementSpin();
+    }
+
     /// <summary>타일을 밟은 뒤 다음 타일로 떠날 때 GameManager가 호출.</summary>
     public void OnLeftByPlayer()
     {
@@ -521,6 +547,49 @@ public class FixedKnotTile : MonoBehaviour
 
         if (tile.CurrentNumber == 0)
             PlaySolvedLeavingFeedback();
+    }
+
+    private void PlayCountDecrementSpin()
+    {
+        CacheBaseLocalRotation();
+
+        if (countSpinTween != null && countSpinTween.IsActive())
+            countSpinTween.Kill();
+        if (tileSpriteRenderer == null)
+            return;
+
+        ResetSpinRotation();
+        countSpinTween = transform
+            .DOLocalRotate(new Vector3(0f, 0f, -360f), countSpinDuration, RotateMode.FastBeyond360)
+            .SetRelative(true)
+            .SetEase(Ease.OutCubic)
+            .SetUpdate(true)
+            .OnUpdate(CounterRotateOrderText)
+            .OnKill(() =>
+            {
+                ResetSpinRotation();
+                countSpinTween = null;
+            })
+            .OnComplete(() =>
+            {
+                ResetSpinRotation();
+                countSpinTween = null;
+            });
+    }
+
+    private void CounterRotateOrderText()
+    {
+        if (orderText == null)
+            return;
+
+        orderText.transform.localRotation = Quaternion.Inverse(transform.localRotation) * baseLocalRotation;
+    }
+
+    private void ResetSpinRotation()
+    {
+        transform.localRotation = baseLocalRotation;
+        if (orderText != null)
+            orderText.transform.localRotation = Quaternion.identity;
     }
 
     private void PlaySolvedLeavingFeedback()
@@ -619,6 +688,15 @@ public class FixedKnotTile : MonoBehaviour
         hasBaseLocalPosition = true;
     }
 
+    private void CacheBaseLocalRotation()
+    {
+        if (hasBaseLocalRotation)
+            return;
+
+        baseLocalRotation = transform.localRotation;
+        hasBaseLocalRotation = true;
+    }
+
     private void PlayPositionShake(float duration, float strength, int vibrato)
     {
         CacheBaseLocalPosition();
@@ -647,9 +725,14 @@ public class FixedKnotTile : MonoBehaviour
     {
         hasBeenSteppedCorrectly = false;
         displayRemaining = targetOrderValue;
+        hasDisplayRemainingInitialized = true;
         StopVisualTweens(true);
         if (positionShakeTween != null && positionShakeTween.IsActive())
             positionShakeTween.Kill();
+        if (countSpinTween != null && countSpinTween.IsActive())
+            countSpinTween.Kill();
+        CacheBaseLocalRotation();
+        ResetSpinRotation();
 
         ApplyLockedVisual();
 
@@ -678,6 +761,10 @@ public class FixedKnotTile : MonoBehaviour
         StopVisualTweens(true);
         if (positionShakeTween != null && positionShakeTween.IsActive())
             positionShakeTween.Kill();
+        if (countSpinTween != null && countSpinTween.IsActive())
+            countSpinTween.Kill();
+        CacheBaseLocalRotation();
+        ResetSpinRotation();
         if (orderText != null)
             Destroy(orderText.gameObject);
         if (accentRenderer != null)

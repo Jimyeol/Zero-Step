@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.Video;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
 using GoogleMobileAds.Api;
 #endif
@@ -82,7 +85,13 @@ public class GameMainUIController : MonoBehaviour
     private const string FixedKnotSpriteResourcePath = "Sprites/fixed_knot_tile";
     private const string IgniterSpriteResourcePath = "Sprites/igniter_tile";
     private const string BlindCurtainSpriteResourcePath = "Sprites/blind_curtain_tile";
-    private const string DefaultUIButtonSfxResourcePath = "Sounds/ui_button";
+    private const string DefaultUIButtonSfxResourcePath = "Sounds/click";
+    private const string DefaultCancelSfxResourcePath = "Sounds/cancel";
+    private const string DefaultConfirmSfxResourcePath = "Sounds/confirm";
+    private const string DefaultSnackbarSfxResourcePath = "Sounds/snackbar";
+    private const string DefaultHintSfxResourcePath = "Sounds/hint";
+    private const string DefaultSkipSfxResourcePath = "Sounds/skip";
+    private const float UISfxVolumeMultiplier = 0.5f;
     private const string DefaultSplashSpriteResourcePath = "Sprites/splash";
     private const string DefaultSplashVideoResourcePath = "Sprites/splash_video";
 
@@ -185,6 +194,12 @@ public class GameMainUIController : MonoBehaviour
     [SerializeField] [Range(1f, 8f)] private float stageSnackbarDefaultDuration = 2.8f;
     [Header("UI 버튼 사운드")]
     [SerializeField] private string uiButtonSfxResourcePath = DefaultUIButtonSfxResourcePath;
+    [SerializeField] private AudioClip clickSfxClip;
+    [SerializeField] private AudioClip cancelSfxClip;
+    [SerializeField] private AudioClip confirmSfxClip;
+    [SerializeField] private AudioClip snackbarSfxClip;
+    [SerializeField] private AudioClip hintSfxClip;
+    [SerializeField] private AudioClip skipSfxClip;
     [SerializeField] [Range(0f, 1f)] private float uiButtonSfxVolume = 1f;
     [Header("스플래시")]
     [SerializeField] private string splashSpriteResourcePath = DefaultSplashSpriteResourcePath;
@@ -422,6 +437,15 @@ public class GameMainUIController : MonoBehaviour
     private float displayedProgressValue;
     private Coroutine progressAnimRoutine;
     private readonly Dictionary<VisualElement, int> buttonPressAnimationVersion = new Dictionary<VisualElement, int>();
+
+    private enum UISfxKind
+    {
+        Click,
+        Cancel,
+        Confirm,
+        Hint,
+        Skip
+    }
     private readonly Dictionary<VisualElement, int> heartAnimationVersion = new Dictionary<VisualElement, int>();
     private int heartPopupAnimationVersion;
 
@@ -748,14 +772,7 @@ public class GameMainUIController : MonoBehaviour
             heartRefillAdButton.clicked += OnHeartRefillAdButtonClicked;
 
         // 하단 힌트/리셋/스킵/광고제거 버튼 아이콘 및 클릭 로그
-        if (hintIcon != null)
-        {
-            Sprite sprite = Resources.Load<Sprite>("Sprites/help");
-            if (sprite != null)
-                hintIcon.sprite = sprite;
-            else
-                Debug.LogWarning("[GameMainUIController] Resources/Sprites/help.png 스프라이트를 찾을 수 없습니다.");
-        }
+        AssignTexture(hintIcon, "Sprites/hint", "hint.png");
         if (skipIcon != null)
         {
             Sprite sprite = Resources.Load<Sprite>("Sprites/skip");
@@ -882,25 +899,46 @@ public class GameMainUIController : MonoBehaviour
         uiButtonSfxAudioSource.dopplerLevel = 0f;
         uiButtonSfxAudioSource.rolloffMode = AudioRolloffMode.Linear;
 
-        if (uiButtonSfxClip == null)
+        string clickResourcePath = string.IsNullOrWhiteSpace(uiButtonSfxResourcePath)
+            ? DefaultUIButtonSfxResourcePath
+            : uiButtonSfxResourcePath;
+        if (string.Equals(clickResourcePath, "Sounds/ui_button", StringComparison.OrdinalIgnoreCase))
+            clickResourcePath = DefaultUIButtonSfxResourcePath;
+
+        clickSfxClip = ResolveUISfxClip(clickSfxClip, clickResourcePath);
+        cancelSfxClip = ResolveUISfxClip(cancelSfxClip, DefaultCancelSfxResourcePath);
+        confirmSfxClip = ResolveUISfxClip(confirmSfxClip, DefaultConfirmSfxResourcePath);
+        snackbarSfxClip = ResolveUISfxClip(snackbarSfxClip, DefaultSnackbarSfxResourcePath);
+        hintSfxClip = ResolveUISfxClip(hintSfxClip, DefaultHintSfxResourcePath);
+        skipSfxClip = ResolveUISfxClip(skipSfxClip, DefaultSkipSfxResourcePath);
+
+        uiButtonSfxClip = clickSfxClip;
+        if (uiButtonSfxClip == null && !uiButtonSfxMissingLogged)
         {
-            string safePath = string.IsNullOrWhiteSpace(uiButtonSfxResourcePath)
-                ? DefaultUIButtonSfxResourcePath
-                : uiButtonSfxResourcePath;
-            uiButtonSfxClip = Resources.Load<AudioClip>(safePath);
-            if (uiButtonSfxClip == null && !uiButtonSfxMissingLogged)
-            {
-                uiButtonSfxMissingLogged = true;
-                Debug.LogWarning($"[GameMainUIController] UI 버튼 사운드를 찾을 수 없습니다: Resources/{safePath}.wav");
-            }
+            uiButtonSfxMissingLogged = true;
+            Debug.LogWarning("[GameMainUIController] 기본 클릭 사운드를 찾을 수 없습니다: Assets/Sounds/click.wav 또는 Resources/Sounds/click.wav");
         }
+    }
+
+    private AudioClip ResolveUISfxClip(AudioClip assignedClip, string resourcePath)
+    {
+        if (assignedClip != null)
+            return assignedClip;
+        if (!string.IsNullOrWhiteSpace(resourcePath))
+        {
+            AudioClip resourceClip = Resources.Load<AudioClip>(resourcePath);
+            if (resourceClip != null)
+                return resourceClip;
+        }
+        return null;
     }
 
     private void SetupButtonClickAnimations()
     {
         RegisterButtonClickAnimation(settingButton);
-        RegisterButtonClickAnimation(hintButton);
-        RegisterButtonClickAnimation(skipButton);
+        RegisterButtonClickAnimation(settingCloseButton, sfxKind: UISfxKind.Cancel);
+        RegisterButtonClickAnimation(hintButton, sfxKind: UISfxKind.Hint);
+        RegisterButtonClickAnimation(skipButton, sfxKind: UISfxKind.Skip);
         RegisterButtonClickAnimation(resetButton);
         RegisterButtonClickAnimation(blockAdsButton, useWarmPulse: true);
 
@@ -914,17 +952,17 @@ public class GameMainUIController : MonoBehaviour
         RegisterButtonClickAnimation(resetDataButton, useWarmPulse: true);
         RegisterButtonClickAnimation(privacyPolicyButton);
         RegisterButtonClickAnimation(termsButton);
-        RegisterButtonClickAnimation(tutorialCloseButton);
+        RegisterButtonClickAnimation(tutorialCloseButton, sfxKind: UISfxKind.Cancel);
         RegisterButtonClickAnimation(tutorialPreviousButton);
         RegisterButtonClickAnimation(tutorialNextButton);
-        RegisterButtonClickAnimation(tutorialConfirmButton, useWarmPulse: true);
-        RegisterButtonClickAnimation(resetConfirmCancelButton);
-        RegisterButtonClickAnimation(resetConfirmOkButton, useWarmPulse: true);
-        RegisterButtonClickAnimation(languageSelectCloseButton);
+        RegisterButtonClickAnimation(tutorialConfirmButton, useWarmPulse: true, sfxKind: UISfxKind.Confirm);
+        RegisterButtonClickAnimation(resetConfirmCancelButton, sfxKind: UISfxKind.Cancel);
+        RegisterButtonClickAnimation(resetConfirmOkButton, useWarmPulse: true, sfxKind: UISfxKind.Confirm);
+        RegisterButtonClickAnimation(languageSelectCloseButton, sfxKind: UISfxKind.Cancel);
         RegisterButtonClickAnimation(heartRefillAdButton, useWarmPulse: true);
     }
 
-    private void RegisterButtonClickAnimation(Button button, bool useWarmPulse = false)
+    private void RegisterButtonClickAnimation(Button button, bool useWarmPulse = false, UISfxKind sfxKind = UISfxKind.Click)
     {
         if (button == null)
             return;
@@ -933,15 +971,15 @@ public class GameMainUIController : MonoBehaviour
         if (useWarmPulse)
             button.AddToClassList(NeonPressWarmClass);
 
-        button.clicked += () => PlayButtonClickAnimation(button);
+        button.clicked += () => PlayButtonClickAnimation(button, sfxKind);
     }
 
-    private void PlayButtonClickAnimation(VisualElement button)
+    private void PlayButtonClickAnimation(VisualElement button, UISfxKind sfxKind)
     {
         if (button == null)
             return;
 
-        PlayUIButtonSfx();
+        PlayUIButtonSfx(sfxKind);
 
         int version = 1;
         if (buttonPressAnimationVersion.TryGetValue(button, out int previousVersion))
@@ -973,11 +1011,45 @@ public class GameMainUIController : MonoBehaviour
         return buttonPressAnimationVersion.TryGetValue(button, out int currentVersion) && currentVersion == expectedVersion;
     }
 
-    private void PlayUIButtonSfx()
+    private void PlayUIButtonSfx(UISfxKind sfxKind = UISfxKind.Click)
     {
-        if (uiButtonSfxAudioSource == null || uiButtonSfxClip == null)
+        if (uiButtonSfxAudioSource == null)
             return;
-        uiButtonSfxAudioSource.PlayOneShot(uiButtonSfxClip, Mathf.Clamp01(uiButtonSfxVolume));
+
+        AudioClip clip = GetUISfxClip(sfxKind);
+        if (clip == null)
+            return;
+        uiButtonSfxAudioSource.PlayOneShot(clip, GetUISfxVolume());
+    }
+
+    private void PlaySnackbarSfx()
+    {
+        if (uiButtonSfxAudioSource == null || snackbarSfxClip == null)
+            return;
+        uiButtonSfxAudioSource.PlayOneShot(snackbarSfxClip, GetUISfxVolume());
+    }
+
+    private float GetUISfxVolume()
+    {
+        return Mathf.Clamp01(uiButtonSfxVolume * UISfxVolumeMultiplier);
+    }
+
+    private AudioClip GetUISfxClip(UISfxKind sfxKind)
+    {
+        switch (sfxKind)
+        {
+            case UISfxKind.Cancel:
+                return cancelSfxClip != null ? cancelSfxClip : uiButtonSfxClip;
+            case UISfxKind.Confirm:
+                return confirmSfxClip != null ? confirmSfxClip : uiButtonSfxClip;
+            case UISfxKind.Hint:
+                return hintSfxClip != null ? hintSfxClip : uiButtonSfxClip;
+            case UISfxKind.Skip:
+                return skipSfxClip != null ? skipSfxClip : uiButtonSfxClip;
+            case UISfxKind.Click:
+            default:
+                return uiButtonSfxClip;
+        }
     }
 
     private bool ShouldDisableAdsForDevelopmentBuild()
@@ -2465,6 +2537,7 @@ public class GameMainUIController : MonoBehaviour
         if (string.IsNullOrWhiteSpace(message))
             return;
 
+        PlaySnackbarSfx();
         StopStageSnackbarPlayback();
         stageSnackbarRoutine = StartCoroutine(PlayGameplaySnackbar(message.Trim(), durationSeconds));
     }
@@ -5001,6 +5074,32 @@ public class GameMainUIController : MonoBehaviour
             Debug.LogWarning($"[GameMainUIController] Resources/{resourcePath} ({fileName}) 스프라이트를 찾을 수 없습니다.");
     }
 
+    private void AssignTexture(Image targetImage, string resourcePath, string fileName)
+    {
+        if (targetImage == null)
+            return;
+
+        Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+        if (texture == null)
+        {
+            Sprite[] sprites = Resources.LoadAll<Sprite>(resourcePath);
+            if (sprites != null && sprites.Length > 0 && sprites[0] != null)
+                texture = sprites[0].texture;
+        }
+
+        if (texture != null)
+        {
+            targetImage.sprite = null;
+            targetImage.image = texture;
+            targetImage.tintColor = Color.white;
+            targetImage.scaleMode = ScaleMode.ScaleToFit;
+            targetImage.style.overflow = Overflow.Visible;
+            targetImage.uv = new Rect(0f, 0f, 1f, 1f);
+        }
+        else
+            Debug.LogWarning($"[GameMainUIController] Resources/{resourcePath} ({fileName}) 텍스처를 찾을 수 없습니다.");
+    }
+
     private void InitializeBannerAd()
     {
         if (ShouldDisableAdsForDevelopmentBuild())
@@ -5663,6 +5762,35 @@ public class GameMainUIController : MonoBehaviour
                Mathf.Abs(a.width - b.width) < 0.5f &&
                Mathf.Abs(a.height - b.height) < 0.5f;
     }
+
+#if UNITY_EDITOR
+    private void Reset()
+    {
+        AutoAssignUISoundClipsInEditor();
+    }
+
+    private void OnValidate()
+    {
+        AutoAssignUISoundClipsInEditor();
+    }
+
+    private void AutoAssignUISoundClipsInEditor()
+    {
+        AssignClipIfMissing(ref clickSfxClip, "Assets/Sounds/click.wav");
+        AssignClipIfMissing(ref cancelSfxClip, "Assets/Sounds/cancel.wav");
+        AssignClipIfMissing(ref confirmSfxClip, "Assets/Sounds/confirm.wav");
+        AssignClipIfMissing(ref snackbarSfxClip, "Assets/Sounds/snackbar.wav");
+        AssignClipIfMissing(ref hintSfxClip, "Assets/Sounds/hint.wav");
+        AssignClipIfMissing(ref skipSfxClip, "Assets/Sounds/skip.wav");
+    }
+
+    private static void AssignClipIfMissing(ref AudioClip target, string assetPath)
+    {
+        if (target != null)
+            return;
+        target = AssetDatabase.LoadAssetAtPath<AudioClip>(assetPath);
+    }
+#endif
 
     /// <summary>스테이지 번호 및 전체 카운트로 상단 UI 초기화.</summary>
     public void SetupStage(int stageIndex, int totalCount, int remainingCount)

@@ -154,6 +154,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private AudioClip failClip;
     [SerializeField] private AudioClip newStageClip;
     [SerializeField] private AudioClip clearClip;
+    [SerializeField] private AudioClip bombClip;
+    [SerializeField] [Range(0f, 1f)] private float bombSfxVolumeMultiplier = 0.5f;
 
     /// <summary>Easy Save 3 진행도 저장 키. 앱 재실행 시 이 스테이지부터 시작.</summary>
     private const string SaveKeyStage = "StageProgress";
@@ -229,8 +231,6 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private Tile currentStartTile;
     private Tile gameOverFocusTile;
-    private string pendingRestartGameOverSnackbarKey;
-    private float pendingRestartGameOverSnackbarDuration;
     /// <summary>게임오버 리셋 시 시작점 복원용. tiles[row, col] 인덱스.</summary>
     private int initialStartTileRow;
     private int initialStartTileCol;
@@ -859,7 +859,15 @@ public class GameManager : MonoBehaviour
         eventAudioSource.PlayOneShot(clip, eventSfxVolume);
     }
 
+    private void PlayEventSfx(AudioClip clip, float volumeMultiplier)
+    {
+        if (clip == null || eventAudioSource == null)
+            return;
+        eventAudioSource.PlayOneShot(clip, Mathf.Clamp01(eventSfxVolume * volumeMultiplier));
+    }
+
     private void PlayFailSfx() => PlayEventSfx(failClip);
+    private void PlayBombSfx() => PlayEventSfx(bombClip, bombSfxVolumeMultiplier);
     private void PlayNewStageSfx()
     {
         if (mainUI == null)
@@ -933,6 +941,9 @@ public class GameManager : MonoBehaviour
         tile.DecreaseNumber();
         if (before > tile.CurrentNumber)
         {
+            var fixedKnot = tile.GetComponent<FixedKnotTile>();
+            if (fixedKnot != null)
+                fixedKnot.OnCountDecreased();
             QueueNextMelodyBlockNote();
             IncrementBoardVersion("tile_count_changed");
         }
@@ -1191,7 +1202,10 @@ public class GameManager : MonoBehaviour
 
         var crossBlast = last.GetComponent<CrossBlastTile>();
         if (crossBlast != null)
+        {
+            PlayBombSfx();
             crossBlast.TriggerExplosion(this, hit);
+        }
     }
 
     private bool ShouldExcludeTwinLinkPartnerFromStep(TwinLinkTile sourceTwinLink, Tile partnerTile, Tile enteredTile)
@@ -4173,27 +4187,6 @@ public class GameManager : MonoBehaviour
         if (string.IsNullOrEmpty(localizationKey))
             return;
 
-        pendingRestartGameOverSnackbarKey = localizationKey;
-        pendingRestartGameOverSnackbarDuration = Mathf.Max(0.1f, durationSeconds);
-
-        if (mainUI == null)
-            mainUI = FindFirstObjectByType<GameMainUIController>();
-        if (mainUI == null)
-            return;
-
-        mainUI.ShowGameplaySnackbar(localizationKey, pendingRestartGameOverSnackbarDuration);
-    }
-
-    private void ReplayPendingGameOverSnackbarAfterRestart()
-    {
-        string localizationKey = pendingRestartGameOverSnackbarKey;
-        float durationSeconds = pendingRestartGameOverSnackbarDuration;
-        pendingRestartGameOverSnackbarKey = null;
-        pendingRestartGameOverSnackbarDuration = 0f;
-
-        if (string.IsNullOrEmpty(localizationKey))
-            return;
-
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
         if (mainUI == null)
@@ -4360,7 +4353,6 @@ public class GameManager : MonoBehaviour
 
         // 게임오버 후 리셋이 끝나면 진행도/스테이지 UI도 초기 상태로 복원
         RefreshMainUIForStage();
-        ReplayPendingGameOverSnackbarAfterRestart();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         IncrementBoardVersion("auto_restart_after_fail");
@@ -5478,6 +5470,7 @@ public class GameManager : MonoBehaviour
         AssignClipIfMissing(ref failClip, "Assets/Sounds/fail.wav");
         AssignClipIfMissing(ref newStageClip, "Assets/Sounds/new_stage.wav");
         AssignClipIfMissing(ref clearClip, "Assets/Sounds/clear.wav");
+        AssignClipIfMissing(ref bombClip, "Assets/Sounds/bomb.wav");
     }
 
     private static void AssignClipIfMissing(ref AudioClip target, string assetPath)
