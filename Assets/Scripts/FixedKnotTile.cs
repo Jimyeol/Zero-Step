@@ -52,6 +52,7 @@ public class FixedKnotTile : MonoBehaviour
     private bool hasBaseLocalRotation;
     private bool hasDisplayRemainingInitialized;
     private bool hasBeenSteppedCorrectly;
+    private bool hasUnlockedToNormalTile;
     private FixedKnotVisualState visualState = FixedKnotVisualState.None;
 
     private static readonly Color LockedFutureColor = new Color(1.2f, 0.42f, 0.42f, 1f);
@@ -67,7 +68,8 @@ public class FixedKnotTile : MonoBehaviour
         EnteredCorrect,
         SolvedWaitingForLeave,
         Denied,
-        SolvedLeaving
+        SolvedLeaving,
+        NormalUnlocked
     }
 
     /// <summary>반드시 이 스텝 수에만 진입 가능 (1-based).</summary>
@@ -76,6 +78,8 @@ public class FixedKnotTile : MonoBehaviour
     public bool IsAbsolute => isAbsoluteValue;
     public int CurrentRequiredOrder => Mathf.Max(1, displayRemaining);
     public bool HasBeenSteppedCorrectly => hasBeenSteppedCorrectly;
+    public bool IsOrderConstraintActive => !hasUnlockedToNormalTile && !hasBeenSteppedCorrectly;
+    public bool IsUnlockedToNormalTile => hasUnlockedToNormalTile;
 
     /// <summary>스테이지 데이터 기반 초기화. 그리드 생성 시 GameManager가 호출.</summary>
     public void Setup(int targetOrder, bool isAbsolute)
@@ -83,6 +87,7 @@ public class FixedKnotTile : MonoBehaviour
         targetOrderValue = Mathf.Max(1, targetOrder);
         isAbsoluteValue = isAbsolute;
         hasBeenSteppedCorrectly = false;
+        hasUnlockedToNormalTile = false;
         EnsureOrderText();
         ApplyLockedVisual();
         HideTileNumberText();
@@ -281,7 +286,7 @@ public class FixedKnotTile : MonoBehaviour
 
     private bool ShouldShowOrderTextForCurrentState()
     {
-        if (tile == null || !tile.IsActive || displayRemaining <= 0 || IsSolvedState())
+        if (hasUnlockedToNormalTile || tile == null || !tile.IsActive || displayRemaining <= 0 || IsSolvedState())
             return false;
 
         return visualState == FixedKnotVisualState.LockedFuture ||
@@ -350,6 +355,12 @@ public class FixedKnotTile : MonoBehaviour
         if (!force && visualState == FixedKnotVisualState.SolvedLeaving && solvedLeaveSequence != null && solvedLeaveSequence.IsActive())
             return;
 
+        if (hasUnlockedToNormalTile)
+        {
+            ApplyNormalUnlockedVisual(force);
+            return;
+        }
+
         if (IsSolvedState())
         {
             ApplySolvedWaitingVisual(force);
@@ -407,6 +418,32 @@ public class FixedKnotTile : MonoBehaviour
         visualState = FixedKnotVisualState.EnteredCorrect;
         ApplyEnteredCorrectBaseline();
         HideAccentVisual();
+    }
+
+    private void ApplyNormalUnlockedVisual(bool force)
+    {
+        if (!force && visualState == FixedKnotVisualState.NormalUnlocked)
+            return;
+
+        StopVisualTweens(false);
+        visualState = FixedKnotVisualState.NormalUnlocked;
+        if (countSpinTween != null && countSpinTween.IsActive())
+            countSpinTween.Kill();
+        CacheBaseLocalRotation();
+        ResetSpinRotation();
+        RestoreDefaultSprite();
+        ApplyOrderBaseline(Color.white, false);
+        HideAccentVisual();
+
+        if (tileSpriteRenderer != null)
+            tileSpriteRenderer.enabled = tile == null || tile.IsActive;
+
+        TMP_Text tileNumberText = GetTileNumberText();
+        if (tileNumberText != null && tile != null && tile.IsActive)
+            tileNumberText.gameObject.SetActive(true);
+
+        if (tile != null)
+            tile.SetNumber(tile.CurrentNumber);
     }
 
     private void ApplySolvedWaitingVisual(bool force)
@@ -469,6 +506,12 @@ public class FixedKnotTile : MonoBehaviour
     /// </summary>
     public void UpdateVisual(int totalPathCount)
     {
+        if (hasUnlockedToNormalTile)
+        {
+            ApplyVisualForCurrentState();
+            return;
+        }
+
         int previousRemaining = displayRemaining;
         int remaining = Mathf.Max(0, targetOrderValue - totalPathCount);
         bool shouldSpinForCountdown = ShouldPlayCountdownSpin(previousRemaining, remaining);
@@ -501,9 +544,7 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>totalPathCount가 targetOrder에 도달했거나 넘었는데 아직 밟지 않았으면 건너뛴 것.</summary>
     public bool IsMissedAtStepCount(int totalPathCount)
     {
-        if (tile == null || !tile.IsActive)
-            return false;
-        if (hasBeenSteppedCorrectly)
+        if (tile == null || !tile.IsActive || !IsOrderConstraintActive)
             return false;
         return totalPathCount >= targetOrderValue;
     }
@@ -511,12 +552,16 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>진입 허용: (targetOrder - totalPathCount) == 1 일 때만.</summary>
     public bool CanEnterTile(int totalPathCount)
     {
+        if (!IsOrderConstraintActive)
+            return true;
         return (targetOrderValue - totalPathCount) == 1;
     }
 
     /// <summary>다음 스텝 번호(1-based)가 targetOrder와 일치할 때만 진입 허용.</summary>
     public bool CanEnter(int nextStepNumber)
     {
+        if (!IsOrderConstraintActive)
+            return true;
         return nextStepNumber == targetOrderValue;
     }
 
@@ -529,6 +574,9 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>정확한 순서에 밟았을 때 호출.</summary>
     public void OnSteppedCorrectly()
     {
+        if (!IsOrderConstraintActive)
+            return;
+
         hasBeenSteppedCorrectly = true;
         PlayCorrectEntryFeedback();
     }
@@ -536,6 +584,9 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>FixedKnot count가 1 감소했을 때 호출.</summary>
     public void OnCountDecreased()
     {
+        if (hasUnlockedToNormalTile)
+            return;
+
         PlayCountDecrementSpin();
     }
 
@@ -547,6 +598,17 @@ public class FixedKnotTile : MonoBehaviour
 
         if (tile.CurrentNumber == 0)
             PlaySolvedLeavingFeedback();
+        else if (hasBeenSteppedCorrectly)
+            UnlockToNormalTile();
+    }
+
+    private void UnlockToNormalTile()
+    {
+        if (hasUnlockedToNormalTile)
+            return;
+
+        hasUnlockedToNormalTile = true;
+        ApplyNormalUnlockedVisual(true);
     }
 
     private void PlayCountDecrementSpin()
@@ -724,6 +786,7 @@ public class FixedKnotTile : MonoBehaviour
     public void ResetGearVisibility()
     {
         hasBeenSteppedCorrectly = false;
+        hasUnlockedToNormalTile = false;
         displayRemaining = targetOrderValue;
         hasDisplayRemainingInitialized = true;
         StopVisualTweens(true);
@@ -748,7 +811,8 @@ public class FixedKnotTile : MonoBehaviour
 
     private void LateUpdate()
     {
-        HideTileNumberText();
+        if (!hasUnlockedToNormalTile)
+            HideTileNumberText();
 
         SyncOrderVisibilityFromTileState();
 

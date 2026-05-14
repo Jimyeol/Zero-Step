@@ -1248,7 +1248,7 @@ public class GameManager : MonoBehaviour
         TryTriggerIgniter(hit);
         NotifyTrailTileStepped(hit);
         NotifyFixedKnotsUpdateVisual(totalPathCount);
-        if (fixedKnotHit != null)
+        if (fixedKnotHit != null && fixedKnotHit.IsOrderConstraintActive)
             fixedKnotHit.OnSteppedCorrectly();
         if (CheckAndHandleMissedFixedKnot(totalPathCount))
             return;
@@ -1264,7 +1264,7 @@ public class GameManager : MonoBehaviour
 
     private string GetStepLabel(Tile last, Tile hit, FixedKnotTile fixedKnotHit)
     {
-        if (fixedKnotHit != null)
+        if (fixedKnotHit != null && fixedKnotHit.IsOrderConstraintActive)
             return "FixedKnot";
         if (last != null && last.GetComponent<ShortCircuitTile>() != null)
             return "ShortCircuit(위)";
@@ -1945,7 +1945,8 @@ public class GameManager : MonoBehaviour
         if (tile.GetComponent<BlackoutTile>() != null) tags.Add("Blackout");
         if (tile.GetComponent<BlindCurtainTile>() != null) tags.Add("BlindCurtain");
         if (tile.GetComponent<ShortCircuitTile>() != null) tags.Add("ShortCircuit");
-        if (tile.GetComponent<FixedKnotTile>() != null) tags.Add("FixedKnot");
+        var fixedKnot = tile.GetComponent<FixedKnotTile>();
+        if (fixedKnot != null && fixedKnot.IsOrderConstraintActive) tags.Add("FixedKnot");
         if (tile.GetComponent<CrossBlastTile>() != null) tags.Add("CrossBlast");
         if (tile.GetComponent<TwinLinkTile>() != null) tags.Add("TwinLink");
         string typeSummary = tags.Count > 0 ? string.Join("+", tags) : "Normal";
@@ -2050,7 +2051,7 @@ public class GameManager : MonoBehaviour
 
         if (candidate.GetComponent<IgniterTile>() != null)
             score += 35;
-        if (candidate.GetComponent<FixedKnotTile>() != null)
+        if (candidate.GetComponent<FixedKnotTile>() != null && !state.IsFixedKnotSolved(candidate))
             score += 25;
         if (candidate.GetComponent<CrossBlastTile>() != null)
             score += 12;
@@ -2140,7 +2141,8 @@ public class GameManager : MonoBehaviour
             state.GetRemainingCount,
             state.IsLiveRemainingTile,
             out _,
-            out _);
+            out _,
+            state.IsFixedKnotSolved(candidate));
     }
 
     private bool HasAnyLegalHintMove(HintSearchState state)
@@ -2230,7 +2232,8 @@ public class GameManager : MonoBehaviour
             score += 18;
         }
 
-        if (nextTile.GetComponent<FixedKnotTile>() != null)
+        var fixedKnot = nextTile.GetComponent<FixedKnotTile>();
+        if (fixedKnot != null && !state.IsFixedKnotSolved(nextTile))
         {
             state.MarkFixedKnotSolved(nextTile);
             if (debugEffects != null)
@@ -2830,6 +2833,11 @@ public class GameManager : MonoBehaviour
         {
             if (tile != null)
                 solvedFixedKnots.Add(tile);
+        }
+
+        public bool IsFixedKnotSolved(Tile tile)
+        {
+            return tile != null && solvedFixedKnots.Contains(tile);
         }
 
         public bool HasMissedFixedKnot(int completedStepNumber)
@@ -5462,7 +5470,8 @@ public class GameManager : MonoBehaviour
         if (tile.GetComponent<BlackoutTile>() != null) tags.Add("Blackout");
         if (tile.GetComponent<BlindCurtainTile>() != null) tags.Add("BlindCurtain");
         if (tile.GetComponent<ShortCircuitTile>() != null) tags.Add("ShortCircuit");
-        if (tile.GetComponent<FixedKnotTile>() != null) tags.Add("FixedKnot");
+        var fixedKnot = tile.GetComponent<FixedKnotTile>();
+        if (fixedKnot != null && fixedKnot.IsOrderConstraintActive) tags.Add("FixedKnot");
         if (tile.GetComponent<CrossBlastTile>() != null) tags.Add("CrossBlast");
         if (tile.GetComponent<TwinLinkTile>() != null) tags.Add("TwinLink");
         string typeSummary = tags.Count > 0 ? string.Join("+", tags) : "Normal";
