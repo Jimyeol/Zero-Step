@@ -1,0 +1,115 @@
+{
+  "stageID": 0,
+  "width": 6,
+  "height": 4,
+  "startPoint": {
+    "x": 0,
+    "y": 1
+  },
+  "config": {
+    "mode": "Normal",
+    "difficulty": "Normal",
+    "spotlightRadius": 2.5,
+    "showGridLines": false
+  },
+  "cells": [
+    {
+      "x": 1,
+      "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 635,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 3,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FBFF"
+      }
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 298,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 298,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 635,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 1,
+      "type": "BlindCurtain"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "stageID": 0,
+  "width": 3,
+  "height": 3,
+  "startPoint": {
+    "x": 2,
+    "y": 1
+  },
+  "config": {
+    "mode": "Normal",
+    "difficulty": "Normal",
+    "spotlightRadius": 2.5,
+    "showGridLines": false
+  },
+  "cells": [
+    {
+      "x": 0,
+      "y": 0,
+      "count": 4,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 3,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#38bdf8"
+      }
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 4,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    }
+  ]
+}

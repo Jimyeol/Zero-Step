@@ -1,9 +1,9 @@
 {
   "stageID": 0,
-  "width": 3,
-  "height": 2,
+  "width": 2,
+  "height": 3,
   "startPoint": {
-    "x": 0,
+    "x": 1,
     "y": 1
   },
   "config": {
@@ -17,33 +17,33 @@
       "x": 0,
       "y": 0,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Up"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Up"
     },
     {
       "x": 0,
       "y": 1,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Down"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Down"
+      "count": 4,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
     }
   ]
 }

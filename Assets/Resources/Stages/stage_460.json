@@ -1,0 +1,71 @@
+{
+  "stageID": 0,
+  "width": 3,
+  "height": 5,
+  "startPoint": {
+    "x": 2,
+    "y": 2
+  },
+  "config": {
+    "mode": "Normal",
+    "difficulty": "Normal",
+    "spotlightRadius": 2.5,
+    "showGridLines": false
+  },
+  "cells": [
+    {
+      "x": 1,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 4,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 1,
+      "type": "BlindCurtain"
+    }
+  ]
+}

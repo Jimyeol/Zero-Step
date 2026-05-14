@@ -1,0 +1,77 @@
+{
+  "stageID": 0,
+  "width": 5,
+  "height": 3,
+  "startPoint": {
+    "x": 3,
+    "y": 2
+  },
+  "config": {
+    "mode": "Normal",
+    "difficulty": "Normal",
+    "spotlightRadius": 2.5,
+    "showGridLines": false
+  },
+  "cells": [
+    {
+      "x": 1,
+      "y": 0,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 133,
+      "color": "#38bdf8"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G60"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 133,
+      "color": "#38bdf8"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G60"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    }
+  ]
+}
