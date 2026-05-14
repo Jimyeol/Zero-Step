@@ -96,6 +96,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Color hintPreviewFlowColor = new Color(0.93f, 1f, 0.45f, 1f);
     [Tooltip("밝은 하이라이트가 힌트 경로 전체를 한 번 훑는 시간(초)")]
     [SerializeField] private float hintPreviewSweepDuration = 1.15f;
+    [Tooltip("힌트 흐름 화살표 머리 길이. 타일 크기 기준 배율")]
+    [SerializeField] private float hintPreviewArrowLengthScale = 0.22f;
+    [Tooltip("힌트 흐름 화살표 머리 폭. 타일 크기 기준 배율")]
+    [SerializeField] private float hintPreviewArrowWidthScale = 0.16f;
     [Tooltip("힌트가 없을 때 스낵바 표시 시간")]
     [SerializeField] private float hintSnackbarDuration = 1.6f;
 
@@ -289,6 +293,8 @@ public class GameManager : MonoBehaviour
     private string cachedHintSolverStatus = "";
     private LineRenderer[] hintPreviewLines;
     private LineRenderer hintPreviewFlowLine;
+    private LineRenderer hintPreviewArrowLeftLine;
+    private LineRenderer hintPreviewArrowRightLine;
     private Material hintPreviewMaterial;
     private Coroutine hintPreviewRoutine;
     private Coroutine hintPreviewRequestRoutine;
@@ -2424,9 +2430,21 @@ public class GameManager : MonoBehaviour
     private void EnsureHintPreviewFlowLine()
     {
         if (hintPreviewFlowLine != null)
+        {
+            EnsureHintPreviewArrowLines();
             return;
+        }
 
         hintPreviewFlowLine = CreateHintPreviewLine("HintPreviewFlowLine", 82);
+        EnsureHintPreviewArrowLines();
+    }
+
+    private void EnsureHintPreviewArrowLines()
+    {
+        if (hintPreviewArrowLeftLine == null)
+            hintPreviewArrowLeftLine = CreateHintPreviewLine("HintPreviewArrowLeftLine", 83);
+        if (hintPreviewArrowRightLine == null)
+            hintPreviewArrowRightLine = CreateHintPreviewLine("HintPreviewArrowRightLine", 83);
     }
 
     private LineRenderer CreateHintPreviewLine(string lineName, int sortingOrder)
@@ -2454,7 +2472,19 @@ public class GameManager : MonoBehaviour
         hintPreviewFlowLine.enabled = true;
         hintPreviewFlowLine.positionCount = 2;
         hintPreviewFlowLine.widthMultiplier = baseWidth * 1.75f;
+        ConfigureHintPreviewArrowLine(hintPreviewArrowLeftLine, baseWidth);
+        ConfigureHintPreviewArrowLine(hintPreviewArrowRightLine, baseWidth);
         UpdateHintPreviewFlow(0f, 1f);
+    }
+
+    private void ConfigureHintPreviewArrowLine(LineRenderer line, float baseWidth)
+    {
+        if (line == null)
+            return;
+
+        line.enabled = true;
+        line.positionCount = 2;
+        line.widthMultiplier = baseWidth * 1.35f;
     }
 
     private Material ResolveHintPreviewMaterial()
@@ -2522,6 +2552,7 @@ public class GameManager : MonoBehaviour
         Vector3 start = activeHintPreviewPoints[segmentIndex];
         Vector3 end = activeHintPreviewPoints[segmentIndex + 1];
         Vector3 head = Vector3.Lerp(start, end, Mathf.Max(t, 0.06f));
+        Vector3 direction = end - start;
 
         hintPreviewFlowLine.enabled = true;
         hintPreviewFlowLine.SetPosition(0, start);
@@ -2531,6 +2562,39 @@ public class GameManager : MonoBehaviour
         Color flowColor = GetHintPreviewColor(hintPreviewMaxAlpha * Mathf.Clamp01(fade) * headPulse, true);
         hintPreviewFlowLine.startColor = flowColor;
         hintPreviewFlowLine.endColor = flowColor;
+        UpdateHintPreviewArrowHead(head, direction, flowColor);
+    }
+
+    private void UpdateHintPreviewArrowHead(Vector3 head, Vector3 direction, Color flowColor)
+    {
+        if (hintPreviewArrowLeftLine == null || hintPreviewArrowRightLine == null)
+            return;
+        if (direction.sqrMagnitude < 0.0001f)
+            return;
+
+        Vector3 dir = direction.normalized;
+        Vector3 side = new Vector3(-dir.y, dir.x, 0f);
+        float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
+        float arrowLength = Mathf.Max(0.04f, tileSize * Mathf.Max(0.01f, hintPreviewArrowLengthScale));
+        float arrowWidth = Mathf.Max(0.03f, tileSize * Mathf.Max(0.01f, hintPreviewArrowWidthScale));
+        Vector3 back = head - dir * arrowLength;
+        Vector3 left = back + side * arrowWidth;
+        Vector3 right = back - side * arrowWidth;
+
+        SetHintPreviewArrowLine(hintPreviewArrowLeftLine, head, left, flowColor);
+        SetHintPreviewArrowLine(hintPreviewArrowRightLine, head, right, flowColor);
+    }
+
+    private void SetHintPreviewArrowLine(LineRenderer line, Vector3 head, Vector3 tail, Color color)
+    {
+        if (line == null)
+            return;
+
+        line.enabled = true;
+        line.SetPosition(0, head);
+        line.SetPosition(1, tail);
+        line.startColor = color;
+        line.endColor = color;
     }
 
     private Color GetHintPreviewColor(float alpha, bool flow)
@@ -2552,6 +2616,10 @@ public class GameManager : MonoBehaviour
         activeHintPreviewPoints.Clear();
         if (hintPreviewFlowLine != null)
             hintPreviewFlowLine.enabled = false;
+        if (hintPreviewArrowLeftLine != null)
+            hintPreviewArrowLeftLine.enabled = false;
+        if (hintPreviewArrowRightLine != null)
+            hintPreviewArrowRightLine.enabled = false;
         if (hintPreviewLines == null)
             return;
 
