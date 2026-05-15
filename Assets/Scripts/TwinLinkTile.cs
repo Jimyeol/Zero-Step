@@ -10,7 +10,7 @@ using TMPro;
 /// GameManager가 지정한 전용 색으로 전기·숫자 발광색을 적용한다.
 /// </summary>
 [RequireComponent(typeof(Tile))]
-public class TwinLinkTile : MonoBehaviour
+public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
 {
     /// <summary>GameManager Inspector에서 조정한 값을 전달할 때 사용. 값이 0이면 스크립트 기본값 사용.</summary>
     public struct TwinLinkSettings
@@ -74,6 +74,7 @@ public class TwinLinkTile : MonoBehaviour
     private Transform badgeTransform;
     private Vector3 badgeBaseScale = Vector3.one;
     private Material badgeMaterial;
+    private bool gameOverBlackoutVisualActive;
 
     private void Awake()
     {
@@ -239,6 +240,15 @@ public class TwinLinkTile : MonoBehaviour
         if (GameManager.IsPerformanceOverlayOpen)
             return;
 
+        if (IsInGameOverBlackout())
+        {
+            SetBoltsActive(false);
+            ClearBoltLines();
+            ClearActivationLines();
+            UpdateBadgeVisibility();
+            return;
+        }
+
         if (tile != null && (!tile.IsActive || transform.localScale.sqrMagnitude <= 0.0001f))
         {
             SetBoltsActive(false);
@@ -346,6 +356,9 @@ public class TwinLinkTile : MonoBehaviour
     /// <summary>짝 타일들을 직접 1 감소시키고 전기 연출을 재생한다.</summary>
     public void ConsumePartners(System.Action<Tile> consumeTile, System.Predicate<Tile> shouldExcludePartner = null)
     {
+        if (IsInGameOverBlackout())
+            return;
+
         if (consumeTile == null)
             return;
 
@@ -384,6 +397,34 @@ public class TwinLinkTile : MonoBehaviour
         ClearBoltLines();
         ClearActivationLines();
         SetBoltsActive(false);
+        if (IsInGameOverBlackout())
+            HideBadge();
+    }
+
+    public void SetGameOverBlackoutVisual(bool active)
+    {
+        gameOverBlackoutVisualActive = active;
+        if (active)
+        {
+            DOTween.Kill(transform);
+            StopActivationFadeRoutine();
+            if (flashResetTween != null && flashResetTween.IsActive())
+                flashResetTween.Kill();
+            flashResetTween = null;
+            if (badgePulseTween != null && badgePulseTween.IsActive())
+                badgePulseTween.Kill();
+            badgePulseTween = null;
+            SetBoltsActive(false);
+            ClearBoltLines();
+            ClearActivationLines();
+            HideBadge();
+            return;
+        }
+
+        ApplyBoltColor(normalLineColor);
+        ClearBoltLines();
+        ClearActivationLines();
+        ResetBadgeVisual();
     }
 
     private void ClearBoltLines()
@@ -449,6 +490,9 @@ public class TwinLinkTile : MonoBehaviour
 
     private void PlayActivationNetwork(List<TwinLinkTile> targets)
     {
+        if (IsInGameOverBlackout())
+            return;
+
         if (targets == null || targets.Count == 0)
             return;
 
@@ -542,6 +586,9 @@ public class TwinLinkTile : MonoBehaviour
 
     private void FlashBolt()
     {
+        if (IsInGameOverBlackout())
+            return;
+
         Color bright = linkColor * flashIntensityMult;
         bright.a = 1f;
         ApplyBoltColor(bright);
@@ -558,6 +605,9 @@ public class TwinLinkTile : MonoBehaviour
 
     private void Shake()
     {
+        if (IsInGameOverBlackout())
+            return;
+
         transform.DOShakePosition(shakeDuration, shakeStrength, 14, 90f, false, true).SetUpdate(true);
     }
 
@@ -662,6 +712,9 @@ public class TwinLinkTile : MonoBehaviour
 
     private void PulseBadge()
     {
+        if (IsInGameOverBlackout())
+            return;
+
         if (badgeText == null || badgeTransform == null)
             return;
 
@@ -692,9 +745,20 @@ public class TwinLinkTile : MonoBehaviour
         if (badgeText == null)
             return;
 
-        bool shouldShow = tile == null || (tile.IsActive && transform.localScale.sqrMagnitude > 0.0001f);
+        bool shouldShow = !IsInGameOverBlackout() && (tile == null || (tile.IsActive && transform.localScale.sqrMagnitude > 0.0001f));
         if (badgeText.gameObject.activeSelf != shouldShow)
             badgeText.gameObject.SetActive(shouldShow);
+    }
+
+    private void HideBadge()
+    {
+        if (badgeText != null && badgeText.gameObject.activeSelf)
+            badgeText.gameObject.SetActive(false);
+    }
+
+    private bool IsInGameOverBlackout()
+    {
+        return gameOverBlackoutVisualActive || (tile != null && tile.IsGameOverBlackoutActive);
     }
 
     private static Vector3 GetCuePosition(Vector3 source)

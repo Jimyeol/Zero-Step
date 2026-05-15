@@ -468,6 +468,7 @@ public class GameMainUIController : MonoBehaviour
     }
     private readonly Dictionary<VisualElement, int> heartAnimationVersion = new Dictionary<VisualElement, int>();
     private int heartPopupAnimationVersion;
+    private int stageClearAnimationVersion;
 
     /// <summary>현재 스테이지 시작 시 전체 타일 카운트(합).</summary>
     private int initialTileCount;
@@ -6112,10 +6113,64 @@ public class GameMainUIController : MonoBehaviour
     }
 #endif
 
+    public void PlayStageClearGlow()
+    {
+        stageClearAnimationVersion++;
+        int version = stageClearAnimationVersion;
+        PlayStageClearGlowForElement(stageContainer, version, 1.05f, 0.92f);
+        PlayStageClearGlowForElement(gameProgressBar, version, 1.08f, 1f);
+    }
+
+    public void ResetTransientStageClearVisuals()
+    {
+        stageClearAnimationVersion++;
+        ResetStageClearElement(stageContainer);
+        ResetStageClearElement(gameProgressBar);
+    }
+
+    private void PlayStageClearGlowForElement(VisualElement element, int version, float peakScale, float lowOpacity)
+    {
+        if (element == null)
+            return;
+
+        element.style.opacity = 1f;
+        element.style.scale = new StyleScale(new Scale(Vector3.one));
+        element.schedule.Execute(() =>
+        {
+            if (version != stageClearAnimationVersion)
+                return;
+            element.style.opacity = lowOpacity;
+            element.style.scale = new StyleScale(new Scale(new Vector3(peakScale, peakScale, 1f)));
+        }).StartingIn(20);
+        element.schedule.Execute(() =>
+        {
+            if (version != stageClearAnimationVersion)
+                return;
+            element.style.opacity = 1f;
+            element.style.scale = new StyleScale(new Scale(new Vector3(0.98f, 0.98f, 1f)));
+        }).StartingIn(160);
+        element.schedule.Execute(() =>
+        {
+            if (version != stageClearAnimationVersion)
+                return;
+            element.style.scale = new StyleScale(new Scale(Vector3.one));
+        }).StartingIn(320);
+    }
+
+    private static void ResetStageClearElement(VisualElement element)
+    {
+        if (element == null)
+            return;
+
+        element.style.opacity = 1f;
+        element.style.scale = new StyleScale(new Scale(Vector3.one));
+    }
+
     /// <summary>스테이지 번호 및 전체 카운트로 상단 UI 초기화.</summary>
     public void SetupStage(int stageIndex, int totalCount, int remainingCount)
     {
         StopStageSnackbarPlayback();
+        ResetTransientStageClearVisuals();
         currentStageIndexForUI = Mathf.Max(1, stageIndex);
         ResetIdleHintBonusForCurrentStage();
 

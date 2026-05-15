@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
+public interface IGameOverBlackoutVisual
+{
+    void SetGameOverBlackoutVisual(bool active);
+}
+
 /// <summary>
 /// 네온 퍼즐 타일. 그리드 좌표(x,y), 숫자별 색상 팔레트, HDR 발광, 0 시 꺼짐.
 /// 숫자 감소 시 코루틴으로 0.9x → 1.0x 텐션 애니메이션.
@@ -30,6 +35,11 @@ public class Tile : MonoBehaviour
     [Tooltip("숫자 감소 시 재생할 네온 스파크 파티클 (타일 색상과 동기화)")]
     public ParticleSystem hitEffect;
 
+    [Header("카운트 0 소멸 연출")]
+    [SerializeField] [Range(0.15f, 0.5f)] private float countZeroDisappearDuration = 0.28f;
+    [SerializeField] [Range(1f, 2.5f)] private float countZeroFlashIntensity = 1.55f;
+    [SerializeField] [Range(0.55f, 1f)] private float countZeroEndScale = 0.72f;
+
     [Header("시작점/현재시작점 하트비트")]
     [Tooltip("펄스 시 최대 스케일 배율 (기본 1.2에서 이 값까지 커졌다 줄었다)")]
     [SerializeField] private float pulsePeakScale = 1.26f;
@@ -47,6 +57,8 @@ public class Tile : MonoBehaviour
     private BoxCollider2D boxCollider2D;
     private Vector3 baseScale;
     private Coroutine scaleRoutine;
+    private Coroutine countZeroDisappearRoutine;
+    private Coroutine failureFocusRoutine;
     /// <summary>시작점 하트비트(펄스) 애니메이션 코루틴.</summary>
     private Coroutine startPointPulseRoutine;
     private Renderer numberTextRenderer;
@@ -56,7 +68,9 @@ public class Tile : MonoBehaviour
     private int baseNumberTextSortingOrder;
     private int baseStartLabelSortingOrder;
     private readonly List<SpriteRenderer> linkedTileRenderers = new List<SpriteRenderer>();
+    private readonly List<MonoBehaviour> gameOverBlackoutBehaviours = new List<MonoBehaviour>();
     private MaterialPropertyBlock linkedRendererPropertyBlock;
+    private bool isGameOverBlackoutActive;
 
     private static readonly Color[] NumberPalette =
     {
@@ -72,11 +86,13 @@ public class Tile : MonoBehaviour
         new Color32(0xF4, 0xF0, 0xFF, 0xFF), // 10+
     };
     private static readonly Color DarkGrayOff = new Color(0.2f, 0.2f, 0.2f, 1f);
+    private static readonly Color FailureFocusFallbackColor = new Color(1.35f, 0.45f, 0.55f, 1f);
 
     public int X => gridX;
     public int Y => gridY;
     public int CurrentNumber => currentNumber;
     public bool IsActive => currentNumber > 0;
+    public bool IsGameOverBlackoutActive => isGameOverBlackoutActive;
 
     private bool isStartPoint;
     private static readonly Color StartPointTint = new Color(0.9f, 1f, 0.9f, 1f);
@@ -274,13 +290,12 @@ public class Tile : MonoBehaviour
     /// </summary>
     public void SetBlackout(bool blackout)
     {
+        isGameOverBlackoutActive = blackout;
+        DispatchGameOverBlackoutVisual(blackout);
+
         if (blackout)
         {
-            if (spriteRenderer != null) spriteRenderer.color = Color.black;
-            if (tileImage != null && tileImage != spriteRenderer) tileImage.color = Color.black;
-            ApplyLinkedRendererColor(Color.black);
-            if (numberText != null) numberText.gameObject.SetActive(false);
-            if (startLabel != null) startLabel.gameObject.SetActive(false);
+            ApplyGameOverBlackoutBaseVisual();
         }
         else
         {
@@ -288,6 +303,27 @@ public class Tile : MonoBehaviour
             if (numberText != null && initialNumber > 0) numberText.gameObject.SetActive(true);
             if (startLabel != null && isStartPoint) startLabel.gameObject.SetActive(true);
         }
+    }
+
+    private void DispatchGameOverBlackoutVisual(bool active)
+    {
+        gameOverBlackoutBehaviours.Clear();
+        GetComponents(gameOverBlackoutBehaviours);
+        for (int i = 0; i < gameOverBlackoutBehaviours.Count; i++)
+        {
+            if (gameOverBlackoutBehaviours[i] is IGameOverBlackoutVisual handler)
+                handler.SetGameOverBlackoutVisual(active);
+        }
+        gameOverBlackoutBehaviours.Clear();
+    }
+
+    private void ApplyGameOverBlackoutBaseVisual()
+    {
+        if (spriteRenderer != null) spriteRenderer.color = Color.black;
+        if (tileImage != null && tileImage != spriteRenderer) tileImage.color = Color.black;
+        ApplyLinkedRendererColor(Color.black);
+        if (numberText != null) numberText.gameObject.SetActive(false);
+        if (startLabel != null) startLabel.gameObject.SetActive(false);
     }
 
     /// <summary>
@@ -316,6 +352,7 @@ public class Tile : MonoBehaviour
     {
         if (startPointPulseRoutine != null) { StopCoroutine(startPointPulseRoutine); startPointPulseRoutine = null; }
         if (scaleRoutine != null) { StopCoroutine(scaleRoutine); scaleRoutine = null; }
+        if (countZeroDisappearRoutine != null) { StopCoroutine(countZeroDisappearRoutine); countZeroDisappearRoutine = null; }
         transform.localScale = Vector3.zero;
     }
 
@@ -427,6 +464,7 @@ public class Tile : MonoBehaviour
     /// </summary>
     public void ResetToInitial()
     {
+        ResetTransientVisualState();
         displayAsQuestion = false;
         if (spriteRenderer != null)
             spriteRenderer.color = Color.white;
@@ -442,6 +480,9 @@ public class Tile : MonoBehaviour
 
         if (isStartPoint && initialNumber > 0)
             ApplyNumberColorWithoutStartBoost();
+
+        if (isGameOverBlackoutActive)
+            ApplyGameOverBlackoutBaseVisual();
     }
 
     /// <summary>
@@ -470,9 +511,20 @@ public class Tile : MonoBehaviour
         // 1→0일 때도 파티클이 2→1처럼 선명하게: SetNumber(0) 후에는 타일 색이 어두워지므로,
         // 감소 전 밝은 색을 미리 저장해 두고 파티클에 적용.
         Color particleColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
+        int before = currentNumber;
+        bool willDisappear = before == 1;
+        bool numberWasVisible = numberText != null && numberText.gameObject.activeSelf;
+        bool spriteWasVisible = spriteRenderer != null && spriteRenderer.enabled;
+        bool tileImageWasVisible = tileImage != null && tileImage != spriteRenderer && tileImage.enabled;
+        bool linkedWasVisible = AnyLinkedRendererEnabled();
+        var fixedKnot = GetComponent<FixedKnotTile>();
+        bool fixedKnotOwnsDisappearVisual = fixedKnot != null && !fixedKnot.IsUnlockedToNormalTile;
 
-        SetNumber(currentNumber - 1);
-        PlayTensionAnimation();
+        SetNumber(before - 1);
+        if (willDisappear && !fixedKnotOwnsDisappearVisual)
+            PlayCountZeroDisappear(particleColor, numberWasVisible, spriteWasVisible, tileImageWasVisible, linkedWasVisible);
+        else
+            PlayTensionAnimation();
 
         if (hitEffect != null)
         {
@@ -654,11 +706,64 @@ public class Tile : MonoBehaviour
     {
         if (spriteRenderer != null)
             spriteRenderer.enabled = active;
+        if (tileImage != null && tileImage != spriteRenderer)
+            tileImage.enabled = active;
         ApplyLinkedRendererEnabled(active);
         if (boxCollider2D != null)
             boxCollider2D.enabled = active;
         if (numberText != null)
             numberText.gameObject.SetActive(active);
+    }
+
+    public void ResetTransientVisualState()
+    {
+        if (countZeroDisappearRoutine != null)
+        {
+            StopCoroutine(countZeroDisappearRoutine);
+            countZeroDisappearRoutine = null;
+        }
+
+        if (failureFocusRoutine != null)
+        {
+            StopCoroutine(failureFocusRoutine);
+            failureFocusRoutine = null;
+        }
+
+        if (scaleRoutine != null)
+        {
+            StopCoroutine(scaleRoutine);
+            scaleRoutine = null;
+        }
+
+        transform.localScale = baseScale * scaleOverride;
+        if (numberText != null)
+        {
+            Color textColor = numberText.color;
+            textColor.a = 1f;
+            numberText.color = textColor;
+        }
+
+        if (isGameOverBlackoutActive)
+        {
+            ApplyGameOverBlackoutBaseVisual();
+            return;
+        }
+
+        RestoreNeonColor();
+        if (currentNumber > 0)
+            SetActiveState(true);
+        else
+            SetActiveState(false);
+    }
+
+    public void PlayFailureFocusPulse(Color color, int pulseCount = 2)
+    {
+        if (currentNumber <= 0)
+            return;
+
+        if (failureFocusRoutine != null)
+            StopCoroutine(failureFocusRoutine);
+        failureFocusRoutine = StartCoroutine(FailureFocusPulseRoutine(color, pulseCount));
     }
 
     private void ApplyLinkedRendererColor(Color color)
@@ -687,6 +792,18 @@ public class Tile : MonoBehaviour
         PruneLinkedRenderers();
         for (int i = 0; i < linkedTileRenderers.Count; i++)
             linkedTileRenderers[i].enabled = active;
+    }
+
+    private bool AnyLinkedRendererEnabled()
+    {
+        PruneLinkedRenderers();
+        for (int i = 0; i < linkedTileRenderers.Count; i++)
+        {
+            if (linkedTileRenderers[i] != null && linkedTileRenderers[i].enabled)
+                return true;
+        }
+
+        return false;
     }
 
     private void ApplyLinkedRendererSorting(int offset)
@@ -741,5 +858,115 @@ public class Tile : MonoBehaviour
         }
         transform.localScale = baseScale * scaleOverride;
         scaleRoutine = null;
+    }
+
+    private void PlayCountZeroDisappear(Color sourceColor, bool numberWasVisible, bool spriteWasVisible, bool tileImageWasVisible, bool linkedWasVisible)
+    {
+        if (countZeroDisappearRoutine != null)
+            StopCoroutine(countZeroDisappearRoutine);
+        if (scaleRoutine != null)
+        {
+            StopCoroutine(scaleRoutine);
+            scaleRoutine = null;
+        }
+
+        countZeroDisappearRoutine = StartCoroutine(CountZeroDisappearRoutine(sourceColor, numberWasVisible, spriteWasVisible, tileImageWasVisible, linkedWasVisible));
+    }
+
+    private IEnumerator CountZeroDisappearRoutine(Color sourceColor, bool numberWasVisible, bool spriteWasVisible, bool tileImageWasVisible, bool linkedWasVisible)
+    {
+        if (spriteRenderer != null)
+            spriteRenderer.enabled = spriteWasVisible;
+        if (tileImage != null && tileImage != spriteRenderer)
+            tileImage.enabled = tileImageWasVisible;
+        ApplyLinkedRendererEnabled(linkedWasVisible);
+        if (numberText != null)
+            numberText.gameObject.SetActive(numberWasVisible);
+
+        Vector3 startScale = transform.localScale == Vector3.zero ? baseScale * scaleOverride : transform.localScale;
+        Vector3 flashScale = startScale * 1.08f;
+        Vector3 endScale = startScale * Mathf.Clamp(countZeroEndScale, 0.1f, 1f);
+        float duration = Mathf.Max(0.05f, countZeroDisappearDuration);
+        Color flashColor = sourceColor * Mathf.Max(1f, countZeroFlashIntensity);
+        flashColor.a = 1f;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float pulseT = Mathf.Clamp01(t / 0.25f);
+            float fadeT = Mathf.Clamp01((t - 0.18f) / 0.82f);
+            float easedFade = fadeT * fadeT * (3f - 2f * fadeT);
+            float alpha = 1f - easedFade;
+            transform.localScale = t < 0.25f
+                ? Vector3.Lerp(startScale, flashScale, pulseT)
+                : Vector3.Lerp(flashScale, endScale, easedFade);
+
+            Color visualColor = Color.Lerp(flashColor, DarkGrayOff, easedFade);
+            visualColor.a = alpha;
+            if (spriteRenderer != null && spriteWasVisible)
+                spriteRenderer.color = visualColor;
+            if (tileImage != null && tileImage != spriteRenderer && tileImageWasVisible)
+                tileImage.color = visualColor;
+            if (linkedWasVisible)
+                ApplyLinkedRendererColor(visualColor);
+            if (numberText != null && numberWasVisible)
+            {
+                Color textColor = numberText.color;
+                textColor.a = alpha;
+                numberText.color = textColor;
+            }
+
+            yield return null;
+        }
+
+        SetActiveState(false);
+        transform.localScale = baseScale * scaleOverride;
+        countZeroDisappearRoutine = null;
+    }
+
+    private IEnumerator FailureFocusPulseRoutine(Color color, int pulseCount)
+    {
+        if (scaleRoutine != null)
+        {
+            StopCoroutine(scaleRoutine);
+            scaleRoutine = null;
+        }
+
+        Color pulseColor = color.a > 0f ? color : FailureFocusFallbackColor;
+        int safePulseCount = Mathf.Clamp(pulseCount, 1, 4);
+        Vector3 restScale = baseScale * scaleOverride;
+        Vector3 peakScale = restScale * 1.14f;
+        float halfDuration = 0.07f;
+
+        for (int pulse = 0; pulse < safePulseCount; pulse++)
+        {
+            float elapsed = 0f;
+            while (elapsed < halfDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / halfDuration);
+                Color flash = Color.Lerp(GetBaseColorForNumber(currentNumber), pulseColor, t);
+                SetGlitchColor(flash);
+                transform.localScale = Vector3.Lerp(restScale, peakScale, t);
+                yield return null;
+            }
+
+            elapsed = 0f;
+            while (elapsed < halfDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / halfDuration);
+                Color flash = Color.Lerp(pulseColor, GetBaseColorForNumber(currentNumber), t);
+                SetGlitchColor(flash);
+                transform.localScale = Vector3.Lerp(peakScale, restScale, t);
+                yield return null;
+            }
+        }
+
+        RestoreNeonColor();
+        transform.localScale = restScale;
+        failureFocusRoutine = null;
     }
 }

@@ -7,7 +7,7 @@ using DG.Tweening;
 /// Blackout 타일: 숫자 대신 "?" 표시, 배경은 count 네온 컬러 유지. 정적 노이즈·플리커·물음표 맥동·밟을 때 피드백.
 /// </summary>
 [RequireComponent(typeof(Tile))]
-public class BlackoutTile : MonoBehaviour
+public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
 {
     [Header("스프라이트")]
     [SerializeField] private string tileSpritePath = "Sprites/blind_curtain_tile";
@@ -48,6 +48,7 @@ public class BlackoutTile : MonoBehaviour
     private Coroutine glitchRoutine;
     private Tween pulseTween;
     private bool isStepped;
+    private bool gameOverBlackoutVisualActive;
 
     private void Awake()
     {
@@ -81,6 +82,9 @@ public class BlackoutTile : MonoBehaviour
     /// </summary>
     public void OnStepped()
     {
+        if (IsInGameOverBlackout())
+            return;
+
         if (questionText != null && questionText.gameObject.activeInHierarchy)
         {
             questionText.transform.DOKill();
@@ -176,16 +180,30 @@ public class BlackoutTile : MonoBehaviour
 
     private void RefreshVisualState()
     {
+        if (IsInGameOverBlackout())
+        {
+            HideGameOverBlackoutOwnedVisuals();
+            return;
+        }
+
         bool shouldShow = tile == null || tile.IsActive;
 
         if (coverObject != null && coverObject.activeSelf != shouldShow)
             coverObject.SetActive(shouldShow);
         if (noiseOverlay != null)
             noiseOverlay.enabled = shouldShow;
+        if (shouldShow)
+            EnsureGlitchRoutine();
     }
 
     private void StartPulseTween()
     {
+        if (IsInGameOverBlackout())
+            return;
+
+        if (pulseTween != null && pulseTween.IsActive())
+            return;
+
         if (questionText == null || !questionText.gameObject.activeInHierarchy) return;
         questionText.transform.localScale = Vector3.one * pulseScaleMin;
         pulseTween = questionText.transform
@@ -200,6 +218,8 @@ public class BlackoutTile : MonoBehaviour
         {
             float wait = Random.Range(glitchIntervalMin, glitchIntervalMax);
             yield return new WaitForSeconds(wait);
+            if (IsInGameOverBlackout())
+                continue;
 
             // 50% 확률: 타일 밝기 플리커, 50%: 물음표 글리치(짧은 지직)
             if (Random.value > 0.5f)
@@ -239,8 +259,80 @@ public class BlackoutTile : MonoBehaviour
     private void LateUpdate()
     {
         HideQuestionText();
+        if (IsInGameOverBlackout())
+        {
+            HideGameOverBlackoutOwnedVisuals();
+            return;
+        }
+
         RefreshVisualState();
         if (coverRenderer != null && tileSpriteRenderer != null)
             coverRenderer.color = tileSpriteRenderer.color;
+    }
+
+    public void SetGameOverBlackoutVisual(bool active)
+    {
+        gameOverBlackoutVisualActive = active;
+        if (active)
+        {
+            StopBlackoutTransientVisuals();
+            HideGameOverBlackoutOwnedVisuals();
+            return;
+        }
+
+        RestoreGameOverBlackoutOwnedVisuals();
+    }
+
+    private void StopBlackoutTransientVisuals()
+    {
+        pulseTween?.Kill();
+        pulseTween = null;
+        StopGlitchRoutine();
+        isStepped = false;
+
+        if (questionText != null)
+        {
+            questionText.transform.DOKill();
+            questionText.transform.localScale = Vector3.one;
+        }
+
+        if (tileSpriteRenderer != null)
+            tileSpriteRenderer.DOKill();
+    }
+
+    private void HideGameOverBlackoutOwnedVisuals()
+    {
+        HideQuestionText();
+        if (coverObject != null && coverObject.activeSelf)
+            coverObject.SetActive(false);
+        if (noiseOverlay != null)
+            noiseOverlay.enabled = false;
+    }
+
+    private void RestoreGameOverBlackoutOwnedVisuals()
+    {
+        HideQuestionText();
+        RefreshVisualState();
+        StartPulseTween();
+    }
+
+    private void EnsureGlitchRoutine()
+    {
+        if (glitchRoutine == null && isActiveAndEnabled && !IsInGameOverBlackout())
+            glitchRoutine = StartCoroutine(GlitchFlickerRoutine());
+    }
+
+    private void StopGlitchRoutine()
+    {
+        if (glitchRoutine != null)
+        {
+            StopCoroutine(glitchRoutine);
+            glitchRoutine = null;
+        }
+    }
+
+    private bool IsInGameOverBlackout()
+    {
+        return gameOverBlackoutVisualActive || (tile != null && tile.IsGameOverBlackoutActive);
     }
 }

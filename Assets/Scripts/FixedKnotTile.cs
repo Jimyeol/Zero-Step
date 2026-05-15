@@ -7,7 +7,7 @@ using DG.Tweening;
 /// 전용 타일 스프라이트와 순서 숫자만 표시한다.
 /// </summary>
 [RequireComponent(typeof(Tile))]
-public class FixedKnotTile : MonoBehaviour
+public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
 {
     [Header("스프라이트")]
     [Tooltip("Resources 경로 (Assets/Resources/Sprites/fixed_knot_tile.png → Sprites/fixed_knot_tile)")]
@@ -53,6 +53,7 @@ public class FixedKnotTile : MonoBehaviour
     private bool hasDisplayRemainingInitialized;
     private bool hasBeenSteppedCorrectly;
     private bool hasUnlockedToNormalTile;
+    private bool gameOverBlackoutVisualActive;
     private FixedKnotVisualState visualState = FixedKnotVisualState.None;
 
     private static readonly Color LockedFutureColor = new Color(1.2f, 0.42f, 0.42f, 1f);
@@ -286,7 +287,7 @@ public class FixedKnotTile : MonoBehaviour
 
     private bool ShouldShowOrderTextForCurrentState()
     {
-        if (hasUnlockedToNormalTile || tile == null || !tile.IsActive || displayRemaining <= 0 || IsSolvedState())
+        if (IsInGameOverBlackout() || hasUnlockedToNormalTile || tile == null || !tile.IsActive || displayRemaining <= 0 || IsSolvedState())
             return false;
 
         return visualState == FixedKnotVisualState.LockedFuture ||
@@ -352,6 +353,12 @@ public class FixedKnotTile : MonoBehaviour
 
     private void ApplyVisualForCurrentState(bool force = false)
     {
+        if (IsInGameOverBlackout())
+        {
+            HideGameOverBlackoutOwnedVisuals();
+            return;
+        }
+
         if (!force && visualState == FixedKnotVisualState.SolvedLeaving && solvedLeaveSequence != null && solvedLeaveSequence.IsActive())
             return;
 
@@ -537,6 +544,13 @@ public class FixedKnotTile : MonoBehaviour
 
     public void RefreshVisualState()
     {
+        if (IsInGameOverBlackout())
+        {
+            HideTileNumberText();
+            HideGameOverBlackoutOwnedVisuals();
+            return;
+        }
+
         HideTileNumberText();
         ApplyVisualForCurrentState(true);
     }
@@ -574,6 +588,9 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>정확한 순서에 밟았을 때 호출.</summary>
     public void OnSteppedCorrectly()
     {
+        if (IsInGameOverBlackout())
+            return;
+
         if (!IsOrderConstraintActive)
             return;
 
@@ -584,6 +601,9 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>FixedKnot count가 1 감소했을 때 호출.</summary>
     public void OnCountDecreased()
     {
+        if (IsInGameOverBlackout())
+            return;
+
         if (hasUnlockedToNormalTile)
             return;
 
@@ -593,6 +613,9 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>타일을 밟은 뒤 다음 타일로 떠날 때 GameManager가 호출.</summary>
     public void OnLeftByPlayer()
     {
+        if (IsInGameOverBlackout())
+            return;
+
         if (tile == null)
             return;
 
@@ -613,6 +636,9 @@ public class FixedKnotTile : MonoBehaviour
 
     private void PlayCountDecrementSpin()
     {
+        if (IsInGameOverBlackout())
+            return;
+
         CacheBaseLocalRotation();
 
         if (countSpinTween != null && countSpinTween.IsActive())
@@ -692,6 +718,9 @@ public class FixedKnotTile : MonoBehaviour
     /// <summary>잘못된 순서로 진입 시도 시 타일을 붉게 흔들어 피드백.</summary>
     public void PlayWrongOrderShake()
     {
+        if (IsInGameOverBlackout())
+            return;
+
         if (positionShakeTween != null && positionShakeTween.IsActive())
             return;
 
@@ -809,8 +838,33 @@ public class FixedKnotTile : MonoBehaviour
         ApplyVisualForCurrentState(true);
     }
 
+    public void SetGameOverBlackoutVisual(bool active)
+    {
+        gameOverBlackoutVisualActive = active;
+        if (!active)
+            return;
+
+        StopVisualTweens(true);
+        if (positionShakeTween != null && positionShakeTween.IsActive())
+            positionShakeTween.Kill();
+        positionShakeTween = null;
+        if (countSpinTween != null && countSpinTween.IsActive())
+            countSpinTween.Kill();
+        countSpinTween = null;
+        CacheBaseLocalRotation();
+        ResetSpinRotation();
+        HideGameOverBlackoutOwnedVisuals();
+    }
+
     private void LateUpdate()
     {
+        if (IsInGameOverBlackout())
+        {
+            HideTileNumberText();
+            HideGameOverBlackoutOwnedVisuals();
+            return;
+        }
+
         if (!hasUnlockedToNormalTile)
             HideTileNumberText();
 
@@ -818,6 +872,25 @@ public class FixedKnotTile : MonoBehaviour
 
         if (visualState == FixedKnotVisualState.None)
             ApplyVisualForCurrentState(true);
+    }
+
+    private void HideGameOverBlackoutOwnedVisuals()
+    {
+        if (orderText != null)
+        {
+            orderText.DOKill();
+            orderText.transform.DOKill();
+            orderText.gameObject.SetActive(false);
+            orderText.alpha = 0f;
+            orderText.transform.localScale = Vector3.one * orderTextScale;
+        }
+
+        HideAccentVisual();
+    }
+
+    private bool IsInGameOverBlackout()
+    {
+        return gameOverBlackoutVisualActive || (tile != null && tile.IsGameOverBlackoutActive);
     }
 
     private void OnDestroy()

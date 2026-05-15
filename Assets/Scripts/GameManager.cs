@@ -194,6 +194,12 @@ public class GameManager : MonoBehaviour
     [Tooltip("순차 등장 시 타일 간 간격(초). 작을수록 빠름")]
     [SerializeField] private float tileAppearInterval = 0.02f;
 
+    [Header("네온 보드 연출")]
+    [SerializeField] [Range(0.1f, 0.7f)] private float stageStartCascadeDuration = 0.36f;
+    [SerializeField] [Range(0.2f, 0.9f)] private float stageClearWaveDuration = 0.55f;
+    [SerializeField] [Range(0.1f, 1f)] private float stageClearWaveAlpha = 0.72f;
+    [SerializeField] [Range(0.01f, 0.12f)] private float stageClearWaveWidthScale = 0.04f;
+
     [Header("Blackout 물음표 전환 연출")]
     [Tooltip("한 줄당 Y축 한 바퀴 회전 시간(초). 50% 지점에서 ?로 전환")]
     [SerializeField] private float blackoutFlipDuration = 0.35f;
@@ -295,9 +301,12 @@ public class GameManager : MonoBehaviour
     private LineRenderer hintPreviewFlowLine;
     private LineRenderer hintPreviewArrowLeftLine;
     private LineRenderer hintPreviewArrowRightLine;
+    private LineRenderer stageClearWaveLine;
     private Material hintPreviewMaterial;
     private Coroutine hintPreviewRoutine;
     private Coroutine hintPreviewRequestRoutine;
+    private Coroutine stageStartVisualRoutine;
+    private Coroutine stageClearWaveRoutine;
     private bool isHintPreviewRequestRunning;
     private int activeHintPreviewLineCount;
     private readonly List<Vector3> activeHintPreviewPoints = new List<Vector3>(HintPreviewMaxPathTiles);
@@ -436,6 +445,8 @@ public class GameManager : MonoBehaviour
     {
         SyncBackgroundGridReferenceCameraSize();
         RandomizeBackgroundGridFlow();
+        if (ShouldPlayStageStartVisual(entryType))
+            PlayStageStartVisuals();
         TrackStageStarted(entryType);
         SchedulePostStageStartedFailureCheck();
     }
@@ -445,6 +456,15 @@ public class GameManager : MonoBehaviour
         ProceduralGridBackground background = EnsureProceduralBackground();
         if (background != null)
             background.RandomizeGridFlowDirection(currentStageIndex);
+    }
+
+    private bool ShouldPlayStageStartVisual(string entryType)
+    {
+        return entryType == "app_launch" ||
+               entryType == "auto_next_stage" ||
+               entryType == "manual_skip" ||
+               entryType == "debug_jump" ||
+               entryType == "progress_reset";
     }
 
     private void SyncBackgroundGridReferenceCameraSize()
@@ -3155,13 +3175,7 @@ public class GameManager : MonoBehaviour
             {
                 DecreaseTileAndPlayBlockNote(currentTile);
                 RefreshMainUIProgress();
-                stageCleared = true;
-                ClearHintPreview();
-                Debug.Log("Clear");
-                PlayClearSfx();
-                PlayStageClearHaptic();
-                TrackStageCleared(StageClearTypeLastTileRule);
-                StartCoroutine(LoadNextStageAfterDelay());
+                BeginStageClear(StageClearTypeLastTileRule, currentTile);
                 return true;
             }
 
@@ -3174,19 +3188,28 @@ public class GameManager : MonoBehaviour
                     DecreaseTileAndPlayBlockNote(currentTile);
                     twinLink.ConsumePartners(DecreaseTileAndPlayBlockNote);
                     RefreshMainUIProgress();
-                    stageCleared = true;
-                    ClearHintPreview();
-                    Debug.Log("Clear");
-                    PlayClearSfx();
-                    PlayStageClearHaptic();
-                    TrackStageCleared(StageClearTypeLastTileRule);
-                    StartCoroutine(LoadNextStageAfterDelay());
+                    BeginStageClear(StageClearTypeLastTileRule, currentTile);
                     return true;
                 }
             }
         }
 
         return false;
+    }
+
+    private void BeginStageClear(string clearType, Tile referenceTile)
+    {
+        if (stageCleared)
+            return;
+
+        stageCleared = true;
+        Debug.Log("Clear");
+        ClearHintPreview();
+        PlayClearSfx();
+        PlayStageClearHaptic();
+        PlayStageClearVisuals(referenceTile);
+        TrackStageCleared(clearType);
+        StartCoroutine(LoadNextStageAfterDelay());
     }
 
     /// <summary>FixedKnot 화면 갱신. totalStepsCommitted + currentPath 기준 Count 전달.</summary>
@@ -3668,6 +3691,7 @@ public class GameManager : MonoBehaviour
 
         string reason = StageFailureReasonFromBoardFailure(result.Reason);
         ShowBoardFailureSnackbar(result.Reason);
+        PlayBoardFailureFocusEffect(result.Reason, result.FocusTile);
         Debug.Log($"Game Over: {reason} focus={DescribeTileForDebug(result.FocusTile)}");
         return BeginGameOverSequence(reason, result.FocusTile);
     }
@@ -4229,6 +4253,63 @@ public class GameManager : MonoBehaviour
         return BoardFailureReason.NoLegalMove;
     }
 
+    private void PlayBoardFailureFocusEffect(BoardFailureReason reason, Tile focusTile)
+    {
+        Color focusColor = BoardFailureFocusColor(reason);
+        if (reason == BoardFailureReason.TwinLinkUnsatisfiable)
+        {
+            PlayTwinLinkGroupFailurePulse(focusTile, focusColor);
+            return;
+        }
+
+        if (focusTile != null)
+            focusTile.PlayFailureFocusPulse(focusColor, 2);
+    }
+
+    private Color BoardFailureFocusColor(BoardFailureReason reason)
+    {
+        switch (reason)
+        {
+            case BoardFailureReason.HiddenUntriggerable:
+                return new Color(0.45f, 0.95f, 1.35f, 1f);
+            case BoardFailureReason.UnreachableRemainingTiles:
+                return new Color(1.35f, 0.8f, 0.25f, 1f);
+            case BoardFailureReason.ShortCircuitBlocked:
+            case BoardFailureReason.TwinLinkUnsatisfiable:
+                return new Color(1.3f, 0.42f, 0.5f, 1f);
+            case BoardFailureReason.InvalidCurrentStart:
+                return new Color(1.2f, 1.2f, 1.2f, 1f);
+            case BoardFailureReason.NoLegalMove:
+            default:
+                return new Color(1.2f, 0.45f, 0.75f, 1f);
+        }
+    }
+
+    private void PlayTwinLinkGroupFailurePulse(Tile focusTile, Color focusColor)
+    {
+        var sourceTwinLink = focusTile != null ? focusTile.GetComponent<TwinLinkTile>() : null;
+        if (sourceTwinLink == null || tiles == null)
+        {
+            if (focusTile != null)
+                focusTile.PlayFailureFocusPulse(focusColor, 2);
+            return;
+        }
+
+        for (int row = 0; row < stageHeight; row++)
+        {
+            for (int col = 0; col < stageWidth; col++)
+            {
+                Tile tile = tiles[row, col];
+                if (tile == null)
+                    continue;
+
+                var twinLink = tile.GetComponent<TwinLinkTile>();
+                if (twinLink != null && twinLink.LinkID == sourceTwinLink.LinkID)
+                    tile.PlayFailureFocusPulse(focusColor, 2);
+            }
+        }
+    }
+
     private string StageFailureReasonFromBoardFailure(BoardFailureReason reason)
     {
         switch (reason)
@@ -4356,6 +4437,7 @@ public class GameManager : MonoBehaviour
     private IEnumerator GameOverAndResetSequence()
     {
         ResetBoardFailureTracking();
+        StopBoardTransientVisuals();
         ClearHintPreview();
         totalStepsCommitted = 0;
         blackoutQuestionFlipPlayed = false;
@@ -4524,6 +4606,8 @@ public class GameManager : MonoBehaviour
         if (tile == null)
             return;
 
+        tile.ResetTransientVisualState();
+
         var crossBlast = tile.GetComponent<CrossBlastTile>();
         if (crossBlast != null)
             crossBlast.ResetTransientVisualState();
@@ -4533,6 +4617,7 @@ public class GameManager : MonoBehaviour
             twinLink.ResetTransientVisualState();
 
         tile.ResetToInitial();
+        ClearGameOverBlackoutVisualForRestart(tile);
 
         var hidden = tile.GetComponent<HiddenTile>();
         var igniter = tile.GetComponent<IgniterTile>();
@@ -4549,9 +4634,18 @@ public class GameManager : MonoBehaviour
             fixedKnot.ResetGearVisibility();
     }
 
+    private void ClearGameOverBlackoutVisualForRestart(Tile tile)
+    {
+        if (tile == null || !tile.IsGameOverBlackoutActive)
+            return;
+
+        tile.SetBlackout(false);
+    }
+
     private IEnumerator ResetCurrentStageRoutine()
     {
         ResetBoardFailureTracking();
+        StopBoardTransientVisuals();
         ClearHintPreview();
         totalStepsCommitted = 0;
         blackoutQuestionFlipPlayed = false;
@@ -4642,22 +4736,24 @@ public class GameManager : MonoBehaviour
     private void CheckStageClear()
     {
         if (stageCleared || tiles == null) return;
+        Tile referenceTile = currentStartTile;
         for (int row = 0; row < stageHeight; row++)
             for (int col = 0; col < stageWidth; col++)
                 if (tiles[row, col] != null && tiles[row, col].IsActive)
                     return;
-        stageCleared = true;
-        Debug.Log("Clear");
-        ClearHintPreview();
-        PlayClearSfx();
-        PlayStageClearHaptic();
-        TrackStageCleared(StageClearTypeAllTilesZero);
-        StartCoroutine(LoadNextStageAfterDelay());
+        BeginStageClear(StageClearTypeAllTilesZero, referenceTile);
     }
 
     private IEnumerator LoadNextStageAfterDelay()
     {
-        yield return new WaitForSeconds(nextStageDelay);
+        float visualDuration = Mathf.Min(Mathf.Max(0f, stageClearWaveDuration), Mathf.Max(0f, nextStageDelay));
+        if (visualDuration > 0f)
+            yield return new WaitForSeconds(visualDuration);
+
+        float remainingDelay = Mathf.Max(0f, nextStageDelay - visualDuration);
+        if (remainingDelay > 0f)
+            yield return new WaitForSeconds(remainingDelay);
+
         PrepareForStageTransition();
 
         int completedStageIndex = currentStageIndex;
@@ -4685,6 +4781,7 @@ public class GameManager : MonoBehaviour
     private void PrepareForStageTransition()
     {
         ResetBoardFailureTracking();
+        StopBoardTransientVisuals();
         ClearHintPreview();
         if (pathLitClearRoutine != null)
         {
@@ -4694,6 +4791,168 @@ public class GameManager : MonoBehaviour
 
         ResetTrail();
         ClearPendingBlockNoteQueue();
+    }
+
+    private void StopBoardTransientVisuals()
+    {
+        if (stageStartVisualRoutine != null)
+        {
+            StopCoroutine(stageStartVisualRoutine);
+            stageStartVisualRoutine = null;
+        }
+
+        if (stageClearWaveRoutine != null)
+        {
+            StopCoroutine(stageClearWaveRoutine);
+            stageClearWaveRoutine = null;
+        }
+
+        if (stageClearWaveLine != null)
+            stageClearWaveLine.enabled = false;
+
+        if (mainUI != null)
+            mainUI.ResetTransientStageClearVisuals();
+    }
+
+    private void PlayStageStartVisuals()
+    {
+        if (tiles == null)
+            return;
+
+        if (stageStartVisualRoutine != null)
+            StopCoroutine(stageStartVisualRoutine);
+        stageStartVisualRoutine = StartCoroutine(StageStartVisualRoutine());
+    }
+
+    private IEnumerator StageStartVisualRoutine()
+    {
+        List<Tile> visibleTiles = new List<Tile>(stageWidth * stageHeight);
+        for (int row = stageHeight - 1; row >= 0; row--)
+        {
+            for (int col = 0; col < stageWidth; col++)
+            {
+                Tile tile = tiles[row, col];
+                if (!ShouldUseTileForStageStartVisual(tile))
+                    continue;
+
+                tile.SetScaleZero();
+                visibleTiles.Add(tile);
+            }
+        }
+
+        int count = Mathf.Max(1, visibleTiles.Count);
+        float interval = Mathf.Min(tileAppearInterval, stageStartCascadeDuration / count);
+        for (int i = 0; i < visibleTiles.Count; i++)
+        {
+            Tile tile = visibleTiles[i];
+            if (tile == null)
+                continue;
+
+            tile.PlayBounceAppearance();
+            RefreshSpecialTileVisualStateAfterAppearance(tile);
+            if (interval > 0f)
+                yield return new WaitForSeconds(interval);
+        }
+
+        RestoreCurrentStartMarkerVisual();
+        stageStartVisualRoutine = null;
+    }
+
+    private bool ShouldUseTileForStageStartVisual(Tile tile)
+    {
+        if (tile == null || tile.CurrentNumber <= 0)
+            return false;
+
+        var hidden = tile.GetComponent<HiddenTile>();
+        return hidden == null || hidden.IsLive;
+    }
+
+    private void RestoreCurrentStartMarkerVisual()
+    {
+        if (currentStartTile == null)
+            return;
+
+        currentStartTile.SetInitialStartTile(true);
+    }
+
+    private void PlayStageClearVisuals(Tile referenceTile)
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI != null)
+            mainUI.PlayStageClearGlow();
+
+        if (stageClearWaveRoutine != null)
+            StopCoroutine(stageClearWaveRoutine);
+        stageClearWaveRoutine = StartCoroutine(StageClearWaveRoutine(referenceTile));
+    }
+
+    private IEnumerator StageClearWaveRoutine(Tile referenceTile)
+    {
+        LineRenderer line = EnsureStageClearWaveLine();
+        if (line == null)
+            yield break;
+
+        Vector3 origin = referenceTile != null ? referenceTile.transform.position : GetBoardCenterWorld();
+        origin.z = -0.48f;
+        float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
+        float startRadius = tileSize * 0.35f;
+        float endRadius = Mathf.Max(totalGridWidth, totalGridHeight) * 0.68f + tileSize;
+        float duration = Mathf.Max(0.05f, stageClearWaveDuration);
+        int segments = 64;
+        float lineWidth = Mathf.Max(0.02f, tileSize * stageClearWaveWidthScale);
+
+        line.enabled = true;
+        line.positionCount = segments + 1;
+        line.widthMultiplier = lineWidth;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = 1f - (1f - t) * (1f - t);
+            float radius = Mathf.Lerp(startRadius, endRadius, eased);
+            float alpha = Mathf.Sin(t * Mathf.PI) * stageClearWaveAlpha;
+            Color color = new Color(0.7f, 1.25f, 1.25f, alpha);
+            line.startColor = color;
+            line.endColor = color;
+            UpdateCircleLine(line, origin, radius, segments);
+            yield return null;
+        }
+
+        line.enabled = false;
+        stageClearWaveRoutine = null;
+    }
+
+    private LineRenderer EnsureStageClearWaveLine()
+    {
+        if (stageClearWaveLine != null)
+            return stageClearWaveLine;
+
+        stageClearWaveLine = CreateHintPreviewLine("StageClearWaveLine", 84);
+        stageClearWaveLine.loop = false;
+        stageClearWaveLine.numCapVertices = 0;
+        stageClearWaveLine.numCornerVertices = 6;
+        return stageClearWaveLine;
+    }
+
+    private static void UpdateCircleLine(LineRenderer line, Vector3 origin, float radius, int segments)
+    {
+        if (line == null)
+            return;
+
+        for (int i = 0; i <= segments; i++)
+        {
+            float angle = (Mathf.PI * 2f * i) / segments;
+            Vector3 point = origin + new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f);
+            line.SetPosition(i, point);
+        }
+    }
+
+    private Vector3 GetBoardCenterWorld()
+    {
+        return transform.position;
     }
 
     private bool TryAdvanceToNextStage()
@@ -4868,6 +5127,7 @@ public class GameManager : MonoBehaviour
     private void ClearTiles()
     {
         ResetBoardFailureTracking();
+        StopBoardTransientVisuals();
         linkSystem?.ClearLinks();
         hiddenGroups.Clear();
         twinLinkGroups.Clear();
@@ -4877,6 +5137,7 @@ public class GameManager : MonoBehaviour
                 for (int col = 0; col < stageWidth; col++)
                     if (tiles[row, col] != null)
                     {
+                        ClearGameOverBlackoutVisualForRestart(tiles[row, col]);
                         Destroy(tiles[row, col].gameObject);
                         tiles[row, col] = null;
                     }
@@ -5174,6 +5435,7 @@ public class GameManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        StopBoardTransientVisuals();
         ClearHintPreview();
         if (hintPreviewMaterial != null)
         {
