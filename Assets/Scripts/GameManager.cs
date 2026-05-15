@@ -784,6 +784,26 @@ public class GameManager : MonoBehaviour
         sparseMelodyPool.Add(new[] { "c", "e", "g", "co", "g", "e", "c" }); // Music box
         sparseMelodyPool.Add(new[] { "e", "g", "a", "g", "e", "d", "c" }); // Forest walk
         sparseMelodyPool.Add(new[] { "c", "d", "e", "g", "co", "g", "e" }); // Short clear
+        sparseMelodyPool.Add(new[] { "d", "e", "f", "d", "f", "a", "f" }); // Small lantern
+        sparseMelodyPool.Add(new[] { "e", "f", "g", "e", "g", "b", "g" }); // Small bell
+        sparseMelodyPool.Add(new[] { "c", "e", "f", "g", "f", "e", "c" }); // Soft arc
+        sparseMelodyPool.Add(new[] { "g", "f", "e", "d", "c", "d", "e" }); // Falling steps
+        sparseMelodyPool.Add(new[] { "a", "g", "e", "c", "e", "g", "a" }); // Bright hop
+        sparseMelodyPool.Add(new[] { "c", "cs", "d", "e", "d", "cs", "c" }); // Tiny chromatic
+        sparseMelodyPool.Add(new[] { "e", "ds", "e", "g", "e", "d", "c" }); // Little twist
+        sparseMelodyPool.Add(new[] { "f", "g", "a", "f", "e", "d", "c" }); // Meadow step
+        sparseMelodyPool.Add(new[] { "c", "g", "a", "g", "e", "d", "c" }); // Round drop
+        sparseMelodyPool.Add(new[] { "d", "f", "a", "f", "d", "e", "f" }); // Toy flute
+        sparseMelodyPool.Add(new[] { "g", "b", "co", "b", "g", "e", "d" }); // High sparkle
+        sparseMelodyPool.Add(new[] { "c", "e", "d", "f", "e", "g", "f" }); // Zigzag
+        sparseMelodyPool.Add(new[] { "a", "c", "e", "c", "a", "b", "c" }); // Cat steps
+        sparseMelodyPool.Add(new[] { "e", "g", "co", "g", "e", "f", "g" }); // Lift
+        sparseMelodyPool.Add(new[] { "c", "d", "f", "e", "c", "g", "e" }); // Side street
+        sparseMelodyPool.Add(new[] { "g", "e", "c", "d", "e", "c", "g" }); // Echo
+        sparseMelodyPool.Add(new[] { "f", "a", "g", "e", "d", "c", "d" }); // Warm fall
+        sparseMelodyPool.Add(new[] { "c", "e", "g", "a", "g", "e", "c" }); // Small fanfare
+        sparseMelodyPool.Add(new[] { "d", "e", "g", "e", "d", "c", "d" }); // Soft return
+        sparseMelodyPool.Add(new[] { "c", "co", "g", "e", "c", "d", "c" }); // Tiny finale
 
         mediumMelodyPool.Add(new[] { "c", "d", "e", "c", "e", "g", "e", "d", "c", "e", "g" }); // Airplane variation
         mediumMelodyPool.Add(new[] { "c", "c", "g", "g", "a", "a", "g", "f", "f", "e", "e", "d" }); // Twinkle variation
@@ -795,6 +815,26 @@ public class GameManager : MonoBehaviour
         mediumMelodyPool.Add(new[] { "a", "c", "e", "c", "a", "b", "c", "e", "d", "c" }); // Cat steps
         mediumMelodyPool.Add(new[] { "c", "d", "e", "g", "a", "g", "e", "d", "c", "e" }); // Fairy village
         mediumMelodyPool.Add(new[] { "g", "a", "b", "co", "b", "a", "g", "e", "d", "c" }); // Bright stage
+        mediumMelodyPool.Add(new[] { "c", "e", "f", "g", "a", "g", "f", "e", "d", "c" }); // Neon hill
+        mediumMelodyPool.Add(new[] { "d", "f", "g", "a", "g", "f", "d", "e", "f", "d" }); // Firefly
+        mediumMelodyPool.Add(new[] { "e", "g", "a", "b", "a", "g", "e", "f", "g", "e" }); // Glass stairs
+        mediumMelodyPool.Add(new[] { "c", "cs", "d", "ds", "e", "f", "e", "d", "c" }); // Clock climb
+        mediumMelodyPool.Add(new[] { "e", "ds", "e", "f", "g", "f", "e", "d", "c", "e" }); // Curious turn
+        mediumMelodyPool.Add(new[] { "g", "e", "c", "e", "g", "a", "g", "e", "d", "c" }); // Open window
+        mediumMelodyPool.Add(new[] { "a", "g", "f", "e", "d", "f", "a", "g", "e", "d" }); // Warm breeze
+        mediumMelodyPool.Add(new[] { "c", "e", "g", "co", "b", "g", "e", "d", "c" }); // Music box climb
+        mediumMelodyPool.Add(new[] { "d", "e", "f", "a", "g", "f", "e", "d", "c", "d" }); // Boardwalk
+        mediumMelodyPool.Add(new[] { "f", "e", "d", "c", "d", "f", "a", "f", "d", "c" }); // Lantern fall
+        mediumMelodyPool.Add(new[] { "c", "g", "c", "e", "g", "e", "c", "d", "e" }); // Pulse loop
+        mediumMelodyPool.Add(new[] { "e", "g", "e", "c", "e", "g", "a", "g", "e" }); // Soft shimmer
+        mediumMelodyPool.Add(new[] { "g", "b", "co", "b", "g", "f", "e", "d", "c" }); // High return
+        mediumMelodyPool.Add(new[] { "a", "as", "b", "co", "b", "as", "a", "g", "e" }); // Prism turn
+        mediumMelodyPool.Add(new[] { "c", "d", "e", "f", "g", "a", "g", "f", "e", "d" }); // Ascending rail
+        mediumMelodyPool.Add(new[] { "c", "e", "ds", "e", "g", "e", "ds", "c", "d" }); // Spark flicker
+        mediumMelodyPool.Add(new[] { "f", "g", "a", "co", "a", "g", "f", "e", "d" }); // Horizon
+        mediumMelodyPool.Add(new[] { "d", "fs", "a", "fs", "d", "e", "fs", "g", "a" }); // Clear metal
+        mediumMelodyPool.Add(new[] { "c", "e", "g", "b", "co", "b", "g", "e", "c" }); // Tall arch
+        mediumMelodyPool.Add(new[] { "g", "fs", "g", "a", "b", "a", "g", "e", "d", "c" }); // Festival turn
 
         denseMelodyPool.Add(new[] { "c", "d", "e", "c", "e", "g", "e", "d", "c", "d", "e", "g", "a", "g", "e" }); // Airplane loop
         denseMelodyPool.Add(new[] { "c", "c", "g", "g", "a", "a", "g", "f", "f", "e", "e", "d", "d", "c" }); // Twinkle long
@@ -806,6 +846,26 @@ public class GameManager : MonoBehaviour
         denseMelodyPool.Add(new[] { "c", "cs", "d", "ds", "e", "f", "fs", "g", "gs", "a", "as", "b", "co", "b" }); // Boss climb
         denseMelodyPool.Add(new[] { "c", "d", "e", "g", "a", "b", "co", "b", "a", "g", "e", "d", "c", "e", "g", "co" }); // Puzzle finale
         denseMelodyPool.Add(new[] { "d", "fs", "a", "co", "b", "a", "g", "fs", "e", "d", "fs", "a", "g", "e", "d" }); // Ending festival
+        denseMelodyPool.Add(new[] { "c", "e", "g", "co", "g", "e", "c", "d", "f", "a", "co", "a", "f", "d" }); // Wide music box
+        denseMelodyPool.Add(new[] { "g", "a", "b", "co", "b", "a", "g", "f", "e", "d", "c", "d", "e", "g" }); // Long return
+        denseMelodyPool.Add(new[] { "a", "g", "e", "c", "e", "g", "a", "b", "co", "b", "a", "g", "e", "c" }); // Bright valley
+        denseMelodyPool.Add(new[] { "c", "e", "f", "g", "a", "co", "a", "g", "f", "e", "d", "c", "e", "g" }); // Crystal ridge
+        denseMelodyPool.Add(new[] { "d", "e", "f", "g", "a", "g", "f", "e", "d", "c", "d", "f", "a", "g" }); // Rolling march
+        denseMelodyPool.Add(new[] { "e", "g", "b", "co", "b", "g", "e", "f", "a", "co", "a", "f", "e" }); // Night lift
+        denseMelodyPool.Add(new[] { "c", "d", "cs", "d", "e", "f", "e", "ds", "e", "g", "e", "c" }); // Circuit tick
+        denseMelodyPool.Add(new[] { "f", "a", "co", "b", "a", "g", "f", "e", "d", "f", "a", "g", "f", "d" }); // Lantern bridge
+        denseMelodyPool.Add(new[] { "g", "b", "co", "b", "g", "e", "d", "c", "e", "g", "a", "g", "e" }); // High echo
+        denseMelodyPool.Add(new[] { "a", "c", "e", "g", "e", "c", "a", "b", "c", "e", "d", "c", "a" }); // Cat carousel
+        denseMelodyPool.Add(new[] { "c", "co", "b", "a", "g", "e", "c", "d", "e", "g", "co", "g", "e" }); // Tall finale
+        denseMelodyPool.Add(new[] { "d", "f", "a", "co", "a", "f", "d", "e", "g", "b", "g", "e", "d" }); // Prism stairs
+        denseMelodyPool.Add(new[] { "e", "f", "fs", "g", "a", "b", "co", "b", "a", "g", "fs", "e", "d" }); // Gear climb
+        denseMelodyPool.Add(new[] { "c", "e", "g", "e", "c", "g", "e", "c", "d", "f", "a", "f", "d" }); // Double echo
+        denseMelodyPool.Add(new[] { "g", "e", "c", "e", "g", "b", "co", "b", "g", "e", "d", "c", "d" }); // Gate open
+        denseMelodyPool.Add(new[] { "a", "as", "b", "co", "b", "a", "g", "fs", "g", "a", "b", "a", "g" }); // Neon prism
+        denseMelodyPool.Add(new[] { "c", "d", "e", "f", "g", "a", "b", "co", "b", "a", "g", "f", "e", "d" }); // Full ladder
+        denseMelodyPool.Add(new[] { "e", "g", "a", "b", "co", "b", "a", "g", "e", "f", "g", "a", "g", "e" }); // Star trail
+        denseMelodyPool.Add(new[] { "d", "e", "g", "b", "co", "b", "g", "e", "d", "fs", "a", "g", "e" }); // Brass puzzle
+        denseMelodyPool.Add(new[] { "c", "e", "g", "a", "co", "b", "g", "e", "f", "a", "co", "a", "g", "e", "c" }); // Last sparkle
     }
 
     private void SetupMelodyForCurrentStage()
