@@ -25,12 +25,11 @@
                 <ui:VisualElement class="top-progress-segment top-progress-segment-d" picking-mode="Ignore"/>
             </ui:VisualElement>
             <ui:VisualElement name="HeartContainer" class="top-heart-row">
-                <ui:VisualElement class="top-heart-glow top-heart-glow-a" picking-mode="Ignore"/>
-                <ui:VisualElement class="top-heart-glow top-heart-glow-b" picking-mode="Ignore"/>
-                <ui:VisualElement class="top-heart-glow top-heart-glow-c" picking-mode="Ignore"/>
                 <ui:Image name="Heart1Image" class="heart-icon top-heart-icon"/>
                 <ui:Image name="Heart2Image" class="heart-icon top-heart-icon"/>
                 <ui:Image name="Heart3Image" class="heart-icon top-heart-icon"/>
+                <ui:Image name="Heart4Image" class="heart-icon top-heart-icon"/>
+                <ui:Image name="Heart5Image" class="heart-icon top-heart-icon"/>
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:Button name="SettingButton" text="" class="top-setting-button">
@@ -110,6 +109,18 @@
         <ui:VisualElement class="hint-loading-panel">
             <ui:Label name="HintLoadingLabel" text="힌트 찾는 중..." class="hint-loading-label"/>
             <ui:ProgressBar name="HintLoadingProgress" value="0" title="" class="hint-loading-progress"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="DebugStageJumpOverlay" picking-mode="Position" class="debug-stage-jump-overlay" style="display: none;">
+        <ui:VisualElement name="DebugStageJumpDialog" class="debug-stage-jump-dialog">
+            <ui:Label name="DebugStageJumpTitleLabel" text="스테이지 이동" class="debug-stage-jump-title"/>
+            <ui:Label name="DebugStageJumpMessageLabel" text="테스트할 스테이지 번호를 입력하세요." class="debug-stage-jump-message"/>
+            <ui:TextField name="DebugStageJumpInput" value="1" class="debug-stage-jump-input"/>
+            <ui:Label name="DebugStageJumpStatusLabel" text="" class="debug-stage-jump-status"/>
+            <ui:VisualElement class="debug-stage-jump-button-row">
+                <ui:Button name="DebugStageJumpCancelButton" text="취소" class="debug-stage-jump-button debug-stage-jump-button-cancel"/>
+                <ui:Button name="DebugStageJumpConfirmButton" text="확인" class="debug-stage-jump-button debug-stage-jump-button-confirm"/>
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="BannerAdContainer" style="position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background-color: rgba(0, 0, 0, 0.3); justify-content: center; align-items: center;">
@@ -203,9 +214,9 @@
     <ui:VisualElement name="HeartDepletedOverlay" picking-mode="Position" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: none; justify-content: center; align-items: center; background-color: rgba(4, 7, 12, 0.78);">
         <ui:VisualElement name="HeartDepletedDialog" style="width: 92%; max-width: 940px; min-height: 460px; background-color: rgba(7, 11, 18, 0.98); border-left-width: 4px; border-right-width: 4px; border-top-width: 4px; border-bottom-width: 4px; border-left-color: rgba(156, 227, 255, 0.94); border-right-color: rgba(156, 227, 255, 0.94); border-top-color: rgba(156, 227, 255, 0.94); border-bottom-color: rgba(156, 227, 255, 0.94); border-radius: 26px; padding-left: 36px; padding-right: 36px; padding-top: 36px; padding-bottom: 36px; align-items: center; justify-content: center;">
             <ui:Label name="HeartDepletedTitle" text="하트가 모두 소진됐어요" style="font-size: 58px; color: rgb(255, 255, 255); -unity-font-style: bold; -unity-text-align: middle-center; margin-bottom: 14px; letter-spacing: 0.8px;"/>
-            <ui:Label name="HeartDepletedMessage" text="광고를 시청하면 하트 3개가 즉시 충전되고 현재 스테이지가 다시 시작됩니다." style="font-size: 34px; color: rgba(210, 236, 255, 1); -unity-text-align: middle-center; margin-bottom: 18px;"/>
-            <ui:Label name="HeartRefillRewardHint" text="보상: 하트 3개 + 즉시 재시작" style="font-size: 30px; color: rgba(161, 231, 255, 1); -unity-text-align: middle-center; margin-bottom: 26px;"/>
-            <ui:Button name="HeartRefillAdButton" text="광고 보고 하트 3개 충전" style="width: 92%; max-width: 790px; height: 126px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 22px; background-color: rgba(74, 193, 255, 0.26); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(189, 239, 255, 0.95); border-right-color: rgba(189, 239, 255, 0.95); border-top-color: rgba(189, 239, 255, 0.95); border-bottom-color: rgba(189, 239, 255, 0.95);"/>
+            <ui:Label name="HeartDepletedMessage" text="광고를 시청하면 하트 5개가 즉시 충전되고 현재 스테이지가 다시 시작됩니다." style="font-size: 34px; color: rgba(210, 236, 255, 1); -unity-text-align: middle-center; margin-bottom: 18px;"/>
+            <ui:Label name="HeartRefillRewardHint" text="보상: 하트 5개 + 즉시 재시작" style="font-size: 30px; color: rgba(161, 231, 255, 1); -unity-text-align: middle-center; margin-bottom: 26px;"/>
+            <ui:Button name="HeartRefillAdButton" text="광고 보고 하트 5개 충전" style="width: 92%; max-width: 790px; height: 126px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 22px; background-color: rgba(74, 193, 255, 0.26); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(189, 239, 255, 0.95); border-right-color: rgba(189, 239, 255, 0.95); border-top-color: rgba(189, 239, 255, 0.95); border-bottom-color: rgba(189, 239, 255, 0.95);"/>
             <ui:Label name="HeartRefillStatusLabel" text="" style="font-size: 30px; color: rgba(181, 226, 255, 1); -unity-text-align: middle-center; margin-top: 18px; min-height: 44px;"/>
         </ui:VisualElement>
     </ui:VisualElement>

@@ -27,6 +27,8 @@ public class GameMainUIController : MonoBehaviour
     private const string SaveKeyHintNextRechargeUnix = "AssistHintNextRechargeUnix";
     private const string SaveKeySkipCharges = "AssistSkipCharges";
     private const string SaveKeySkipNextRechargeUnix = "AssistSkipNextRechargeUnix";
+    private const string SaveKeyCurrentHearts = "CurrentHearts";
+    private const string SaveKeyCurrentHeartsMax = "CurrentHeartsMax";
     private const string PrivacyUrl = "https://www.naver.com";
     private const string SupportEmailAddress = "crewoongcrewoong@gmail.com";
     private const string NeonPressBaseClass = "neon-press-button";
@@ -53,11 +55,14 @@ public class GameMainUIController : MonoBehaviour
     private const string HintRewardName = "Hint Preview";
     private const int HintRewardAmount = 1;
     private const int StageTransitionInterstitialInterval = 15;
-    private const int MaxHearts = 3;
+    private const int LegacyMaxHearts = 3;
+    private const int MaxHearts = 5;
     private const int MaxHintCharges = 3;
     private const int MaxSkipCharges = 1;
     private const long HintRechargeSeconds = 15L * 60L;
     private const long SkipRechargeSeconds = 30L * 60L;
+    private const float IdleHintBonusDelaySeconds = 40f;
+    private const int MaxIdleStageHintBonus = 1;
     private const float TopHudBasePaddingPx = 64f;
     private const float TopHudBackdropBaseTopPx = 26f;
     private const string TutorialScheduleResourcePath = "Tutorials/help_tutorial_schedule";
@@ -215,6 +220,12 @@ public class GameMainUIController : MonoBehaviour
 
     private Label stageTitleLabel;
     private Label stageNumberLabel;
+    private VisualElement stageContainer;
+    private VisualElement debugStageJumpOverlay;
+    private TextField debugStageJumpInput;
+    private Label debugStageJumpStatusLabel;
+    private Button debugStageJumpCancelButton;
+    private Button debugStageJumpConfirmButton;
     private ProgressBar gameProgressBar;
     private Button settingButton;
     private Image settingIcon;
@@ -338,6 +349,8 @@ public class GameMainUIController : MonoBehaviour
     private Image heart1Image;
     private Image heart2Image;
     private Image heart3Image;
+    private Image heart4Image;
+    private Image heart5Image;
     private VisualElement heartDepletedOverlay;
     private VisualElement heartDepletedDialog;
     private Label heartDepletedTitleLabel;
@@ -377,10 +390,17 @@ public class GameMainUIController : MonoBehaviour
     private int currentHearts = MaxHearts;
     private int hintCharges = MaxHintCharges;
     private long hintNextRechargeUnix;
+    private int idleStageHintBonus;
+    private bool idleHintBonusGrantedThisStage;
+    private bool idleHintBonusSuppressedUntilActivity;
+    private bool idleHintBonusCheckRunning;
+    private float lastGameplayActivityTime;
+    private Coroutine idleHintBonusBounceRoutine;
     private int skipCharges = MaxSkipCharges;
     private long skipNextRechargeUnix;
     private float nextAssistEconomyUiRefreshTime;
     private bool isWaitingForHeartRefill;
+    private bool isDebugStageJumpPopupOpen;
     private bool isLanguageSelectionPopupOpen;
     private bool isTutorialPopupOpen;
     private bool activeTutorialOpenedFromSettings;
@@ -457,6 +477,7 @@ public class GameMainUIController : MonoBehaviour
         isDebugBuildCached = Debug.isDebugBuild;
         LoadSavedSettings();
         LoadAssistEconomyState();
+        LoadHeartState();
         IsVibrationEnabled = isVibrationOn;
 
         // UIDocument 자동 캐싱
@@ -477,8 +498,14 @@ public class GameMainUIController : MonoBehaviour
 
         topBar = root.Q<VisualElement>("TopBar");
         topHudBackdrop = root.Q<VisualElement>("TopHudBackdrop");
+        stageContainer = root.Q<VisualElement>("StageContainer");
         stageTitleLabel = root.Q<Label>("StageTitle");
         stageNumberLabel = root.Q<Label>("StageNumber");
+        debugStageJumpOverlay = root.Q<VisualElement>("DebugStageJumpOverlay");
+        debugStageJumpInput = root.Q<TextField>("DebugStageJumpInput");
+        debugStageJumpStatusLabel = root.Q<Label>("DebugStageJumpStatusLabel");
+        debugStageJumpCancelButton = root.Q<Button>("DebugStageJumpCancelButton");
+        debugStageJumpConfirmButton = root.Q<Button>("DebugStageJumpConfirmButton");
         gameProgressBar = root.Q<ProgressBar>("GameProgress");
         settingButton = root.Q<Button>("SettingButton");
         settingIcon = root.Q<Image>("SettingIcon");
@@ -597,6 +624,8 @@ public class GameMainUIController : MonoBehaviour
         heart1Image = root.Q<Image>("Heart1Image");
         heart2Image = root.Q<Image>("Heart2Image");
         heart3Image = root.Q<Image>("Heart3Image");
+        heart4Image = root.Q<Image>("Heart4Image");
+        heart5Image = root.Q<Image>("Heart5Image");
         heartDepletedOverlay = root.Q<VisualElement>("HeartDepletedOverlay");
         heartDepletedDialog = root.Q<VisualElement>("HeartDepletedDialog");
         heartDepletedTitleLabel = root.Q<Label>("HeartDepletedTitle");
@@ -612,6 +641,8 @@ public class GameMainUIController : MonoBehaviour
 
         if (settingPopupOverlay != null)
             settingPopupOverlay.style.display = DisplayStyle.None;
+        if (debugStageJumpOverlay != null)
+            debugStageJumpOverlay.style.display = DisplayStyle.None;
         if (resetConfirmOverlay != null)
             resetConfirmOverlay.style.display = DisplayStyle.None;
         if (languageSelectOverlay != null)
@@ -708,8 +739,23 @@ public class GameMainUIController : MonoBehaviour
             };
         }
 
+        if (stageContainer != null)
+        {
+            stageContainer.EnableInClassList("top-stage-panel-debug-jump", isDebugBuildCached);
+            if (isDebugBuildCached)
+                stageContainer.RegisterCallback<ClickEvent>(OnDebugStageContainerClicked);
+        }
+
         if (settingCloseButton != null)
             settingCloseButton.clicked += HideSettingPopup;
+        if (debugStageJumpCancelButton != null)
+            debugStageJumpCancelButton.clicked += HideDebugStageJumpPopup;
+        if (debugStageJumpConfirmButton != null)
+            debugStageJumpConfirmButton.clicked += ConfirmDebugStageJump;
+        if (debugStageJumpInput != null)
+            debugStageJumpInput.RegisterCallback<KeyDownEvent>(OnDebugStageJumpInputKeyDown);
+        if (debugStageJumpOverlay != null)
+            debugStageJumpOverlay.RegisterCallback<ClickEvent>(OnDebugStageJumpOverlayClicked);
         if (resetConfirmCancelButton != null)
             resetConfirmCancelButton.clicked += HideResetDataConfirmPopup;
         if (resetConfirmOkButton != null)
@@ -854,6 +900,7 @@ public class GameMainUIController : MonoBehaviour
 #endif
         RefreshBottomLayout(force: false);
         RefreshAssistEconomyIfNeeded();
+        UpdateIdleHintBonus();
         EnsureSplashOverlayAttached();
         UpdateSplashVisual();
         TryCloseSplashIfReady();
@@ -863,6 +910,7 @@ public class GameMainUIController : MonoBehaviour
     {
         StopStageSnackbarPlayback();
         StopTutorialAnimation();
+        StopIdleHintBonusBounce();
         HideHintLoading();
         if (splashFadeRoutine != null)
             StopCoroutine(splashFadeRoutine);
@@ -937,6 +985,8 @@ public class GameMainUIController : MonoBehaviour
     {
         RegisterButtonClickAnimation(settingButton);
         RegisterButtonClickAnimation(settingCloseButton, sfxKind: UISfxKind.Cancel);
+        RegisterButtonClickAnimation(debugStageJumpCancelButton, sfxKind: UISfxKind.Cancel);
+        RegisterButtonClickAnimation(debugStageJumpConfirmButton, useWarmPulse: true, sfxKind: UISfxKind.Confirm);
         RegisterButtonClickAnimation(hintButton, sfxKind: UISfxKind.Hint);
         RegisterButtonClickAnimation(skipButton, sfxKind: UISfxKind.Skip);
         RegisterButtonClickAnimation(resetButton);
@@ -1104,14 +1154,23 @@ public class GameMainUIController : MonoBehaviour
         if (gm.IsHintPreviewRequestRunning)
             return;
 
+        StopIdleHintBonusBounce();
+        NotifyGameplayActivity();
         RefillAssistChargesFromElapsedTime();
-        Debug.Log($"[힌트 버튼] pressed stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} removeAds={IsRemoveAdsEntitled()} solving=True");
+        Debug.Log($"[힌트 버튼] pressed stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} idleBonus={idleStageHintBonus}/{MaxIdleStageHintBonus} removeAds={IsRemoveAdsEntitled()} solving=True");
 
         gm.CheckHintPreviewAvailabilityWithLoading(hasAvailableHint =>
         {
-            Debug.Log($"[힌트 버튼] solved stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} removeAds={IsRemoveAdsEntitled()} hasPath={hasAvailableHint}");
+            Debug.Log($"[힌트 버튼] solved stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} idleBonus={idleStageHintBonus}/{MaxIdleStageHintBonus} removeAds={IsRemoveAdsEntitled()} hasPath={hasAvailableHint}");
             if (gm == null || !hasAvailableHint)
                 return;
+
+            if (idleStageHintBonus > 0)
+            {
+                if (gm.ShowHintPreview())
+                    ConsumeIdleStageHintBonus();
+                return;
+            }
 
             if (hintCharges > 0)
             {
@@ -1171,6 +1230,7 @@ public class GameMainUIController : MonoBehaviour
             return;
         }
 
+        NotifyGameplayActivity();
         RefillAssistChargesFromElapsedTime();
         if (skipCharges > 0)
         {
@@ -1251,6 +1311,7 @@ public class GameMainUIController : MonoBehaviour
             { "button_name", "reset_stage" }
         });
         var gm = FindFirstObjectByType<GameManager>();
+        NotifyGameplayActivity();
         if (gm != null)
             gm.ResetCurrentStage();
         else
@@ -1337,6 +1398,112 @@ public class GameMainUIController : MonoBehaviour
             skipNextRechargeUnix = now + SkipRechargeSeconds;
     }
 
+    public void NotifyGameplayActivity()
+    {
+        lastGameplayActivityTime = Time.unscaledTime;
+        idleHintBonusSuppressedUntilActivity = false;
+    }
+
+    private void ResetIdleHintBonusForCurrentStage()
+    {
+        idleStageHintBonus = 0;
+        idleHintBonusGrantedThisStage = false;
+        idleHintBonusSuppressedUntilActivity = false;
+        idleHintBonusCheckRunning = false;
+        lastGameplayActivityTime = Time.unscaledTime;
+        StopIdleHintBonusBounce();
+        RefreshAssistButtons();
+    }
+
+    private void UpdateIdleHintBonus()
+    {
+        if (idleHintBonusGrantedThisStage || idleStageHintBonus > 0 || idleHintBonusSuppressedUntilActivity || idleHintBonusCheckRunning)
+            return;
+        if (isSplashActive || isSettingPopupOpen || isDebugStageJumpPopupOpen || isLanguageSelectionPopupOpen || isTutorialPopupOpen || isWaitingForHeartRefill || isHintLoadingVisible)
+            return;
+        if (Time.unscaledTime - lastGameplayActivityTime < IdleHintBonusDelaySeconds)
+            return;
+
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm == null || !gm.CanCheckIdleHintBonus)
+            return;
+
+        idleHintBonusCheckRunning = true;
+        gm.CheckHintPreviewAvailabilitySilently(hasAvailableHint =>
+        {
+            idleHintBonusCheckRunning = false;
+            if (!hasAvailableHint)
+            {
+                idleHintBonusSuppressedUntilActivity = true;
+                Debug.Log($"[방치 힌트 보너스 없음] stage={currentStageIndexForUI}");
+                return;
+            }
+
+            GrantIdleStageHintBonus();
+        });
+    }
+
+    private void GrantIdleStageHintBonus()
+    {
+        if (idleHintBonusGrantedThisStage)
+            return;
+
+        idleHintBonusGrantedThisStage = true;
+        idleStageHintBonus = MaxIdleStageHintBonus;
+        FirebaseBootstrap.LogEvent("idle_hint_bonus_granted", new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndexForUI },
+            { "idle_seconds", Mathf.RoundToInt(IdleHintBonusDelaySeconds) }
+        });
+        Debug.Log($"[방치 힌트 보너스 지급] stage={currentStageIndexForUI} bonus={idleStageHintBonus}");
+        RefreshAssistButtons();
+        ShowGameplaySnackbar("snackbar_idle_hint_bonus_granted");
+        PlayIdleHintBonusBounce();
+    }
+
+    private void PlayIdleHintBonusBounce()
+    {
+        if (hintButton == null)
+            return;
+        if (idleHintBonusBounceRoutine != null)
+            StopCoroutine(idleHintBonusBounceRoutine);
+        idleHintBonusBounceRoutine = StartCoroutine(PlayIdleHintBonusBounceRoutine());
+    }
+
+    private IEnumerator PlayIdleHintBonusBounceRoutine()
+    {
+        while (idleStageHintBonus > 0)
+        {
+            if (hintButton == null)
+                yield break;
+            hintButton.style.scale = new StyleScale(new Scale(new Vector3(1.16f, 1.16f, 1f)));
+            yield return new WaitForSecondsRealtime(0.11f);
+            if (idleStageHintBonus <= 0)
+                break;
+            hintButton.style.scale = new StyleScale(new Scale(new Vector3(0.96f, 0.96f, 1f)));
+            yield return new WaitForSecondsRealtime(0.08f);
+            if (idleStageHintBonus <= 0)
+                break;
+            hintButton.style.scale = new StyleScale(new Scale(Vector3.one));
+            yield return new WaitForSecondsRealtime(0.45f);
+        }
+
+        if (hintButton != null)
+            hintButton.style.scale = new StyleScale(new Scale(Vector3.one));
+        idleHintBonusBounceRoutine = null;
+    }
+
+    private void StopIdleHintBonusBounce()
+    {
+        if (idleHintBonusBounceRoutine != null)
+        {
+            StopCoroutine(idleHintBonusBounceRoutine);
+            idleHintBonusBounceRoutine = null;
+        }
+        if (hintButton != null)
+            hintButton.style.scale = new StyleScale(new Scale(Vector3.one));
+    }
+
     private void ConsumeHintCharge()
     {
         hintCharges = Mathf.Max(0, hintCharges - 1);
@@ -1347,6 +1514,19 @@ public class GameMainUIController : MonoBehaviour
             { "remaining_charges", hintCharges }
         });
         SaveAssistEconomyState();
+        RefreshAssistButtons();
+    }
+
+    private void ConsumeIdleStageHintBonus()
+    {
+        idleStageHintBonus = Mathf.Max(0, idleStageHintBonus - 1);
+        if (idleStageHintBonus <= 0)
+            StopIdleHintBonusBounce();
+        FirebaseBootstrap.LogEvent("idle_hint_bonus_use", new Dictionary<string, object>
+        {
+            { "stage_index", currentStageIndexForUI },
+            { "remaining_idle_bonus", idleStageHintBonus }
+        });
         RefreshAssistButtons();
     }
 
@@ -1365,7 +1545,8 @@ public class GameMainUIController : MonoBehaviour
 
     private void RefreshAssistButtons()
     {
-        RefreshAssistBadge(hintBadge, hintBadgeText, hintCharges, MaxHintCharges, hintNextRechargeUnix, "hint");
+        int visibleHintCharges = hintCharges + idleStageHintBonus;
+        RefreshAssistBadge(hintBadge, hintBadgeText, visibleHintCharges, MaxHintCharges + MaxIdleStageHintBonus, hintNextRechargeUnix, "hint");
         RefreshAssistBadge(skipBadge, skipBadgeText, skipCharges, MaxSkipCharges, skipNextRechargeUnix, "skip");
     }
 
@@ -1493,6 +1674,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void ShowSettingPopup()
     {
+        NotifyGameplayActivity();
         if (settingPopupOverlay != null)
         {
             settingPopupOverlay.style.display = DisplayStyle.Flex;
@@ -1506,6 +1688,7 @@ public class GameMainUIController : MonoBehaviour
     {
         HideLanguageSelectionPopup();
         HideResetDataConfirmPopup();
+        NotifyGameplayActivity();
         if (settingPopupOverlay != null)
         {
             settingPopupOverlay.style.display = DisplayStyle.None;
@@ -1516,6 +1699,7 @@ public class GameMainUIController : MonoBehaviour
 
     /// <summary>설정 팝업이 열려 있으면 게임 입력 차단에 사용.</summary>
     public bool IsSettingPopupOpen => isSettingPopupOpen;
+    public bool IsDebugStageJumpPopupOpen => isDebugStageJumpPopupOpen;
     public bool IsTutorialPopupOpen => isTutorialPopupOpen;
     public bool IsWaitingForHeartRefill => isWaitingForHeartRefill;
     public bool IsSplashActive => isSplashActive;
@@ -1934,6 +2118,14 @@ public class GameMainUIController : MonoBehaviour
         HideHeartDepletedPopup();
     }
 
+    public void RestoreHeartsForSavedSession()
+    {
+        SetHeartCount(LoadSavedHeartCount(), animated: false, persist: true);
+        isWaitingForHeartRefill = false;
+        ConfigureHeartDepletedPopupForRewardedAd();
+        HideHeartDepletedPopup();
+    }
+
     public bool ConsumeHeartOnGameOver()
     {
         ConsumeHeartAndHandleDepletion("game_over", -1, out bool hasHeartsRemaining);
@@ -2006,11 +2198,13 @@ public class GameMainUIController : MonoBehaviour
         }
     }
 
-    private void SetHeartCount(int newHeartCount, bool animated)
+    private void SetHeartCount(int newHeartCount, bool animated, bool persist = true)
     {
         int clampedHeartCount = Mathf.Clamp(newHeartCount, 0, MaxHearts);
         int previousHeartCount = currentHearts;
         currentHearts = clampedHeartCount;
+        if (persist)
+            SaveHeartState();
 
         if (!animated || previousHeartCount == clampedHeartCount)
         {
@@ -2037,6 +2231,8 @@ public class GameMainUIController : MonoBehaviour
             case 0: return heart1Image;
             case 1: return heart2Image;
             case 2: return heart3Image;
+            case 3: return heart4Image;
+            case 4: return heart5Image;
             default: return null;
         }
     }
@@ -2046,6 +2242,31 @@ public class GameMainUIController : MonoBehaviour
         ApplyHeartVisual(heart1Image, currentHearts >= 1);
         ApplyHeartVisual(heart2Image, currentHearts >= 2);
         ApplyHeartVisual(heart3Image, currentHearts >= 3);
+        ApplyHeartVisual(heart4Image, currentHearts >= 4);
+        ApplyHeartVisual(heart5Image, currentHearts >= 5);
+    }
+
+    private void LoadHeartState()
+    {
+        currentHearts = LoadSavedHeartCount();
+    }
+
+    private int LoadSavedHeartCount()
+    {
+        int savedHeartCount = LoadSettingInt(SaveKeyCurrentHearts, MaxHearts);
+        int savedMaxHearts = LoadSettingInt(SaveKeyCurrentHeartsMax, 0);
+        if (savedMaxHearts > 0 && savedMaxHearts < MaxHearts && savedHeartCount >= savedMaxHearts)
+            return MaxHearts;
+        if (savedMaxHearts <= 0 && LegacyMaxHearts < MaxHearts && savedHeartCount >= LegacyMaxHearts)
+            return MaxHearts;
+
+        return Mathf.Clamp(savedHeartCount, 0, MaxHearts);
+    }
+
+    private void SaveHeartState()
+    {
+        SaveSettingInt(SaveKeyCurrentHearts, currentHearts);
+        SaveSettingInt(SaveKeyCurrentHeartsMax, MaxHearts);
     }
 
     private void ApplyHeartVisual(Image targetImage, bool isFilled)
@@ -2789,6 +3010,7 @@ public class GameMainUIController : MonoBehaviour
         if (!ignoreDismissed && IsTutorialDismissed(entry.id))
             return;
 
+        NotifyGameplayActivity();
         if (!openedFromSettings)
             MarkTutorialSeenInSettings(entry.id);
 
@@ -2913,6 +3135,7 @@ public class GameMainUIController : MonoBehaviour
         if (tutorialStepHintLabel != null)
             tutorialStepHintLabel.text = string.Empty;
 
+        NotifyGameplayActivity();
         FirebaseBootstrap.LogEvent("help_tutorial_close", new Dictionary<string, object>
         {
             { "tutorial_id", string.IsNullOrEmpty(tutorialId) ? "unknown" : tutorialId }
@@ -4556,6 +4779,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void OpenLanguageSelectionPopup()
     {
+        NotifyGameplayActivity();
         if (languageSelectOverlay == null)
         {
             string nextSelection = GameLocalization.GetNextSelectionCode(selectedLanguageCode);
@@ -4592,6 +4816,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void HideLanguageSelectionPopup()
     {
+        NotifyGameplayActivity();
         isLanguageSelectionPopupOpen = false;
         if (languageSelectOverlay != null)
             languageSelectOverlay.style.display = DisplayStyle.None;
@@ -4816,6 +5041,97 @@ public class GameMainUIController : MonoBehaviour
         AudioListener.volume = isSoundOn ? 1f : 0f;
     }
 
+    private void OnDebugStageContainerClicked(ClickEvent evt)
+    {
+        if (!isDebugBuildCached)
+            return;
+
+        PlayUIButtonSfx();
+        ShowDebugStageJumpPopup();
+        evt?.StopPropagation();
+    }
+
+    private void ShowDebugStageJumpPopup()
+    {
+        if (!isDebugBuildCached || debugStageJumpOverlay == null)
+            return;
+
+        NotifyGameplayActivity();
+        isDebugStageJumpPopupOpen = true;
+        debugStageJumpOverlay.style.display = DisplayStyle.Flex;
+
+        if (debugStageJumpStatusLabel != null)
+            debugStageJumpStatusLabel.text = string.Empty;
+        if (debugStageJumpInput != null)
+        {
+            debugStageJumpInput.value = Mathf.Max(1, currentStageIndexForUI).ToString();
+            debugStageJumpInput.schedule.Execute(() => debugStageJumpInput.Focus()).StartingIn(40);
+        }
+    }
+
+    private void HideDebugStageJumpPopup()
+    {
+        NotifyGameplayActivity();
+        isDebugStageJumpPopupOpen = false;
+        if (debugStageJumpOverlay != null)
+            debugStageJumpOverlay.style.display = DisplayStyle.None;
+    }
+
+    private void OnDebugStageJumpInputKeyDown(KeyDownEvent evt)
+    {
+        if (evt == null)
+            return;
+        if (evt.keyCode != KeyCode.Return && evt.keyCode != KeyCode.KeypadEnter)
+            return;
+
+        ConfirmDebugStageJump();
+        evt.StopPropagation();
+    }
+
+    private void OnDebugStageJumpOverlayClicked(ClickEvent evt)
+    {
+        if (evt == null || evt.target != debugStageJumpOverlay)
+            return;
+
+        HideDebugStageJumpPopup();
+        evt.StopPropagation();
+    }
+
+    private void ConfirmDebugStageJump()
+    {
+        if (!isDebugBuildCached)
+            return;
+
+        string rawStage = debugStageJumpInput != null ? debugStageJumpInput.value : string.Empty;
+        if (!int.TryParse(rawStage, out int targetStage) || targetStage <= 0)
+        {
+            SetDebugStageJumpStatus("1 이상의 스테이지 번호를 입력하세요.");
+            return;
+        }
+
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm == null)
+        {
+            SetDebugStageJumpStatus("GameManager를 찾을 수 없습니다.");
+            return;
+        }
+
+        if (gm.LoadStageImmediateForDebug(targetStage))
+        {
+            HideDebugStageJumpPopup();
+            Debug.Log($"[Debug Stage Jump] stage={targetStage}");
+            return;
+        }
+
+        SetDebugStageJumpStatus($"{targetStage} 스테이지를 찾을 수 없습니다.");
+    }
+
+    private void SetDebugStageJumpStatus(string message)
+    {
+        if (debugStageJumpStatusLabel != null)
+            debugStageJumpStatusLabel.text = message ?? string.Empty;
+    }
+
     private void ShowResetDataConfirmPopup()
     {
         FirebaseBootstrap.LogEvent("reset_data_warning_popup_open");
@@ -4839,6 +5155,8 @@ public class GameMainUIController : MonoBehaviour
             if (ES3.KeyExists(SaveKeySoundOn)) ES3.DeleteKey(SaveKeySoundOn);
             if (ES3.KeyExists(SaveKeyVibrationOn)) ES3.DeleteKey(SaveKeyVibrationOn);
             if (ES3.KeyExists(SaveKeyLanguageSelection)) ES3.DeleteKey(SaveKeyLanguageSelection);
+            if (ES3.KeyExists(SaveKeyCurrentHearts)) ES3.DeleteKey(SaveKeyCurrentHearts);
+            if (ES3.KeyExists(SaveKeyCurrentHeartsMax)) ES3.DeleteKey(SaveKeyCurrentHeartsMax);
         }
         catch (Exception e)
         {
@@ -4849,6 +5167,8 @@ public class GameMainUIController : MonoBehaviour
         PlayerPrefs.DeleteKey(SaveKeySoundOn);
         PlayerPrefs.DeleteKey(SaveKeyVibrationOn);
         PlayerPrefs.DeleteKey(SaveKeyLanguageSelection);
+        PlayerPrefs.DeleteKey(SaveKeyCurrentHearts);
+        PlayerPrefs.DeleteKey(SaveKeyCurrentHeartsMax);
         PlayerPrefs.Save();
 
         GameManager.ClearSavedStageProgress();
@@ -5797,6 +6117,7 @@ public class GameMainUIController : MonoBehaviour
     {
         StopStageSnackbarPlayback();
         currentStageIndexForUI = Mathf.Max(1, stageIndex);
+        ResetIdleHintBonusForCurrentStage();
 
         // STAGE / 스테이지 번호 텍스트 갱신
         if (stageTitleLabel != null)

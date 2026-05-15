@@ -287,7 +287,7 @@ public class TwinLinkTile : MonoBehaviour
         ClearActivationLines();
     }
 
-    /// <summary>짝 타일들이 이번 스텝에 함께 감소 가능한지 검사.</summary>
+    /// <summary>남아 있는 짝 타일들이 이번 스텝에 함께 감소 가능한지 검사.</summary>
     public bool CanConsumePartners(System.Predicate<Tile> shouldExcludePartner = null)
     {
         foreach (var p in partners)
@@ -295,8 +295,6 @@ public class TwinLinkTile : MonoBehaviour
             if (p == null || p.tile == null) continue;
             if (shouldExcludePartner != null && shouldExcludePartner(p.tile))
                 continue;
-            if (p.tile.CurrentNumber <= 0)
-                return false;
         }
 
         return true;
@@ -310,7 +308,9 @@ public class TwinLinkTile : MonoBehaviour
         foreach (var p in partners)
         {
             if (p == null || p.tile == null)
-                return false;
+                continue;
+            if (p.tile.CurrentNumber <= 0)
+                continue;
             if (p.tile.CurrentNumber != expectedCount)
                 return false;
         }
@@ -354,6 +354,8 @@ public class TwinLinkTile : MonoBehaviour
         {
             if (p == null || p.tile == null) continue;
             if (shouldExcludePartner != null && shouldExcludePartner(p.tile))
+                continue;
+            if (p.tile.CurrentNumber <= 0)
                 continue;
             consumeTile(p.tile);
             activationTargets.Add(p);

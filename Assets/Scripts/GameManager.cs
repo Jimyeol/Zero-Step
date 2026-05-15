@@ -280,7 +280,7 @@ public class GameManager : MonoBehaviour
     private const int HintQuickSolverNodeLimit = 120000;
     private const float HintQuickSolverTimeLimitSeconds = 0.12f;
     private const int HintSolverNodeLimit = 3000000;
-    private const float HintSolverTimeLimitSeconds = 3f;
+    private const float HintSolverTimeLimitSeconds = 5f;
     private const float HintLoadingMinimumVisibleSeconds = 0.45f;
     private int boardVersion;
     private int cachedHintBoardVersion = -1;
@@ -366,6 +366,7 @@ public class GameManager : MonoBehaviour
     public LinkSystem GetLinkSystem() => linkSystem;
     /// <summary>Spotlight 모드: 현재 드래그 중인지.</summary>
     public bool IsDragging => isDragging;
+    public bool CanCheckIdleHintBonus => !stageCleared && !isGameOverSequencePlaying && !isDragging && tiles != null && currentStartTile != null && !isHintPreviewRequestRunning;
     public int PendingSessionFreeHeartRefillCount => pendingSessionFreeHeartRefillMinutes.Count;
     /// <summary>Spotlight 모드: 포인터(마우스/터치) 월드 좌표.</summary>
     public Vector2 GetPointerWorldPosition()
@@ -421,7 +422,7 @@ public class GameManager : MonoBehaviour
         AdjustCameraToFitGrid();
 
         RefreshMainUIForStage();
-        ResetMainUIHeartsForNewStage();
+        RestoreMainUIHeartsForSavedSession();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         PrewarmUpcomingStages();
@@ -542,6 +543,29 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
+    public bool LoadStageImmediateForDebug(int stageIndex)
+    {
+        if (isGameOverSequencePlaying || stageIndex <= 0)
+            return false;
+
+        StageData data = StageManager.LoadStage(stageIndex);
+        if (data == null)
+            return false;
+
+        int previousStageIndex = currentStageIndex;
+        PrepareForStageTransition();
+        currentStageIndex = stageIndex;
+        ApplyLoadedStageData(data, "debug_stage_jump");
+
+        FirebaseBootstrap.LogEvent("stage_debug_jump", new Dictionary<string, object>
+        {
+            { "from_stage_index", previousStageIndex },
+            { "to_stage_index", currentStageIndex }
+        });
+        HandleStageStarted("debug_jump");
+        return true;
+    }
+
     /// <summary>데이터 초기화 직후 호출: 1스테이지로 즉시 복귀하고 진행도를 1로 저장.</summary>
     public void ResetProgressAndRestartToFirstStage()
     {
@@ -599,7 +623,7 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
         CacheMainUIReference();
-        bool overlayOpen = mainUI != null && (mainUI.IsSettingPopupOpen || mainUI.IsTutorialPopupOpen || mainUI.IsWaitingForHeartRefill || mainUI.IsSplashActive);
+        bool overlayOpen = mainUI != null && (mainUI.IsSettingPopupOpen || mainUI.IsDebugStageJumpPopupOpen || mainUI.IsTutorialPopupOpen || mainUI.IsWaitingForHeartRefill || mainUI.IsSplashActive);
         IsPerformanceOverlayOpen = overlayOpen;
 
         ProcessPendingBlockNoteQueue();
@@ -964,6 +988,8 @@ public class GameManager : MonoBehaviour
         bool pointerDown = IsPointerDown();
         bool pointerUp = IsPointerUp();
         bool pointerHeld = IsPointerHeld();
+        if (pointerDown || pointerHeld || pointerUp)
+            NotifyMainUIPlayerActivity();
 
         if (pointerDown)
         {
@@ -1579,10 +1605,21 @@ public class GameManager : MonoBehaviour
         if (isHintPreviewRequestRunning)
             return;
 
-        hintPreviewRequestRoutine = StartCoroutine(CheckHintPreviewAvailabilityRoutine(onComplete));
+        hintPreviewRequestRoutine = StartCoroutine(CheckHintPreviewAvailabilityRoutine(onComplete, showFeedback: true));
     }
 
-    private IEnumerator CheckHintPreviewAvailabilityRoutine(Action<bool> onComplete)
+    public void CheckHintPreviewAvailabilitySilently(Action<bool> onComplete)
+    {
+        if (isHintPreviewRequestRunning)
+        {
+            onComplete?.Invoke(false);
+            return;
+        }
+
+        hintPreviewRequestRoutine = StartCoroutine(CheckHintPreviewAvailabilityRoutine(onComplete, showFeedback: false));
+    }
+
+    private IEnumerator CheckHintPreviewAvailabilityRoutine(Action<bool> onComplete, bool showFeedback)
     {
         isHintPreviewRequestRunning = true;
 
@@ -1594,14 +1631,17 @@ public class GameManager : MonoBehaviour
             hasPath = TryGetHintPreviewPath(out _, useQuickBudget: true);
             if (!hasPath && IsHintSolverBudgetExhaustedStatus())
             {
-                SetHintLoadingVisible(true);
-                loadingShown = true;
+                if (showFeedback)
+                {
+                    SetHintLoadingVisible(true);
+                    loadingShown = true;
+                }
                 loadingStartedAt = Time.realtimeSinceStartup;
                 yield return null;
 
                 hasPath = TryGetHintPreviewPath(out _, useQuickBudget: false);
 
-                float remainingVisibleTime = HintLoadingMinimumVisibleSeconds - (Time.realtimeSinceStartup - loadingStartedAt);
+                float remainingVisibleTime = showFeedback ? HintLoadingMinimumVisibleSeconds - (Time.realtimeSinceStartup - loadingStartedAt) : 0f;
                 if (remainingVisibleTime > 0f)
                     yield return new WaitForSecondsRealtime(remainingVisibleTime);
             }
@@ -1614,7 +1654,7 @@ public class GameManager : MonoBehaviour
             hintPreviewRequestRoutine = null;
         }
 
-        if (!hasPath)
+        if (!hasPath && showFeedback)
         {
             LogHintUnavailable();
             ShowHintSnackbar(GetHintUnavailableSnackbarKey());
@@ -2098,13 +2138,19 @@ public class GameManager : MonoBehaviour
         foreach (TwinLinkTile partner in twinLink.Partners)
         {
             if (partner == null)
-                return false;
+                continue;
 
             Tile partnerTile = partner.GetComponent<Tile>();
-            if (partnerTile == null || state.GetRemainingCount(partnerTile) != 1)
+            if (partnerTile == null)
+                continue;
+
+            int partnerRemaining = state.GetRemainingCount(partnerTile);
+            if (partnerRemaining <= 0)
+                continue;
+            if (partnerRemaining != 1)
                 return false;
 
-            groupRemaining++;
+            groupRemaining += partnerRemaining;
         }
 
         return state.TotalRemainingCount == groupRemaining;
@@ -2192,6 +2238,9 @@ public class GameManager : MonoBehaviour
 
                 Tile partnerTile = partner.GetComponent<Tile>();
                 if (partnerTile == null || partnerTile == nextTile || partnerTile == state.Previous)
+                    continue;
+
+                if (state.GetRemainingCount(partnerTile) <= 0)
                     continue;
 
                 if (!state.TryDecrement(partnerTile, out int beforePartner, out int afterPartner))
@@ -2361,7 +2410,7 @@ public class GameManager : MonoBehaviour
                 continue;
 
             if (getRemainingCount(partnerTile) <= 0)
-                return false;
+                continue;
         }
 
         return true;
@@ -3073,6 +3122,14 @@ public class GameManager : MonoBehaviour
             mainUI.ResetHeartsForNewStage();
     }
 
+    private void RestoreMainUIHeartsForSavedSession()
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI != null)
+            mainUI.RestoreHeartsForSavedSession();
+    }
+
     /// <summary>남은 타일 카운트 기준으로 상단 UI ProgressBar 갱신.</summary>
     private void RefreshMainUIProgress()
     {
@@ -3754,7 +3811,7 @@ public class GameManager : MonoBehaviour
                 continue;
 
             if (context.GetRemainingCount(partnerTile) <= 0)
-                return false;
+                continue;
         }
 
         return true;
@@ -4653,6 +4710,13 @@ public class GameManager : MonoBehaviour
                 return false;
             }
         }
+
+        ApplyLoadedStageData(data, "stage_loaded");
+        return true;
+    }
+
+    private void ApplyLoadedStageData(StageData data, string boardVersionReason)
+    {
         UpdateVerboseStage6DebugState(data);
 
         totalStepsCommitted = 0;
@@ -4669,8 +4733,7 @@ public class GameManager : MonoBehaviour
         PlayNewStageSfx();
         SaveStageProgress();
         PrewarmUpcomingStages();
-        IncrementBoardVersion("stage_loaded");
-        return true;
+        IncrementBoardVersion(boardVersionReason);
     }
 
     private void PrewarmUpcomingStages()
@@ -5090,6 +5153,14 @@ public class GameManager : MonoBehaviour
         subscribedGameplayLayoutUI = mainUI;
         if (mainUI != null)
             mainUI.GameplayLayoutChanged += HandleGameplayLayoutChanged;
+    }
+
+    private void NotifyMainUIPlayerActivity()
+    {
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI != null)
+            mainUI.NotifyGameplayActivity();
     }
 
     private void HandleGameplayLayoutChanged()
