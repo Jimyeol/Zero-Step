@@ -54,7 +54,9 @@ public class GameMainUIController : MonoBehaviour
     private const int StageSkipRewardAmount = 1;
     private const string HintRewardName = "Hint Preview";
     private const int HintRewardAmount = 1;
-    private const int StageTransitionInterstitialInterval = 15;
+    private const int StageTransitionInterstitialFirstEligibleStage = 12;
+    private const int StageTransitionInterstitialMinStageGap = 5;
+    private const float StageTransitionInterstitialCooldownSeconds = 180f;
     private const int LegacyMaxHearts = 3;
     private const int MaxHearts = 5;
     private const int MaxHintCharges = 3;
@@ -428,6 +430,10 @@ public class GameMainUIController : MonoBehaviour
     private bool splashVideoEnded;
     private bool splashVideoFadeStarted;
     private float splashVideoFadeStartTime;
+    private float stageTransitionInterstitialSessionStartRealtime;
+    private float lastStageTransitionInterstitialShownRealtime;
+    private int lastStageTransitionInterstitialShownStage;
+    private bool hasShownStageTransitionInterstitialThisSession;
     private VisualElement splashOverlay;
     private Image splashImage;
     private Label splashLoadingLabel;
@@ -451,6 +457,7 @@ public class GameMainUIController : MonoBehaviour
     private bool isStageTransitionInterstitialAdLoading;
     private bool isStageTransitionInterstitialShowing;
     private Action pendingStageTransitionInterstitialCompletionAction;
+    private int pendingStageTransitionInterstitialCompletedStage;
 #endif
     [Header("ProgressBar Animation")]
     [SerializeField] private float progressAnimDuration = 0.25f;
@@ -476,6 +483,10 @@ public class GameMainUIController : MonoBehaviour
     private void Awake()
     {
         isDebugBuildCached = Debug.isDebugBuild;
+        stageTransitionInterstitialSessionStartRealtime = Time.realtimeSinceStartup;
+        lastStageTransitionInterstitialShownRealtime = stageTransitionInterstitialSessionStartRealtime;
+        lastStageTransitionInterstitialShownStage = 0;
+        hasShownStageTransitionInterstitialThisSession = false;
         LoadSavedSettings();
         LoadAssistEconomyState();
         LoadHeartState();
@@ -1108,6 +1119,99 @@ public class GameMainUIController : MonoBehaviour
         return isDebugBuildCached;
     }
 
+    private bool ShouldLoadStageTransitionInterstitials()
+    {
+#if UNITY_EDITOR || (!UNITY_ANDROID && !UNITY_IOS)
+        return false;
+#else
+        return !ShouldDisableAdsForDevelopmentBuild() && !IsRemoveAdsEntitled();
+#endif
+    }
+
+    private float GetStageTransitionInterstitialCooldownElapsedSeconds()
+    {
+        float baseline = hasShownStageTransitionInterstitialThisSession
+            ? lastStageTransitionInterstitialShownRealtime
+            : stageTransitionInterstitialSessionStartRealtime;
+        return Mathf.Max(0f, Time.realtimeSinceStartup - baseline);
+    }
+
+    private int GetStageTransitionInterstitialStageGap(int completedStageIndex)
+    {
+        int baselineStage = hasShownStageTransitionInterstitialThisSession
+            ? lastStageTransitionInterstitialShownStage
+            : 0;
+        return Mathf.Max(0, completedStageIndex - baselineStage);
+    }
+
+    private Dictionary<string, object> BuildStageTransitionInterstitialEventData(int completedStageIndex, string reason = null)
+    {
+        float cooldownElapsed = GetStageTransitionInterstitialCooldownElapsedSeconds();
+        int stageGap = GetStageTransitionInterstitialStageGap(completedStageIndex);
+        var eventData = new Dictionary<string, object>
+        {
+            { "stage_index", completedStageIndex },
+            { "first_eligible_stage", StageTransitionInterstitialFirstEligibleStage },
+            { "cooldown_seconds", StageTransitionInterstitialCooldownSeconds },
+            { "cooldown_elapsed_seconds", cooldownElapsed },
+            { "cooldown_remaining_seconds", Mathf.Max(0f, StageTransitionInterstitialCooldownSeconds - cooldownElapsed) },
+            { "min_stage_gap", StageTransitionInterstitialMinStageGap },
+            { "stage_gap", stageGap }
+        };
+
+        if (!string.IsNullOrEmpty(reason))
+            eventData["reason"] = reason;
+
+        return eventData;
+    }
+
+    private bool ShouldAttemptStageTransitionInterstitial(int completedStageIndex, out string reason)
+    {
+#if UNITY_EDITOR
+        reason = "editor";
+        return false;
+#else
+
+        if (ShouldDisableAdsForDevelopmentBuild())
+        {
+            reason = "development_build";
+            return false;
+        }
+
+#if !UNITY_ANDROID && !UNITY_IOS
+        reason = "unsupported_platform";
+        return false;
+#else
+        if (IsRemoveAdsEntitled())
+        {
+            reason = "remove_ads_entitled";
+            return false;
+        }
+
+        if (completedStageIndex < StageTransitionInterstitialFirstEligibleStage)
+        {
+            reason = "below_first_eligible_stage";
+            return false;
+        }
+
+        if (GetStageTransitionInterstitialCooldownElapsedSeconds() < StageTransitionInterstitialCooldownSeconds)
+        {
+            reason = "cooldown";
+            return false;
+        }
+
+        if (GetStageTransitionInterstitialStageGap(completedStageIndex) < StageTransitionInterstitialMinStageGap)
+        {
+            reason = "stage_gap";
+            return false;
+        }
+
+        reason = null;
+        return true;
+#endif
+#endif
+    }
+
     private void MarkAdsReadyWithoutLoading(string reason)
     {
         pendingBannerLoadFromInitialize = false;
@@ -1280,25 +1384,27 @@ public class GameMainUIController : MonoBehaviour
     public void ShowStageTransitionInterstitialIfNeeded(int completedStageIndex, Action onCompleted)
     {
         Action completion = onCompleted ?? (() => { });
-        if (completedStageIndex <= 0 || completedStageIndex % StageTransitionInterstitialInterval != 0)
+        if (!ShouldAttemptStageTransitionInterstitial(completedStageIndex, out string skipReason))
         {
-            completion.Invoke();
-            return;
-        }
-
-        if (ShouldDisableAdsForDevelopmentBuild())
-        {
-            FirebaseBootstrap.LogEvent("stage_transition_interstitial_skipped_development", new Dictionary<string, object>
-            {
-                { "stage_index", completedStageIndex },
-                { "interval", StageTransitionInterstitialInterval }
-            });
+            FirebaseBootstrap.LogEvent(
+                "stage_transition_interstitial_skipped",
+                BuildStageTransitionInterstitialEventData(completedStageIndex, skipReason));
             completion.Invoke();
             return;
         }
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
-        if (TryShowStageTransitionInterstitial(completion))
+        if (stageTransitionInterstitialAd == null || !stageTransitionInterstitialAd.CanShowAd())
+        {
+            FirebaseBootstrap.LogEvent(
+                "stage_transition_interstitial_not_ready",
+                BuildStageTransitionInterstitialEventData(completedStageIndex, "not_ready"));
+            LoadStageTransitionInterstitialAd();
+            completion.Invoke();
+            return;
+        }
+
+        if (TryShowStageTransitionInterstitial(completedStageIndex, completion))
             return;
 #endif
         completion.Invoke();
@@ -5587,9 +5693,10 @@ public class GameMainUIController : MonoBehaviour
 
     private void LoadStageTransitionInterstitialAd()
     {
-        if (ShouldDisableAdsForDevelopmentBuild())
+        if (!ShouldLoadStageTransitionInterstitials())
         {
             splashInterstitialReady = true;
+            DestroyStageTransitionInterstitialAd();
             return;
         }
 
@@ -5613,6 +5720,13 @@ public class GameMainUIController : MonoBehaviour
         InterstitialAd.Load(adUnitId, new AdRequest(), (InterstitialAd ad, LoadAdError loadError) =>
         {
             isStageTransitionInterstitialAdLoading = false;
+            if (!ShouldLoadStageTransitionInterstitials())
+            {
+                splashInterstitialReady = true;
+                ad?.Destroy();
+                return;
+            }
+
             if (loadError != null || ad == null)
             {
                 splashInterstitialReady = true;
@@ -5624,6 +5738,7 @@ public class GameMainUIController : MonoBehaviour
             splashInterstitialReady = true;
             DestroyStageTransitionInterstitialAd();
             stageTransitionInterstitialAd = ad;
+            stageTransitionInterstitialAd.OnAdFullScreenContentOpened += HandleStageTransitionInterstitialOpened;
             stageTransitionInterstitialAd.OnAdFullScreenContentClosed += HandleStageTransitionInterstitialClosed;
             stageTransitionInterstitialAd.OnAdFullScreenContentFailed += HandleStageTransitionInterstitialFailed;
 
@@ -5691,12 +5806,12 @@ public class GameMainUIController : MonoBehaviour
         });
     }
 
-    private bool TryShowStageTransitionInterstitial(Action onCompleted)
+    private bool TryShowStageTransitionInterstitial(int completedStageIndex, Action onCompleted)
     {
         if (onCompleted == null)
             return false;
 
-        if (ShouldDisableAdsForDevelopmentBuild())
+        if (!ShouldLoadStageTransitionInterstitials())
             return false;
 
         if (isStageTransitionInterstitialShowing)
@@ -5708,14 +5823,23 @@ public class GameMainUIController : MonoBehaviour
             return false;
         }
 
+        pendingStageTransitionInterstitialCompletedStage = completedStageIndex;
         pendingStageTransitionInterstitialCompletionAction = onCompleted;
         isStageTransitionInterstitialShowing = true;
-        FirebaseBootstrap.LogEvent("stage_transition_interstitial_show", new Dictionary<string, object>
+        FirebaseBootstrap.LogEvent(
+            "stage_transition_interstitial_show",
+            BuildStageTransitionInterstitialEventData(completedStageIndex));
+
+        try
         {
-            { "stage_index", currentStageIndexForUI },
-            { "interval", StageTransitionInterstitialInterval }
-        });
-        stageTransitionInterstitialAd.Show();
+            stageTransitionInterstitialAd.Show();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[GameMainUIController] Stage transition interstitial show threw: {ex.Message}");
+            CompleteStageTransitionInterstitialFlow("exception");
+        }
+
         return true;
     }
 
@@ -5772,6 +5896,21 @@ public class GameMainUIController : MonoBehaviour
         CompleteStageTransitionInterstitialFlow("closed");
     }
 
+    private void HandleStageTransitionInterstitialOpened()
+    {
+        int completedStageIndex = pendingStageTransitionInterstitialCompletedStage > 0
+            ? pendingStageTransitionInterstitialCompletedStage
+            : currentStageIndexForUI;
+        var eventData = BuildStageTransitionInterstitialEventData(completedStageIndex);
+        lastStageTransitionInterstitialShownRealtime = Time.realtimeSinceStartup;
+        lastStageTransitionInterstitialShownStage = completedStageIndex;
+        hasShownStageTransitionInterstitialThisSession = true;
+
+        FirebaseBootstrap.LogEvent(
+            "stage_transition_interstitial_opened",
+            eventData);
+    }
+
     private void HandleStageTransitionInterstitialFailed(AdError adError)
     {
         string errorMessage = adError != null ? adError.GetMessage() : "unknown";
@@ -5781,19 +5920,21 @@ public class GameMainUIController : MonoBehaviour
 
     private void CompleteStageTransitionInterstitialFlow(string resultType)
     {
+        int completedStageIndex = pendingStageTransitionInterstitialCompletedStage > 0
+            ? pendingStageTransitionInterstitialCompletedStage
+            : currentStageIndexForUI;
         Action completion = pendingStageTransitionInterstitialCompletionAction;
         pendingStageTransitionInterstitialCompletionAction = null;
+        pendingStageTransitionInterstitialCompletedStage = 0;
         isStageTransitionInterstitialShowing = false;
 
         DestroyStageTransitionInterstitialAd();
-        if (!ShouldDisableAdsForDevelopmentBuild())
+        if (ShouldLoadStageTransitionInterstitials())
             LoadStageTransitionInterstitialAd();
 
-        FirebaseBootstrap.LogEvent("stage_transition_interstitial_complete", new Dictionary<string, object>
-        {
-            { "stage_index", currentStageIndexForUI },
-            { "result", resultType }
-        });
+        var eventData = BuildStageTransitionInterstitialEventData(completedStageIndex);
+        eventData["result"] = resultType;
+        FirebaseBootstrap.LogEvent("stage_transition_interstitial_complete", eventData);
         completion?.Invoke();
     }
 
@@ -5865,6 +6006,7 @@ public class GameMainUIController : MonoBehaviour
         if (stageTransitionInterstitialAd == null)
             return;
 
+        stageTransitionInterstitialAd.OnAdFullScreenContentOpened -= HandleStageTransitionInterstitialOpened;
         stageTransitionInterstitialAd.OnAdFullScreenContentClosed -= HandleStageTransitionInterstitialClosed;
         stageTransitionInterstitialAd.OnAdFullScreenContentFailed -= HandleStageTransitionInterstitialFailed;
         stageTransitionInterstitialAd.Destroy();
