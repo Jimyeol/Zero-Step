@@ -41,13 +41,13 @@
       "x": 3,
       "y": 1,
       "count": 1,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
       "count": 1,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 3,
@@ -59,19 +59,19 @@
       "x": 5,
       "y": 3,
       "count": 1,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 4,
       "count": 2,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 4,
       "y": 4,
       "count": 5,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 5,
@@ -83,7 +83,7 @@
       "x": 3,
       "y": 5,
       "count": 2,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 4,

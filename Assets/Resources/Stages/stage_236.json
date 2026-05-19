@@ -53,13 +53,13 @@
       "x": 0,
       "y": 2,
       "count": 1,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
       "count": 3,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 0,

@@ -29,7 +29,7 @@
       "x": 2,
       "y": 0,
       "count": 2,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 3,
@@ -77,13 +77,13 @@
       "x": 2,
       "y": 2,
       "count": 1,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
       "count": 2,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 1,
@@ -101,7 +101,7 @@
       "x": 3,
       "y": 3,
       "count": 1,
-      "type": "Blackout"
+      "type": "Normal"
     }
   ]
 }

@@ -376,6 +376,9 @@ public class GameManager : MonoBehaviour
     /// <summary>Spotlight 모드: 현재 드래그 중인지.</summary>
     public bool IsDragging => isDragging;
     public bool CanCheckIdleHintBonus => !stageCleared && !isGameOverSequencePlaying && !isDragging && tiles != null && currentStartTile != null && !isHintPreviewRequestRunning;
+    public string IdleHintBonusBlockState => $"cleared={stageCleared} gameOver={isGameOverSequencePlaying} dragging={isDragging} hasTiles={tiles != null} hasStart={currentStartTile != null} hintRequest={isHintPreviewRequestRunning}";
+    public string LastHintSolverStatus => cachedHintSolverStatus;
+    public bool WasLastHintSolverBudgetExhausted => IsHintSolverBudgetExhaustedStatus();
     public int PendingSessionFreeHeartRefillCount => pendingSessionFreeHeartRefillMinutes.Count;
     /// <summary>Spotlight 모드: 포인터(마우스/터치) 월드 좌표.</summary>
     public Vector2 GetPointerWorldPosition()
@@ -417,8 +420,30 @@ public class GameManager : MonoBehaviour
         InitializeAudioSystem();
         CacheMainUIReference();
 
+        if (FinalEndingProgressStore.TryLoadEndingProgress(out FinalEndingState endingState, out FinalEndingSnapshot endingSnapshot) &&
+            endingState == FinalEndingState.PendingResume)
+        {
+            currentStageIndex = FinalEndingProgressStore.FinalStageIndex;
+            if (mainUI != null)
+            {
+                mainUI.ShowFinalEndingFromResume(endingSnapshot, this);
+            }
+            else
+            {
+                Debug.LogWarning("[GameManager] Final ending resume requested, but GameMainUIController was not found. Falling back to stage 1.");
+                FinalEndingProgressStore.MarkEndingCompletedReplayable();
+                endingState = FinalEndingState.CompletedReplayable;
+            }
+
+            if (mainUI != null)
+            {
+                ConfigureDeviceMaxFrameRate();
+                return;
+            }
+        }
+
         // 저장된 진행도가 있으면 해당 스테이지부터, 없으면 startStageIndex부터
-        currentStageIndex = LoadSavedStageIndex();
+        currentStageIndex = endingState == FinalEndingState.CompletedReplayable ? 1 : LoadSavedStageIndex();
         totalStepsCommitted = 0;
         StageData data = StageManager.LoadStage(currentStageIndex);
         UpdateVerboseStage6DebugState(data);
@@ -434,6 +459,8 @@ public class GameManager : MonoBehaviour
         RestoreMainUIHeartsForSavedSession();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
+        if (endingState == FinalEndingState.CompletedReplayable)
+            SaveStageProgress();
         PrewarmUpcomingStages();
         IncrementBoardVersion("app_launch");
         NotifySplashStageBootstrapCompleted();
@@ -491,6 +518,7 @@ public class GameManager : MonoBehaviour
 
     private void TrackStageStarted(string entryType)
     {
+        FinalEndingProgressStore.RecordStageStarted(currentStageIndex);
         FirebaseBootstrap.LogEvent("stage_start", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
@@ -503,6 +531,7 @@ public class GameManager : MonoBehaviour
 
     private void TrackStageCleared(string clearType)
     {
+        FinalEndingProgressStore.RecordStageCleared(currentStageIndex);
         FirebaseBootstrap.LogEvent("stage_clear", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
@@ -515,6 +544,7 @@ public class GameManager : MonoBehaviour
 
     private void TrackStageFailed(string reason)
     {
+        FinalEndingProgressStore.RecordStageFailed(currentStageIndex);
         FirebaseBootstrap.LogEvent("stage_fail", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
@@ -527,6 +557,7 @@ public class GameManager : MonoBehaviour
 
     private void TrackStageReset(string resetType)
     {
+        FinalEndingProgressStore.RecordStageReset(currentStageIndex);
         FirebaseBootstrap.LogEvent("stage_reset", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
@@ -640,10 +671,41 @@ public class GameManager : MonoBehaviour
         HandleStageStarted("progress_reset");
     }
 
+    public bool ReturnToFirstStageFromFinalEnding()
+    {
+        if (isGameOverSequencePlaying)
+            return false;
+
+        int previousStageIndex = currentStageIndex;
+        PrepareForStageTransition();
+        currentPath.Clear();
+        isDragging = false;
+        stageCleared = false;
+        totalStepsCommitted = 0;
+        currentStageIndex = 1;
+
+        StageData data = StageManager.LoadStage(1);
+        if (data == null)
+        {
+            Debug.LogWarning("[GameManager] Stage 1 not found while returning from final ending.");
+            return false;
+        }
+
+        ApplyLoadedStageData(data, "final_ending_main", resetHeartsForNewStage: false);
+        FirebaseBootstrap.LogEvent("stage1000_credits_main", new Dictionary<string, object>
+        {
+            { "from_stage_index", previousStageIndex },
+            { "to_stage_index", currentStageIndex },
+            { "final_stage_index", FinalEndingProgressStore.FinalStageIndex }
+        });
+        HandleStageStarted("final_ending_main");
+        return true;
+    }
+
     private void Update()
     {
         CacheMainUIReference();
-        bool overlayOpen = mainUI != null && (mainUI.IsSettingPopupOpen || mainUI.IsDebugStageJumpPopupOpen || mainUI.IsTutorialPopupOpen || mainUI.IsWaitingForHeartRefill || mainUI.IsSplashActive);
+        bool overlayOpen = mainUI != null && mainUI.IsModalOverlayOpen;
         IsPerformanceOverlayOpen = overlayOpen;
 
         ProcessPendingBlockNoteQueue();
@@ -3263,12 +3325,21 @@ public class GameManager : MonoBehaviour
             return;
 
         stageCleared = true;
+        ResetActiveDragState("stage_clear");
         Debug.Log("Clear");
         ClearHintPreview();
         PlayClearSfx();
         PlayStageClearHaptic();
         PlayStageClearVisuals(referenceTile);
         TrackStageCleared(clearType);
+        if (FinalEndingProgressStore.IsFinalStageIndex(currentStageIndex))
+        {
+            FinalEndingSnapshot snapshot = FinalEndingProgressStore.CreateFinalSnapshot();
+            FinalEndingProgressStore.SavePendingEndingResume(snapshot);
+            StartCoroutine(LoadFinalEndingAfterDelay(snapshot));
+            return;
+        }
+
         StartCoroutine(LoadNextStageAfterDelay());
     }
 
@@ -3412,6 +3483,19 @@ public class GameManager : MonoBehaviour
             neonTrail.Clear();
             neonTrail.emitting = false;
         }
+    }
+
+    private void ResetActiveDragState(string reason)
+    {
+        bool hadActiveDrag = isDragging || currentPath.Count > 0;
+        ClearMoveRuleSnackbarState();
+        isDragging = false;
+        currentPath.Clear();
+        ResetTrail();
+        SetNeonTrailEmitting(false);
+
+        if (hadActiveDrag)
+            Debug.Log($"[드래그 상태 리셋] reason={reason}");
     }
 
     /// <summary>특수 타일(TwinLink, Igniter 등)을 밟으면 트레일 메인 컬러가 해당 대표색으로 0.2초간 Lerp 후 복귀.</summary>
@@ -4838,6 +4922,31 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private IEnumerator LoadFinalEndingAfterDelay(FinalEndingSnapshot snapshot)
+    {
+        float visualDuration = Mathf.Min(Mathf.Max(0f, stageClearWaveDuration), Mathf.Max(0f, nextStageDelay));
+        if (visualDuration > 0f)
+            yield return new WaitForSeconds(visualDuration);
+
+        ClearHintPreview();
+        ResetActiveDragState("final_ending_transition");
+        ClearPendingBlockNoteQueue();
+
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+
+        if (mainUI != null)
+        {
+            mainUI.ShowFinalEndingWithFinale(snapshot, this);
+        }
+        else
+        {
+            Debug.LogWarning("[GameManager] Final ending UI not found. Marking ending replayable and returning to stage 1.");
+            FinalEndingProgressStore.MarkEndingCompletedReplayable();
+            ReturnToFirstStageFromFinalEnding();
+        }
+    }
+
     private void PrepareForStageTransition()
     {
         ResetBoardFailureTracking();
@@ -4849,7 +4958,7 @@ public class GameManager : MonoBehaviour
             pathLitClearRoutine = null;
         }
 
-        ResetTrail();
+        ResetActiveDragState("stage_transition");
         ClearPendingBlockNoteQueue();
     }
 
@@ -5034,10 +5143,11 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
-    private void ApplyLoadedStageData(StageData data, string boardVersionReason)
+    private void ApplyLoadedStageData(StageData data, string boardVersionReason, bool resetHeartsForNewStage = true)
     {
         UpdateVerboseStage6DebugState(data);
 
+        ResetActiveDragState(boardVersionReason);
         totalStepsCommitted = 0;
         ClearTiles();
         CreateGridFromStageData(data);
@@ -5047,7 +5157,8 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
 
         RefreshMainUIForStage();
-        ResetMainUIHeartsForNewStage();
+        if (resetHeartsForNewStage)
+            ResetMainUIHeartsForNewStage();
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         SaveStageProgress();

@@ -1705,3 +1705,314 @@
     font-size: 42px;
     -unity-font-style: bold;
 }
+
+.final-credits-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(1, 7, 12, 0.96);
+    overflow: hidden;
+}
+
+.final-credits-fade-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 1);
+    opacity: 0;
+}
+
+.final-credits-backdrop {
+    position: absolute;
+    left: -18%;
+    right: -18%;
+    top: -10%;
+    bottom: -10%;
+    background-color: rgba(0, 26, 32, 0.46);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgba(65, 237, 255, 0.16);
+    border-right-color: rgba(65, 237, 255, 0.16);
+    border-top-color: rgba(65, 237, 255, 0.16);
+    border-bottom-color: rgba(65, 237, 255, 0.16);
+}
+
+.final-credits-finale-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    justify-content: center;
+    align-items: center;
+}
+
+.final-credits-finale-ring {
+    position: absolute;
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+    border-left-color: rgba(106, 243, 255, 0.82);
+    border-right-color: rgba(106, 243, 255, 0.82);
+    border-top-color: rgba(106, 243, 255, 0.82);
+    border-bottom-color: rgba(106, 243, 255, 0.82);
+    background-color: rgba(28, 219, 255, 0.04);
+}
+
+.final-credits-finale-ring-outer {
+    width: 640px;
+    height: 640px;
+    border-radius: 320px;
+}
+
+.final-credits-finale-ring-inner {
+    width: 410px;
+    height: 410px;
+    border-radius: 205px;
+    border-left-color: rgba(255, 255, 255, 0.86);
+    border-right-color: rgba(255, 255, 255, 0.86);
+    border-top-color: rgba(255, 255, 255, 0.86);
+    border-bottom-color: rgba(255, 255, 255, 0.86);
+    background-color: rgba(255, 255, 255, 0.035);
+}
+
+.final-credits-finale-title {
+    color: rgba(236, 255, 255, 1);
+    font-size: 54px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    letter-spacing: 0;
+}
+
+.final-credits-finale-subtitle {
+    color: rgba(122, 236, 255, 0.96);
+    font-size: 26px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin-top: 18px;
+    letter-spacing: 0;
+}
+
+.final-credits-title {
+    position: absolute;
+    top: 74px;
+    left: 0;
+    right: 0;
+    height: 94px;
+    color: rgba(223, 252, 255, 1);
+    font-size: 52px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    letter-spacing: 0;
+}
+
+.final-credits-scroll-view {
+    position: absolute;
+    left: 7%;
+    right: 7%;
+    top: 154px;
+    bottom: 0;
+    padding-top: 96px;
+    padding-bottom: 224px;
+    overflow: hidden;
+}
+
+.final-credits-scroll-view .unity-scroll-view__content-container {
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.final-credits-content {
+    width: 100%;
+    align-items: center;
+    padding-top: 80px;
+    padding-bottom: 220px;
+}
+
+.final-credits-entry {
+    width: 100%;
+    min-height: 128px;
+    margin-bottom: 34px;
+    align-items: center;
+    justify-content: center;
+}
+
+.final-credits-entry-title {
+    color: rgba(132, 224, 255, 0.92);
+    font-size: 28px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    letter-spacing: 0;
+}
+
+.final-credits-entry-value {
+    color: rgba(255, 255, 255, 0.98);
+    font-size: 44px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    margin-top: 12px;
+    letter-spacing: 0;
+}
+
+.final-credits-skip-button {
+    position: absolute;
+    right: 34px;
+    bottom: 42px;
+    width: 148px;
+    height: 64px;
+    border-radius: 32px;
+    background-color: rgba(6, 26, 34, 0.78);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgba(160, 236, 255, 0.82);
+    border-right-color: rgba(160, 236, 255, 0.82);
+    border-top-color: rgba(160, 236, 255, 0.82);
+    border-bottom-color: rgba(160, 236, 255, 0.82);
+    color: rgba(237, 253, 255, 1);
+    font-size: 24px;
+    -unity-font-style: bold;
+    overflow: hidden;
+}
+
+.final-credits-skip-progress {
+    position: absolute;
+    background-color: rgba(74, 241, 255, 0.95);
+    opacity: 0;
+}
+
+.final-credits-skip-progress-top {
+    left: 0;
+    top: 0;
+    width: 0%;
+    height: 5px;
+}
+
+.final-credits-skip-progress-right {
+    right: 0;
+    top: 0;
+    width: 5px;
+    height: 0%;
+}
+
+.final-credits-skip-progress-bottom {
+    right: 0;
+    bottom: 0;
+    width: 0%;
+    height: 5px;
+}
+
+.final-credits-skip-progress-left {
+    left: 0;
+    bottom: 0;
+    width: 5px;
+    height: 0%;
+}
+
+.final-credits-button-panel {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    bottom: 118px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.final-credits-action-button {
+    min-width: 190px;
+    height: 74px;
+    margin-left: 8px;
+    margin-right: 8px;
+    border-radius: 18px;
+    background-color: rgba(18, 58, 72, 0.76);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgba(121, 229, 255, 0.88);
+    border-right-color: rgba(121, 229, 255, 0.88);
+    border-top-color: rgba(121, 229, 255, 0.88);
+    border-bottom-color: rgba(121, 229, 255, 0.88);
+    color: rgba(238, 253, 255, 1);
+    font-size: 25px;
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.final-credits-action-primary {
+    background-color: rgba(48, 144, 160, 0.82);
+    border-left-color: rgba(221, 255, 255, 0.96);
+    border-right-color: rgba(221, 255, 255, 0.96);
+    border-top-color: rgba(221, 255, 255, 0.96);
+    border-bottom-color: rgba(221, 255, 255, 0.96);
+}
+
+.final-credits-update-panel {
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    bottom: 218px;
+    min-height: 204px;
+    padding-left: 22px;
+    padding-right: 22px;
+    padding-top: 24px;
+    padding-bottom: 24px;
+    border-radius: 18px;
+    background-color: rgba(5, 21, 30, 0.94);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgba(96, 226, 255, 0.92);
+    border-right-color: rgba(96, 226, 255, 0.92);
+    border-top-color: rgba(96, 226, 255, 0.92);
+    border-bottom-color: rgba(96, 226, 255, 0.92);
+    align-items: center;
+}
+
+.final-credits-update-title {
+    color: rgba(232, 253, 255, 1);
+    font-size: 30px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.final-credits-update-message {
+    color: rgba(178, 231, 244, 0.96);
+    font-size: 22px;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    margin-top: 14px;
+    margin-bottom: 20px;
+}
+
+.final-credits-update-close {
+    min-width: 150px;
+    height: 58px;
+    border-radius: 18px;
+    background-color: rgba(28, 91, 108, 0.82);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgba(160, 242, 255, 0.88);
+    border-right-color: rgba(160, 242, 255, 0.88);
+    border-top-color: rgba(160, 242, 255, 0.88);
+    border-bottom-color: rgba(160, 242, 255, 0.88);
+    color: rgba(245, 255, 255, 1);
+    font-size: 24px;
+    -unity-font-style: bold;
+}

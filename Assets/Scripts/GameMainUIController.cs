@@ -64,6 +64,7 @@ public class GameMainUIController : MonoBehaviour
     private const long HintRechargeSeconds = 15L * 60L;
     private const long SkipRechargeSeconds = 30L * 60L;
     private const float IdleHintBonusDelaySeconds = 40f;
+    private const float IdleHintBonusDebugLogCooldownSeconds = 3f;
     private const int MaxIdleStageHintBonus = 1;
     private const float TopHudBasePaddingPx = 64f;
     private const float TopHudBackdropBaseTopPx = 26f;
@@ -101,6 +102,14 @@ public class GameMainUIController : MonoBehaviour
     private const float UISfxVolumeMultiplier = 0.5f;
     private const string DefaultSplashSpriteResourcePath = "Sprites/splash";
     private const string DefaultSplashVideoResourcePath = "Sprites/splash_video";
+    private const float FinalCreditsSkipHoldSeconds = 2f;
+    private const float FinalCreditsRollDurationSeconds = 28f;
+    private const float FinalCreditsSkipBaseBottomPx = 42f;
+    private const float FinalCreditsSkipBaseRightPx = 34f;
+    private const float FinalCreditsButtonPanelBaseBottomPx = 118f;
+    private const float FinalCreditsUpdatePanelBaseBottomPx = 218f;
+    private const float FinalCreditsFinaleIntroSeconds = 1.55f;
+    private const float FinalCreditsFinaleFadeSeconds = 1.25f;
 
     private static readonly Color[] TutorialNumberPalette =
     {
@@ -365,6 +374,29 @@ public class GameMainUIController : MonoBehaviour
     private Label stageSnackbarLabel;
     private VisualElement bannerAdContainer;
     private Label bannerAdPlaceholder;
+    private VisualElement finalCreditsOverlay;
+    private Label finalCreditsTitleLabel;
+    private ScrollView finalCreditsScrollView;
+    private VisualElement finalCreditsContent;
+    private Button finalCreditsSkipButton;
+    private VisualElement finalCreditsSkipProgressTop;
+    private VisualElement finalCreditsSkipProgressRight;
+    private VisualElement finalCreditsSkipProgressBottom;
+    private VisualElement finalCreditsSkipProgressLeft;
+    private VisualElement finalCreditsButtonPanel;
+    private Button finalCreditsMainButton;
+    private Button finalCreditsReplayButton;
+    private Button finalCreditsUpdateButton;
+    private VisualElement finalCreditsUpdatePanel;
+    private Button finalCreditsUpdateCloseButton;
+    private Label finalCreditsUpdateTitleLabel;
+    private Label finalCreditsUpdateMessageLabel;
+    private VisualElement finalCreditsFadePanel;
+    private VisualElement finalCreditsFinaleLayer;
+    private VisualElement finalCreditsFinaleRingOuter;
+    private VisualElement finalCreditsFinaleRingInner;
+    private Label finalCreditsFinaleTitleLabel;
+    private Label finalCreditsFinaleSubtitleLabel;
     private AudioSource uiButtonSfxAudioSource;
     private AudioClip uiButtonSfxClip;
     private bool uiButtonSfxMissingLogged;
@@ -397,6 +429,7 @@ public class GameMainUIController : MonoBehaviour
     private bool idleHintBonusSuppressedUntilActivity;
     private bool idleHintBonusCheckRunning;
     private float lastGameplayActivityTime;
+    private float nextIdleHintBonusDebugLogTime;
     private Coroutine idleHintBonusBounceRoutine;
     private int skipCharges = MaxSkipCharges;
     private long skipNextRechargeUnix;
@@ -429,6 +462,7 @@ public class GameMainUIController : MonoBehaviour
     private bool splashVideoLoaded;
     private bool splashVideoEnded;
     private bool splashVideoFadeStarted;
+    private bool endingBootstrapForcesSplashReady;
     private float splashVideoFadeStartTime;
     private float stageTransitionInterstitialSessionStartRealtime;
     private float lastStageTransitionInterstitialShownRealtime;
@@ -443,6 +477,18 @@ public class GameMainUIController : MonoBehaviour
     private HeartRefillMode currentHeartRefillMode = HeartRefillMode.RewardedAd;
     private int currentSessionPlayRewardMinutes;
     private Coroutine stageSnackbarRoutine;
+    private Coroutine finalCreditsRollRoutine;
+    private Coroutine finalCreditsFinaleRoutine;
+    private FinalEndingSnapshot activeFinalEndingSnapshot;
+    private GameManager finalEndingGameManager;
+    private bool isEndingOverlayOpen;
+    private bool isFinalCreditsReplay;
+    private bool isFinalCreditsSkipHolding;
+    private bool isFinalCreditsUpdateOpen;
+    private bool isFinalCreditsButtonPanelOpen;
+    private float finalCreditsSkipHoldElapsed;
+    private int finalCreditsSkipPointerId = -1;
+    private int finalCreditsAnimationVersion;
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
     private BannerView bannerView;
     private RewardedAd rewardedAd;
@@ -650,6 +696,29 @@ public class GameMainUIController : MonoBehaviour
         stageSnackbarLabel = root.Q<Label>("StageSnackbarLabel");
         bannerAdContainer = root.Q<VisualElement>("BannerAdContainer");
         bannerAdPlaceholder = root.Q<Label>("BannerAdPlaceholder");
+        finalCreditsOverlay = root.Q<VisualElement>("FinalCreditsOverlay");
+        finalCreditsTitleLabel = root.Q<Label>("FinalCreditsTitleLabel");
+        finalCreditsScrollView = root.Q<ScrollView>("FinalCreditsScrollView");
+        finalCreditsContent = root.Q<VisualElement>("FinalCreditsContent");
+        finalCreditsSkipButton = root.Q<Button>("FinalCreditsSkipButton");
+        finalCreditsSkipProgressTop = root.Q<VisualElement>("FinalCreditsSkipProgressTop");
+        finalCreditsSkipProgressRight = root.Q<VisualElement>("FinalCreditsSkipProgressRight");
+        finalCreditsSkipProgressBottom = root.Q<VisualElement>("FinalCreditsSkipProgressBottom");
+        finalCreditsSkipProgressLeft = root.Q<VisualElement>("FinalCreditsSkipProgressLeft");
+        finalCreditsButtonPanel = root.Q<VisualElement>("FinalCreditsButtonPanel");
+        finalCreditsMainButton = root.Q<Button>("FinalCreditsMainButton");
+        finalCreditsReplayButton = root.Q<Button>("FinalCreditsReplayButton");
+        finalCreditsUpdateButton = root.Q<Button>("FinalCreditsUpdateButton");
+        finalCreditsUpdatePanel = root.Q<VisualElement>("FinalCreditsUpdatePanel");
+        finalCreditsUpdateCloseButton = root.Q<Button>("FinalCreditsUpdateCloseButton");
+        finalCreditsUpdateTitleLabel = root.Q<Label>("FinalCreditsUpdateTitleLabel");
+        finalCreditsUpdateMessageLabel = root.Q<Label>("FinalCreditsUpdateMessageLabel");
+        finalCreditsFadePanel = root.Q<VisualElement>("FinalCreditsFadePanel");
+        finalCreditsFinaleLayer = root.Q<VisualElement>("FinalCreditsFinaleLayer");
+        finalCreditsFinaleRingOuter = root.Q<VisualElement>("FinalCreditsFinaleRingOuter");
+        finalCreditsFinaleRingInner = root.Q<VisualElement>("FinalCreditsFinaleRingInner");
+        finalCreditsFinaleTitleLabel = root.Q<Label>("FinalCreditsFinaleTitleLabel");
+        finalCreditsFinaleSubtitleLabel = root.Q<Label>("FinalCreditsFinaleSubtitleLabel");
 
         if (settingPopupOverlay != null)
             settingPopupOverlay.style.display = DisplayStyle.None;
@@ -665,6 +734,26 @@ public class GameMainUIController : MonoBehaviour
             tutorialOverlay.style.display = DisplayStyle.None;
         if (hintLoadingOverlay != null)
             hintLoadingOverlay.style.display = DisplayStyle.None;
+        if (finalCreditsOverlay != null)
+        {
+            finalCreditsOverlay.pickingMode = PickingMode.Position;
+            finalCreditsOverlay.style.display = DisplayStyle.None;
+        }
+        if (finalCreditsButtonPanel != null)
+            finalCreditsButtonPanel.style.display = DisplayStyle.None;
+        if (finalCreditsUpdatePanel != null)
+            finalCreditsUpdatePanel.style.display = DisplayStyle.None;
+        if (finalCreditsSkipButton != null)
+        {
+            finalCreditsSkipButton.pickingMode = PickingMode.Position;
+            finalCreditsSkipButton.style.display = DisplayStyle.Flex;
+        }
+        ConfigureFinalCreditsNonInteractivePicking(root);
+        SetFinalCreditsSkipProgressPickingMode(PickingMode.Ignore);
+        if (finalCreditsFinaleLayer != null)
+            finalCreditsFinaleLayer.style.display = DisplayStyle.None;
+        if (finalCreditsScrollView != null)
+            finalCreditsScrollView.pickingMode = PickingMode.Ignore;
         if (stageSnackbar != null)
         {
             stageSnackbar.style.display = DisplayStyle.None;
@@ -828,6 +917,7 @@ public class GameMainUIController : MonoBehaviour
             tutorialNextButton.clicked += ShowNextSettingsTutorial;
         if (heartRefillAdButton != null)
             heartRefillAdButton.clicked += OnHeartRefillAdButtonClicked;
+        RegisterFinalCreditsCallbacks();
 
         // 하단 힌트/리셋/스킵/광고제거 버튼 아이콘 및 클릭 로그
         AssignTexture(hintIcon, "Sprites/hint", "hint.png");
@@ -911,6 +1001,7 @@ public class GameMainUIController : MonoBehaviour
         }
 #endif
         RefreshBottomLayout(force: false);
+        UpdateFinalCreditsSkipHold();
         RefreshAssistEconomyIfNeeded();
         UpdateIdleHintBonus();
         EnsureSplashOverlayAttached();
@@ -923,6 +1014,7 @@ public class GameMainUIController : MonoBehaviour
         StopStageSnackbarPlayback();
         StopTutorialAnimation();
         StopIdleHintBonusBounce();
+        StopFinalCreditsPlayback(resetVisuals: true);
         HideHintLoading();
         if (splashFadeRoutine != null)
             StopCoroutine(splashFadeRoutine);
@@ -1084,6 +1176,11 @@ public class GameMainUIController : MonoBehaviour
         uiButtonSfxAudioSource.PlayOneShot(clip, GetUISfxVolume());
     }
 
+    private void PlayUISfx(UISfxKind sfxKind = UISfxKind.Click)
+    {
+        PlayUIButtonSfx(sfxKind);
+    }
+
     private void PlaySnackbarSfx()
     {
         if (uiButtonSfxAudioSource == null || snackbarSfxClip == null)
@@ -1128,6 +1225,38 @@ public class GameMainUIController : MonoBehaviour
 #endif
     }
 
+    private int GetStageTransitionInterstitialFirstEligibleStage()
+    {
+        long value = FirebaseBootstrap.GetRemoteLong(
+            FirebaseBootstrap.RcStageInterstitialFirstEligibleStage,
+            StageTransitionInterstitialFirstEligibleStage);
+        return Mathf.Max(1, (int)value);
+    }
+
+    private int GetStageTransitionInterstitialMinStageGap()
+    {
+        long value = FirebaseBootstrap.GetRemoteLong(
+            FirebaseBootstrap.RcStageInterstitialMinStageGap,
+            StageTransitionInterstitialMinStageGap);
+        return Mathf.Max(1, (int)value);
+    }
+
+    private float GetStageTransitionInterstitialCooldownSeconds()
+    {
+        double value = FirebaseBootstrap.GetRemoteDouble(
+            FirebaseBootstrap.RcStageInterstitialCooldownSeconds,
+            StageTransitionInterstitialCooldownSeconds);
+        return Mathf.Max(0f, (float)value);
+    }
+
+    private float GetIdleHintBonusDelaySeconds()
+    {
+        double value = FirebaseBootstrap.GetRemoteDouble(
+            FirebaseBootstrap.RcIdleHintBonusDelaySeconds,
+            IdleHintBonusDelaySeconds);
+        return Mathf.Max(5f, (float)value);
+    }
+
     private float GetStageTransitionInterstitialCooldownElapsedSeconds()
     {
         float baseline = hasShownStageTransitionInterstitialThisSession
@@ -1147,15 +1276,18 @@ public class GameMainUIController : MonoBehaviour
     private Dictionary<string, object> BuildStageTransitionInterstitialEventData(int completedStageIndex, string reason = null)
     {
         float cooldownElapsed = GetStageTransitionInterstitialCooldownElapsedSeconds();
+        float cooldownSeconds = GetStageTransitionInterstitialCooldownSeconds();
+        int firstEligibleStage = GetStageTransitionInterstitialFirstEligibleStage();
+        int minStageGap = GetStageTransitionInterstitialMinStageGap();
         int stageGap = GetStageTransitionInterstitialStageGap(completedStageIndex);
         var eventData = new Dictionary<string, object>
         {
             { "stage_index", completedStageIndex },
-            { "first_eligible_stage", StageTransitionInterstitialFirstEligibleStage },
-            { "cooldown_seconds", StageTransitionInterstitialCooldownSeconds },
+            { "first_eligible_stage", firstEligibleStage },
+            { "cooldown_seconds", cooldownSeconds },
             { "cooldown_elapsed_seconds", cooldownElapsed },
-            { "cooldown_remaining_seconds", Mathf.Max(0f, StageTransitionInterstitialCooldownSeconds - cooldownElapsed) },
-            { "min_stage_gap", StageTransitionInterstitialMinStageGap },
+            { "cooldown_remaining_seconds", Mathf.Max(0f, cooldownSeconds - cooldownElapsed) },
+            { "min_stage_gap", minStageGap },
             { "stage_gap", stageGap }
         };
 
@@ -1188,19 +1320,19 @@ public class GameMainUIController : MonoBehaviour
             return false;
         }
 
-        if (completedStageIndex < StageTransitionInterstitialFirstEligibleStage)
+        if (completedStageIndex < GetStageTransitionInterstitialFirstEligibleStage())
         {
             reason = "below_first_eligible_stage";
             return false;
         }
 
-        if (GetStageTransitionInterstitialCooldownElapsedSeconds() < StageTransitionInterstitialCooldownSeconds)
+        if (GetStageTransitionInterstitialCooldownElapsedSeconds() < GetStageTransitionInterstitialCooldownSeconds())
         {
             reason = "cooldown";
             return false;
         }
 
-        if (GetStageTransitionInterstitialStageGap(completedStageIndex) < StageTransitionInterstitialMinStageGap)
+        if (GetStageTransitionInterstitialStageGap(completedStageIndex) < GetStageTransitionInterstitialMinStageGap())
         {
             reason = "stage_gap";
             return false;
@@ -1272,14 +1404,14 @@ public class GameMainUIController : MonoBehaviour
 
             if (idleStageHintBonus > 0)
             {
-                if (gm.ShowHintPreview())
+                if (ShowTrackedHintPreview(gm))
                     ConsumeIdleStageHintBonus();
                 return;
             }
 
             if (hintCharges > 0)
             {
-                if (gm.ShowHintPreview())
+                if (ShowTrackedHintPreview(gm))
                     ConsumeHintCharge();
                 return;
             }
@@ -1292,7 +1424,7 @@ public class GameMainUIController : MonoBehaviour
                     { "reward_amount", HintRewardAmount },
                     { "source", "development_build" }
                 });
-                gm.ShowHintPreview();
+                ShowTrackedHintPreview(gm);
                 return;
             }
 
@@ -1306,7 +1438,7 @@ public class GameMainUIController : MonoBehaviour
             TryShowAssistRewardedAd("hint", HintRewardName, HintRewardAmount, () =>
             {
                 if (gm != null)
-                    gm.ShowHintPreview();
+                    ShowTrackedHintPreview(gm);
             });
 #else
             FirebaseBootstrap.LogEvent("hint_reward_earned", new Dictionary<string, object>
@@ -1315,9 +1447,20 @@ public class GameMainUIController : MonoBehaviour
                 { "reward_amount", HintRewardAmount },
                 { "source", "editor" }
             });
-            gm.ShowHintPreview();
+            ShowTrackedHintPreview(gm);
 #endif
         });
+    }
+
+    private bool ShowTrackedHintPreview(GameManager gm)
+    {
+        if (gm == null)
+            return false;
+
+        bool shown = gm.ShowHintPreview();
+        if (shown)
+            FinalEndingProgressStore.RecordHintShown(currentStageIndexForUI);
+        return shown;
     }
 
     /// <summary>스킵 버튼 클릭: 충전분을 사용하거나 보상형 광고를 시청하면 현재 스테이지를 건너뛴다.</summary>
@@ -1379,6 +1522,631 @@ public class GameMainUIController : MonoBehaviour
         if (gm != null)
             gm.LoadNextStageImmediate();
 #endif
+    }
+
+    private void RegisterFinalCreditsCallbacks()
+    {
+        if (finalCreditsOverlay != null)
+        {
+            finalCreditsOverlay.RegisterCallback<PointerDownEvent>(BlockFinalCreditsRollPointerEvent);
+            finalCreditsOverlay.RegisterCallback<PointerMoveEvent>(BlockFinalCreditsRollPointerEvent);
+            finalCreditsOverlay.RegisterCallback<PointerUpEvent>(BlockFinalCreditsRollPointerEvent);
+            finalCreditsOverlay.RegisterCallback<PointerCancelEvent>(BlockFinalCreditsRollPointerEvent);
+            finalCreditsOverlay.RegisterCallback<WheelEvent>(BlockFinalCreditsRollWheelEvent);
+        }
+
+        if (finalCreditsSkipButton != null)
+        {
+            finalCreditsSkipButton.RegisterCallback<PointerDownEvent>(OnFinalCreditsSkipPointerDown, TrickleDown.TrickleDown);
+            finalCreditsSkipButton.RegisterCallback<PointerUpEvent>(OnFinalCreditsSkipPointerUp, TrickleDown.TrickleDown);
+            finalCreditsSkipButton.RegisterCallback<PointerLeaveEvent>(OnFinalCreditsSkipPointerLeave);
+            finalCreditsSkipButton.RegisterCallback<PointerCaptureOutEvent>(OnFinalCreditsSkipPointerCaptureOut);
+        }
+
+        if (finalCreditsMainButton != null)
+            finalCreditsMainButton.clicked += OnFinalCreditsMainClicked;
+        if (finalCreditsReplayButton != null)
+            finalCreditsReplayButton.clicked += OnFinalCreditsReplayClicked;
+        if (finalCreditsUpdateButton != null)
+            finalCreditsUpdateButton.clicked += OnFinalCreditsUpdateClicked;
+        if (finalCreditsUpdateCloseButton != null)
+            finalCreditsUpdateCloseButton.clicked += HideFinalCreditsUpdatePanel;
+    }
+
+    public void ShowFinalEndingFromResume(FinalEndingSnapshot snapshot, GameManager gameManager)
+    {
+        NotifyEndingBootstrapCompleted();
+        ShowFinalEnding(snapshot, gameManager, replay: false);
+    }
+
+    public void ShowFinalEndingWithFinale(FinalEndingSnapshot snapshot, GameManager gameManager)
+    {
+        ShowFinalEnding(snapshot, gameManager, replay: false, playFinaleIntro: true);
+    }
+
+    public void ShowFinalEnding(FinalEndingSnapshot snapshot, GameManager gameManager)
+    {
+        ShowFinalEnding(snapshot, gameManager, replay: false);
+    }
+
+    public void ShowFinalEnding(FinalEndingSnapshot snapshot, GameManager gameManager, bool replay)
+    {
+        ShowFinalEnding(snapshot, gameManager, replay, playFinaleIntro: false);
+    }
+
+    private void ShowFinalEnding(FinalEndingSnapshot snapshot, GameManager gameManager, bool replay, bool playFinaleIntro)
+    {
+        activeFinalEndingSnapshot = snapshot ?? FinalEndingProgressStore.TryGetReplaySnapshot() ?? new FinalEndingSnapshot();
+        finalEndingGameManager = gameManager != null ? gameManager : FindFirstObjectByType<GameManager>();
+        isFinalCreditsReplay = replay;
+        isEndingOverlayOpen = true;
+        isFinalCreditsUpdateOpen = false;
+        isFinalCreditsButtonPanelOpen = false;
+        finalCreditsAnimationVersion++;
+        ResetFinalCreditsSkipProgress();
+
+        if (finalCreditsOverlay != null)
+        {
+            finalCreditsOverlay.pickingMode = PickingMode.Position;
+            finalCreditsOverlay.style.display = DisplayStyle.Flex;
+            finalCreditsOverlay.style.opacity = 1f;
+            finalCreditsOverlay.style.backgroundColor = new StyleColor(new Color(0f, 0f, 0f, playFinaleIntro ? 0f : 1f));
+        }
+        if (finalCreditsTitleLabel != null)
+            finalCreditsTitleLabel.text = T("final_credits_intro_title");
+        if (finalCreditsFinaleTitleLabel != null)
+            finalCreditsFinaleTitleLabel.text = T("final_credits_finale_title");
+        if (finalCreditsFinaleSubtitleLabel != null)
+            finalCreditsFinaleSubtitleLabel.text = T("final_credits_finale_subtitle");
+        if (finalCreditsButtonPanel != null)
+            finalCreditsButtonPanel.style.display = DisplayStyle.None;
+        if (finalCreditsUpdatePanel != null)
+            finalCreditsUpdatePanel.style.display = DisplayStyle.None;
+        if (finalCreditsTitleLabel != null)
+            finalCreditsTitleLabel.style.display = DisplayStyle.None;
+        if (finalCreditsScrollView != null)
+            finalCreditsScrollView.style.display = DisplayStyle.None;
+        if (finalCreditsSkipButton != null)
+            finalCreditsSkipButton.style.display = DisplayStyle.None;
+        if (finalCreditsFadePanel != null)
+        {
+            finalCreditsFadePanel.style.display = DisplayStyle.Flex;
+            finalCreditsFadePanel.style.opacity = playFinaleIntro ? 0f : 1f;
+        }
+        if (finalCreditsFinaleLayer != null)
+            finalCreditsFinaleLayer.style.display = playFinaleIntro ? DisplayStyle.Flex : DisplayStyle.None;
+
+        BuildFinalCreditsRows(activeFinalEndingSnapshot);
+        RefreshBottomLayout(force: true);
+        if (playFinaleIntro)
+            StartFinalCreditsFinaleIntro();
+        else
+            ShowFinalCreditsContentAndRoll();
+
+        FirebaseBootstrap.LogEvent("stage1000_credits_shown", new Dictionary<string, object>
+        {
+            { "final_stage_index", FinalEndingProgressStore.FinalStageIndex },
+            { "replay", replay }
+        });
+    }
+
+    private void BuildFinalCreditsRows(FinalEndingSnapshot snapshot)
+    {
+        if (finalCreditsContent == null)
+            return;
+
+        finalCreditsContent.Clear();
+        AddFinalCreditsRow("final_credits_first_played", FormatFinalCreditsDate(snapshot.firstPlayedUnix, snapshot.firstPlayedKnown));
+        AddFinalCreditsRow("final_credits_stage1000_clear", FormatFinalCreditsDate(snapshot.stage1000ClearUnix, snapshot.stage1000ClearKnown));
+        AddFinalCreditsRow("final_credits_total_play_time", FormatDuration(snapshot.totalPlaySeconds));
+        AddFinalCreditsRow("final_credits_total_play_days", T("final_credits_days_value", ("count", Mathf.Max(0, snapshot.uniquePlayDays).ToString())));
+        AddFinalCreditsRow("final_credits_days_to_1000", T("final_credits_days_value", ("count", Mathf.Max(0, (int)snapshot.daysToStage1000).ToString())));
+        AddFinalCreditsRow("final_credits_fastest_stage", FormatStageSeconds(snapshot.fastestStageNumber, snapshot.fastestStageSeconds));
+        AddFinalCreditsRow("final_credits_longest_stage", FormatStageSeconds(snapshot.longestStageNumber, snapshot.longestStageSeconds));
+        AddFinalCreditsRow("final_credits_first_try", snapshot.firstTryClearCount.ToString());
+        AddFinalCreditsRow("final_credits_no_hint", snapshot.noHintClearCount.ToString());
+        AddFinalCreditsRow("final_credits_best_streak", snapshot.bestClearStreak.ToString());
+        AddFinalCreditsRow("final_credits_best_no_reset", snapshot.bestNoResetStreak.ToString());
+        AddFinalCreditsRow("final_credits_most_retried", FormatStageCount(snapshot.mostRetriedStageNumber, snapshot.mostRetriedStageCount));
+        AddFinalCreditsRow("final_credits_total_restarts", snapshot.totalRetries.ToString());
+        AddFinalCreditsRow("final_credits_total_gameovers", snapshot.totalGameOvers.ToString());
+        AddFinalCreditsRow("final_credits_heart_depleted", snapshot.heartDepletedCount.ToString());
+        AddFinalCreditsRow("final_credits_player_title", T(string.IsNullOrEmpty(snapshot.titleKey) ? FinalEndingProgressStore.TitleNeonMasterKey : snapshot.titleKey));
+    }
+
+    private void AddFinalCreditsLocalizedRow(string titleKey, string valueKey)
+    {
+        AddFinalCreditsRow(titleKey, T(valueKey));
+    }
+
+    private void AddFinalCreditsRow(string titleKey, string value)
+    {
+        if (finalCreditsContent == null)
+            return;
+
+        VisualElement row = new VisualElement();
+        row.AddToClassList("final-credits-entry");
+        Label title = new Label(T(titleKey));
+        title.AddToClassList("final-credits-entry-title");
+        Label valueLabel = new Label(string.IsNullOrEmpty(value) ? T("final_credits_unknown") : value);
+        valueLabel.AddToClassList("final-credits-entry-value");
+        row.Add(title);
+        row.Add(valueLabel);
+        finalCreditsContent.Add(row);
+    }
+
+    private void StartFinalCreditsRoll()
+    {
+        StopFinalCreditsRollOnly();
+        int version = finalCreditsAnimationVersion;
+        finalCreditsRollRoutine = StartCoroutine(FinalCreditsRollRoutine(version));
+    }
+
+    private void StartFinalCreditsFinaleIntro()
+    {
+        StopFinalCreditsFinaleOnly();
+        int version = finalCreditsAnimationVersion;
+        finalCreditsFinaleRoutine = StartCoroutine(FinalCreditsFinaleRoutine(version));
+    }
+
+    private IEnumerator FinalCreditsFinaleRoutine(int version)
+    {
+        float elapsed = 0f;
+        while (elapsed < FinalCreditsFinaleIntroSeconds)
+        {
+            if (version != finalCreditsAnimationVersion || !isEndingOverlayOpen)
+                yield break;
+
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / FinalCreditsFinaleIntroSeconds);
+            float pulse = Mathf.Sin(t * Mathf.PI);
+            ApplyFinaleElementScale(finalCreditsFinaleLayer, Mathf.Lerp(0.88f, 1.04f, pulse));
+            ApplyFinaleElementScale(finalCreditsFinaleRingOuter, Mathf.Lerp(0.82f, 1.22f, t));
+            ApplyFinaleElementScale(finalCreditsFinaleRingInner, Mathf.Lerp(0.72f, 1.08f, t));
+            if (finalCreditsFinaleRingOuter != null)
+                finalCreditsFinaleRingOuter.style.opacity = Mathf.Lerp(0.15f, 0.9f, pulse);
+            if (finalCreditsFinaleRingInner != null)
+                finalCreditsFinaleRingInner.style.opacity = Mathf.Lerp(0.2f, 0.95f, pulse);
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < FinalCreditsFinaleFadeSeconds)
+        {
+            if (version != finalCreditsAnimationVersion || !isEndingOverlayOpen)
+                yield break;
+
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / FinalCreditsFinaleFadeSeconds));
+            if (finalCreditsFadePanel != null)
+                finalCreditsFadePanel.style.opacity = t;
+            if (finalCreditsFinaleLayer != null)
+                finalCreditsFinaleLayer.style.opacity = 1f - t;
+            yield return null;
+        }
+
+        if (version != finalCreditsAnimationVersion || !isEndingOverlayOpen)
+            yield break;
+
+        if (finalCreditsOverlay != null)
+            finalCreditsOverlay.style.backgroundColor = new StyleColor(Color.black);
+        if (finalCreditsFadePanel != null)
+            finalCreditsFadePanel.style.opacity = 1f;
+        if (finalCreditsFinaleLayer != null)
+            finalCreditsFinaleLayer.style.display = DisplayStyle.None;
+        ResetFinaleElementScale(finalCreditsFinaleLayer);
+        ResetFinaleElementScale(finalCreditsFinaleRingOuter);
+        ResetFinaleElementScale(finalCreditsFinaleRingInner);
+        yield return new WaitForSecondsRealtime(0.2f);
+        finalCreditsFinaleRoutine = null;
+        ShowFinalCreditsContentAndRoll();
+    }
+
+    private static void ApplyFinaleElementScale(VisualElement element, float scale)
+    {
+        if (element == null)
+            return;
+        element.style.scale = new StyleScale(new Scale(new Vector3(scale, scale, 1f)));
+    }
+
+    private static void ResetFinaleElementScale(VisualElement element)
+    {
+        if (element == null)
+            return;
+        element.style.scale = new StyleScale(new Scale(Vector3.one));
+        element.style.opacity = 1f;
+    }
+
+    private void ShowFinalCreditsContentAndRoll()
+    {
+        if (finalCreditsTitleLabel != null)
+            finalCreditsTitleLabel.style.display = DisplayStyle.Flex;
+        if (finalCreditsScrollView != null)
+        {
+            finalCreditsScrollView.style.display = DisplayStyle.Flex;
+            finalCreditsScrollView.scrollOffset = Vector2.zero;
+        }
+        SetFinalCreditsScrollInteractivity(false);
+        if (finalCreditsSkipButton != null)
+            finalCreditsSkipButton.style.display = DisplayStyle.Flex;
+        if (finalCreditsButtonPanel != null)
+            finalCreditsButtonPanel.style.display = DisplayStyle.None;
+        if (finalCreditsUpdatePanel != null)
+            finalCreditsUpdatePanel.style.display = DisplayStyle.None;
+        if (finalCreditsFadePanel != null)
+            finalCreditsFadePanel.style.opacity = 1f;
+
+        StartFinalCreditsRoll();
+    }
+
+    private IEnumerator FinalCreditsRollRoutine(int version)
+    {
+        if (finalCreditsScrollView != null)
+            finalCreditsScrollView.scrollOffset = Vector2.zero;
+
+        yield return null;
+        yield return null;
+
+        ApplyFinalCreditsRollPosition(0f);
+
+        float elapsed = 0f;
+        while (elapsed < FinalCreditsRollDurationSeconds)
+        {
+            if (version != finalCreditsAnimationVersion || !isEndingOverlayOpen)
+                yield break;
+
+            elapsed += Time.unscaledDeltaTime;
+            ApplyFinalCreditsRollPosition(Mathf.Clamp01(elapsed / FinalCreditsRollDurationSeconds));
+            yield return null;
+        }
+
+        ShowFinalCreditsButtonPanel(skipped: false);
+    }
+
+    private void ApplyFinalCreditsRollPosition(float progress)
+    {
+        if (finalCreditsScrollView == null || finalCreditsContent == null)
+            return;
+
+        float viewportHeight = Mathf.Max(1f, finalCreditsScrollView.contentViewport.resolvedStyle.height);
+        float contentHeight = Mathf.Max(viewportHeight, finalCreditsContent.resolvedStyle.height);
+        float startY = viewportHeight + 48f;
+        float endY = -contentHeight - 120f;
+        finalCreditsScrollView.scrollOffset = Vector2.zero;
+        finalCreditsContent.style.translate = new StyleTranslate(new Translate(
+            new Length(0f, LengthUnit.Pixel),
+            new Length(Mathf.Lerp(startY, endY, Mathf.Clamp01(progress)), LengthUnit.Pixel),
+            0f));
+    }
+
+    private void ShowFinalCreditsButtonPanel(bool skipped)
+    {
+        StopFinalCreditsRollOnly();
+        ResetFinalCreditsSkipProgress();
+        isFinalCreditsButtonPanelOpen = true;
+        ResetFinalCreditsContentForManualScroll();
+        if (finalCreditsButtonPanel != null)
+            finalCreditsButtonPanel.style.display = DisplayStyle.Flex;
+        if (finalCreditsSkipButton != null)
+            finalCreditsSkipButton.style.display = DisplayStyle.None;
+
+        FinalEndingProgressStore.MarkEndingCompletedReplayable();
+        FirebaseBootstrap.LogEvent(skipped ? "stage1000_credits_skipped" : "stage1000_credits_completed_natural", new Dictionary<string, object>
+        {
+            { "final_stage_index", FinalEndingProgressStore.FinalStageIndex },
+            { "replay", isFinalCreditsReplay }
+        });
+    }
+
+    private void ResetFinalCreditsContentForManualScroll()
+    {
+        SetFinalCreditsScrollInteractivity(true);
+        if (finalCreditsScrollView != null)
+            finalCreditsScrollView.scrollOffset = Vector2.zero;
+        if (finalCreditsContent != null)
+            finalCreditsContent.style.translate = new StyleTranslate(new Translate(
+                new Length(0f, LengthUnit.Pixel),
+                new Length(0f, LengthUnit.Pixel),
+                0f));
+    }
+
+    private void SetFinalCreditsScrollInteractivity(bool interactive)
+    {
+        PickingMode pickingMode = interactive ? PickingMode.Position : PickingMode.Ignore;
+        if (finalCreditsScrollView != null)
+            finalCreditsScrollView.pickingMode = pickingMode;
+        if (finalCreditsContent != null)
+            finalCreditsContent.pickingMode = pickingMode;
+    }
+
+    private void OnFinalCreditsSkipPointerDown(PointerDownEvent evt)
+    {
+        if (!isEndingOverlayOpen || isFinalCreditsButtonPanelOpen || finalCreditsSkipButton == null)
+            return;
+        isFinalCreditsSkipHolding = true;
+        finalCreditsSkipPointerId = evt.pointerId;
+        finalCreditsSkipHoldElapsed = 0f;
+        UpdateFinalCreditsSkipProgressVisual(0f);
+        finalCreditsSkipButton.CapturePointer(evt.pointerId);
+        evt.StopPropagation();
+    }
+
+    private void BlockFinalCreditsRollPointerEvent<TEvent>(TEvent evt) where TEvent : PointerEventBase<TEvent>, new()
+    {
+        BlockFinalCreditsRollInput(evt);
+    }
+
+    private void BlockFinalCreditsRollWheelEvent(WheelEvent evt)
+    {
+        BlockFinalCreditsRollInput(evt);
+    }
+
+    private void BlockFinalCreditsRollInput(EventBase evt)
+    {
+        if (!isEndingOverlayOpen || isFinalCreditsButtonPanelOpen || isFinalCreditsUpdateOpen)
+            return;
+
+        evt.StopPropagation();
+    }
+
+    private void OnFinalCreditsSkipPointerUp(PointerUpEvent evt)
+    {
+        if (finalCreditsSkipPointerId >= 0 && evt.pointerId != finalCreditsSkipPointerId)
+            return;
+
+        ReleaseFinalCreditsSkipPointer(evt.pointerId);
+        ResetFinalCreditsSkipProgress();
+        evt.StopPropagation();
+    }
+
+    private void OnFinalCreditsSkipPointerLeave(PointerLeaveEvent evt)
+    {
+        if (finalCreditsSkipPointerId >= 0 && finalCreditsSkipButton != null && finalCreditsSkipButton.HasPointerCapture(finalCreditsSkipPointerId))
+            return;
+
+        ResetFinalCreditsSkipProgress();
+    }
+
+    private void OnFinalCreditsSkipPointerCaptureOut(PointerCaptureOutEvent evt)
+    {
+        if (finalCreditsSkipPointerId >= 0 && evt.pointerId != finalCreditsSkipPointerId)
+            return;
+
+        ResetFinalCreditsSkipProgress();
+    }
+
+    private void UpdateFinalCreditsSkipHold()
+    {
+        if (!isFinalCreditsSkipHolding || !isEndingOverlayOpen)
+            return;
+
+        finalCreditsSkipHoldElapsed += Time.unscaledDeltaTime;
+        float progress = Mathf.Clamp01(finalCreditsSkipHoldElapsed / FinalCreditsSkipHoldSeconds);
+        UpdateFinalCreditsSkipProgressVisual(progress);
+
+        if (progress < 1f)
+            return;
+
+        ReleaseFinalCreditsSkipPointer(finalCreditsSkipPointerId);
+        ShowFinalCreditsButtonPanel(skipped: true);
+    }
+
+    private void ResetFinalCreditsSkipProgress()
+    {
+        isFinalCreditsSkipHolding = false;
+        finalCreditsSkipPointerId = -1;
+        finalCreditsSkipHoldElapsed = 0f;
+        UpdateFinalCreditsSkipProgressVisual(0f);
+    }
+
+    private void ReleaseFinalCreditsSkipPointer(int pointerId)
+    {
+        if (pointerId < 0 || finalCreditsSkipButton == null || !finalCreditsSkipButton.HasPointerCapture(pointerId))
+            return;
+
+        finalCreditsSkipButton.ReleasePointer(pointerId);
+    }
+
+    private void UpdateFinalCreditsSkipProgressVisual(float progress)
+    {
+        float clamped = Mathf.Clamp01(progress);
+        SetSkipProgressSegment(finalCreditsSkipProgressTop, Mathf.Clamp01(clamped / 0.25f), horizontal: true);
+        SetSkipProgressSegment(finalCreditsSkipProgressRight, Mathf.Clamp01((clamped - 0.25f) / 0.25f), horizontal: false);
+        SetSkipProgressSegment(finalCreditsSkipProgressBottom, Mathf.Clamp01((clamped - 0.5f) / 0.25f), horizontal: true);
+        SetSkipProgressSegment(finalCreditsSkipProgressLeft, Mathf.Clamp01((clamped - 0.75f) / 0.25f), horizontal: false);
+    }
+
+    private static void SetSkipProgressSegment(VisualElement segment, float progress, bool horizontal)
+    {
+        if (segment == null)
+            return;
+
+        float percent = Mathf.Clamp01(progress) * 100f;
+        if (horizontal)
+            segment.style.width = Length.Percent(percent);
+        else
+            segment.style.height = Length.Percent(percent);
+        segment.style.opacity = progress > 0f ? 1f : 0f;
+    }
+
+    private void SetFinalCreditsSkipProgressPickingMode(PickingMode pickingMode)
+    {
+        if (finalCreditsSkipProgressTop != null)
+            finalCreditsSkipProgressTop.pickingMode = pickingMode;
+        if (finalCreditsSkipProgressRight != null)
+            finalCreditsSkipProgressRight.pickingMode = pickingMode;
+        if (finalCreditsSkipProgressBottom != null)
+            finalCreditsSkipProgressBottom.pickingMode = pickingMode;
+        if (finalCreditsSkipProgressLeft != null)
+            finalCreditsSkipProgressLeft.pickingMode = pickingMode;
+    }
+
+    private void ConfigureFinalCreditsNonInteractivePicking(VisualElement root)
+    {
+        VisualElement backdrop = root?.Q<VisualElement>("FinalCreditsBackdrop");
+        if (backdrop != null)
+            backdrop.pickingMode = PickingMode.Ignore;
+        if (finalCreditsFadePanel != null)
+            finalCreditsFadePanel.pickingMode = PickingMode.Ignore;
+        if (finalCreditsFinaleLayer != null)
+            finalCreditsFinaleLayer.pickingMode = PickingMode.Ignore;
+        if (finalCreditsFinaleRingOuter != null)
+            finalCreditsFinaleRingOuter.pickingMode = PickingMode.Ignore;
+        if (finalCreditsFinaleRingInner != null)
+            finalCreditsFinaleRingInner.pickingMode = PickingMode.Ignore;
+        if (finalCreditsFinaleTitleLabel != null)
+            finalCreditsFinaleTitleLabel.pickingMode = PickingMode.Ignore;
+        if (finalCreditsFinaleSubtitleLabel != null)
+            finalCreditsFinaleSubtitleLabel.pickingMode = PickingMode.Ignore;
+        if (finalCreditsTitleLabel != null)
+            finalCreditsTitleLabel.pickingMode = PickingMode.Ignore;
+        if (finalCreditsScrollView != null)
+            finalCreditsScrollView.pickingMode = PickingMode.Ignore;
+        if (finalCreditsContent != null)
+            finalCreditsContent.pickingMode = PickingMode.Ignore;
+    }
+
+    private void OnFinalCreditsMainClicked()
+    {
+        PlayUISfx(UISfxKind.Confirm);
+        FinalEndingProgressStore.MarkEndingCompletedReplayable();
+        HideFinalCreditsOverlay();
+        GameManager gm = finalEndingGameManager != null ? finalEndingGameManager : FindFirstObjectByType<GameManager>();
+        gm?.ReturnToFirstStageFromFinalEnding();
+    }
+
+    private void OnFinalCreditsReplayClicked()
+    {
+        PlayUISfx(UISfxKind.Click);
+        FinalEndingSnapshot snapshot = activeFinalEndingSnapshot ?? FinalEndingProgressStore.TryGetReplaySnapshot();
+        ShowFinalEnding(snapshot, finalEndingGameManager, replay: true);
+    }
+
+    private void OnFinalCreditsUpdateClicked()
+    {
+        PlayUISfx(UISfxKind.Click);
+        ResetFinalCreditsSkipProgress();
+        isFinalCreditsUpdateOpen = true;
+        if (finalCreditsUpdateTitleLabel != null)
+            finalCreditsUpdateTitleLabel.text = T("final_credits_update_title");
+        if (finalCreditsUpdateMessageLabel != null)
+            finalCreditsUpdateMessageLabel.text = T("final_credits_update_message");
+        if (finalCreditsUpdatePanel != null)
+            finalCreditsUpdatePanel.style.display = DisplayStyle.Flex;
+        RefreshBottomLayout(force: true);
+        FirebaseBootstrap.LogEvent("stage1000_update_coming_open", new Dictionary<string, object>
+        {
+            { "final_stage_index", FinalEndingProgressStore.FinalStageIndex }
+        });
+    }
+
+    private void HideFinalCreditsUpdatePanel()
+    {
+        PlayUISfx(UISfxKind.Cancel);
+        isFinalCreditsUpdateOpen = false;
+        if (finalCreditsUpdatePanel != null)
+            finalCreditsUpdatePanel.style.display = DisplayStyle.None;
+    }
+
+    private void HideFinalCreditsOverlay()
+    {
+        StopFinalCreditsPlayback(resetVisuals: true);
+        isEndingOverlayOpen = false;
+        isFinalCreditsUpdateOpen = false;
+        isFinalCreditsButtonPanelOpen = false;
+        if (finalCreditsOverlay != null)
+            finalCreditsOverlay.style.display = DisplayStyle.None;
+        RefreshBottomLayout(force: true);
+    }
+
+    private void StopFinalCreditsPlayback(bool resetVisuals)
+    {
+        finalCreditsAnimationVersion++;
+        StopFinalCreditsFinaleOnly();
+        StopFinalCreditsRollOnly();
+        ResetFinalCreditsSkipProgress();
+        if (!resetVisuals)
+            return;
+        isFinalCreditsButtonPanelOpen = false;
+        if (finalCreditsButtonPanel != null)
+            finalCreditsButtonPanel.style.display = DisplayStyle.None;
+        if (finalCreditsUpdatePanel != null)
+            finalCreditsUpdatePanel.style.display = DisplayStyle.None;
+        if (finalCreditsSkipButton != null)
+            finalCreditsSkipButton.style.display = DisplayStyle.Flex;
+        if (finalCreditsScrollView != null)
+        {
+            finalCreditsScrollView.style.display = DisplayStyle.Flex;
+            finalCreditsScrollView.scrollOffset = Vector2.zero;
+        }
+        if (finalCreditsContent != null)
+            finalCreditsContent.style.translate = new StyleTranslate(new Translate(
+                new Length(0f, LengthUnit.Pixel),
+                new Length(0f, LengthUnit.Pixel),
+                0f));
+        if (finalCreditsFadePanel != null)
+            finalCreditsFadePanel.style.opacity = 0f;
+        if (finalCreditsFinaleLayer != null)
+            finalCreditsFinaleLayer.style.display = DisplayStyle.None;
+        if (finalCreditsOverlay != null)
+            finalCreditsOverlay.style.backgroundColor = new StyleColor(new Color(1f / 255f, 7f / 255f, 12f / 255f, 0.96f));
+    }
+
+    private void StopFinalCreditsRollOnly()
+    {
+        if (finalCreditsRollRoutine != null)
+        {
+            StopCoroutine(finalCreditsRollRoutine);
+            finalCreditsRollRoutine = null;
+        }
+    }
+
+    private void StopFinalCreditsFinaleOnly()
+    {
+        if (finalCreditsFinaleRoutine != null)
+        {
+            StopCoroutine(finalCreditsFinaleRoutine);
+            finalCreditsFinaleRoutine = null;
+        }
+    }
+
+    private string FormatFinalCreditsDate(long unixSeconds, bool known)
+    {
+        if (!known || unixSeconds <= 0L)
+            return T("final_credits_unknown");
+        try
+        {
+            return DateTimeOffset.FromUnixTimeSeconds(unixSeconds).ToLocalTime().ToString("yyyy.MM.dd");
+        }
+        catch
+        {
+            return T("final_credits_unknown");
+        }
+    }
+
+    private string FormatDuration(long seconds)
+    {
+        if (seconds <= 0L)
+            return T("final_credits_unknown");
+        long hours = seconds / 3600L;
+        long minutes = (seconds % 3600L) / 60L;
+        if (hours > 0L)
+            return T("final_credits_duration_hours", ("hours", hours.ToString()), ("minutes", minutes.ToString()));
+        return T("final_credits_duration_minutes", ("minutes", Mathf.Max(1, (int)minutes).ToString()));
+    }
+
+    private string FormatStageSeconds(int stageNumber, int seconds)
+    {
+        if (stageNumber <= 0 || seconds <= 0)
+            return T("final_credits_unknown");
+        return T("final_credits_stage_seconds", ("stage", stageNumber.ToString()), ("time", FormatDuration(seconds)));
+    }
+
+    private string FormatStageCount(int stageNumber, int count)
+    {
+        if (stageNumber <= 0 || count <= 0)
+            return T("final_credits_unknown");
+        return T("final_credits_stage_count", ("stage", stageNumber.ToString()), ("count", count.ToString()));
     }
 
     public void ShowStageTransitionInterstitialIfNeeded(int completedStageIndex, Action onCompleted)
@@ -1518,6 +2286,7 @@ public class GameMainUIController : MonoBehaviour
         idleHintBonusSuppressedUntilActivity = false;
         idleHintBonusCheckRunning = false;
         lastGameplayActivityTime = Time.unscaledTime;
+        nextIdleHintBonusDebugLogTime = 0f;
         StopIdleHintBonusBounce();
         RefreshAssistButtons();
     }
@@ -1526,14 +2295,36 @@ public class GameMainUIController : MonoBehaviour
     {
         if (idleHintBonusGrantedThisStage || idleStageHintBonus > 0 || idleHintBonusSuppressedUntilActivity || idleHintBonusCheckRunning)
             return;
-        if (isSplashActive || isSettingPopupOpen || isDebugStageJumpPopupOpen || isLanguageSelectionPopupOpen || isTutorialPopupOpen || isWaitingForHeartRefill || isHintLoadingVisible)
-            return;
-        if (Time.unscaledTime - lastGameplayActivityTime < IdleHintBonusDelaySeconds)
+
+        float idleHintBonusDelaySeconds = GetIdleHintBonusDelaySeconds();
+        float idleSeconds = Time.unscaledTime - lastGameplayActivityTime;
+        if (idleSeconds < idleHintBonusDelaySeconds)
             return;
 
-        GameManager gm = FindFirstObjectByType<GameManager>();
-        if (gm == null || !gm.CanCheckIdleHintBonus)
+        if (!FirebaseBootstrap.GetRemoteBool(FirebaseBootstrap.RcIdleHintBonusEnabled, true))
+        {
+            LogIdleHintBonusBlocked("remote_disabled", idleSeconds, idleHintBonusDelaySeconds, null);
             return;
+        }
+
+        if (isSplashActive || isSettingPopupOpen || isDebugStageJumpPopupOpen || isLanguageSelectionPopupOpen || isTutorialPopupOpen || isWaitingForHeartRefill || isHintLoadingVisible)
+        {
+            LogIdleHintBonusBlocked(GetIdleHintBonusModalBlockReason(), idleSeconds, idleHintBonusDelaySeconds, null);
+            return;
+        }
+
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm == null)
+        {
+            LogIdleHintBonusBlocked("game_manager_missing", idleSeconds, idleHintBonusDelaySeconds, null);
+            return;
+        }
+
+        if (!gm.CanCheckIdleHintBonus)
+        {
+            LogIdleHintBonusBlocked("game_manager_not_ready", idleSeconds, idleHintBonusDelaySeconds, gm);
+            return;
+        }
 
         idleHintBonusCheckRunning = true;
         gm.CheckHintPreviewAvailabilitySilently(hasAvailableHint =>
@@ -1541,13 +2332,51 @@ public class GameMainUIController : MonoBehaviour
             idleHintBonusCheckRunning = false;
             if (!hasAvailableHint)
             {
+                if (gm.WasLastHintSolverBudgetExhausted)
+                {
+                    lastGameplayActivityTime = Time.unscaledTime;
+                    Debug.Log($"[방치 힌트 보너스 재검사 대기] stage={currentStageIndexForUI} solver={gm.LastHintSolverStatus} retryAfter={Mathf.RoundToInt(GetIdleHintBonusDelaySeconds())}s");
+                    return;
+                }
+
                 idleHintBonusSuppressedUntilActivity = true;
-                Debug.Log($"[방치 힌트 보너스 없음] stage={currentStageIndexForUI}");
+                Debug.Log($"[방치 힌트 보너스 없음] stage={currentStageIndexForUI} solver={gm.LastHintSolverStatus}");
                 return;
             }
 
             GrantIdleStageHintBonus();
         });
+    }
+
+    private string GetIdleHintBonusModalBlockReason()
+    {
+        if (isSplashActive)
+            return "splash_active";
+        if (isSettingPopupOpen)
+            return "settings_open";
+        if (isDebugStageJumpPopupOpen)
+            return "stage_jump_open";
+        if (isLanguageSelectionPopupOpen)
+            return "language_open";
+        if (isTutorialPopupOpen)
+            return "tutorial_open";
+        if (isWaitingForHeartRefill)
+            return "heart_popup_open";
+        if (isHintLoadingVisible)
+            return "hint_loading";
+        return "modal_open";
+    }
+
+    private void LogIdleHintBonusBlocked(string reason, float idleSeconds, float requiredSeconds, GameManager gm)
+    {
+        if (Time.unscaledTime < nextIdleHintBonusDebugLogTime)
+            return;
+
+        nextIdleHintBonusDebugLogTime = Time.unscaledTime + IdleHintBonusDebugLogCooldownSeconds;
+        string gameState = gm == null
+            ? "gm=null"
+            : $"gmCanCheck={gm.CanCheckIdleHintBonus} {gm.IdleHintBonusBlockState} solver={gm.LastHintSolverStatus}";
+        Debug.Log($"[방치 힌트 보너스 대기] stage={currentStageIndexForUI} reason={reason} idle={idleSeconds:F1}/{requiredSeconds:F1} {gameState}");
     }
 
     private void GrantIdleStageHintBonus()
@@ -1560,7 +2389,7 @@ public class GameMainUIController : MonoBehaviour
         FirebaseBootstrap.LogEvent("idle_hint_bonus_granted", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndexForUI },
-            { "idle_seconds", Mathf.RoundToInt(IdleHintBonusDelaySeconds) }
+            { "idle_seconds", Mathf.RoundToInt(GetIdleHintBonusDelaySeconds()) }
         });
         Debug.Log($"[방치 힌트 보너스 지급] stage={currentStageIndexForUI} bonus={idleStageHintBonus}");
         RefreshAssistButtons();
@@ -1810,6 +2639,15 @@ public class GameMainUIController : MonoBehaviour
     public bool IsTutorialPopupOpen => isTutorialPopupOpen;
     public bool IsWaitingForHeartRefill => isWaitingForHeartRefill;
     public bool IsSplashActive => isSplashActive;
+    public bool IsEndingOverlayOpen => isEndingOverlayOpen;
+    public bool IsModalOverlayOpen =>
+        isSettingPopupOpen ||
+        isDebugStageJumpPopupOpen ||
+        isLanguageSelectionPopupOpen ||
+        isTutorialPopupOpen ||
+        isWaitingForHeartRefill ||
+        isSplashActive ||
+        isEndingOverlayOpen;
     public bool HasResolvedGameplayLayout => hasResolvedGameplayLayout;
     public float TopGameplayMarginNormalized => topGameplayMarginNormalized;
     public float BottomGameplayMarginNormalized => bottomGameplayMarginNormalized;
@@ -1818,6 +2656,21 @@ public class GameMainUIController : MonoBehaviour
     public void NotifyStageBootstrapCompleted()
     {
         splashStageReady = true;
+    }
+
+    public void NotifyEndingBootstrapCompleted()
+    {
+        endingBootstrapForcesSplashReady = true;
+        splashStageReady = true;
+        splashBannerReady = true;
+        splashHeartRewardedReady = true;
+        splashStageSkipRewardedReady = true;
+        splashInterstitialReady = true;
+        if (splashVideoLoaded)
+        {
+            splashVideoEnded = true;
+            StartSplashVideoFadeOut();
+        }
     }
 
     private void InitializeSplashState()
@@ -1830,6 +2683,7 @@ public class GameMainUIController : MonoBehaviour
         splashVideoLoaded = false;
         splashVideoEnded = false;
         splashVideoFadeStarted = false;
+        endingBootstrapForcesSplashReady = false;
         splashVideoFadeStartTime = 0f;
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
@@ -1913,6 +2767,11 @@ public class GameMainUIController : MonoBehaviour
             splashImage.image = splashTexture;
 
         bool videoLoadedNow = TrySetupSplashVideo();
+        if (endingBootstrapForcesSplashReady && videoLoadedNow)
+        {
+            splashVideoEnded = true;
+            StartSplashVideoFadeOut();
+        }
         if (splashTexture == null && !videoLoadedNow)
         {
             logoWrap.Remove(splashImage);
@@ -2214,6 +3073,7 @@ public class GameMainUIController : MonoBehaviour
         isSplashActive = false;
         isSplashClosing = false;
         splashTimerStarted = false;
+        endingBootstrapForcesSplashReady = false;
         CleanupSplashVideo();
     }
 
@@ -2269,6 +3129,7 @@ public class GameMainUIController : MonoBehaviour
         if (hasHeartsRemaining)
             return true;
 
+        FinalEndingProgressStore.RecordHeartDepleted();
         PrepareHeartRefillOffer(consumeReason);
         ShowHeartDepletedPopup();
         return true;
@@ -4860,6 +5721,28 @@ public class GameMainUIController : MonoBehaviour
             resetConfirmOkButton.text = T("button_reset");
         if (languageSelectTitleLabel != null)
             languageSelectTitleLabel.text = T("language_select_title");
+        if (finalCreditsSkipButton != null)
+            finalCreditsSkipButton.text = T("final_credits_skip");
+        if (finalCreditsMainButton != null)
+            finalCreditsMainButton.text = T("final_credits_main");
+        if (finalCreditsReplayButton != null)
+            finalCreditsReplayButton.text = T("final_credits_replay");
+        if (finalCreditsUpdateButton != null)
+            finalCreditsUpdateButton.text = T("final_credits_update_button");
+        if (finalCreditsUpdateCloseButton != null)
+            finalCreditsUpdateCloseButton.text = T("button_cancel");
+        if (finalCreditsTitleLabel != null && isEndingOverlayOpen)
+            finalCreditsTitleLabel.text = T("final_credits_intro_title");
+        if (finalCreditsFinaleTitleLabel != null && isEndingOverlayOpen)
+            finalCreditsFinaleTitleLabel.text = T("final_credits_finale_title");
+        if (finalCreditsFinaleSubtitleLabel != null && isEndingOverlayOpen)
+            finalCreditsFinaleSubtitleLabel.text = T("final_credits_finale_subtitle");
+        if (finalCreditsUpdateTitleLabel != null && isFinalCreditsUpdateOpen)
+            finalCreditsUpdateTitleLabel.text = T("final_credits_update_title");
+        if (finalCreditsUpdateMessageLabel != null && isFinalCreditsUpdateOpen)
+            finalCreditsUpdateMessageLabel.text = T("final_credits_update_message");
+        if (isEndingOverlayOpen && activeFinalEndingSnapshot != null)
+            BuildFinalCreditsRows(activeFinalEndingSnapshot);
 
         UpdateLanguageMenuLabel();
         if (isLanguageSelectionPopupOpen)
@@ -5278,6 +6161,7 @@ public class GameMainUIController : MonoBehaviour
         PlayerPrefs.DeleteKey(SaveKeyCurrentHeartsMax);
         PlayerPrefs.Save();
 
+        FinalEndingProgressStore.ClearEndingProgress();
         GameManager.ClearSavedStageProgress();
 
         isSoundOn = true;
@@ -6137,6 +7021,8 @@ public class GameMainUIController : MonoBehaviour
 
         float safeBottomPx = Mathf.Max(0f, currentSafeArea.yMin);
         float safeTopPx = Mathf.Max(0f, Screen.height - currentSafeArea.yMax);
+        float safeLeftPx = Mathf.Max(0f, currentSafeArea.xMin);
+        float safeRightPx = Mathf.Max(0f, Screen.width - currentSafeArea.xMax);
         float bannerReservedBottomPx = Mathf.Max(0f, reservedBannerHeightPx);
         float noBannerReservedBottomPx = bannerReservedBottomPx > 0.5f ? 0f : Mathf.Max(0f, bottomBarNoBannerReservePx);
         float contentReservedBottomPx = Mathf.Max(bannerReservedBottomPx, noBannerReservedBottomPx);
@@ -6163,7 +7049,34 @@ public class GameMainUIController : MonoBehaviour
         if (stageSnackbar != null)
             stageSnackbar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, stageSnackbarExtraSpacing);
 
+        RefreshFinalCreditsLayout(totalReservedBottomPx, safeLeftPx, safeRightPx);
         UpdateGameplayLayoutMetrics();
+    }
+
+    private void RefreshFinalCreditsLayout(float totalReservedBottomPx, float safeLeftPx, float safeRightPx)
+    {
+        float reservedBottom = Mathf.Max(0f, totalReservedBottomPx);
+        float reservedLeft = Mathf.Max(0f, safeLeftPx);
+        float reservedRight = Mathf.Max(0f, safeRightPx);
+
+        if (finalCreditsSkipButton != null)
+        {
+            finalCreditsSkipButton.style.bottom = reservedBottom + FinalCreditsSkipBaseBottomPx;
+            finalCreditsSkipButton.style.right = reservedRight + FinalCreditsSkipBaseRightPx;
+        }
+
+        if (finalCreditsButtonPanel != null)
+            finalCreditsButtonPanel.style.bottom = reservedBottom + FinalCreditsButtonPanelBaseBottomPx;
+
+        if (finalCreditsUpdatePanel != null)
+        {
+            finalCreditsUpdatePanel.style.bottom = reservedBottom + FinalCreditsUpdatePanelBaseBottomPx;
+            finalCreditsUpdatePanel.style.left = reservedLeft + 24f;
+            finalCreditsUpdatePanel.style.right = reservedRight + 24f;
+        }
+
+        if (finalCreditsScrollView != null)
+            finalCreditsScrollView.style.paddingBottom = reservedBottom + 224f;
     }
 
     private void ApplyBottomBarCompactMode()
