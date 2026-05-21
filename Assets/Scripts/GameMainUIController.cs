@@ -1459,7 +1459,10 @@ public class GameMainUIController : MonoBehaviour
 
         bool shown = gm.ShowHintPreview();
         if (shown)
+        {
             FinalEndingProgressStore.RecordHintShown(currentStageIndexForUI);
+            AchievementProgressStore.RecordHintShown(currentStageIndexForUI);
+        }
         return shown;
     }
 
@@ -3130,6 +3133,7 @@ public class GameMainUIController : MonoBehaviour
             return true;
 
         FinalEndingProgressStore.RecordHeartDepleted();
+        AchievementProgressStore.RecordHeartDepleted();
         PrepareHeartRefillOffer(consumeReason);
         ShowHeartDepletedPopup();
         return true;
@@ -6162,6 +6166,7 @@ public class GameMainUIController : MonoBehaviour
         PlayerPrefs.Save();
 
         FinalEndingProgressStore.ClearEndingProgress();
+        AchievementProgressStore.ClearProgress();
         GameManager.ClearSavedStageProgress();
 
         isSoundOn = true;

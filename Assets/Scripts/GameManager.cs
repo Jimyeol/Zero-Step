@@ -519,6 +519,7 @@ public class GameManager : MonoBehaviour
     private void TrackStageStarted(string entryType)
     {
         FinalEndingProgressStore.RecordStageStarted(currentStageIndex);
+        AchievementProgressStore.RecordStageStarted(currentStageIndex);
         FirebaseBootstrap.LogEvent("stage_start", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
@@ -532,6 +533,7 @@ public class GameManager : MonoBehaviour
     private void TrackStageCleared(string clearType)
     {
         FinalEndingProgressStore.RecordStageCleared(currentStageIndex);
+        AchievementProgressStore.RecordStageCleared(currentStageIndex);
         FirebaseBootstrap.LogEvent("stage_clear", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
@@ -545,6 +547,7 @@ public class GameManager : MonoBehaviour
     private void TrackStageFailed(string reason)
     {
         FinalEndingProgressStore.RecordStageFailed(currentStageIndex);
+        AchievementProgressStore.RecordStageFailed(currentStageIndex);
         FirebaseBootstrap.LogEvent("stage_fail", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
@@ -558,6 +561,7 @@ public class GameManager : MonoBehaviour
     private void TrackStageReset(string resetType)
     {
         FinalEndingProgressStore.RecordStageReset(currentStageIndex);
+        AchievementProgressStore.RecordStageReset(currentStageIndex);
         FirebaseBootstrap.LogEvent("stage_reset", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
