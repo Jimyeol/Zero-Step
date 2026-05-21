@@ -34,6 +34,7 @@ public class CrossBlastTile : MonoBehaviour
     private GameManager pendingMutationOwner;
     private Tile pendingMutationClearReferenceTile;
     private bool hasPendingBoardMutation;
+    private bool burstLineCreationFailed;
     private static Material fallbackBurstLineMaterial;
 
     private void Awake()
@@ -45,7 +46,6 @@ public class CrossBlastTile : MonoBehaviour
         ApplyTileSprite();
         ApplyNumberScale();
         ParseBeamColor(beamColorHex);
-        CreateBurstLines();
     }
 
     /// <summary>
@@ -73,6 +73,7 @@ public class CrossBlastTile : MonoBehaviour
         }
 
         int affectedCount = gameManager.GetCrossBlastAffectedTiles(tile, nextTile, affectedTilesBuffer);
+        EnsureBurstLines();
         BeginPendingBoardMutation(gameManager, null, affectedCount);
         explosionRoutine = StartCoroutine(FlashAndDecreaseAdjacentRoutine(gameManager, affectedCount));
     }
@@ -128,11 +129,43 @@ public class CrossBlastTile : MonoBehaviour
         numberText.transform.localScale *= numberScaleMultiplier;
     }
 
+    private void EnsureBurstLines()
+    {
+        if (burstLineCreationFailed || HasBurstLines())
+            return;
+
+        try
+        {
+            CreateBurstLines();
+        }
+        catch (System.Exception ex)
+        {
+            burstLineCreationFailed = true;
+            HideBurstLines();
+            Debug.LogWarning($"[CrossBlastTile] Burst line visual setup failed. CrossBlast gameplay will continue without burst lines. {ex.GetType().Name}: {ex.Message}");
+            FirebaseBootstrap.LogNonFatalException(ex, "CrossBlast burst line visual setup failed");
+        }
+    }
+
+    private bool HasBurstLines()
+    {
+        for (int i = 0; i < burstLines.Length; i++)
+        {
+            if (burstLines[i] == null)
+                return false;
+        }
+
+        return true;
+    }
+
     private void CreateBurstLines()
     {
         Material lineMaterial = ResolveLineMaterial(spriteRenderer);
         for (int i = 0; i < burstLines.Length; i++)
         {
+            if (burstLines[i] != null)
+                continue;
+
             LineRenderer line = gameObject.AddComponent<LineRenderer>();
             line.enabled = false;
             line.useWorldSpace = true;
