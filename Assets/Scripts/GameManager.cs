@@ -19,6 +19,13 @@ using UnityEditor;
 /// </summary>
 public class GameManager : MonoBehaviour
 {
+    private const float TallStageBottomGameplayBoostMaxNormalized = 0.04f;
+    private const float TallStageAspectBoostStart = 1.15f;
+    private const float TallStageAspectBoostFull = 1.8f;
+    private const float LargeStageBottomGameplayBoostMaxNormalized = 0.02f;
+    private const float LargeStageBoostStartCells = 6f;
+    private const float LargeStageBoostFullCells = 8f;
+
     [Header("그리드 설정")]
     [SerializeField] private float padding = 0.2f;
     [SerializeField] private float fitMargin = 1.05f;
@@ -5568,12 +5575,32 @@ public class GameManager : MonoBehaviour
 
         if (mainUI != null && mainUI.HasResolvedGameplayLayout)
         {
-            top = Mathf.Max(top, mainUI.TopGameplayMarginNormalized);
-            bottom = Mathf.Max(bottom, mainUI.BottomGameplayMarginNormalized + uiBottomGameplayGapNormalized);
+            top = Mathf.Clamp01(mainUI.TopGameplayMarginNormalized);
+            bottom = Mathf.Clamp01(mainUI.BottomGameplayMarginNormalized);
+        }
+        else
+        {
+            bottom = Mathf.Clamp01(bottom + uiBottomGameplayGapNormalized);
         }
 
+        bottom = Mathf.Clamp01(bottom + CalculateStageBottomGameplayBoostNormalized());
         top = Mathf.Clamp01(top);
         bottom = Mathf.Clamp01(bottom);
+    }
+
+    private float CalculateStageBottomGameplayBoostNormalized()
+    {
+        if (stageWidth <= 0 || stageHeight <= 0)
+            return 0f;
+
+        float gridAspect = totalGridWidth > 0.0001f
+            ? totalGridHeight / totalGridWidth
+            : (float)stageHeight / Mathf.Max(1, stageWidth);
+        float tallStageT = Mathf.InverseLerp(TallStageAspectBoostStart, TallStageAspectBoostFull, gridAspect);
+        float largeStageT = Mathf.InverseLerp(LargeStageBoostStartCells, LargeStageBoostFullCells, Mathf.Max(stageWidth, stageHeight));
+        float tallBoost = tallStageT * TallStageBottomGameplayBoostMaxNormalized;
+        float largeBoost = largeStageT * LargeStageBottomGameplayBoostMaxNormalized;
+        return Mathf.Max(tallBoost, largeBoost);
     }
 
     private void CacheMainUIReference()

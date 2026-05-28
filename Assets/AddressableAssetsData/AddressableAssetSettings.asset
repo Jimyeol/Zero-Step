@@ -15,7 +15,7 @@ MonoBehaviour:
   m_DefaultGroup: 386a9c121d36448ecaebfefdf4282316
   m_currentHash:
     serializedVersion: 2
-    Hash: 85b518ece41ba82cf30e240d59f0c2a7
+    Hash: 00000000000000000000000000000000
   m_OptimizeCatalogSize: 0
   m_BuildRemoteCatalog: 0
   m_CatalogRequestsTimeout: 0
@@ -60,7 +60,6 @@ MonoBehaviour:
   m_BuildAddressablesWithPlayerBuild: 0
   m_overridePlayerVersion: '[UnityEditor.PlayerSettings.bundleVersion]'
   m_GroupAssets:
-  - {fileID: 11400000, guid: 1b7e0ef24415c49eba4960bed10175c2, type: 2}
   - {fileID: 11400000, guid: aa49b296a4bb74974bdd79c228220fbc, type: 2}
   m_BuildSettings:
     m_LogResourceManagerExceptions: 1

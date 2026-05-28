@@ -68,6 +68,42 @@ public class GameMainUIController : MonoBehaviour
     private const int MaxIdleStageHintBonus = 1;
     private const float TopHudBasePaddingPx = 64f;
     private const float TopHudBackdropBaseTopPx = 26f;
+    private const float CompactTopHudBasePaddingPx = 42f;
+    private const float CompactTopHudBackdropBaseTopPx = 18f;
+    private const float TabletTopHudBasePaddingPx = 56f;
+    private const float TabletTopHudBackdropBaseTopPx = 22f;
+    private const float CompactBottomBarExtraSpacingPx = 16f;
+    private const float CompactBottomBarNoBannerReservePx = 48f;
+    private const float TabletBottomBarExtraSpacingPx = 32f;
+    private const float TallPhoneTopGameplayFloorNormalized = 0.22f;
+    private const float TallPhoneBottomGameplayFloorNormalized = 0.22f;
+    private const float TallPhoneTopGameplayGapNormalized = 0.02f;
+    private const float TallPhoneBottomGameplayGapNormalized = 0.04f;
+    private const float TabletTopGameplayFloorNormalized = 0.255f;
+    private const float TabletBottomGameplayFloorNormalized = 0.3f;
+    private const float TabletTopGameplayGapNormalized = 0.075f;
+    private const float TabletBottomGameplayGapNormalized = 0.095f;
+    private const float LargeScreenTopGameplayFloorNormalized = 0.23f;
+    private const float LargeScreenBottomGameplayFloorNormalized = 0.25f;
+    private const float LargeScreenTopGameplayGapNormalized = 0.035f;
+    private const float LargeScreenBottomGameplayGapNormalized = 0.055f;
+    private const float CompactTopGameplayFloorNormalized = 0.18f;
+    private const float CompactBottomGameplayFloorNormalized = 0.255f;
+    private const float CompactTopGameplayGapNormalized = 0.018f;
+    private const float CompactBottomGameplayGapNormalized = 0.06f;
+    private const float DefaultMinimumCenterBandNormalized = 0.42f;
+    private const float CompactMinimumCenterBandNormalized = 0.38f;
+    private const float TabletPortraitMinAspect = 0.68f;
+    private const float TabletPortraitMaxAspect = 0.9f;
+    private const float TabletPortraitMinSafeWidthPx = 720f;
+    private const float LargeScreenMinSafeWidthPx = 1250f;
+    private const float LargeScreenMinSafeHeightPx = 1900f;
+    private const float CompactPortraitUsableHeightPx = 1400f;
+    private const float CompactLandscapeUsableHeightPx = 1700f;
+    private const string LayoutTallPhoneClass = "layout-tall-phone";
+    private const string LayoutTablet4By3Class = "layout-tablet-4by3";
+    private const string LayoutCompactHeightClass = "layout-compact-height";
+    private const string LayoutLargeScreenClass = "layout-large-screen";
     private const string TutorialScheduleResourcePath = "Tutorials/help_tutorial_schedule";
     private const string StageSnackbarScheduleResourcePath = "Tutorials/stage_snackbar_schedule";
     private const string TutorialDismissedKeyPrefix = "TutorialDismissed_";
@@ -197,6 +233,15 @@ public class GameMainUIController : MonoBehaviour
     {
         RewardedAd,
         SessionPlayReward
+    }
+
+    private enum ResponsiveLayoutProfile
+    {
+        Unknown,
+        TallPhone,
+        Tablet4By3,
+        CompactHeight,
+        LargeScreen
     }
 
     [Header("UI Toolkit 참조 (자동 캐싱)")]
@@ -421,6 +466,21 @@ public class GameMainUIController : MonoBehaviour
     private float topGameplayMarginNormalized;
     private float bottomGameplayMarginNormalized;
     private bool hasResolvedGameplayLayout;
+    private ResponsiveLayoutProfile activeResponsiveLayoutProfile = ResponsiveLayoutProfile.Unknown;
+    private ResponsiveLayoutProfile lastLoggedResponsiveLayoutProfile = ResponsiveLayoutProfile.Unknown;
+    private float topGameplayGapNormalized = TallPhoneTopGameplayGapNormalized;
+    private float bottomGameplayGapNormalized = TallPhoneBottomGameplayGapNormalized;
+    private float topGameplayFloorNormalized = TallPhoneTopGameplayFloorNormalized;
+    private float bottomGameplayFloorNormalized = TallPhoneBottomGameplayFloorNormalized;
+    private float minimumCenterBandNormalized = DefaultMinimumCenterBandNormalized;
+    private float responsiveTopHudBasePaddingPx = TopHudBasePaddingPx;
+    private float responsiveTopHudBackdropBaseTopPx = TopHudBackdropBaseTopPx;
+    private float responsiveBottomBarExtraSpacingPx = -1f;
+    private float responsiveBottomBarNoBannerReservePx = -1f;
+    private bool gameplayLayoutMeasurementScheduled;
+    private float lastLoggedTopGameplayMarginNormalized = -1f;
+    private float lastLoggedBottomGameplayMarginNormalized = -1f;
+    private float lastLoggedCenterBandNormalized = -1f;
     private int currentHearts = MaxHearts;
     private int hintCharges = MaxHintCharges;
     private long hintNextRechargeUnix;
@@ -7000,6 +7060,7 @@ public class GameMainUIController : MonoBehaviour
         bool screenChanged = cachedScreenWidth != Screen.width || cachedScreenHeight != Screen.height;
         bool safeAreaChanged = !IsSameRect(cachedSafeArea, currentSafeArea);
         bool gameplayLayoutPending = !hasResolvedGameplayLayout;
+        bool responsiveLayoutPending = activeResponsiveLayoutProfile == ResponsiveLayoutProfile.Unknown;
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         if (bannerView != null)
@@ -7017,7 +7078,7 @@ public class GameMainUIController : MonoBehaviour
         }
 #endif
 
-        if (!force && !screenChanged && !safeAreaChanged && !gameplayLayoutPending)
+        if (!force && !screenChanged && !safeAreaChanged && !gameplayLayoutPending && !responsiveLayoutPending)
             return;
 
         cachedScreenWidth = Screen.width;
@@ -7029,14 +7090,21 @@ public class GameMainUIController : MonoBehaviour
         float safeLeftPx = Mathf.Max(0f, currentSafeArea.xMin);
         float safeRightPx = Mathf.Max(0f, Screen.width - currentSafeArea.xMax);
         float bannerReservedBottomPx = Mathf.Max(0f, reservedBannerHeightPx);
-        float noBannerReservedBottomPx = bannerReservedBottomPx > 0.5f ? 0f : Mathf.Max(0f, bottomBarNoBannerReservePx);
+        float previousNoBannerReservePx = responsiveBottomBarNoBannerReservePx >= 0f
+            ? responsiveBottomBarNoBannerReservePx
+            : bottomBarNoBannerReservePx;
+        float initialNoBannerReservedBottomPx = bannerReservedBottomPx > 0.5f ? 0f : Mathf.Max(0f, previousNoBannerReservePx);
+        float initialContentReservedBottomPx = Mathf.Max(bannerReservedBottomPx, initialNoBannerReservedBottomPx);
+        ApplyResponsiveLayoutMode(currentSafeArea, initialContentReservedBottomPx);
+
+        float noBannerReservedBottomPx = bannerReservedBottomPx > 0.5f ? 0f : Mathf.Max(0f, responsiveBottomBarNoBannerReservePx);
         float contentReservedBottomPx = Mathf.Max(bannerReservedBottomPx, noBannerReservedBottomPx);
         float totalReservedBottomPx = safeBottomPx + contentReservedBottomPx;
 
         if (topBar != null)
-            topBar.style.paddingTop = TopHudBasePaddingPx + safeTopPx;
+            topBar.style.paddingTop = responsiveTopHudBasePaddingPx + safeTopPx;
         if (topHudBackdrop != null)
-            topHudBackdrop.style.top = TopHudBackdropBaseTopPx + safeTopPx;
+            topHudBackdrop.style.top = responsiveTopHudBackdropBaseTopPx + safeTopPx;
 
         if (bannerAdContainer != null)
         {
@@ -7046,16 +7114,16 @@ public class GameMainUIController : MonoBehaviour
 
         if (bottomBar != null)
         {
-            ApplyBottomBarCompactMode();
             bottomBar.style.marginBottom = 0f;
-            bottomBar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, bottomBarExtraSpacing);
+            bottomBar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, responsiveBottomBarExtraSpacingPx);
         }
 
         if (stageSnackbar != null)
             stageSnackbar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, stageSnackbarExtraSpacing);
 
         RefreshFinalCreditsLayout(totalReservedBottomPx, safeLeftPx, safeRightPx);
-        UpdateGameplayLayoutMetrics();
+        hasResolvedGameplayLayout = false;
+        ScheduleGameplayLayoutMetricsRefresh();
     }
 
     private void RefreshFinalCreditsLayout(float totalReservedBottomPx, float safeLeftPx, float safeRightPx)
@@ -7084,16 +7152,126 @@ public class GameMainUIController : MonoBehaviour
             finalCreditsScrollView.style.paddingBottom = reservedBottom + 224f;
     }
 
-    private void ApplyBottomBarCompactMode()
+    private void ApplyResponsiveLayoutMode(Rect safeArea, float contentReservedBottomPx)
     {
-        if (bottomBar == null)
-            return;
+        VisualElement root = uiDocument != null ? uiDocument.rootVisualElement : null;
 
-        float width = Screen.width > 0 ? Screen.width : bottomBar.resolvedStyle.width;
+        float screenWidth = Mathf.Max(1f, Screen.width);
+        float screenHeight = Mathf.Max(1f, Screen.height);
+        float safeWidth = safeArea.width > 1f ? safeArea.width : screenWidth;
+        float safeHeight = safeArea.height > 1f ? safeArea.height : screenHeight;
+        float safeAspect = safeWidth / Mathf.Max(1f, safeHeight);
+        bool portrait = safeHeight >= safeWidth;
+        float usableHeight = Mathf.Max(1f, safeHeight - Mathf.Max(0f, contentReservedBottomPx));
+        bool tablet4By3Portrait = portrait &&
+                                  safeWidth >= TabletPortraitMinSafeWidthPx &&
+                                  safeAspect >= TabletPortraitMinAspect &&
+                                  safeAspect <= TabletPortraitMaxAspect;
+        bool compactHeight = (!tablet4By3Portrait && portrait && usableHeight < CompactPortraitUsableHeightPx) ||
+                             (!portrait && usableHeight < CompactLandscapeUsableHeightPx);
+        bool largeScreen = safeWidth >= LargeScreenMinSafeWidthPx && safeHeight >= LargeScreenMinSafeHeightPx;
+
+        ResponsiveLayoutProfile nextProfile;
+        if (compactHeight)
+            nextProfile = ResponsiveLayoutProfile.CompactHeight;
+        else if (tablet4By3Portrait)
+            nextProfile = ResponsiveLayoutProfile.Tablet4By3;
+        else if (largeScreen)
+            nextProfile = ResponsiveLayoutProfile.LargeScreen;
+        else
+            nextProfile = ResponsiveLayoutProfile.TallPhone;
+
+        ConfigureResponsiveGameplayBudget(nextProfile);
+
+        activeResponsiveLayoutProfile = nextProfile;
+
+        float width = Screen.width > 0 ? Screen.width : (bottomBar != null ? bottomBar.resolvedStyle.width : safeWidth);
         bool ultraCompact = width > 0f && width < 620f;
         bool compact = width > 0f && width < 820f;
-        bottomBar.EnableInClassList("bottom-bar-ultra-compact", ultraCompact);
-        bottomBar.EnableInClassList("bottom-bar-compact", compact && !ultraCompact);
+        SetClassEnabled(bottomBar, "bottom-bar-ultra-compact", ultraCompact);
+        SetClassEnabled(bottomBar, "bottom-bar-compact", compact && !ultraCompact);
+
+        bool isTallPhone = nextProfile == ResponsiveLayoutProfile.TallPhone;
+        bool isTablet4By3 = nextProfile == ResponsiveLayoutProfile.Tablet4By3;
+        bool isCompactHeight = nextProfile == ResponsiveLayoutProfile.CompactHeight;
+        bool isLargeScreen = nextProfile == ResponsiveLayoutProfile.LargeScreen;
+
+        SetResponsiveLayoutClasses(root, isTallPhone, isTablet4By3, isCompactHeight, isLargeScreen);
+        SetResponsiveLayoutClasses(topBar, isTallPhone, isTablet4By3, isCompactHeight, isLargeScreen);
+        SetResponsiveLayoutClasses(bottomBar, isTallPhone, isTablet4By3, isCompactHeight, isLargeScreen);
+    }
+
+    private void ConfigureResponsiveGameplayBudget(ResponsiveLayoutProfile profile)
+    {
+        responsiveTopHudBasePaddingPx = TopHudBasePaddingPx;
+        responsiveTopHudBackdropBaseTopPx = TopHudBackdropBaseTopPx;
+        topGameplayFloorNormalized = TallPhoneTopGameplayFloorNormalized;
+        bottomGameplayFloorNormalized = TallPhoneBottomGameplayFloorNormalized;
+        topGameplayGapNormalized = TallPhoneTopGameplayGapNormalized;
+        bottomGameplayGapNormalized = TallPhoneBottomGameplayGapNormalized;
+        minimumCenterBandNormalized = DefaultMinimumCenterBandNormalized;
+        responsiveBottomBarExtraSpacingPx = bottomBarExtraSpacing;
+        responsiveBottomBarNoBannerReservePx = bottomBarNoBannerReservePx;
+
+        switch (profile)
+        {
+            case ResponsiveLayoutProfile.Tablet4By3:
+                responsiveTopHudBasePaddingPx = TabletTopHudBasePaddingPx;
+                responsiveTopHudBackdropBaseTopPx = TabletTopHudBackdropBaseTopPx;
+                responsiveBottomBarExtraSpacingPx = TabletBottomBarExtraSpacingPx;
+                topGameplayFloorNormalized = TabletTopGameplayFloorNormalized;
+                bottomGameplayFloorNormalized = TabletBottomGameplayFloorNormalized;
+                topGameplayGapNormalized = TabletTopGameplayGapNormalized;
+                bottomGameplayGapNormalized = TabletBottomGameplayGapNormalized;
+                break;
+            case ResponsiveLayoutProfile.CompactHeight:
+                responsiveTopHudBasePaddingPx = CompactTopHudBasePaddingPx;
+                responsiveTopHudBackdropBaseTopPx = CompactTopHudBackdropBaseTopPx;
+                responsiveBottomBarExtraSpacingPx = CompactBottomBarExtraSpacingPx;
+                responsiveBottomBarNoBannerReservePx = Mathf.Min(bottomBarNoBannerReservePx, CompactBottomBarNoBannerReservePx);
+                topGameplayFloorNormalized = CompactTopGameplayFloorNormalized;
+                bottomGameplayFloorNormalized = CompactBottomGameplayFloorNormalized;
+                topGameplayGapNormalized = CompactTopGameplayGapNormalized;
+                bottomGameplayGapNormalized = CompactBottomGameplayGapNormalized;
+                minimumCenterBandNormalized = CompactMinimumCenterBandNormalized;
+                break;
+            case ResponsiveLayoutProfile.LargeScreen:
+                topGameplayFloorNormalized = LargeScreenTopGameplayFloorNormalized;
+                bottomGameplayFloorNormalized = LargeScreenBottomGameplayFloorNormalized;
+                topGameplayGapNormalized = LargeScreenTopGameplayGapNormalized;
+                bottomGameplayGapNormalized = LargeScreenBottomGameplayGapNormalized;
+                break;
+        }
+    }
+
+    private static void SetResponsiveLayoutClasses(VisualElement element, bool tallPhone, bool tablet4By3, bool compactHeight, bool largeScreen)
+    {
+        SetClassEnabled(element, LayoutTallPhoneClass, tallPhone);
+        SetClassEnabled(element, LayoutTablet4By3Class, tablet4By3);
+        SetClassEnabled(element, LayoutCompactHeightClass, compactHeight);
+        SetClassEnabled(element, LayoutLargeScreenClass, largeScreen);
+    }
+
+    private static void SetClassEnabled(VisualElement element, string className, bool enabled)
+    {
+        if (element == null)
+            return;
+
+        element.EnableInClassList(className, enabled);
+    }
+
+    private void ScheduleGameplayLayoutMetricsRefresh()
+    {
+        VisualElement root = uiDocument != null ? uiDocument.rootVisualElement : null;
+        if (root == null || gameplayLayoutMeasurementScheduled)
+            return;
+
+        gameplayLayoutMeasurementScheduled = true;
+        root.schedule.Execute(() =>
+        {
+            gameplayLayoutMeasurementScheduled = false;
+            UpdateGameplayLayoutMetrics();
+        }).StartingIn(0);
     }
 
     private void UpdateGameplayLayoutMetrics()
@@ -7122,8 +7300,15 @@ public class GameMainUIController : MonoBehaviour
         if (bottomBar != null)
             bottomReservedPx = Mathf.Clamp(rootHeight - bottomBar.worldBound.yMin, 0f, rootHeight);
 
-        float nextTop = Mathf.Clamp01(topReservedPx / rootHeight);
-        float nextBottom = Mathf.Clamp01(bottomReservedPx / rootHeight);
+        topReservedPx += rootHeight * Mathf.Max(0f, topGameplayGapNormalized);
+        bottomReservedPx += rootHeight * Mathf.Max(0f, bottomGameplayGapNormalized);
+
+        float measuredTop = Mathf.Clamp01(topReservedPx / rootHeight);
+        float measuredBottom = Mathf.Clamp01(bottomReservedPx / rootHeight);
+        float nextTop = Mathf.Max(measuredTop, Mathf.Clamp01(topGameplayFloorNormalized));
+        float nextBottom = Mathf.Max(measuredBottom, Mathf.Clamp01(bottomGameplayFloorNormalized));
+        ClampGameplayMarginsForCenterBand(ref nextTop, ref nextBottom, minimumCenterBandNormalized, measuredTop, measuredBottom);
+        float centerBand = Mathf.Clamp01(1f - nextTop - nextBottom);
         bool changed = !hasResolvedGameplayLayout ||
                        Mathf.Abs(nextTop - topGameplayMarginNormalized) > 0.002f ||
                        Mathf.Abs(nextBottom - bottomGameplayMarginNormalized) > 0.002f;
@@ -7132,8 +7317,58 @@ public class GameMainUIController : MonoBehaviour
         bottomGameplayMarginNormalized = nextBottom;
         hasResolvedGameplayLayout = true;
 
+        LogResponsiveLayoutDiagnosticsIfNeeded(centerBand);
+
         if (changed)
             GameplayLayoutChanged?.Invoke();
+    }
+
+    private static void ClampGameplayMarginsForCenterBand(ref float top, ref float bottom, float minimumCenterBand, float hardTop, float hardBottom)
+    {
+        float maxReserved = Mathf.Clamp01(1f - Mathf.Clamp01(minimumCenterBand));
+        float reserved = top + bottom;
+        if (reserved <= maxReserved || reserved <= 0.0001f)
+            return;
+
+        hardTop = Mathf.Clamp01(hardTop);
+        hardBottom = Mathf.Clamp01(hardBottom);
+        float hardReserved = hardTop + hardBottom;
+        if (hardReserved >= maxReserved)
+        {
+            top = hardTop;
+            bottom = hardBottom;
+            return;
+        }
+
+        float topExtra = Mathf.Max(0f, top - hardTop);
+        float bottomExtra = Mathf.Max(0f, bottom - hardBottom);
+        float removable = topExtra + bottomExtra;
+        if (removable <= 0.0001f)
+            return;
+
+        float excess = Mathf.Min(reserved - maxReserved, removable);
+        top = Mathf.Clamp01(top - excess * (topExtra / removable));
+        bottom = Mathf.Clamp01(bottom - excess * (bottomExtra / removable));
+    }
+
+    private void LogResponsiveLayoutDiagnosticsIfNeeded(float centerBand)
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        bool shouldLog = activeResponsiveLayoutProfile != lastLoggedResponsiveLayoutProfile ||
+                         Mathf.Abs(topGameplayMarginNormalized - lastLoggedTopGameplayMarginNormalized) > 0.01f ||
+                         Mathf.Abs(bottomGameplayMarginNormalized - lastLoggedBottomGameplayMarginNormalized) > 0.01f ||
+                         Mathf.Abs(centerBand - lastLoggedCenterBandNormalized) > 0.01f;
+        if (!shouldLog)
+            return;
+
+        Rect safe = Screen.safeArea;
+        float aspect = safe.height > 1f ? safe.width / safe.height : 0f;
+        Debug.Log($"[GameMainUIController] ResponsiveLayout profile={activeResponsiveLayoutProfile} viewport={Screen.width}x{Screen.height} safe=({safe.x:F0},{safe.y:F0},{safe.width:F0},{safe.height:F0}) aspect={aspect:F3} top={topGameplayMarginNormalized:F3} bottom={bottomGameplayMarginNormalized:F3} center={centerBand:F3}");
+        lastLoggedResponsiveLayoutProfile = activeResponsiveLayoutProfile;
+        lastLoggedTopGameplayMarginNormalized = topGameplayMarginNormalized;
+        lastLoggedBottomGameplayMarginNormalized = bottomGameplayMarginNormalized;
+        lastLoggedCenterBandNormalized = centerBand;
+#endif
     }
 
     private static bool IsSameRect(Rect a, Rect b)
