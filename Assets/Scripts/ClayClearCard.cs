@@ -75,6 +75,9 @@ public sealed class ClayClearCard : VisualElement
         ticker = schedule.Execute(Animate).Every(16);
     }
 
+    /// <summary>흰 카드 본체의 최종 영역(튀어나오는 크기 변화 제외, target 좌표계). 별 날아가는 연출이 피해 간다.</summary>
+    public Rect CardRectIn(VisualElement target) => this.ChangeCoordinatesTo(target, card.layout);
+
     public void Dismiss()
     {
         if (dismissTime < 0f)

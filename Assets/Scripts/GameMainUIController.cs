@@ -2445,10 +2445,84 @@ public class GameMainUIController : MonoBehaviour
     /// <summary>클리어 순간 별점(★)과 한붓 보너스를 짧게 보여준다.</summary>
     private ClayClearCard activeClearCard;
 
+    private ClayStarFlight activeStarFlight;
+
     private void DismissClearCard()
     {
         activeClearCard?.Dismiss();
         activeClearCard = null;
+    }
+
+    private bool IsStarFlightRunning => activeStarFlight != null && activeStarFlight.IsRunning;
+
+    /// <summary>
+    /// 점토 테마 클리어: 부서진 칸 자리(월드 좌표)에서 별이 상단 하트로 날아가 하트를 왼쪽부터 "뿅뿅뿅" 다시 채운다(약 0.8초).
+    /// 하트는 다음 스테이지에서 어차피 가득 차므로, 여기서 미리 채워 연출과 규칙을 맞춘다.
+    /// </summary>
+    public void PlayClearStarsToHearts(IReadOnlyList<Vector3> worldSources, Camera worldCamera)
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null || worldCamera == null || worldSources == null || worldSources.Count == 0)
+            return;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return;
+
+        var heartIndices = new List<int>(MaxHearts);
+        var targets = new List<Vector2>(MaxHearts);
+        for (int i = 0; i < MaxHearts; i++)
+        {
+            Image heart = GetHeartImageByIndex(i);
+            if (heart == null || heart.resolvedStyle.display == DisplayStyle.None)
+                continue;
+            Rect bound = heart.worldBound;
+            if (bound.width <= 1f || float.IsNaN(bound.width))
+                continue;
+            heartIndices.Add(i);
+            targets.Add(root.WorldToLocal(bound.center));
+        }
+        if (heartIndices.Count == 0)
+            return;
+
+        // 카메라와 UI가 같은 화면 전체를 덮으므로 뷰포트 비율로 옮긴다(렌더 텍스처로 찍을 때도 맞는다).
+        Rect panelRect = root.panel.visualTree.layout;
+        var sources = new List<Vector2>(worldSources.Count);
+        for (int i = 0; i < worldSources.Count; i++)
+        {
+            Vector3 viewport = worldCamera.WorldToViewportPoint(worldSources[i]);
+            Vector2 panelPoint = new Vector2(panelRect.x + viewport.x * panelRect.width, panelRect.y + (1f - viewport.y) * panelRect.height);
+            sources.Add(root.WorldToLocal(panelPoint));
+        }
+
+        // 저장 값은 바로 가득 채우고, 화면의 하트는 별이 닿을 때 하나씩 채운다.
+        currentHearts = MaxHearts;
+        SaveHeartState();
+
+        activeStarFlight?.Finish();
+        ClayClearCard card = activeClearCard;
+        activeStarFlight = new ClayStarFlight(sources, targets.ToArray(), index =>
+        {
+            // 연출 도중 하트를 잃었다면(드문 경우) 그 칸은 채우지 않는다.
+            int heartIndex = heartIndices[index];
+            if (heartIndex < currentHearts)
+                PopHeartFilled(GetHeartImageByIndex(heartIndex));
+        }, () => card != null && card.panel != null ? card.CardRectIn(root) : Rect.zero);
+        root.Add(activeStarFlight);
+    }
+
+    private void PopHeartFilled(Image heartImage)
+    {
+        if (heartImage == null)
+            return;
+        int nextVersion = heartAnimationVersion.TryGetValue(heartImage, out int previousVersion) ? previousVersion + 1 : 1;
+        heartAnimationVersion[heartImage] = nextVersion;
+        ApplyHeartSprite(heartImage, heartFilledSprite);
+        heartImage.style.opacity = 1f;
+        heartImage.style.scale = new StyleScale(new Scale(new Vector3(1.45f, 1.45f, 1f)));
+        heartImage.schedule.Execute(() =>
+        {
+            if (IsCurrentHeartAnimationVersion(heartImage, nextVersion))
+                heartImage.style.scale = new StyleScale(new Scale(Vector3.one));
+        }).StartingIn(120);
     }
 
     public void ShowStageClearResult(int stars, bool oneStroke, bool improved)
@@ -3199,7 +3273,16 @@ public class GameMainUIController : MonoBehaviour
 
     public void ResetHeartsForNewStage()
     {
-        SetHeartCount(MaxHearts, animated: false);
+        // 클리어 별이 아직 하트로 날아가는 중이면(다음 스테이지는 0.5초 뒤 시작) 화면 하트는 별이 하나씩 채운다.
+        if (IsStarFlightRunning)
+        {
+            currentHearts = MaxHearts;
+            SaveHeartState();
+        }
+        else
+        {
+            SetHeartCount(MaxHearts, animated: false);
+        }
         isWaitingForHeartRefill = false;
         ConfigureHeartDepletedPopupForRewardedAd();
         HideHeartDepletedPopup();

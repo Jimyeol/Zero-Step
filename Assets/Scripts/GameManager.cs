@@ -3105,6 +3105,8 @@ public class GameManager : MonoBehaviour
                 b += side * offset;
             }
 
+            if (VisualTheme.IsSoftClay)
+                TrimHintSegment(ref a, ref b, tileSizeForOffset);
             line.positionCount = 2;
             line.SetPosition(0, a);
             line.SetPosition(1, b);
@@ -3119,6 +3121,32 @@ public class GameManager : MonoBehaviour
         if (hintPreviewRoutine != null)
             StopCoroutine(hintPreviewRoutine);
         hintPreviewRoutine = StartCoroutine(HintPreviewLifetimeRoutine());
+    }
+
+    /// <summary>
+    /// 점토 테마: 힌트 선을 칸 중심에서 중심까지가 아니라 칸 가장자리 사이(틈)만 잇게 줄여 숫자를 가리지 않는다.
+    /// </summary>
+    private static void TrimHintSegment(ref Vector3 a, ref Vector3 b, float tileSize)
+    {
+        Vector3 dir = b - a;
+        float length = dir.magnitude;
+        if (length < 0.0001f)
+            return;
+        dir /= length;
+        float trim = Mathf.Min(tileSize * HintClayTrimRatio, length * 0.42f);
+        a += dir * trim;
+        b -= dir * trim;
+    }
+
+    private const float HintClayTrimRatio = 0.4f;
+    // 점토 테마: 칸 사이 틈이 짧아 흐르는 화살촉도 작게 그린다.
+    private const float HintClayFlowArrowLengthScale = 0.15f;
+    private const float HintClayFlowArrowWidthScale = 0.11f;
+
+    private float HintFlowArrowLength()
+    {
+        float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
+        return Mathf.Max(0.04f, tileSize * (VisualTheme.IsSoftClay ? HintClayFlowArrowLengthScale : Mathf.Max(0.01f, hintPreviewArrowLengthScale)));
     }
 
     private void EnsureHintPreviewPool(int requiredSegmentCount = HintPreviewMaxMoves)
@@ -3316,7 +3344,16 @@ public class GameManager : MonoBehaviour
 
         Vector3 start = activeHintPreviewPoints[segmentIndex];
         Vector3 end = activeHintPreviewPoints[segmentIndex + 1];
-        Vector3 head = Vector3.Lerp(start, end, Mathf.Max(t, 0.06f));
+        float minT = 0.06f;
+        if (VisualTheme.IsSoftClay)
+        {
+            TrimHintSegment(ref start, ref end, Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight)));
+            // 짧아진 구간에서 화살촉 날개가 뒤 칸 숫자로 넘어가지 않게 촉을 구간 안쪽에서 시작한다.
+            float segmentLength = Vector3.Distance(start, end);
+            if (segmentLength > 0.0001f)
+                minT = Mathf.Clamp(HintFlowArrowLength() / segmentLength, 0.06f, 0.9f);
+        }
+        Vector3 head = Vector3.Lerp(start, end, Mathf.Max(t, minT));
         Vector3 direction = end - start;
 
         hintPreviewFlowLine.enabled = true;
@@ -3340,8 +3377,8 @@ public class GameManager : MonoBehaviour
         Vector3 dir = direction.normalized;
         Vector3 side = new Vector3(-dir.y, dir.x, 0f);
         float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
-        float arrowLength = Mathf.Max(0.04f, tileSize * Mathf.Max(0.01f, hintPreviewArrowLengthScale));
-        float arrowWidth = Mathf.Max(0.03f, tileSize * Mathf.Max(0.01f, hintPreviewArrowWidthScale));
+        float arrowLength = HintFlowArrowLength();
+        float arrowWidth = Mathf.Max(0.03f, tileSize * (VisualTheme.IsSoftClay ? HintClayFlowArrowWidthScale : Mathf.Max(0.01f, hintPreviewArrowWidthScale)));
         Vector3 back = head - dir * arrowLength;
         Vector3 left = back + side * arrowWidth;
         Vector3 right = back - side * arrowWidth;
@@ -3438,7 +3475,7 @@ public class GameManager : MonoBehaviour
         Vector3 dir = direction.normalized;
         Vector3 side = new Vector3(-dir.y, dir.x, 0f);
         float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
-        Vector3 head = Vector3.Lerp(from, to, 0.62f);
+        Vector3 head = Vector3.Lerp(from, to, VisualTheme.IsSoftClay ? 0.78f : 0.62f);
         Vector3 back = head - dir * tileSize * 0.14f;
         for (int k = 0; k < 2; k++)
         {
@@ -4052,6 +4089,7 @@ public class GameManager : MonoBehaviour
         PlayStageClearHaptic();
         PlayStageClearVisuals(referenceTile);
         gameplayFeedback?.Cleared(referenceTile);
+        PlayClearStarsToHearts(referenceTile);
         TrackStageCleared(clearType);
         if (FinalEndingProgressStore.IsFinalStageIndex(currentStageIndex))
         {
@@ -4062,6 +4100,42 @@ public class GameManager : MonoBehaviour
         }
 
         StartCoroutine(LoadNextStageAfterDelay());
+    }
+
+    private const int ClearStarSourceCount = 10;
+
+    /// <summary>점토 테마: 부서진 칸들 중 몇 곳(마지막 칸 포함)에서 별이 상단 하트로 날아가 하트를 다시 채운다.</summary>
+    private void PlayClearStarsToHearts(Tile referenceTile)
+    {
+        if (!VisualTheme.IsSoftClay || tiles == null)
+            return;
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        Camera cam = mainCamera != null ? mainCamera : Camera.main;
+        if (mainUI == null || cam == null)
+            return;
+
+        var candidates = new List<Vector3>();
+        for (int row = 0; row < stageHeight; row++)
+        {
+            for (int col = 0; col < stageWidth; col++)
+            {
+                Tile tile = tiles[row, col];
+                if (tile != null && tile != referenceTile)
+                    candidates.Add(tile.transform.position);
+            }
+        }
+        for (int i = candidates.Count - 1; i > 0; i--)
+        {
+            int j = UnityEngine.Random.Range(0, i + 1);
+            (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+        }
+        var sources = new List<Vector3>(ClearStarSourceCount);
+        if (referenceTile != null)
+            sources.Add(referenceTile.transform.position);
+        for (int i = 0; i < candidates.Count && sources.Count < ClearStarSourceCount; i++)
+            sources.Add(candidates[i]);
+        mainUI.PlayClearStarsToHearts(sources, cam);
     }
 
     private void RecordStageStars()

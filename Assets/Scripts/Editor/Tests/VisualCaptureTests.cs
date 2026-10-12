@@ -165,6 +165,8 @@ public class VisualCaptureTests
                 List<Vector2Int> moves = StageManager.LoadSolutionMoves(stage);
                 if (moves != null && moves.Count > 0)
                 {
+                    // 클리어 때 하트가 다시 채워지는 연출이 보이도록 하트 둘만 남긴 상태에서 시작한다(저장하지 않음).
+                    typeof(GameMainUIController).GetMethod("SetHeartCount", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(ui, new object[] { 2, false, false });
                     gm.AutomationBeginDrag();
                     // LoadSolutionMoves는 시작 칸을 빼고 이동할 칸만 돌려준다.
                     int mid = Mathf.Max(2, moves.Count / 2);
@@ -182,7 +184,11 @@ public class VisualCaptureTests
                         Debug.Log($"[CapturePlay] stage={stage} step={i + 1}/{moves.Count} to=({moves[i].x},{moves[i].y}) ok={stepped} cleared={cleared} remaining={gm.AutomationTotalRemaining}");
                         if (cleared)
                         {
-                            yield return WaitRealtime(0.45f);
+                            yield return WaitRealtime(0.12f);
+                            CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_clear0");
+                            yield return WaitRealtime(0.18f);
+                            CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_clear1");
+                            yield return WaitRealtime(0.15f);
                             CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_clear");
                             yield return WaitRealtime(0.5f);
                             CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_clear2");
