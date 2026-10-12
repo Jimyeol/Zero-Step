@@ -474,6 +474,7 @@ public class GameManager : MonoBehaviour
 
         // 저장된 진행도가 있으면 해당 스테이지부터, 없으면 startStageIndex부터
         currentStageIndex = endingState == FinalEndingState.CompletedReplayable ? 1 : LoadSavedStageIndex();
+        hasLoadedStageProgress = true;
         totalStepsCommitted = 0;
         StageData data = StageManager.LoadStage(currentStageIndex);
         UpdateVerboseStage6DebugState(data);
@@ -6260,6 +6261,10 @@ public class GameManager : MonoBehaviour
     /// <summary>Easy Save 3로 현재 스테이지 인덱스 저장. 클리어 후·앱 종료/일시정지 시 호출.</summary>
     private void SaveStageProgress()
     {
+        // 앱이 시작 직후(Start에서 진행도를 읽기 전) 일시정지되면 currentStageIndex가 아직 0이다.
+        // 이때 저장하면 진행도가 0으로 덮어써져 다음 실행에 없는 스테이지(0)가 열린다.
+        if (!hasLoadedStageProgress || currentStageIndex < 1)
+            return;
         try
         {
             ES3.Save(SaveKeyStage, currentStageIndex);
@@ -6290,12 +6295,43 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>저장된 스테이지 인덱스 로드. 없으면 startStageIndex 반환.</summary>
+    private bool hasLoadedStageProgress;
+
+    private static bool IsValidStageIndex(int index) => index >= 1 && index <= FinalEndingProgressStore.FinalStageIndex;
+
+    /// <summary>진행도 값이 망가졌을 때(0 등) 업적 기록에 남은 현재 스테이지로 되살린다.</summary>
+    private static int RecoverStageIndexFromAchievementRecord()
+    {
+        try
+        {
+            if (!ES3.KeyExists("AchievementProgressJson"))
+                return 0;
+            string json = ES3.Load<string>("AchievementProgressJson");
+            System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(json ?? string.Empty, "\"currentStageIndex\"\\s*:\\s*(\\d+)");
+            if (match.Success && int.TryParse(match.Groups[1].Value, out int index) && IsValidStageIndex(index))
+                return index;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameManager] 진행도 복구 실패: {e.Message}");
+        }
+        return 0;
+    }
+
     private int LoadSavedStageIndex()
     {
         try
         {
             if (ES3.KeyExists(SaveKeyStage))
-                return ES3.Load<int>(SaveKeyStage);
+            {
+                int saved = ES3.Load<int>(SaveKeyStage);
+                if (IsValidStageIndex(saved))
+                    return saved;
+                int recovered = RecoverStageIndexFromAchievementRecord();
+                Debug.LogWarning($"[GameManager] 저장된 진행도({saved})가 올바르지 않아 {(recovered > 0 ? recovered.ToString() : "처음")}부터 시작합니다.");
+                if (recovered > 0)
+                    return recovered;
+            }
         }
         catch (Exception e)
         {
