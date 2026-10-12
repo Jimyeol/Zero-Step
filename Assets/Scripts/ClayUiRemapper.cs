@@ -34,7 +34,9 @@ public static class ClayUiRemapper
             }
         }
 
-        Remap(element);
+        // 코드가 점토 색을 직접 칠한 요소(.clay-keep)는 그대로 두고 자식만 본다.
+        if (!element.ClassListContains("clay-keep"))
+            Remap(element);
         int count = element.hierarchy.childCount;
         for (int i = 0; i < count; i++)
             Visit(element.hierarchy[i]);

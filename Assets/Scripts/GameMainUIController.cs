@@ -5541,10 +5541,30 @@ public class GameMainUIController : MonoBehaviour
             return;
 
         bool active = count > 0;
-        tile.style.opacity = active ? 1f : 0.3f;
-        tile.style.backgroundColor = active ? new StyleColor(new Color(0.24f, 0.72f, 0.99f, 0.23f)) : new StyleColor(new Color(0.08f, 0.13f, 0.2f, 0.46f));
-        Color borderColor = active ? new Color(0.73f, 0.93f, 1f, 0.95f) : new Color(0.45f, 0.61f, 0.72f, 0.58f);
-        SetElementBorderColor(tile, borderColor);
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 남은 횟수 색 점토 타일, 0이 되면 숫자 없는 음각 자리. 런타임 색 보정(ClayUiRemapper) 대상에서 뺀다.
+            tile.AddToClassList("clay-keep");
+            tile.style.opacity = 1f;
+            Color slot = VisualTheme.SlotTint;
+            slot.a = 0.14f;
+            tile.style.backgroundColor = active ? VisualTheme.ClayColorForCount(count) : slot;
+            Color edge = active ? VisualTheme.ClayColorForCount(count) * 0.82f : new Color(0f, 0f, 0f, 0.06f);
+            edge.a = active ? 1f : 0.06f;
+            SetElementBorderColor(tile, edge);
+            if (countLabel != null)
+            {
+                countLabel.text = active ? count.ToString() : string.Empty;
+                countLabel.style.color = VisualTheme.Ink;
+            }
+        }
+        else
+        {
+            tile.style.opacity = active ? 1f : 0.3f;
+            tile.style.backgroundColor = active ? new StyleColor(new Color(0.24f, 0.72f, 0.99f, 0.23f)) : new StyleColor(new Color(0.08f, 0.13f, 0.2f, 0.46f));
+            Color borderColor = active ? new Color(0.73f, 0.93f, 1f, 0.95f) : new Color(0.45f, 0.61f, 0.72f, 0.58f);
+            SetElementBorderColor(tile, borderColor);
+        }
 
         if (pulse)
         {
@@ -5562,6 +5582,8 @@ public class GameMainUIController : MonoBehaviour
 
     private static Color GetTutorialNumberColor(int count)
     {
+        if (VisualTheme.IsSoftClay)
+            return count > 0 ? VisualTheme.Ink : VisualTheme.InkSoft;
         if (count <= 0)
             return new Color(0.42f, 0.5f, 0.56f, 1f);
 
@@ -5610,7 +5632,7 @@ public class GameMainUIController : MonoBehaviour
     {
         ApplyTutorialTileState(tile, countLabel, count, pulseTile);
 
-        if (tile != null)
+        if (tile != null && !VisualTheme.IsSoftClay)
         {
             bool active = count > 0;
             tile.style.backgroundColor = active
