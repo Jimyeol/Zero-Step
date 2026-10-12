@@ -6677,8 +6677,9 @@ public class GameManager : MonoBehaviour
         var camData = mainCamera.GetComponent<UniversalAdditionalCameraData>();
         if (camData != null)
         {
-            camData.renderPostProcessing = true;
-            camData.allowHDROutput = true;
+            // 점토 테마는 밝은 종이 배경이라 블룸을 켜면 화면 전체가 뿌옇게 번진다.
+            camData.renderPostProcessing = !VisualTheme.IsSoftClay;
+            camData.allowHDROutput = !VisualTheme.IsSoftClay;
         }
     }
 
@@ -6726,10 +6727,19 @@ public class GameManager : MonoBehaviour
         float bottom = Mathf.Clamp01(bottomMargin);
         float centerBandHeight = Mathf.Clamp(1f - top - bottom, 0.2f, 1f);
 
-        float sizeByHeight = (gridHeight * 0.5f * fitMargin) / centerBandHeight;
-        float sizeByWidth = (gridWidth * 0.5f) / safeAspect * fitMargin;
-        float fitSize = Mathf.Max(sizeByHeight, sizeByWidth);
-        return fitSize * screenEdgePadding;
+        // 점토 테마는 발광(블룸)이 없어 가장자리 여유를 크게 둘 필요가 없다(네온: 1.05 × 1.15).
+        float margin = VisualTheme.IsSoftClay ? ClayFitMargin : fitMargin;
+        float edge = VisualTheme.IsSoftClay ? 1f : screenEdgePadding;
+        float sizeByHeight = (gridHeight * 0.5f * margin) / centerBandHeight;
+        float sizeByWidth = (gridWidth * 0.5f) / safeAspect * margin;
+        float fitSize = Mathf.Max(sizeByHeight, sizeByWidth) * edge;
+        if (VisualTheme.IsSoftClay && tileWidth > 0f)
+        {
+            // 칸이 적은 판에서 타일이 지나치게 커지지 않게 한 칸을 화면 폭의 ClayMaxTileScreenWidth 이하로 둔다.
+            float minSizeForTileCap = tileWidth / (2f * ClayMaxTileScreenWidth * safeAspect);
+            fitSize = Mathf.Max(fitSize, minSizeForTileCap);
+        }
+        return fitSize;
     }
 
     private void GetGameplayMarginsNormalized(out float top, out float bottom)
@@ -6752,8 +6762,14 @@ public class GameManager : MonoBehaviour
         bottom = Mathf.Clamp01(bottom);
     }
 
+    private const float ClayFitMargin = 1.03f;
+    private const float ClayMaxTileScreenWidth = 0.24f;
+
     private float CalculateStageBottomGameplayBoostNormalized()
     {
+        // 점토 테마는 실제 UI 크기로 여백을 잡으므로 세로로 긴 판에 아래 여백을 더 주지 않는다.
+        if (VisualTheme.IsSoftClay)
+            return 0f;
         if (stageWidth <= 0 || stageHeight <= 0)
             return 0f;
 

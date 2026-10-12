@@ -97,6 +97,9 @@ public class GameMainUIController : MonoBehaviour
     private const float CompactTopGameplayGapNormalized = 0.018f;
     private const float CompactBottomGameplayGapNormalized = 0.06f;
     private const float DefaultMinimumCenterBandNormalized = 0.42f;
+    private const float ClayGameplayFloorNormalized = 0.1f;
+    private const float ClayTopGameplayGapNormalized = 0.03f;
+    private const float ClayBottomGameplayGapNormalized = 0.035f;
     private const float CompactMinimumCenterBandNormalized = 0.38f;
     private const float TabletPortraitMinAspect = 0.68f;
     private const float TabletPortraitMaxAspect = 0.9f;
@@ -7665,6 +7668,16 @@ public class GameMainUIController : MonoBehaviour
                 topGameplayGapNormalized = LargeScreenTopGameplayGapNormalized;
                 bottomGameplayGapNormalized = LargeScreenBottomGameplayGapNormalized;
                 break;
+        }
+
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마 HUD는 네온보다 훨씬 작다. 고정 하한(화면의 22~30%)을 낮춰 실제 UI 높이 + 작은 간격만 비우고
+            // 나머지는 보드에 준다(칸이 커져 터치하기 쉬움).
+            topGameplayFloorNormalized = ClayGameplayFloorNormalized;
+            bottomGameplayFloorNormalized = ClayGameplayFloorNormalized;
+            topGameplayGapNormalized = ClayTopGameplayGapNormalized;
+            bottomGameplayGapNormalized = ClayBottomGameplayGapNormalized;
         }
     }
 
