@@ -558,7 +558,8 @@ public class Tile : MonoBehaviour
             PlayNumberPop();
         }
 
-        if (hitEffect != null && GameplayFeedback.Intensity > 0f)
+        // 점토 테마는 네온 불꽃 대신 GameplayFeedback/ClayJuice의 점토 조각을 쓴다.
+        if (hitEffect != null && GameplayFeedback.Intensity > 0f && !VisualTheme.IsSoftClay)
         {
             var main = hitEffect.main;
             main.startColor = new ParticleSystem.MinMaxGradient(particleColor);
@@ -801,6 +802,9 @@ public class Tile : MonoBehaviour
             StopCoroutine(countZeroDisappearRoutine);
             countZeroDisappearRoutine = null;
         }
+        // 점토 0 소멸 연출이 도중에 끊기면 회전이 남지 않게 한다.
+        if (VisualTheme.IsSoftClay)
+            transform.localRotation = Quaternion.identity;
 
         if (failureFocusRoutine != null)
         {
@@ -1020,8 +1024,91 @@ public class Tile : MonoBehaviour
         countZeroDisappearRoutine = StartCoroutine(CountZeroDisappearRoutine(sourceColor, numberWasVisible, spriteWasVisible, tileImageWasVisible, linkedWasVisible));
     }
 
+    /// <summary>
+    /// 점토 테마 0 소멸: 눌림(찌그러짐) → 펑 하고 부풀었다가 → 살짝 돌며 빠르게 줄어 사라진다(점토 조각은 GameplayFeedback이 튀긴다).
+    /// </summary>
+    private IEnumerator ClayZeroPopRoutine(Color sourceColor, bool numberWasVisible, bool spriteWasVisible, bool tileImageWasVisible, bool linkedWasVisible)
+    {
+        if (spriteRenderer != null)
+            spriteRenderer.enabled = spriteWasVisible;
+        if (tileImage != null && tileImage != spriteRenderer)
+            tileImage.enabled = tileImageWasVisible;
+        ApplyLinkedRendererEnabled(linkedWasVisible);
+        // 숫자는 이미 0이므로 터지는 동안에는 감춘다(0이 잠깐 보이지 않게).
+        if (numberText != null)
+            numberText.gameObject.SetActive(false);
+        numberWasVisible = false;
+
+        Vector3 startScale = transform.localScale == Vector3.zero ? baseScale * scaleOverride : transform.localScale;
+        Quaternion startRotation = transform.localRotation;
+        float intensity = Mathf.Max(0.35f, GameplayFeedback.Intensity);
+        float spinDirection = (gridX + gridY) % 2 == 0 ? 1f : -1f;
+        const float squashTime = 0.05f;
+        const float popTime = 0.07f;
+        const float shrinkTime = 0.13f;
+        float total = squashTime + popTime + shrinkTime;
+        Color bright = Color.Lerp(sourceColor, Color.white, 0.35f);
+        bright.a = 1f;
+
+        float elapsed = 0f;
+        while (elapsed < total)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed;
+            Vector3 scale;
+            float alpha = 1f;
+            Color color = sourceColor;
+            if (t < squashTime)
+            {
+                float k = Mathf.Sin(t / squashTime * Mathf.PI * 0.5f) * 0.16f * intensity;
+                scale = new Vector3(startScale.x * (1f + k), startScale.y * (1f - k), startScale.z);
+            }
+            else if (t < squashTime + popTime)
+            {
+                float k = (t - squashTime) / popTime;
+                float s = Mathf.Lerp(1f, 1f + 0.26f * intensity, 1f - (1f - k) * (1f - k));
+                scale = startScale * s;
+                color = Color.Lerp(sourceColor, bright, k);
+            }
+            else
+            {
+                float k = Mathf.Clamp01((t - squashTime - popTime) / shrinkTime);
+                float eased = k * k;
+                scale = startScale * Mathf.Lerp(1f + 0.26f * intensity, 0.05f, eased);
+                transform.localRotation = startRotation * Quaternion.Euler(0f, 0f, spinDirection * 28f * intensity * eased);
+                alpha = 1f - eased;
+                color = bright;
+            }
+            transform.localScale = scale;
+            color.a = alpha;
+            if (spriteRenderer != null && spriteWasVisible)
+                spriteRenderer.color = color;
+            if (tileImage != null && tileImage != spriteRenderer && tileImageWasVisible)
+                tileImage.color = color;
+            if (linkedWasVisible)
+                ApplyLinkedRendererColor(color);
+            if (numberText != null && numberWasVisible)
+            {
+                Color textColor = numberText.color;
+                textColor.a = alpha;
+                numberText.color = textColor;
+            }
+            yield return null;
+        }
+
+        SetActiveState(false);
+        transform.localScale = baseScale * scaleOverride;
+        transform.localRotation = startRotation;
+        countZeroDisappearRoutine = null;
+    }
+
     private IEnumerator CountZeroDisappearRoutine(Color sourceColor, bool numberWasVisible, bool spriteWasVisible, bool tileImageWasVisible, bool linkedWasVisible)
     {
+        if (VisualTheme.IsSoftClay)
+        {
+            yield return ClayZeroPopRoutine(sourceColor, numberWasVisible, spriteWasVisible, tileImageWasVisible, linkedWasVisible);
+            yield break;
+        }
         if (spriteRenderer != null)
             spriteRenderer.enabled = spriteWasVisible;
         if (tileImage != null && tileImage != spriteRenderer)

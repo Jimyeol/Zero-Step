@@ -106,7 +106,21 @@ public sealed class GameplayFeedback : MonoBehaviour
     private LineRenderer pathLine;
     private LineRenderer headRing;
     private readonly Vector3[] pathPoints = new Vector3[PathCapacity];
+    private readonly float[] pathTimes = new float[PathCapacity];
     private int pathPointCount;
+
+    // 점토 테마: 지나간 경로는 잠깐 남았다가 사라지고(PathLifeSeconds), 손가락을 따라오는 꼬리(혜성)가 붙는다.
+    private const float PathLifeSeconds = 0.75f;
+    private const float CometLifeSeconds = 0.26f;
+    private const int CometCapacity = 48;
+    private LineRenderer fingerTrail;
+    private SpriteRenderer fingerDot;
+    private readonly Vector3[] cometPoints = new Vector3[CometCapacity];
+    private readonly float[] cometTimes = new float[CometCapacity];
+    private readonly Vector3[] cometScratch = new Vector3[CometCapacity];
+    private int cometCount;
+    private Vector3 lastFingerPosition;
+    private float fingerDotAlpha;
     private float pathFadeStartTime = -1f;
     private Vector3 headPosition;
     private bool headVisible;
@@ -146,6 +160,110 @@ public sealed class GameplayFeedback : MonoBehaviour
         pathLine = CreatePersistentLine("Feedback Path", 10, false);
         headRing = CreatePersistentLine("Feedback Head", 11, true);
         headRing.positionCount = RingSegments;
+        if (VisualTheme.IsSoftClay)
+            CreateClayFingerTrail();
+    }
+
+    private void CreateClayFingerTrail()
+    {
+        fingerTrail = CreatePersistentLine("Clay Finger Trail", 150, false);
+        fingerTrail.numCapVertices = 6;
+        var width = new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(0.7f, 0.85f), new Keyframe(1f, 1f));
+        fingerTrail.widthCurve = width;
+        var dotGo = new GameObject("Clay Finger Dot");
+        dotGo.transform.SetParent(transform, false);
+        fingerDot = dotGo.AddComponent<SpriteRenderer>();
+        fingerDot.sprite = VisualTheme.IconSprite(VisualTheme.Icon.Dot);
+        fingerDot.sortingOrder = 151;
+        fingerDot.enabled = false;
+        ClayJuice.Ensure(transform);
+    }
+
+    /// <summary>드래그 중 손가락 위치(월드). 점토 테마에서 손가락을 따라오는 꼬리를 그린다.</summary>
+    public void TrackFinger(Vector3 world)
+    {
+        if (fingerTrail == null)
+            return;
+        world.z = -0.3f;
+        float now = Time.unscaledTime;
+        if (cometCount > 0)
+        {
+            Vector3 last = cometPoints[cometCount - 1];
+            if ((world - last).sqrMagnitude < tileSize * tileSize * 0.0004f && now - cometTimes[cometCount - 1] < 0.03f)
+                return;
+        }
+        if (cometCount == CometCapacity)
+        {
+            System.Array.Copy(cometPoints, 1, cometPoints, 0, CometCapacity - 1);
+            System.Array.Copy(cometTimes, 1, cometTimes, 0, CometCapacity - 1);
+            cometCount--;
+        }
+        cometPoints[cometCount] = world;
+        cometTimes[cometCount] = now;
+        cometCount++;
+        lastFingerPosition = world;
+    }
+
+    private void UpdateClayFingerTrail()
+    {
+        if (fingerTrail == null)
+            return;
+        float now = Time.unscaledTime;
+        int drop = 0;
+        while (drop < cometCount && now - cometTimes[drop] > CometLifeSeconds)
+            drop++;
+        if (drop > 0)
+        {
+            System.Array.Copy(cometPoints, drop, cometPoints, 0, cometCount - drop);
+            System.Array.Copy(cometTimes, drop, cometTimes, 0, cometCount - drop);
+            cometCount -= drop;
+        }
+        bool showTrail = cometCount >= 2 && !suspended;
+        fingerTrail.enabled = showTrail;
+        if (showTrail)
+        {
+            for (int i = 0; i < cometCount; i++)
+                cometScratch[i] = cometPoints[i];
+            fingerTrail.positionCount = cometCount;
+            fingerTrail.SetPositions(cometScratch);
+            // 머리(손가락) 쪽이 진하고 굵고, 꼬리로 갈수록 가늘고 투명해진다.
+            float newestAge = now - cometTimes[cometCount - 1];
+            float alpha = Mathf.Lerp(0.85f, 0f, Mathf.Clamp01(newestAge / CometLifeSeconds));
+            Color head = VisualTheme.Accent;
+            head.a = alpha;
+            Color tail = VisualTheme.Accent;
+            tail.a = 0f;
+            fingerTrail.startColor = tail;
+            fingerTrail.endColor = head;
+            fingerTrail.widthMultiplier = tileSize * 0.2f;
+        }
+
+        if (fingerDot != null)
+        {
+            float target = dragging && !suspended ? 0.9f : 0f;
+            fingerDotAlpha = Mathf.MoveTowards(fingerDotAlpha, target, Time.unscaledDeltaTime * 6f);
+            fingerDot.enabled = fingerDotAlpha > 0.01f;
+            if (fingerDot.enabled)
+            {
+                Sprite sprite = fingerDot.sprite;
+                float spriteWorld = sprite != null ? Mathf.Max(0.0001f, sprite.bounds.size.x * 0.3125f) : 1f; // 점은 아이콘(256px) 중 80px
+                fingerDot.transform.position = lastFingerPosition;
+                fingerDot.transform.localScale = Vector3.one * (tileSize * 0.22f / spriteWorld);
+                Color c = VisualTheme.Accent;
+                c.a = fingerDotAlpha;
+                fingerDot.color = c;
+            }
+        }
+    }
+
+    private void ClearClayFingerTrail()
+    {
+        cometCount = 0;
+        if (fingerTrail != null)
+            fingerTrail.enabled = false;
+        fingerDotAlpha = 0f;
+        if (fingerDot != null)
+            fingerDot.enabled = false;
     }
 
     private LineRenderer CreatePersistentLine(string objectName, int sortingOrder, bool loop)
@@ -169,12 +287,17 @@ public sealed class GameplayFeedback : MonoBehaviour
         if (pathLine == null || path == null)
             return;
 
+        int previousCount = pathPointCount;
+        float now = Time.unscaledTime;
         pathPointCount = 0;
         for (int i = 0; i < path.Count && pathPointCount < PathCapacity; i++)
         {
             if (path[i] == null) continue;
             Vector3 p = path[i].transform.position;
             p.z -= 0.02f;
+            bool same = pathPointCount < previousCount && (pathPoints[pathPointCount] - p).sqrMagnitude < 0.0001f;
+            if (!same)
+                pathTimes[pathPointCount] = now;
             pathPoints[pathPointCount++] = p;
         }
 
@@ -193,12 +316,20 @@ public sealed class GameplayFeedback : MonoBehaviour
             headRing.enabled = false;
         if (pathPointCount >= 2)
             pathFadeStartTime = Time.unscaledTime;
+        else if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 손가락 꼬리는 저절로 사라지게 두고 경로선만 지운다.
+            pathPointCount = 0;
+            if (pathLine != null)
+                pathLine.enabled = false;
+        }
         else
             ClearPath();
     }
 
     public void ClearPath()
     {
+        ClearClayFingerTrail();
         pathPointCount = 0;
         pathFadeStartTime = -1f;
         headVisible = false;
@@ -212,6 +343,11 @@ public sealed class GameplayFeedback : MonoBehaviour
     {
         if (pathLine == null)
             return;
+        if (VisualTheme.IsSoftClay)
+        {
+            ApplyClayPathLine(alphaScale);
+            return;
+        }
 
         bool show = pathPointCount >= 2 && alphaScale > 0f && !suspended;
         pathLine.enabled = show;
@@ -228,8 +364,51 @@ public sealed class GameplayFeedback : MonoBehaviour
         pathLine.widthMultiplier = tileSize * (VisualTheme.IsSoftClay ? 0.085f : 0.07f);
     }
 
+    /// <summary>점토 테마: 지나간 칸은 PathLifeSeconds 동안만 남고 오래된 쪽부터 흐려지며 사라진다.</summary>
+    private void ApplyClayPathLine(float alphaScale)
+    {
+        float now = Time.unscaledTime;
+        int first = 0;
+        while (first < pathPointCount - 1 && now - pathTimes[first + 1] > PathLifeSeconds)
+            first++;
+        int visible = pathPointCount - first;
+        if (visible < 2 || now - pathTimes[pathPointCount - 1] > PathLifeSeconds)
+        {
+            pathLine.enabled = false;
+            return;
+        }
+        pathLine.enabled = true;
+        pathLine.positionCount = visible;
+        for (int i = 0; i < visible; i++)
+            pathLine.SetPosition(i, pathPoints[first + i]);
+        float tailAge = Mathf.Clamp01((now - pathTimes[first + 1]) / PathLifeSeconds);
+        float headAge = Mathf.Clamp01((now - pathTimes[pathPointCount - 1]) / PathLifeSeconds);
+        Color tail = VisualTheme.PathInk;
+        tail.a = 0.42f * (1f - tailAge) * (1f - tailAge) * alphaScale;
+        Color head = VisualTheme.PathInk;
+        head.a = 0.42f * (1f - headAge * headAge) * alphaScale;
+        pathLine.startColor = tail;
+        pathLine.endColor = head;
+        pathLine.widthMultiplier = tileSize * 0.07f;
+    }
+
     private void UpdatePathVisuals()
     {
+        if (VisualTheme.IsSoftClay)
+        {
+            UpdateClayFingerTrail();
+            if (pathPointCount >= 2)
+            {
+                float fade = pathFadeStartTime >= 0f ? 1f - Mathf.Clamp01((Time.unscaledTime - pathFadeStartTime) / PathFadeSeconds) : 1f;
+                if (pathFadeStartTime >= 0f && fade <= 0f)
+                    ClearPath();
+                else
+                    ApplyClayPathLine(fade);
+            }
+            if (headRing != null)
+                headRing.enabled = false;
+            return;
+        }
         if (pathFadeStartTime >= 0f)
         {
             float t = (Time.unscaledTime - pathFadeStartTime) / PathFadeSeconds;
@@ -320,6 +499,21 @@ public sealed class GameplayFeedback : MonoBehaviour
     public void TileDecreased(Tile tile, int previousCount)
     {
         if (tile == null || previousCount <= tile.CurrentNumber) return;
+        if (VisualTheme.IsSoftClay)
+        {
+            Color clay = VisualTheme.ClayColorForCount(previousCount);
+            if (tile.CurrentNumber == 0)
+            {
+                ClayJuice.Instance?.Pop(tile.transform.position, clay, tileSize);
+                Ring(tile.transform.position, Coral, 0.75f, 0.2f);
+                StartCameraImpulse(0.11f, 0.016f);
+            }
+            else
+            {
+                ClayJuice.Instance?.Crumbs(tile.transform.position, clay, tileSize);
+            }
+            return;
+        }
         if (tile.CurrentNumber == 0)
         {
             Burst(tile.transform.position, Cyan, Level == EffectLevel.Full ? 4 : 2, 0.8f, moveDirection);
@@ -354,6 +548,13 @@ public sealed class GameplayFeedback : MonoBehaviour
         // 빔은 CrossBlastTile이 이미 그리므로 여기서는 폭발 링·불꽃만 같은 색 계열로 더한다(이중 빔 제거).
         Ring(source.transform.position, Cyan, 0.95f, 0.28f);
         Burst(source.transform.position, Cyan, Level == EffectLevel.Full ? 6 : 3, 1.05f);
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 폭발답게 조각을 크게 튀기고 화면을 한 번 세게 흔든다.
+            ClayJuice.Instance?.Pop(source.transform.position, VisualTheme.Accent, tileSize, 1.25f);
+            Ring(source.transform.position, Coral, 1.35f, 0.26f);
+            StartCameraImpulse(0.2f, 0.034f);
+        }
         for (int i = 0; targets != null && i < Mathf.Min(count, targets.Length); i++)
             if (targets[i] != null)
                 Ring(targets[i].transform.position, Cyan, 0.5f, 0.18f);
@@ -403,6 +604,8 @@ public sealed class GameplayFeedback : MonoBehaviour
         Ring(center, Gold, 1.65f, 0.38f);
         Ring(center, Cyan, 1.25f, 0.34f, 0.06f);
         Burst(center, Gold, Level == EffectLevel.Full ? 12 : 4, 1.8f);
+        if (VisualTheme.IsSoftClay)
+            ClayJuice.Instance?.Confetti(center, tileSize);
         StartCameraImpulse(0.26f, 0.035f);
         Energy = 1f;
         lastMoveTime = Time.unscaledTime;
@@ -601,6 +804,7 @@ public sealed class GameplayFeedback : MonoBehaviour
     public void ResetFeedback()
     {
         ClearPath();
+        ClayJuice.Instance?.ClearAll();
         RestoreCameraPose();
         Energy = 0f;
         dragging = false;

@@ -884,7 +884,7 @@ public class GameMainUIController : MonoBehaviour
             {
                 progressFill.style.backgroundColor = VisualTheme.IsSoftClay
                     ? new StyleColor(VisualTheme.Accent)
-                    : new StyleColor(new Color32(0x00, 0xEF, 0xE6, 0xFF));
+                    : new StyleColor(ProgressFillRestColor);
                 progressFill.style.marginTop = 0f;
                 progressFill.style.marginBottom = 0f;
                 progressFill.style.marginLeft = 0f;
@@ -951,6 +951,13 @@ public class GameMainUIController : MonoBehaviour
         AssignSprite(tutorialCloseIcon, "Sprites/close", "close.png");
         AssignSprite(tutorialHandImage, "Sprites/hand", "hand.png");
         AssignSprite(tutorialShortCircuitTileImage, "Sprites/short_circuit_tile", "short_circuit_tile.png");
+        if (VisualTheme.IsSoftClay && tutorialShortCircuitTileImage != null)
+        {
+            Sprite arrow = VisualTheme.IconSprite(VisualTheme.Icon.Arrow);
+            if (arrow != null)
+                tutorialShortCircuitTileImage.image = arrow.texture;
+            ApplyClayTutorialIconLayout(tutorialShortCircuitTileImage);
+        }
         ApplyShortCircuitTutorialSpriteRotation();
         AssignSprite(tutorialShortCircuitHandImage, "Sprites/hand", "hand.png");
         AssignSprite(tutorialSpecialHandImage, "Sprites/hand", "hand.png");
@@ -2433,8 +2440,25 @@ public class GameMainUIController : MonoBehaviour
     }
 
     /// <summary>클리어 순간 별점(★)과 한붓 보너스를 짧게 보여준다.</summary>
+    private ClayClearCard activeClearCard;
+
+    private void DismissClearCard()
+    {
+        activeClearCard?.Dismiss();
+        activeClearCard = null;
+    }
+
     public void ShowStageClearResult(int stars, bool oneStroke, bool improved)
     {
+        if (VisualTheme.IsSoftClay && uiDocument != null)
+        {
+            // 점토 테마: 한 줄 스낵바 대신 가운데 클리어 카드(별이 하나씩 펑 채워짐).
+            DismissClearCard();
+            string subtitle = oneStroke ? T("clear_card_one_stroke") : (improved ? T("clear_card_best") : string.Empty);
+            activeClearCard = new ClayClearCard(T("clear_card_title"), subtitle, T("clear_card_tap"), Mathf.Clamp(stars, 1, 3));
+            uiDocument.rootVisualElement.Add(activeClearCard);
+            return;
+        }
         int clamped = Mathf.Clamp(stars, 1, 3);
         string starText = new string('★', clamped) + new string('☆', 3 - clamped);
         string key = oneStroke ? "snackbar_stage_stars_one_stroke" : "snackbar_stage_stars";
@@ -5157,6 +5181,8 @@ public class GameMainUIController : MonoBehaviour
                 spriteImage.style.overflow = Overflow.Visible;
                 spriteImage.uv = new Rect(0f, 0f, 1f, 1f);
                 spriteImage.style.opacity = active ? 0.94f : 0.28f;
+                if (VisualTheme.IsSoftClay)
+                    ApplyClayTutorialIconLayout(spriteImage);
             }
             else
             {
@@ -5170,6 +5196,20 @@ public class GameMainUIController : MonoBehaviour
     {
         if (cell == null)
             return;
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 특수 칸도 게임과 같은 점토 타일(모래색) + 모서리 아이콘. 꺼진 칸은 음각 자리.
+            cell.AddToClassList("clay-keep");
+            Color slot = VisualTheme.SlotTint;
+            slot.a = 0.14f;
+            cell.style.backgroundColor = hidden ? slot : (active ? VisualTheme.ClayColorForCount(1) : slot);
+            Color edge = new Color(0f, 0f, 0f, 0f);
+            cell.style.borderLeftColor = edge;
+            cell.style.borderRightColor = edge;
+            cell.style.borderTopColor = edge;
+            cell.style.borderBottomColor = edge;
+            return;
+        }
 
         Color backgroundColor = new Color(0.1f, 0.22f, 0.29f, 0.8f);
         Color borderColor = new Color(0.6f, 0.9f, 1f, 0.84f);
@@ -5220,6 +5260,36 @@ public class GameMainUIController : MonoBehaviour
         SetElementBorderColor(cell, borderColor);
     }
 
+    /// <summary>점토 테마: 튜토리얼의 네온 타일 그림 대신 게임과 같은 모서리 아이콘을 쓴다.</summary>
+    private static bool TryGetClayTutorialIcon(string resourcePath, out VisualTheme.Icon icon)
+    {
+        switch (resourcePath)
+        {
+            case CrossBlastSpriteResourcePath: icon = VisualTheme.Icon.Burst; return true;
+            case FixedKnotSpriteResourcePath: icon = VisualTheme.Icon.Lock; return true;
+            case IgniterSpriteResourcePath: icon = VisualTheme.Icon.Bolt; return true;
+            case BlindCurtainSpriteResourcePath: icon = VisualTheme.Icon.EyeOff; return true;
+            case "Sprites/short_circuit_tile": icon = VisualTheme.Icon.Arrow; return true;
+            case "Sprites/black_out_tile": icon = VisualTheme.Icon.Moon; return true;
+            default: icon = VisualTheme.Icon.Dot; return false;
+        }
+    }
+
+    /// <summary>점토 테마: 튜토리얼 칸 안 아이콘을 오른쪽 위 작은 잉크색 아이콘으로 놓는다(게임 타일과 같은 자리).</summary>
+    private static void ApplyClayTutorialIconLayout(Image image)
+    {
+        if (image == null)
+            return;
+        image.style.position = Position.Absolute;
+        image.style.right = Length.Percent(7);
+        image.style.top = Length.Percent(7);
+        image.style.left = StyleKeyword.Auto;
+        image.style.bottom = StyleKeyword.Auto;
+        image.style.width = Length.Percent(30);
+        image.style.height = Length.Percent(30);
+        image.tintColor = VisualTheme.Ink;
+    }
+
     private Sprite LoadTutorialSprite(string resourcePath)
     {
         if (string.IsNullOrEmpty(resourcePath))
@@ -5227,6 +5297,12 @@ public class GameMainUIController : MonoBehaviour
 
         if (tutorialSpriteCache.TryGetValue(resourcePath, out Sprite cachedSprite))
             return cachedSprite;
+        if (VisualTheme.IsSoftClay && TryGetClayTutorialIcon(resourcePath, out VisualTheme.Icon clayIcon))
+        {
+            Sprite icon = VisualTheme.IconSprite(clayIcon);
+            tutorialSpriteCache[resourcePath] = icon;
+            return icon;
+        }
 
         Sprite sprite = Resources.Load<Sprite>(resourcePath);
         if (sprite == null)
@@ -5608,6 +5684,9 @@ public class GameMainUIController : MonoBehaviour
             return;
 
         float rotationZ = GetShortCircuitSpriteRotationZ(ShortCircuitTutorialDemoDirection);
+        // 점토 아이콘 화살표는 오른쪽을 가리키고, 네온 타일 그림은 왼쪽을 가리킨다.
+        if (VisualTheme.IsSoftClay)
+            rotationZ += 180f;
         tutorialShortCircuitTileImage.style.rotate = new StyleRotate(new Rotate(rotationZ));
     }
 
@@ -7819,6 +7898,12 @@ public class GameMainUIController : MonoBehaviour
         Color fillColor = nearCompletion
             ? new Color32(0xFF, 0xE6, 0x5D, 0xFF)
             : new Color32(0x54, 0xF5, 0xFF, 0xFF);
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 진행 바는 테라코타에서 한 번 밝아졌다 돌아온다(네온 시안 금지).
+            glowColor = new Color(0f, 0f, 0f, 0f);
+            fillColor = Color.Lerp(VisualTheme.Accent, Color.white, nearCompletion ? 0.35f : 0.2f);
+        }
 
         VisualElement stageGlow = stageContainer != null ? stageContainer.Q<VisualElement>(className: "top-stage-panel-glow") : null;
         VisualElement progressGlow = topBar != null ? topBar.Q<VisualElement>(className: "top-progress-glow") : null;
@@ -7828,6 +7913,8 @@ public class GameMainUIController : MonoBehaviour
         PlayGameplayFeedbackPulseForElement(progressGlow, version, peakScale + 0.015f, glowOpacity, glowColor, allowScale: true, restoreProgressFillColor: false);
         PlayGameplayFeedbackPulseForElement(progressFill, version, 1f, 1f, fillColor, allowScale: false, restoreProgressFillColor: true);
     }
+
+    private static Color ProgressFillRestColor => VisualTheme.IsSoftClay ? VisualTheme.Accent : (Color)new Color32(0x00, 0xEF, 0xE6, 0xFF);
 
     private void PlayGameplayFeedbackPulseForElement(
         VisualElement element,
@@ -7863,7 +7950,7 @@ public class GameMainUIController : MonoBehaviour
             if (allowScale)
                 element.style.scale = new StyleScale(new Scale(Vector3.one));
             element.style.backgroundColor = restoreProgressFillColor
-                ? new StyleColor(new Color32(0x00, 0xEF, 0xE6, 0xFF))
+                ? new StyleColor(ProgressFillRestColor)
                 : new StyleColor(StyleKeyword.Null);
         }).StartingIn(190);
     }
@@ -7883,7 +7970,7 @@ public class GameMainUIController : MonoBehaviour
 
         element.style.opacity = 1f;
         element.style.backgroundColor = restoreProgressFillColor
-            ? new StyleColor(new Color32(0x00, 0xEF, 0xE6, 0xFF))
+            ? new StyleColor(ProgressFillRestColor)
             : new StyleColor(StyleKeyword.Null);
         if (resetScale)
             element.style.scale = new StyleScale(new Scale(Vector3.one));
@@ -7932,6 +8019,7 @@ public class GameMainUIController : MonoBehaviour
     /// <summary>다음 스테이지로 넘어갈 때 번호가 아래에서 올라오며 바뀌는 짧은 연출(0.25초).</summary>
     private void PlayStageNumberRoll()
     {
+        DismissClearCard();
         if (stageNumberLabel == null)
             return;
 

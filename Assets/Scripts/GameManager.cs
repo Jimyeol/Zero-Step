@@ -801,6 +801,12 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
+    private void LateUpdate()
+    {
+        if (hintHaloPairs.Count > 0)
+            SyncHintHalos();
+    }
+
     private void Update()
     {
         UpdateAdaptiveFrameRate();
@@ -1324,6 +1330,7 @@ public class GameManager : MonoBehaviour
             NotifyTrailTileStepped(hit);
             OnDragStartTrail();
             gameplayFeedback?.DragStarted(hit);
+            gameplayFeedback?.TrackFinger(ScreenToWorld2D(screenPoint));
             gameplayFeedback?.UpdatePath(currentPath);
             // 시작점 터치만으로는 기어 숫자 갱신 안 함 — 타일을 실제로 옮겼을 때만 -1
         }
@@ -1341,6 +1348,7 @@ public class GameManager : MonoBehaviour
             Tile lastForHit = currentPath[currentPath.Count - 1];
             Tile previousTile = currentPath.Count >= 2 ? currentPath[currentPath.Count - 2] : null;
             Vector2 pointerWorld = ScreenToWorld2D(screenPoint);
+            gameplayFeedback?.TrackFinger(pointerWorld);
             Tile directHit = GetTileAtScreen(screenPoint);
             Tile hit = GetTileAtScreen(screenPoint, preferAdjacentTo: lastForHit);
             if (ShouldLogVerboseStage6Debug() && (directHit != hit || hit == null || hit == previousTile))
@@ -3037,7 +3045,9 @@ public class GameManager : MonoBehaviour
         int segmentCount = path.Count - 1;
         EnsureHintPreviewPool(segmentCount);
         float width = Mathf.Max(0.05f, Mathf.Min(tileWidth, tileHeight) * Mathf.Max(0.01f, hintPreviewLineWidthScale));
-        Color baseColor = GetHintPreviewColor(hintPreviewMaxAlpha * hintPreviewBaseAlphaMultiplier, false);
+        if (VisualTheme.IsSoftClay)
+            width *= 1.3f;
+        Color baseColor = GetHintPreviewColor(hintPreviewMaxAlpha * HintBaseAlphaMultiplier, false);
 
         activeHintPreviewPoints.Clear();
         activeHintPreviewTiles.Clear();
@@ -3135,8 +3145,39 @@ public class GameManager : MonoBehaviour
             hintPreviewArrowRightLine = CreateHintPreviewLine("HintPreviewArrowRightLine", 83);
     }
 
+    // 힌트 선은 하트비트로 커진 현재/시작 타일(정렬 +100)보다 항상 위에 그린다.
+    private const int HintSortingLift = 320;
+    private readonly List<KeyValuePair<LineRenderer, LineRenderer>> hintHaloPairs = new List<KeyValuePair<LineRenderer, LineRenderer>>();
+    private readonly List<Vector3> hintHaloPositions = new List<Vector3>();
+
+    /// <summary>점토 테마: 힌트 선 아래에 종이색 테두리(헤일로)를 같은 모양으로 맞춰 그려 타일 위에서도 잘 보이게 한다.</summary>
+    private void SyncHintHalos()
+    {
+        for (int i = 0; i < hintHaloPairs.Count; i++)
+        {
+            LineRenderer line = hintHaloPairs[i].Key;
+            LineRenderer halo = hintHaloPairs[i].Value;
+            if (line == null || halo == null)
+                continue;
+            bool show = line.enabled && line.gameObject.activeInHierarchy;
+            halo.enabled = show;
+            if (!show)
+                continue;
+            int count = line.positionCount;
+            halo.positionCount = count;
+            for (int k = 0; k < count; k++)
+                halo.SetPosition(k, line.GetPosition(k) + new Vector3(0f, 0f, 0.01f));
+            halo.widthMultiplier = line.widthMultiplier * 1.75f;
+            Color paper = VisualTheme.Paper;
+            paper.a = Mathf.Clamp01(Mathf.Max(line.startColor.a, line.endColor.a) * 1.1f);
+            halo.startColor = paper;
+            halo.endColor = paper;
+        }
+    }
+
     private LineRenderer CreateHintPreviewLine(string lineName, int sortingOrder)
     {
+        sortingOrder += HintSortingLift;
         GameObject lineObject = new GameObject(lineName);
         lineObject.transform.SetParent(transform, false);
         var line = lineObject.AddComponent<LineRenderer>();
@@ -3149,6 +3190,21 @@ public class GameManager : MonoBehaviour
         line.material = ResolveHintPreviewMaterial();
         line.sortingOrder = sortingOrder;
         line.enabled = false;
+        if (VisualTheme.IsSoftClay)
+        {
+            var haloObject = new GameObject(lineName + "_Halo");
+            haloObject.transform.SetParent(transform, false);
+            var halo = haloObject.AddComponent<LineRenderer>();
+            halo.useWorldSpace = true;
+            halo.positionCount = 2;
+            halo.numCapVertices = 6;
+            halo.numCornerVertices = 4;
+            halo.alignment = LineAlignment.View;
+            halo.material = line.material;
+            halo.sortingOrder = sortingOrder - 10;
+            halo.enabled = false;
+            hintHaloPairs.Add(new KeyValuePair<LineRenderer, LineRenderer>(line, halo));
+        }
         return line;
     }
 
@@ -3211,7 +3267,7 @@ public class GameManager : MonoBehaviour
 
     private void SetHintPreviewAlpha(float alpha)
     {
-        Color baseColor = GetHintPreviewColor(Mathf.Clamp01(alpha * hintPreviewBaseAlphaMultiplier), false);
+        Color baseColor = GetHintPreviewColor(Mathf.Clamp01(alpha * HintBaseAlphaMultiplier), false);
         if (hintPreviewLines == null)
             return;
 
@@ -3382,9 +3438,14 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // 점토 테마 힌트: 진한 테라코타(바탕 선은 조금 더 진하게) + 종이색 헤일로.
+    private static readonly Color HintClayLineColor = new Color32(0xB8, 0x4E, 0x2C, 0xFF);
+    private static readonly Color HintClayFlowColor = new Color32(0xE0, 0x6A, 0x3E, 0xFF);
+    private float HintBaseAlphaMultiplier => VisualTheme.IsSoftClay ? 0.9f : hintPreviewBaseAlphaMultiplier;
+
     private Color GetHintPreviewColor(float alpha, bool flow)
     {
-        Color color = VisualTheme.IsSoftClay ? (flow ? VisualTheme.Accent : VisualTheme.Accent * 0.92f) : (flow ? HintFlowColor : HintLineColor);
+        Color color = VisualTheme.IsSoftClay ? (flow ? HintClayFlowColor : HintClayLineColor) : (flow ? HintFlowColor : HintLineColor);
         color.a = Mathf.Clamp01(alpha);
         return color;
     }
@@ -6089,7 +6150,10 @@ public class GameManager : MonoBehaviour
             float eased = 1f - (1f - t) * (1f - t);
             float radius = Mathf.Lerp(startRadius, endRadius, eased);
             float alpha = Mathf.Sin(t * Mathf.PI) * stageClearWaveAlpha * GameplayFeedback.Intensity;
-            Color color = new Color(0.7f, 1.25f, 1.25f, alpha);
+            // 점토 테마: 클리어 물결은 테라코타(네온 시안 대신).
+            Color color = VisualTheme.IsSoftClay
+                ? new Color(VisualTheme.Accent.r, VisualTheme.Accent.g, VisualTheme.Accent.b, alpha * 0.55f)
+                : new Color(0.7f, 1.25f, 1.25f, alpha);
             line.startColor = color;
             line.endColor = color;
             UpdateCircleLine(line, origin, radius, segments);

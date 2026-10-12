@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using UnityEditor;
@@ -87,6 +88,10 @@ public class VisualCaptureTests
         if (string.IsNullOrEmpty(outDir) || string.IsNullOrEmpty(stageList))
             Assert.Ignore("ZEROSTEP_CAPTURE_DIR / ZEROSTEP_CAPTURE_STAGES not set");
 
+        // ZEROSTEP_CAPTURE_FRESH=1: 처음 하는 사람처럼 튜토리얼이 다시 뜨게 저장값을 비운다(래퍼가 실행 후 복원).
+        if (!EditorApplication.isPlaying && Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_FRESH") == "1")
+            PlayerPrefs.DeleteAll();
+
         if (!EditorApplication.isPlaying)
         {
             EditorSceneManager.OpenScene(ScenePath);
@@ -151,6 +156,62 @@ public class VisualCaptureTests
                 yield return WaitRealtime(0.5f);
                 CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_hint");
                 yield return WaitRealtime(0.4f);
+            }
+
+            // ZEROSTEP_CAPTURE_PLAY=1: 정답을 실제로 그리면서 드래그 중·타일이 터지는 순간·클리어 화면을 찍는다.
+            if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_PLAY") == "1")
+            {
+                typeof(GameManager).GetMethod("ClearHintPreview", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(gm, new object[] { true });
+                List<Vector2Int> moves = StageManager.LoadSolutionMoves(stage);
+                if (moves != null && moves.Count > 0)
+                {
+                    gm.AutomationBeginDrag();
+                    // LoadSolutionMoves는 시작 칸을 빼고 이동할 칸만 돌려준다.
+                    int mid = Mathf.Max(2, moves.Count / 2);
+                    for (int i = 0; i < moves.Count; i++)
+                    {
+                        float quietStart = Time.realtimeSinceStartup;
+                        int quiet = 0;
+                        while (quiet < 3 && Time.realtimeSinceStartup - quietStart < 2f)
+                        {
+                            quiet = gm.AutomationHasPendingMutations ? 0 : quiet + 1;
+                            yield return null;
+                        }
+                        bool stepped = gm.AutomationStep(moves[i].x, moves[i].y);
+                        bool cleared = gm.AutomationStageCleared;
+                        Debug.Log($"[CapturePlay] stage={stage} step={i + 1}/{moves.Count} to=({moves[i].x},{moves[i].y}) ok={stepped} cleared={cleared} remaining={gm.AutomationTotalRemaining}");
+                        if (cleared)
+                        {
+                            yield return WaitRealtime(0.45f);
+                            CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_clear");
+                            yield return WaitRealtime(0.5f);
+                            CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_clear2");
+                            break;
+                        }
+                        if (i == 2)
+                        {
+                            yield return WaitRealtime(0.06f);
+                            CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_pop");
+                        }
+                        if (i == mid)
+                        {
+                            yield return WaitRealtime(0.05f);
+                            CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_drag");
+                        }
+                        yield return WaitRealtime(0.11f);
+                    }
+                    if (!gm.AutomationStageCleared)
+                    {
+                        // 마지막 이동 직후 클리어 판정이 한 프레임 늦을 수 있어 잠깐 기다렸다가 찍는다.
+                        yield return WaitRealtime(0.45f);
+                        CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_after");
+                        yield return WaitRealtime(0.5f);
+                        CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_after2");
+                        if (!gm.AutomationStageCleared)
+                            gm.AutomationEndDrag();
+                    }
+                    yield return WaitRealtime(2.5f);
+                }
             }
         }
 
