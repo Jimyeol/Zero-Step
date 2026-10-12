@@ -48,6 +48,11 @@ public class IgniterTile : MonoBehaviour
 
     private void ApplyIgniterSprite()
     {
+        if (VisualTheme.IsSoftClay)
+        {
+            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Bolt);
+            return;
+        }
         Sprite igniterSprite = Resources.Load<Sprite>(igniterSpritePath);
         if (igniterSprite != null && spriteRenderer != null)
             spriteRenderer.sprite = igniterSprite;
@@ -55,6 +60,11 @@ public class IgniterTile : MonoBehaviour
 
     private void RestoreDefaultSprite()
     {
+        if (VisualTheme.IsSoftClay)
+        {
+            VisualTheme.RemoveCornerIcon(transform);
+            return;
+        }
         if (spriteRenderer != null && defaultSprite != null)
             spriteRenderer.sprite = defaultSprite;
     }

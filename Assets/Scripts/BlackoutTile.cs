@@ -93,7 +93,7 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
             return;
 
         Transform icon = GetAnimatedIconTransform();
-        if (icon != null && GameplayFeedback.Intensity > 0f)
+        if (icon != null && GameplayFeedback.Intensity > 0f && !VisualTheme.IsSoftClay)
         {
             icon.DOKill();
             icon.localScale = Vector3.one * coverScale;
@@ -115,6 +115,11 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
     {
         if (tileSpriteRenderer == null || coverObject != null)
             return;
+        if (VisualTheme.IsSoftClay)
+        {
+            CreateClayCover();
+            return;
+        }
 
         Sprite tileSprite = Resources.Load<Sprite>(tileSpritePath);
         if (tileSprite == null)
@@ -137,8 +142,31 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         coverRenderer.color = tileSpriteRenderer.color;
     }
 
+    /// <summary>점토 테마: 숫자 대신 가운데 잉크색 달 아이콘(지직거림·노이즈 없음).</summary>
+    private void CreateClayCover()
+    {
+        Sprite moon = VisualTheme.IconSprite(VisualTheme.Icon.Moon);
+        if (moon == null)
+            return;
+        coverObject = new GameObject("BlackoutCover");
+        coverObject.transform.SetParent(transform, false);
+        coverObject.transform.localPosition = new Vector3(0f, 0.06f, -0.01f);
+        float tileWorld = tileSpriteRenderer.sprite != null ? tileSpriteRenderer.sprite.bounds.size.x : 5.12f;
+        coverObject.transform.localScale = Vector3.one * (tileWorld * 0.42f / Mathf.Max(0.0001f, moon.bounds.size.x));
+        coverRenderer = coverObject.AddComponent<SpriteRenderer>();
+        coverRenderer.sprite = moon;
+        coverRenderer.sortingLayerID = tileSpriteRenderer.sortingLayerID;
+        coverRenderer.sortingOrder = tileSpriteRenderer.sortingOrder + 1;
+        Color ink = VisualTheme.Ink;
+        ink.a = 0.82f;
+        coverRenderer.color = ink;
+        coverObject.AddComponent<ClayCornerIcon>();
+    }
+
     private void CreateNoiseOverlay()
     {
+        if (VisualTheme.IsSoftClay)
+            return;
         // 데이터 손상 느낌의 정적 노이즈 텍스처 생성
         int size = 64;
         Texture2D noiseTex = new Texture2D(size, size);
@@ -216,7 +244,7 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
             return;
 
         Transform icon = GetAnimatedIconTransform();
-        if (icon == null || !icon.gameObject.activeInHierarchy || GameplayFeedback.Intensity <= 0f)
+        if (VisualTheme.IsSoftClay || icon == null || !icon.gameObject.activeInHierarchy || GameplayFeedback.Intensity <= 0f)
             return;
         float amplitude = (pulseScaleMax - pulseScaleMin) * GameplayFeedback.Intensity;
         icon.localScale = Vector3.one * coverScale * pulseScaleMin;
@@ -233,7 +261,7 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
             float wait = Random.Range(glitchIntervalMin, glitchIntervalMax);
             yield return new WaitForSeconds(wait);
             // 효과 강도 Minimal에서는 깜빡임을 완전히 끈다(광과민 대응).
-            if (IsInGameOverBlackout() || GameplayFeedback.Intensity <= 0f)
+            if (IsInGameOverBlackout() || GameplayFeedback.Intensity <= 0f || VisualTheme.IsSoftClay)
                 continue;
 
             // 50% 확률: 타일 밝기 플리커, 50%: 물음표 글리치(짧은 지직)
@@ -281,7 +309,7 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         }
 
         RefreshVisualState();
-        if (coverRenderer != null && tileSpriteRenderer != null)
+        if (coverRenderer != null && tileSpriteRenderer != null && !VisualTheme.IsSoftClay)
             coverRenderer.color = tileSpriteRenderer.color;
     }
 

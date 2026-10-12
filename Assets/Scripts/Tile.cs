@@ -137,9 +137,35 @@ public class Tile : MonoBehaviour
         numberTextRenderer = numberText != null ? numberText.GetComponent<Renderer>() : null;
         startLabelRenderer = startLabel != null ? startLabel.GetComponent<Renderer>() : null;
         CacheBaseSortingOrders();
+        ApplyClayThemeSetup();
 
         // hitEffect 파티클 개수를 1.3배로 적용 (burst 한 번만 스케일)
         ScaleHitEffectEmission(HitEffectParticleCountScale);
+    }
+
+    private static TMP_FontAsset clayNumberFont;
+
+    /// <summary>A2 소프트 클레이 테마: 점토 타일 스프라이트와 굵은 산세리프 숫자로 바꾼다.</summary>
+    private void ApplyClayThemeSetup()
+    {
+        if (!VisualTheme.IsSoftClay)
+            return;
+        Sprite clay = VisualTheme.TileSprite;
+        if (clay != null)
+        {
+            if (spriteRenderer != null)
+                spriteRenderer.sprite = clay;
+            if (tileImage != null && tileImage != spriteRenderer)
+                tileImage.sprite = clay;
+        }
+        if (numberText != null)
+        {
+            if (clayNumberFont == null)
+                clayNumberFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+            if (clayNumberFont != null)
+                numberText.font = clayNumberFont;
+            numberText.fontStyle = FontStyles.Bold;
+        }
     }
 
     private void CacheBaseSortingOrders()
@@ -585,6 +611,11 @@ public class Tile : MonoBehaviour
     /// </summary>
     private void ApplyNumberColor()
     {
+        if (VisualTheme.IsSoftClay)
+        {
+            ApplyClayColors();
+            return;
+        }
         Color hdrColor;
         Color numberDisplayColor;
         if (numberColorOverride.HasValue && currentNumber > 0)
@@ -625,6 +656,11 @@ public class Tile : MonoBehaviour
     /// </summary>
     private void ApplyNumberColorWithoutStartBoost()
     {
+        if (VisualTheme.IsSoftClay)
+        {
+            ApplyClayColors();
+            return;
+        }
         Color hdrColor;
         Color numberDisplayColor;
         if (numberColorOverride.HasValue && currentNumber > 0)
@@ -653,8 +689,23 @@ public class Tile : MonoBehaviour
         }
     }
 
+    /// <summary>점토 테마: 타일은 남은 횟수 색(발광 없음), 숫자는 진한 잉크색.</summary>
+    private void ApplyClayColors()
+    {
+        Color clay = VisualTheme.ClayColorForCount(currentNumber);
+        if (spriteRenderer != null)
+            spriteRenderer.color = clay;
+        if (tileImage != null && tileImage != spriteRenderer)
+            tileImage.color = clay;
+        ApplyLinkedRendererColor(clay);
+        if (numberText != null)
+            ApplyTMPOutlineNumberStyle(numberText, VisualTheme.Ink);
+    }
+
     private static Color GetBaseColorForNumber(int n)
     {
+        if (VisualTheme.IsSoftClay)
+            return VisualTheme.ClayColorForCount(n);
         if (n <= 0)
             return DarkGrayOff;
 
@@ -668,6 +719,11 @@ public class Tile : MonoBehaviour
     private static void ApplyTMPOutlineNumberStyle(TMP_Text tmp, Color displayColor)
     {
         if (tmp == null) return;
+        if (VisualTheme.IsSoftClay)
+        {
+            ApplyClayNumberStyle(tmp);
+            return;
+        }
 
         Color vertexColor = displayColor;
         vertexColor.a = Mathf.Clamp01(vertexColor.a);
@@ -705,6 +761,22 @@ public class Tile : MonoBehaviour
                 instanceMat.SetFloat(ShaderUtilities.ID_GlowInner, NumberGlowInner);
         }
 
+        tmp.UpdateMeshPadding();
+        tmp.SetMaterialDirty();
+    }
+
+    /// <summary>점토 테마 숫자: 단색 잉크, 외곽선·발광 없음.</summary>
+    private static void ApplyClayNumberStyle(TMP_Text tmp)
+    {
+        tmp.color = VisualTheme.Ink;
+        Material instanceMat = tmp.fontMaterial;
+        if (instanceMat == null)
+            return;
+        if (instanceMat.HasProperty(ShaderUtilities.ID_FaceColor))
+            instanceMat.SetColor(ShaderUtilities.ID_FaceColor, Color.white);
+        if (instanceMat.HasProperty(ShaderUtilities.ID_OutlineWidth))
+            instanceMat.SetFloat(ShaderUtilities.ID_OutlineWidth, 0f);
+        instanceMat.DisableKeyword(ShaderUtilities.Keyword_Glow);
         tmp.UpdateMeshPadding();
         tmp.SetMaterialDirty();
     }

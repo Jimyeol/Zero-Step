@@ -624,6 +624,7 @@ public class GameMainUIController : MonoBehaviour
         StyleSheet mainStyleSheet = Resources.Load<StyleSheet>("GameMainUI");
         if (mainStyleSheet != null && !root.styleSheets.Contains(mainStyleSheet))
             root.styleSheets.Add(mainStyleSheet);
+        ApplyVisualThemeStyles(root);
         InitializeSplashState();
 
         topBar = root.Q<VisualElement>("TopBar");
@@ -863,7 +864,9 @@ public class GameMainUIController : MonoBehaviour
             VisualElement progressBackground = gameProgressBar.Q(className: ProgressBar.backgroundUssClassName);
             if (progressBackground != null)
             {
-                progressBackground.style.backgroundColor = new StyleColor(new Color32(0x02, 0x13, 0x1F, 0xD9));
+                progressBackground.style.backgroundColor = VisualTheme.IsSoftClay
+                    ? new StyleColor(VisualTheme.PaperShade)
+                    : new StyleColor(new Color32(0x02, 0x13, 0x1F, 0xD9));
                 progressBackground.style.marginTop = 0f;
                 progressBackground.style.marginBottom = 0f;
                 progressBackground.style.marginLeft = 0f;
@@ -878,7 +881,9 @@ public class GameMainUIController : MonoBehaviour
             VisualElement progressFill = gameProgressBar.Q(className: ProgressBar.progressUssClassName);
             if (progressFill != null)
             {
-                progressFill.style.backgroundColor = new StyleColor(new Color32(0x00, 0xEF, 0xE6, 0xFF));
+                progressFill.style.backgroundColor = VisualTheme.IsSoftClay
+                    ? new StyleColor(VisualTheme.Accent)
+                    : new StyleColor(new Color32(0x00, 0xEF, 0xE6, 0xFF));
                 progressFill.style.marginTop = 0f;
                 progressFill.style.marginBottom = 0f;
                 progressFill.style.marginLeft = 0f;
@@ -1042,6 +1047,7 @@ public class GameMainUIController : MonoBehaviour
             undoButton.clicked += OnUndoClicked;
         if (blockAdsButton != null)
             blockAdsButton.clicked += () => DevLog.Log("광고 제거");
+        ApplyClayHudIconTints(root);
 
         ApplyLocalizationForCurrentLanguage();
         SetupButtonClickAnimations();
@@ -1059,8 +1065,20 @@ public class GameMainUIController : MonoBehaviour
         EnsureSplashOverlayAttached();
     }
 
+    private float nextClayRemapTime;
+
+    /// <summary>점토 테마: 팝업 등 인라인 네온 색을 주기적으로 종이·점토 색으로 맞춘다(코드가 나중에 색을 다시 넣어도 따라감).</summary>
+    private void UpdateClayUiRemap()
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null || Time.unscaledTime < nextClayRemapTime)
+            return;
+        nextClayRemapTime = Time.unscaledTime + 0.25f;
+        ClayUiRemapper.Apply(uiDocument.rootVisualElement);
+    }
+
     private void Update()
     {
+        UpdateClayUiRemap();
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         if (pendingBannerLoadFromInitialize)
         {
@@ -3362,10 +3380,44 @@ public class GameMainUIController : MonoBehaviour
         return heartAnimationVersion.TryGetValue(heartElement, out int currentVersion) && currentVersion == expectedVersion;
     }
 
+    /// <summary>A2 소프트 클레이 테마: 덮어쓰기 스타일시트와 루트 클래스를 붙인다.</summary>
+    private static void ApplyVisualThemeStyles(VisualElement root)
+    {
+        if (root == null || !VisualTheme.IsSoftClay)
+            return;
+        StyleSheet claySheet = Resources.Load<StyleSheet>("GameMainUI_SoftClay");
+        if (claySheet != null && !root.styleSheets.Contains(claySheet))
+            root.styleSheets.Add(claySheet);
+        root.AddToClassList("theme-clay");
+    }
+
+    /// <summary>점토 테마: 스프라이트로 바로 넣은 HUD 아이콘(설정·리셋·스킵·광고 제거·되돌리기)도 잉크색으로 맞춘다.</summary>
+    private static void ApplyClayHudIconTints(VisualElement root)
+    {
+        if (root == null || !VisualTheme.IsSoftClay)
+            return;
+        root.Query<Image>(className: "neon-button-icon").ForEach(image => image.tintColor = VisualTheme.Ink);
+        root.Query<Image>(className: "top-setting-icon").ForEach(image => image.tintColor = VisualTheme.Ink);
+    }
+
+    /// <summary>아이콘 색: 네온은 흰색, 점토 테마는 하트 = 테라코타, 나머지 아이콘 = 잉크색.</summary>
+    private static Color ResolveIconTint(Image targetImage)
+    {
+        if (!VisualTheme.IsSoftClay || targetImage == null)
+            return Color.white;
+        if (targetImage.ClassListContains("heart-icon"))
+            return VisualTheme.Accent;
+        // 점토 HUD 버튼 아이콘만 잉크색. 팝업 등 아직 어두운 패널 위 이미지는 흰색 그대로 둔다.
+        if (targetImage.ClassListContains("neon-button-icon") || targetImage.ClassListContains("top-setting-icon"))
+            return VisualTheme.Ink;
+        return Color.white;
+    }
+
     private static void ApplyHeartSprite(Image targetImage, Sprite sprite)
     {
         if (targetImage == null || sprite == null)
             return;
+        targetImage.tintColor = ResolveIconTint(targetImage);
 
         targetImage.sprite = null;
         targetImage.image = sprite.texture;
@@ -6646,7 +6698,7 @@ public class GameMainUIController : MonoBehaviour
         {
             targetImage.sprite = null;
             targetImage.image = texture;
-            targetImage.tintColor = Color.white;
+            targetImage.tintColor = ResolveIconTint(targetImage);
             targetImage.scaleMode = ScaleMode.ScaleToFit;
             targetImage.style.overflow = Overflow.Visible;
             targetImage.uv = new Rect(0f, 0f, 1f, 1f);

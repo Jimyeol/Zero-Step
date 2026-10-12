@@ -54,10 +54,16 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
     private bool gameOverBlackoutVisualActive;
     private FixedKnotVisualState visualState = FixedKnotVisualState.None;
 
-    private static readonly Color LockedFutureColor = new Color(1.2f, 0.42f, 0.42f, 1f);
-    private static readonly Color ReadyNowColor = new Color(0.49f, 1.4f, 0.63f, 1f);
-    private static readonly Color EnteredCorrectColor = ReadyNowColor;
-    private static readonly Color DeniedColor = new Color(1f, 0.25f, 0.25f, 1f);
+    private static readonly Color NeonLockedFutureColor = new Color(1.2f, 0.42f, 0.42f, 1f);
+    private static readonly Color NeonReadyNowColor = new Color(0.49f, 1.4f, 0.63f, 1f);
+    private static readonly Color NeonDeniedColor = new Color(1f, 0.25f, 0.25f, 1f);
+    // 점토 테마: 잠김 = 차분한 돌색, 지금 차례 = 세이지(가도 됨), 거부 = 테라코타.
+    private static readonly Color ClayLockedFutureColor = new Color32(0xD9, 0xD1, 0xC4, 0xFF);
+    private static readonly Color ClayReadyNowColor = new Color32(0xB4, 0xD3, 0xA6, 0xFF);
+    private static Color LockedFutureColor => VisualTheme.IsSoftClay ? ClayLockedFutureColor : NeonLockedFutureColor;
+    private static Color ReadyNowColor => VisualTheme.IsSoftClay ? ClayReadyNowColor : NeonReadyNowColor;
+    private static Color EnteredCorrectColor => ReadyNowColor;
+    private static Color DeniedColor => VisualTheme.IsSoftClay ? VisualTheme.Accent : NeonDeniedColor;
 
     private enum FixedKnotVisualState
     {
@@ -165,6 +171,13 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
 
     private void ApplyLockedSprite()
     {
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 기본 점토 타일 + 모서리 자물쇠. 가운데 숫자는 "몇 번째 이동에 들어갈지".
+            if (tileSpriteRenderer != null)
+                VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Lock);
+            return;
+        }
         if (tileSpriteRenderer == null || !EnsureLockedSprite())
             return;
 
@@ -175,6 +188,8 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
 
     private void RestoreDefaultSprite()
     {
+        if (VisualTheme.IsSoftClay)
+            VisualTheme.RemoveCornerIcon(transform);
         if (tileSpriteRenderer != null && defaultSprite != null)
             tileSpriteRenderer.sprite = defaultSprite;
     }
@@ -206,6 +221,22 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
     {
         if (orderText == null)
             return;
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 순서 숫자는 타일 숫자와 같은 잉크색 단색.
+            orderText.color = VisualTheme.Ink;
+            orderText.fontStyle = FontStyles.Bold;
+            Material clayMat = orderText.fontMaterial;
+            if (clayMat != null)
+            {
+                if (clayMat.HasProperty(ShaderUtilities.ID_FaceColor))
+                    clayMat.SetColor(ShaderUtilities.ID_FaceColor, Color.white);
+                if (clayMat.HasProperty(ShaderUtilities.ID_OutlineWidth))
+                    clayMat.SetFloat(ShaderUtilities.ID_OutlineWidth, 0f);
+                clayMat.DisableKeyword(ShaderUtilities.Keyword_Glow);
+            }
+            return;
+        }
 
         orderText.color = color;
 
@@ -225,7 +256,7 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
 
     private void EnsureAccentVisual()
     {
-        if (accentRenderer != null)
+        if (accentRenderer != null || VisualTheme.IsSoftClay)
             return;
 
         if (!EnsureLockedSprite())

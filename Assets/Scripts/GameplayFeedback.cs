@@ -121,7 +121,8 @@ public sealed class GameplayFeedback : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        Shader shader = Resources.Load<Shader>("Shaders/GameplayFeedback");
+        // 점토 테마는 밝은 종이 배경이라 더하기(발광) 블렌딩 대신 일반 알파 블렌딩을 쓴다.
+        Shader shader = VisualTheme.IsSoftClay ? Shader.Find("Sprites/Default") : Resources.Load<Shader>("Shaders/GameplayFeedback");
         if (shader == null)
         {
             Debug.LogWarning("[GameplayFeedback] Feedback shader missing; cosmetic effects disabled.");
@@ -220,11 +221,11 @@ public sealed class GameplayFeedback : MonoBehaviour
         pathLine.positionCount = pathPointCount;
         for (int i = 0; i < pathPointCount; i++)
             pathLine.SetPosition(i, pathPoints[i]);
-        Color tint = PathColor;
+        Color tint = VisualTheme.IsSoftClay ? WithAlphaOf(VisualTheme.PathInk, 0.82f) : PathColor;
         tint.a *= alphaScale;
         pathLine.startColor = tint;
         pathLine.endColor = tint;
-        pathLine.widthMultiplier = tileSize * 0.07f;
+        pathLine.widthMultiplier = tileSize * (VisualTheme.IsSoftClay ? 0.085f : 0.07f);
     }
 
     private void UpdatePathVisuals()
@@ -253,7 +254,7 @@ public sealed class GameplayFeedback : MonoBehaviour
             float angle = j * Mathf.PI * 2f / RingSegments;
             headRing.SetPosition(j, headPosition + new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * radius);
         }
-        Color tint = new Color(0.9f, 1.3f, 1.5f, 0.75f);
+        Color tint = VisualTheme.IsSoftClay ? WithAlphaOf(VisualTheme.PathInk, 0.7f) : new Color(0.9f, 1.3f, 1.5f, 0.75f);
         headRing.startColor = tint;
         headRing.endColor = tint;
         headRing.widthMultiplier = tileSize * 0.05f;
@@ -423,6 +424,25 @@ public sealed class GameplayFeedback : MonoBehaviour
         haptic?.Invoke(strength);
     }
 
+    private static Color WithAlphaOf(Color c, float a)
+    {
+        c.a = a;
+        return c;
+    }
+
+    /// <summary>
+    /// 점토 테마: 네온(HDR) 효과 색을 종이 위에서 보이는 잉크 계열로 바꾼다.
+    /// 따뜻한 색(금색·산호)은 테라코타, 나머지(시안·보라·초록)는 부드러운 잉크색.
+    /// </summary>
+    private static Color ClayEffectColor(Color neon)
+    {
+        Color.RGBToHSV(new Color(Mathf.Clamp01(neon.r / 1.7f), Mathf.Clamp01(neon.g / 1.7f), Mathf.Clamp01(neon.b / 1.7f)), out float h, out _, out _);
+        bool warm = h < 0.13f || h > 0.9f;
+        Color c = warm ? VisualTheme.Accent : VisualTheme.InkSoft;
+        c.a = Mathf.Clamp(neon.a, 0f, 0.8f);
+        return c;
+    }
+
     private Effect Rent(Shape shape, Vector3 from, Vector3 to, Color color, float duration, float delay = 0f)
     {
         if (Intensity <= 0f || suspended || material == null) return null;
@@ -431,7 +451,7 @@ public sealed class GameplayFeedback : MonoBehaviour
         effect.shape = shape;
         effect.from = from;
         effect.to = to;
-        effect.color = color;
+        effect.color = VisualTheme.IsSoftClay ? ClayEffectColor(color) : color;
         effect.color.a *= Intensity;
         effect.age = 0f;
         effect.duration = duration;

@@ -102,6 +102,12 @@ public class CrossBlastTile : MonoBehaviour
 
     private void ParseBeamColor(string hex)
     {
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 십자 빔은 테라코타 잉크색(발광 없음).
+            baseBeamColor = VisualTheme.Accent;
+            return;
+        }
         if (ColorUtility.TryParseHtmlString(hex, out Color c))
             baseBeamColor = c;
         else
@@ -112,6 +118,11 @@ public class CrossBlastTile : MonoBehaviour
     {
         if (spriteRenderer == null)
             return;
+        if (VisualTheme.IsSoftClay)
+        {
+            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Burst);
+            return;
+        }
 
         Sprite tileSprite = Resources.Load<Sprite>(tileSpritePath);
         if (tileSprite == null)
@@ -124,6 +135,8 @@ public class CrossBlastTile : MonoBehaviour
 
     private void ApplyNumberScale()
     {
+        if (VisualTheme.IsSoftClay)
+            return;
         TMP_Text numberText = tile != null ? tile.GetNumberText() : null;
         if (numberText == null)
             return;
@@ -216,7 +229,7 @@ public class CrossBlastTile : MonoBehaviour
     {
         float feedbackIntensity = FeedbackIntensity();
 
-        if (spriteRenderer != null && feedbackIntensity > 0f)
+        if (spriteRenderer != null && feedbackIntensity > 0f && !VisualTheme.IsSoftClay)
         {
             Color centerColor = WithAlpha(baseBeamColor, 1f) * Mathf.Lerp(1f, flashIntensityMultiplier, feedbackIntensity);
             centerColor.a = 1f;

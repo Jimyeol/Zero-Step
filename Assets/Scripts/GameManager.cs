@@ -437,7 +437,7 @@ public class GameManager : MonoBehaviour
         }
 
         mainCamera.clearFlags = CameraClearFlags.SolidColor;
-        mainCamera.backgroundColor = Color.black;
+        mainCamera.backgroundColor = VisualTheme.IsSoftClay ? VisualTheme.Paper : Color.black;
 
         EnsureInputAndRaycaster();
         EnsureCameraPostProcessingAndHDR();
@@ -3384,7 +3384,7 @@ public class GameManager : MonoBehaviour
 
     private Color GetHintPreviewColor(float alpha, bool flow)
     {
-        Color color = flow ? HintFlowColor : HintLineColor;
+        Color color = VisualTheme.IsSoftClay ? (flow ? VisualTheme.Accent : VisualTheme.Accent * 0.92f) : (flow ? HintFlowColor : HintLineColor);
         color.a = Mathf.Clamp01(alpha);
         return color;
     }
@@ -4127,8 +4127,9 @@ public class GameManager : MonoBehaviour
 
     private void SetNeonTrailEmitting(bool emitting)
     {
+        // 점토 테마는 네온 꼬리 대신 GameplayFeedback의 잉크 경로선만 쓴다.
         if (neonTrail != null)
-            neonTrail.emitting = emitting;
+            neonTrail.emitting = emitting && !VisualTheme.IsSoftClay;
     }
 
     /// <summary>트레일 강제 초기화. 드래그 종료·게임오버·리셋·스테이지 전환 시 호출. Clear() 포함.</summary>
@@ -5468,7 +5469,7 @@ public class GameManager : MonoBehaviour
             {
                 Tile tile = restartCascadeTiles[i];
                 if (tile != null && tile.IsActive)
-                    tile.SetGlitchColor(Color.Lerp(failureFadeStartColors[i], Color.black, eased));
+                    tile.SetGlitchColor(Color.Lerp(failureFadeStartColors[i], VisualTheme.IsSoftClay ? VisualTheme.PaperShade : Color.black, eased));
             }
             yield return null;
             elapsed += Time.unscaledDeltaTime;
@@ -6351,9 +6352,46 @@ public class GameManager : MonoBehaviour
         for (int i = transform.childCount - 1; i >= 0; i--)
         {
             Transform child = transform.GetChild(i);
-            if (child.GetComponent<Tile>() != null)
+            if (child.GetComponent<Tile>() != null || child.name == ClaySlotContainerName)
                 Destroy(child.gameObject);
         }
+        claySlotContainer = null;
+    }
+
+    private const string ClaySlotContainerName = "ClaySlots";
+    private Transform claySlotContainer;
+
+    /// <summary>
+    /// 점토 테마: 칸 아래에 음각 자리를 깔아 둔다. 타일이 0이 되어 사라지면 이 자리가 보인다.
+    /// 숨은(Hidden) 칸에는 깔지 않는다(켜지기 전 위치가 드러나지 않게).
+    /// </summary>
+    private void CreateClaySlot(float wx, float wy, string cellType)
+    {
+        if (!VisualTheme.IsSoftClay || cellType == "Hidden")
+            return;
+        Sprite slot = VisualTheme.SlotSprite;
+        if (slot == null)
+            return;
+        if (claySlotContainer == null)
+        {
+            claySlotContainer = new GameObject(ClaySlotContainerName).transform;
+            claySlotContainer.SetParent(transform, false);
+        }
+        var go = new GameObject("Slot");
+        go.transform.SetParent(claySlotContainer, false);
+        go.transform.position = new Vector3(wx, wy, 0.05f);
+        SpriteRenderer prefabRenderer = tilePrefab != null ? tilePrefab.GetComponentInChildren<SpriteRenderer>(true) : null;
+        if (prefabRenderer != null && prefabRenderer.sprite != null)
+        {
+            // 프리팹 타일과 같은 크기로 맞춘다(그리드 간격은 프리팹 스프라이트 기준).
+            Vector2 target = prefabRenderer.bounds.size;
+            Vector2 size = slot.bounds.size;
+            go.transform.localScale = new Vector3(target.x / size.x, target.y / size.y, 1f);
+        }
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = slot;
+        sr.color = VisualTheme.SlotTint;
+        sr.sortingOrder = (prefabRenderer != null ? prefabRenderer.sortingOrder : 0) - 5;
     }
 
     /// <summary>Multi-Color Neon Trail: 속 빈 윤곽선 셰이더 + 4색 그라데이션, 시작 밝게·끝 투명.</summary>
@@ -6720,6 +6758,7 @@ public class GameManager : MonoBehaviour
             GameObject tileObj = Instantiate(tilePrefab, transform);
             tileObj.transform.position = new Vector3(wx, wy, 0f);
             tileObj.name = $"Tile_{cell.y}_{cell.x}";
+            CreateClaySlot(wx, wy, cell.type);
 
             Tile tile = tileObj.GetComponent<Tile>();
             if (tile != null)

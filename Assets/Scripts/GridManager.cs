@@ -125,9 +125,12 @@ public class GridManager : MonoBehaviour
         var camData = mainCamera.GetComponent<UniversalAdditionalCameraData>();
         if (camData != null)
         {
-            camData.renderPostProcessing = true;
-            camData.allowHDROutput = true;
+            // 점토 테마는 발광(Bloom)을 쓰지 않는다.
+            camData.renderPostProcessing = !VisualTheme.IsSoftClay;
+            camData.allowHDROutput = !VisualTheme.IsSoftClay;
         }
+        if (VisualTheme.IsSoftClay)
+            mainCamera.backgroundColor = VisualTheme.Paper;
     }
 
     /// <summary>

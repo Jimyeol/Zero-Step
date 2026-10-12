@@ -1,0 +1,110 @@
+/* A2 "Soft Clay" theme overrides. Applied when the root has .theme-clay (VisualTheme.IsSoftClay).
+   Only colours, borders and visibility change here; sizes still come from GameMainUI.uss layout rules. */
+
+/* ---- top HUD ---- */
+.theme-clay .top-hud {
+    -unity-font-definition: url("project://database/Assets/TextMesh%20Pro/Fonts/LiberationSans.ttf?fileID=12800000&guid=e3265ab4bf004d28a9537516768c1c75&type=3#LiberationSans");
+}
+.theme-clay .top-hud-backdrop,
+.theme-clay .top-stage-panel-glow,
+.theme-clay .top-progress-glow,
+.theme-clay .top-progress-segment,
+.theme-clay .top-setting-glow,
+.theme-clay .top-setting-ring,
+.theme-clay .top-setting-frame {
+    display: none;
+}
+.theme-clay .top-stage-panel,
+.theme-clay .top-stage-panel-debug-jump {
+    background-color: rgba(0, 0, 0, 0);
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+}
+.theme-clay .top-hud .top-stage-panel .top-stage-title {
+    color: rgb(110, 103, 94);
+    font-size: 26px;
+    letter-spacing: 4px;
+}
+.theme-clay .top-hud .top-stage-panel .top-stage-number {
+    color: rgb(43, 42, 40);
+    font-size: 58px;
+}
+.theme-clay .top-hud .top-center-panel .top-progress-frame {
+    height: 16px;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    background-color: rgb(230, 223, 211);
+    overflow: hidden;
+}
+.theme-clay .top-progress-bar,
+.theme-clay #GameProgress > .unity-progress-bar__container,
+.theme-clay #GameProgress > .unity-progress-bar__background {
+    background-color: rgb(230, 223, 211);
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+}
+.theme-clay #GameProgress .unity-progress-bar__progress {
+    background-color: rgb(217, 115, 78);
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+/* round clay buttons: light face + darker bottom lip reads as a raised block */
+.theme-clay .top-setting-button,
+.theme-clay .neon-action-button {
+    background-color: rgb(251, 248, 243);
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 7px;
+    border-bottom-color: rgb(216, 207, 194);
+    border-top-left-radius: 999px;
+    border-top-right-radius: 999px;
+    border-bottom-left-radius: 999px;
+    border-bottom-right-radius: 999px;
+}
+.theme-clay .top-setting-button:hover {
+    background-color: rgb(255, 252, 248);
+    border-bottom-color: rgb(216, 207, 194);
+}
+.theme-clay .top-setting-disc,
+.theme-clay .neon-button-disc {
+    background-color: rgba(0, 0, 0, 0);
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+}
+
+/* ---- bottom bar ---- */
+.theme-clay .bottom-bar-circuit-backdrop,
+.theme-clay .neon-button-glow,
+.theme-clay .neon-button-ring,
+.theme-clay .neon-button-arc {
+    display: none;
+}
+.theme-clay .neon-ad-badge {
+    background-color: rgb(217, 115, 78);
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+}
+.theme-clay .neon-ad-badge-text {
+    color: rgb(255, 255, 255);
+}
+.theme-clay .neon-ad-badge.neon-ad-badge-timer {
+    background-color: rgb(110, 103, 94);
+}

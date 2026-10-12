@@ -61,7 +61,7 @@ public class BlindCurtainTile : MonoBehaviour
         bool showIcon = active && !gameOverBlackout;
         if (iconObject != null && iconObject.activeSelf != showIcon)
             iconObject.SetActive(showIcon);
-        if (showIcon && iconRenderer != null && tileSpriteRenderer != null)
+        if (showIcon && iconRenderer != null && tileSpriteRenderer != null && !VisualTheme.IsSoftClay)
         {
             Color c = tileSpriteRenderer.color;
             iconRenderer.color = new Color(c.r, c.g, c.b, IconAlpha);
@@ -73,6 +73,13 @@ public class BlindCurtainTile : MonoBehaviour
     {
         if (tileSpriteRenderer == null || iconObject != null)
             return;
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 가운데 큰 눈 대신 모서리 "가린 눈" 아이콘.
+            iconRenderer = VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.EyeOff);
+            iconObject = iconRenderer != null ? iconRenderer.gameObject : null;
+            return;
+        }
 
         Sprite sprite = Resources.Load<Sprite>(IconSpritePath);
         if (sprite == null)

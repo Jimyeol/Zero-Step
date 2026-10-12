@@ -22,9 +22,20 @@ public class ChargeTile : MonoBehaviour
     {
         tile = GetComponent<Tile>();
         tileSpriteRenderer = GetComponent<SpriteRenderer>();
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 선 대신 모서리 잉크색 "+" 아이콘.
+            clayIcon = VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Plus);
+            if (clayIcon != null)
+                clayIconBaseScale = clayIcon.transform.localScale;
+            return;
+        }
         glyphHorizontal = CreateGlyphLine("ChargeGlyphH");
         glyphVertical = CreateGlyphLine("ChargeGlyphV");
     }
+
+    private SpriteRenderer clayIcon;
+    private Vector3 clayIconBaseScale;
 
     private LineRenderer CreateGlyphLine(string objectName)
     {
@@ -56,6 +67,12 @@ public class ChargeTile : MonoBehaviour
     private void LateUpdate()
     {
         bool visible = tile != null && tile.IsActive && !tile.IsGameOverBlackoutActive && transform.localScale.sqrMagnitude > 0.0001f;
+        if (clayIcon != null)
+        {
+            clayIcon.enabled = visible;
+            clayIcon.transform.localScale = clayIconBaseScale * (Time.unscaledTime < pulseUntil ? 1.3f : 1f);
+            return;
+        }
         if (glyphHorizontal == null || glyphVertical == null)
             return;
         glyphHorizontal.enabled = visible;

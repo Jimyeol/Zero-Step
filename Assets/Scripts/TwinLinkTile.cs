@@ -109,6 +109,12 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
     {
         linkID = id;
         linkColor = assignedColor;
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 짝 연결선은 테라코타, 타일에는 모서리 고리 아이콘 + 그룹 글자만 표시.
+            linkColor = VisualTheme.Accent;
+            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Link);
+        }
         groupBadgeLabel = string.IsNullOrWhiteSpace(badgeLabel) ? MakeFallbackBadgeLabel(id) : badgeLabel;
 
         if (tile != null)
@@ -258,7 +264,8 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
         }
         // 효과 강도 Minimal에서는 상시 번개를 끄고(그룹 배지로 연결을 표시), Reduced에서는 절반 빈도로 친다.
         float effectIntensity = GameplayFeedback.Intensity;
-        bool idleBoltsEnabled = effectIntensity > 0f;
+        // 점토 테마에는 상시 번개를 쓰지 않는다(고리 아이콘과 그룹 글자로 연결을 표시).
+        bool idleBoltsEnabled = effectIntensity > 0f && !VisualTheme.IsSoftClay;
         SetBoltsActive(idleBoltsEnabled);
         UpdateBadgeVisibility();
         if (!idleBoltsEnabled)
@@ -711,6 +718,19 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
         Material mat = badgeText.fontMaterial;
         if (mat == null)
             return;
+        if (VisualTheme.IsSoftClay)
+        {
+            badgeText.color = WithAlpha(VisualTheme.Ink, 0.78f);
+            badgeText.fontStyle = FontStyles.Bold;
+            if (mat.HasProperty(ShaderUtilities.ID_FaceColor))
+                mat.SetColor(ShaderUtilities.ID_FaceColor, Color.white);
+            if (mat.HasProperty(ShaderUtilities.ID_OutlineWidth))
+                mat.SetFloat(ShaderUtilities.ID_OutlineWidth, 0f);
+            mat.DisableKeyword(ShaderUtilities.Keyword_Glow);
+            badgeText.UpdateMeshPadding();
+            badgeText.SetMaterialDirty();
+            return;
+        }
 
         Color face = WithAlpha(linkColor, 0.18f);
         Color outline = WithAlpha(linkColor, 1f);

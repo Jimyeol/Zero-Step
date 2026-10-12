@@ -78,6 +78,8 @@ public class ShortCircuitTile : MonoBehaviour
 
     private void UpdateFlowChevron()
     {
+        if (VisualTheme.IsSoftClay)
+            return;
         EnsureFlowChevron();
         if (flowChevron == null)
             return;
@@ -128,6 +130,8 @@ public class ShortCircuitTile : MonoBehaviour
         exitX = cx + dirX;
         exitY = cy + dirY;
         ApplyDirectionVisualRotation();
+        if (VisualTheme.IsSoftClay)
+            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Arrow, GetClayArrowRotation());
     }
 
     private void ParseDirection(string dir)
@@ -157,6 +161,9 @@ public class ShortCircuitTile : MonoBehaviour
     private void ApplyTileSprite()
     {
         if (spriteRenderer == null)
+            return;
+        // 점토 테마: 전용 타일 그림 대신 기본 점토 타일 + 모서리 화살표(Setup에서 방향 확정 후 붙임).
+        if (VisualTheme.IsSoftClay)
             return;
 
         tileSprite = Resources.Load<Sprite>(tileSpritePath);
@@ -216,6 +223,14 @@ public class ShortCircuitTile : MonoBehaviour
             return;
 
         directionVisualTransform.localEulerAngles = new Vector3(0f, 0f, GetSpriteRotationZ());
+    }
+
+    /// <summary>모서리 화살표 회전(아이콘은 오른쪽을 가리킨다).</summary>
+    private float GetClayArrowRotation()
+    {
+        if (dirX > 0) return 0f;
+        if (dirX < 0) return 180f;
+        return dirY > 0 ? 90f : -90f;
     }
 
     private float GetSpriteRotationZ()

@@ -120,7 +120,22 @@ public class ProceduralGridBackground : MonoBehaviour
 
     private void Awake()
     {
+        ApplyVisualTheme();
         EnsureSetup();
+    }
+
+    /// <summary>A2 소프트 클레이: 따뜻한 종이색 단색 배경. 격자 선·움직임·발광은 끈다.</summary>
+    private void ApplyVisualTheme()
+    {
+        if (!VisualTheme.IsSoftClay)
+            return;
+        basePlaneColor = VisualTheme.Paper;
+        Color line = VisualTheme.Paper;
+        line.a = 0f;
+        gridLineColor = line;
+        glowIntensity = 0f;
+        enableCoreGlow = false;
+        gridMotionEnabled = false;
     }
 
     private void OnEnable()
@@ -630,7 +645,7 @@ public class ProceduralGridBackground : MonoBehaviour
 
     private void AdvanceGridMotion()
     {
-        if (!gridMotionEnabled || gridMaterial == null || gridScrollSpeed <= 0f)
+        if (VisualTheme.IsSoftClay || !gridMotionEnabled || gridMaterial == null || gridScrollSpeed <= 0f)
             return;
 
         if (gridScrollDirection.sqrMagnitude <= MetricEpsilon)
