@@ -111,9 +111,11 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
         linkColor = assignedColor;
         if (VisualTheme.IsSoftClay)
         {
-            // 점토 테마: 짝 연결선은 테라코타, 타일에는 모서리 고리 아이콘 + 그룹 글자만 표시.
-            linkColor = VisualTheme.Accent;
+            // 점토 테마: 그룹마다 고유 색(외곽선 + 둥근 글자 배지)으로 짝을 한눈에 구분하고,
+            // 이 칸에 서 있으면 짝 칸까지 점선으로 이어 준다(UpdateClayLinkVisuals).
+            linkColor = VisualTheme.LinkGroupColor(id);
             VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Link);
+            EnsureClayLinkRing();
         }
         groupBadgeLabel = string.IsNullOrWhiteSpace(badgeLabel) ? MakeFallbackBadgeLabel(id) : badgeLabel;
 
@@ -155,6 +157,158 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
         CreateBoltInstances();
         ApplyBoltColor(normalLineColor);
         UpdateBadgeVisibility();
+    }
+
+    // ---- 점토 테마 짝꿍 표시 ----
+    private SpriteRenderer clayRing;
+    private SpriteRenderer clayBadgeDot;
+    private readonly List<LineRenderer> clayConnectors = new List<LineRenderer>();
+    private static Material clayDottedMaterial;
+
+    private void EnsureClayLinkRing()
+    {
+        if (clayRing != null)
+            return;
+        var go = new GameObject("ClayLinkRing");
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = new Vector3(0f, 0f, -0.01f);
+        clayRing = go.AddComponent<SpriteRenderer>();
+        clayRing.sprite = VisualTheme.RingSprite;
+        clayRing.color = WithAlpha(linkColor, 0.9f);
+        if (spriteRenderer != null)
+            clayRing.sortingOrder = spriteRenderer.sortingOrder + 2;
+        go.AddComponent<ClayCornerIcon>();
+    }
+
+    private void EnsureClayBadgeDot(Vector3 localPosition, float halfSize)
+    {
+        Sprite dot = VisualTheme.IconSprite(VisualTheme.Icon.Dot);
+        if (dot == null)
+            return;
+        if (clayBadgeDot == null)
+        {
+            var go = new GameObject("ClayLinkBadgeDot");
+            go.transform.SetParent(transform, false);
+            clayBadgeDot = go.AddComponent<SpriteRenderer>();
+            clayBadgeDot.sprite = dot;
+            go.AddComponent<ClayCornerIcon>();
+        }
+        // 점 아이콘은 256px 중 지름 80px 원 → 원하는 지름(타일 폭의 30%)에 맞춘다.
+        float dotDiameter = dot.bounds.size.x * (80f / 256f);
+        clayBadgeDot.transform.localPosition = localPosition + new Vector3(0f, 0f, 0.01f);
+        clayBadgeDot.transform.localScale = Vector3.one * (halfSize * 2f * 0.3f / Mathf.Max(0.0001f, dotDiameter));
+        clayBadgeDot.color = linkColor;
+    }
+
+    private LineRenderer GetClayConnector(int index)
+    {
+        while (clayConnectors.Count <= index)
+        {
+            var go = new GameObject("ClayLinkConnector");
+            go.transform.SetParent(transform, false);
+            var line = go.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.positionCount = 2;
+            line.numCapVertices = 4;
+            line.textureMode = LineTextureMode.Tile;
+            line.material = ResolveClayDottedMaterial();
+            line.enabled = false;
+            clayConnectors.Add(line);
+        }
+        return clayConnectors[index];
+    }
+
+    /// <summary>점선용 머티리얼(둥근 점 하나 + 빈칸을 반복하는 작은 텍스처).</summary>
+    private static Material ResolveClayDottedMaterial()
+    {
+        if (clayDottedMaterial != null)
+            return clayDottedMaterial;
+        const int w = 32, h = 16;
+        var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear, hideFlags = HideFlags.DontSave };
+        var pixels = new Color[w * h];
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                float dx = x + 0.5f - 8f, dy = y + 0.5f - 8f;
+                float d = Mathf.Sqrt(dx * dx + dy * dy);
+                pixels[y * w + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(7f - d));
+            }
+        tex.SetPixels(pixels);
+        tex.Apply();
+        Shader shader = Shader.Find("Sprites/Default");
+        clayDottedMaterial = new Material(shader) { mainTexture = tex, hideFlags = HideFlags.DontSave };
+        return clayDottedMaterial;
+    }
+
+    /// <summary>
+    /// 점토 테마: 지금 서 있는 칸(VisualTheme.FocusTile)이 이 그룹이면 외곽선이 맥박치고,
+    /// 이 칸이 바로 그 칸이면 짝 칸들까지 그룹 색 점선을 잇는다.
+    /// </summary>
+    private void UpdateClayLinkVisuals()
+    {
+        Tile focus = VisualTheme.FocusTile;
+        bool alive = tile != null && tile.IsActive && !IsInGameOverBlackout();
+        bool focusIsThis = alive && focus == tile;
+        bool focusInGroup = focusIsThis;
+        if (!focusInGroup && alive && focus != null)
+        {
+            for (int i = 0; i < partners.Count; i++)
+            {
+                if (partners[i] != null && partners[i].tile == focus)
+                {
+                    focusInGroup = true;
+                    break;
+                }
+            }
+        }
+
+        if (clayRing != null)
+        {
+            float pulse = focusInGroup ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 7f) : 0f;
+            clayRing.color = WithAlpha(linkColor, focusInGroup ? 0.75f + 0.25f * pulse : 0.9f);
+            clayRing.transform.localScale = Vector3.one * (1f + 0.05f * pulse * Mathf.Max(0.3f, GameplayFeedback.Intensity));
+        }
+
+        // 배지 정렬 순서는 타일(하트비트로 +100 될 수 있음)을 따라간다.
+        if (badgeText != null && spriteRenderer != null)
+        {
+            Renderer badgeRenderer = badgeText.GetComponent<Renderer>();
+            if (badgeRenderer != null)
+                badgeRenderer.sortingOrder = spriteRenderer.sortingOrder + 4;
+        }
+        if (clayBadgeDot != null)
+            clayBadgeDot.color = linkColor;
+
+        int used = 0;
+        if (focusIsThis)
+        {
+            float tileWorld = TileHalfSize() * 2f;
+            for (int i = 0; i < partners.Count; i++)
+            {
+                TwinLinkTile partner = partners[i];
+                if (partner == null || partner.tile == null || !partner.tile.IsActive)
+                    continue;
+                LineRenderer line = GetClayConnector(used++);
+                Vector3 a = transform.position;
+                Vector3 b = partner.transform.position;
+                Vector3 dir = (b - a).normalized;
+                a += dir * tileWorld * 0.42f;
+                b -= dir * tileWorld * 0.42f;
+                a.z = b.z = -0.4f;
+                line.enabled = true;
+                line.SetPosition(0, a);
+                line.SetPosition(1, b);
+                line.widthMultiplier = tileWorld * 0.09f;
+                line.sortingOrder = 130;
+                Color c = WithAlpha(linkColor, 0.85f);
+                line.startColor = c;
+                line.endColor = c;
+                // 점선이 짝 쪽으로 흐르게 텍스처를 민다.
+                line.material.mainTextureOffset = new Vector2(-Time.unscaledTime * 2f, 0f);
+            }
+        }
+        for (int i = used; i < clayConnectors.Count; i++)
+            clayConnectors[i].enabled = false;
     }
 
     private float TileHalfSize()
@@ -246,6 +400,8 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
     {
         if (GameManager.IsPerformanceOverlayOpen)
             return;
+        if (VisualTheme.IsSoftClay)
+            UpdateClayLinkVisuals();
 
         if (IsInGameOverBlackout())
         {
@@ -704,6 +860,14 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
             return;
 
         float h = TileHalfSize();
+        if (VisualTheme.IsSoftClay)
+        {
+            // 점토 테마: 왼쪽 위 모서리(고리 아이콘의 반대편)에 둥근 색 배지 + 흰 글자.
+            Vector3 corner = new Vector3(-h * 0.52f, h * 0.54f, -0.035f);
+            badgeTransform.localPosition = corner;
+            EnsureClayBadgeDot(corner, h);
+            return;
+        }
         badgeTransform.localPosition = new Vector3(-h * 0.46f, h * 0.48f, -0.035f);
     }
 
@@ -720,7 +884,7 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
             return;
         if (VisualTheme.IsSoftClay)
         {
-            badgeText.color = WithAlpha(VisualTheme.Ink, 0.78f);
+            badgeText.color = Color.white;
             badgeText.fontStyle = FontStyles.Bold;
             if (mat.HasProperty(ShaderUtilities.ID_FaceColor))
                 mat.SetColor(ShaderUtilities.ID_FaceColor, Color.white);

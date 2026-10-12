@@ -802,10 +802,27 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
+    private ClayStartMarker clayStartMarker;
+
     private void LateUpdate()
     {
         if (hintHaloPairs.Count > 0)
             SyncHintHalos();
+        UpdateClayFocus();
+    }
+
+    /// <summary>점토 테마: 지금 시작할 칸에 외곽선·물결 표시를 붙이고, 짝꿍 연결 표시용 현재 칸을 알린다.</summary>
+    private void UpdateClayFocus()
+    {
+        if (!VisualTheme.IsSoftClay)
+            return;
+        Tile head = isDragging && currentPath.Count > 0 ? currentPath[currentPath.Count - 1] : currentStartTile;
+        VisualTheme.FocusTile = stageCleared || isGameOverSequencePlaying ? null : head;
+
+        if (clayStartMarker == null)
+            clayStartMarker = ClayStartMarker.Create(transform);
+        bool idle = !isDragging && !stageCleared && !isGameOverSequencePlaying;
+        clayStartMarker.SetTarget(idle ? currentStartTile : null);
     }
 
     private void Update()

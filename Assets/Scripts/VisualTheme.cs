@@ -49,6 +49,29 @@ public static class VisualTheme
 
     public static Sprite TileSprite => tileSprite != null ? tileSprite : (tileSprite = Resources.Load<Sprite>(SpriteFolder + "clay_tile"));
     public static Sprite SlotSprite => slotSprite != null ? slotSprite : (slotSprite = Resources.Load<Sprite>(SpriteFolder + "clay_slot"));
+    private static Sprite ringSprite;
+    /// <summary>점토 타일 윗면 둘레에 맞춘 흰 외곽선(색을 입혀 시작점·짝꿍 그룹 표시에 쓴다).</summary>
+    public static Sprite RingSprite => ringSprite != null ? ringSprite : (ringSprite = Resources.Load<Sprite>(SpriteFolder + "clay_ring"));
+
+    /// <summary>짝꿍(TwinLink) 그룹 색: 타일 점토색·시작점 테라코타와 겹치지 않는 진한 색(청록, 자두, 황토, 남색, 올리브, 숲초록).</summary>
+    private static readonly Color[] LinkGroupColors =
+    {
+        new Color32(0x2E, 0x86, 0x8C, 0xFF),
+        new Color32(0x8E, 0x4C, 0x82, 0xFF),
+        new Color32(0xB5, 0x7E, 0x1E, 0xFF),
+        new Color32(0x45, 0x5F, 0xA8, 0xFF),
+        new Color32(0x6B, 0x7F, 0x2A, 0xFF),
+        new Color32(0x2F, 0x6B, 0x4F, 0xFF),
+    };
+
+    public static Color LinkGroupColor(int linkId)
+    {
+        int index = ((linkId % LinkGroupColors.Length) + LinkGroupColors.Length) % LinkGroupColors.Length;
+        return LinkGroupColors[index];
+    }
+
+    /// <summary>현재 플레이어가 서 있거나(대기 중) 드래그로 머리가 있는 타일. 짝꿍 연결 표시 등에 쓴다.</summary>
+    public static Tile FocusTile;
 
     public static Sprite IconSprite(Icon icon)
     {
