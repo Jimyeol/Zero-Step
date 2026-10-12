@@ -46,13 +46,30 @@ public class VisualCaptureTests
         if (uss != null)
             root.styleSheets.Add(uss);
         root.style.backgroundColor = Color.black;
-        var intro = new NeonIntroElement();
+        VisualElement intro;
+        System.Action<float> setTime;
+        if (VisualTheme.IsSoftClay)
+        {
+            root.AddToClassList("theme-clay");
+            StyleSheet clayUss = AssetDatabase.LoadAssetAtPath<StyleSheet>("Assets/Resources/GameMainUI_SoftClay.uss");
+            if (clayUss != null)
+                root.styleSheets.Add(clayUss);
+            var clay = new ClayIntroElement();
+            intro = clay;
+            setTime = clay.SetTime;
+        }
+        else
+        {
+            var neon = new NeonIntroElement();
+            intro = neon;
+            setTime = neon.SetTime;
+        }
         root.Add(intro);
 
         float[] times = { 0.1f, 0.3f, 0.5f, 0.7f, 0.9f, 1.0f, 1.08f, 1.16f, 1.25f, 1.35f, 1.5f, 1.7f, 1.9f, 2.05f, 2.2f, 2.5f };
         foreach (float t in times)
         {
-            intro.SetTime(t);
+            setTime(t);
             for (int i = 0; i < 3; i++)
                 yield return null;
             SaveRenderTexture(rt, Path.Combine(outDir, $"intro_{Mathf.RoundToInt(t * 100):000}.png"));

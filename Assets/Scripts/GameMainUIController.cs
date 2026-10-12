@@ -541,7 +541,8 @@ public class GameMainUIController : MonoBehaviour
     private int lastStageTransitionInterstitialShownStage;
     private bool hasShownStageTransitionInterstitialThisSession;
     private VisualElement splashOverlay;
-    private NeonIntroElement splashIntro;
+    private VisualElement splashIntro;
+    private System.Action<float> splashIntroSetTime;
     private bool splashSkipRequested;
     private Label splashLoadingLabel;
     private VisualElement splashLoadingProgressFill;
@@ -1151,6 +1152,7 @@ public class GameMainUIController : MonoBehaviour
         isSplashClosing = false;
         splashOverlay = null;
         splashIntro = null;
+        splashIntroSetTime = null;
         splashLoadingLabel = null;
         splashLoadingProgressFill = null;
     }
@@ -3044,7 +3046,20 @@ public class GameMainUIController : MonoBehaviour
         splashOverlay.style.opacity = 1f;
 
         // 영상 대신 코드로 그리는 네온 인트로(약 1.9초). 두 번째 실행부터는 탭하면 바로 넘어간다.
-        splashIntro = new NeonIntroElement();
+        // 점토 테마는 종이·점토 인트로, 네온 테마는 네온 인트로(길이·SetTime 방식 동일).
+        if (VisualTheme.IsSoftClay)
+        {
+            var clayIntro = new ClayIntroElement();
+            splashIntro = clayIntro;
+            splashIntroSetTime = clayIntro.SetTime;
+            splashOverlay.style.backgroundColor = new StyleColor(VisualTheme.Paper);
+        }
+        else
+        {
+            var neonIntro = new NeonIntroElement();
+            splashIntro = neonIntro;
+            splashIntroSetTime = neonIntro.SetTime;
+        }
         splashOverlay.Add(splashIntro);
         splashOverlay.RegisterCallback<PointerDownEvent>(_ =>
         {
@@ -3083,7 +3098,7 @@ public class GameMainUIController : MonoBehaviour
             return;
 
         float elapsed = Time.unscaledTime - splashStartTime;
-        splashIntro?.SetTime(elapsed);
+        splashIntroSetTime?.Invoke(elapsed);
 
         if (splashLoadingLabel != null)
         {
@@ -3145,6 +3160,7 @@ public class GameMainUIController : MonoBehaviour
 
         splashOverlay = null;
         splashIntro = null;
+        splashIntroSetTime = null;
         splashLoadingLabel = null;
         splashLoadingProgressFill = null;
         splashFadeRoutine = null;
