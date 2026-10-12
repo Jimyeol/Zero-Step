@@ -6748,7 +6748,9 @@ public class GameManager : MonoBehaviour
         float margin = VisualTheme.IsSoftClay ? ClayFitMargin : fitMargin;
         float edge = VisualTheme.IsSoftClay ? 1f : screenEdgePadding;
         float sizeByHeight = (gridHeight * 0.5f * margin) / centerBandHeight;
-        float sizeByWidth = (gridWidth * 0.5f) / safeAspect * margin;
+        // 점토 테마: 가로는 좌우에 여백(각 약 6%)을 두어 타일·시작점 물결이 화면 끝에 붙거나 잘리지 않게 한다.
+        float widthMargin = VisualTheme.IsSoftClay ? ClayWidthFitMargin : margin;
+        float sizeByWidth = (gridWidth * 0.5f) / safeAspect * widthMargin;
         float fitSize = Mathf.Max(sizeByHeight, sizeByWidth) * edge;
         if (VisualTheme.IsSoftClay && tileWidth > 0f)
         {
@@ -6780,6 +6782,7 @@ public class GameManager : MonoBehaviour
     }
 
     private const float ClayFitMargin = 1.03f;
+    private const float ClayWidthFitMargin = 1.14f;
     private const float ClayMaxTileScreenWidth = 0.24f;
 
     private float CalculateStageBottomGameplayBoostNormalized()
