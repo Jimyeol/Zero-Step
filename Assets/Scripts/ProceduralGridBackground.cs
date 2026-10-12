@@ -490,6 +490,9 @@ public class ProceduralGridBackground : MonoBehaviour
         basePlane = EnsurePlane(BasePlaneName, baseMaterial, baseSortingOrder);
         gridPlane = EnsurePlane(GridPlaneName, gridMaterial, gridSortingOrder);
         glowPlane = EnsurePlane(BottomGlowName, glowMaterial, glowSortingOrder);
+        // 점토 테마: 밝은 종이 위에서는 하단 발광이 어두운 얼룩으로 보이므로 끈다.
+        if (glowPlane != null && VisualTheme.IsSoftClay)
+            glowPlane.gameObject.SetActive(false);
         coreGlowPlane = EnsurePlane(BottomGlowCoreName, coreGlowMaterial, coreGlowSortingOrder);
         if (coreGlowPlane != null)
             coreGlowPlane.gameObject.SetActive(enableCoreGlow);

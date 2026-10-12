@@ -62,8 +62,8 @@
 }
 
 /* round clay buttons: light face + darker bottom lip reads as a raised block */
-.theme-clay .top-setting-button,
-.theme-clay .neon-action-button {
+.theme-clay .top-hud .top-setting-button,
+.theme-clay .bottom-bar-neon .neon-action-button {
     background-color: rgb(251, 248, 243);
     border-left-width: 0;
     border-right-width: 0;
@@ -75,7 +75,7 @@
     border-bottom-left-radius: 999px;
     border-bottom-right-radius: 999px;
 }
-.theme-clay .top-setting-button:hover {
+.theme-clay .top-hud .top-setting-button:hover {
     background-color: rgb(255, 252, 248);
     border-bottom-color: rgb(216, 207, 194);
 }
@@ -113,4 +113,14 @@
 .clay-intro-text {
     -unity-font-definition: url("project://database/Assets/TextMesh%20Pro/Fonts/LiberationSans.ttf?fileID=12800000&guid=e3265ab4bf004d28a9537516768c1c75&type=3#LiberationSans");
     -unity-font-style: bold;
+}
+
+/* 레이아웃별 규칙(.top-hud.layout-*)보다 우선하도록 설정 버튼 테두리 색을 한 번 더 고정 */
+.theme-clay .top-hud .top-setting-button,
+.theme-clay .top-hud.layout-compact-height .top-setting-button,
+.theme-clay .top-hud.layout-tablet-4by3 .top-setting-button {
+    border-left-color: rgba(0, 0, 0, 0);
+    border-right-color: rgba(0, 0, 0, 0);
+    border-top-color: rgba(0, 0, 0, 0);
+    border-bottom-color: rgb(216, 207, 194);
 }
