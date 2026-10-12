@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 4,
+  "stageID": 282,
+  "width": 5,
+  "height": 3,
   "startPoint": {
-    "x": 0,
+    "x": 2,
     "y": 1
   },
   "config": {
@@ -14,72 +14,94 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 1,
       "y": 0,
       "count": 1,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G99"
     },
     {
-      "x": 0,
-      "y": 1,
+      "x": 2,
+      "y": 0,
       "count": 3,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 1,
+      "x": 3,
+      "y": 0,
       "count": 4,
-      "type": "Normal"
+      "type": "Igniter",
+      "targetID": "G83"
     },
     {
-      "x": 2,
+      "x": 4,
+      "y": 0,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G33"
+    },
+    {
+      "x": 0,
       "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 2,
-      "count": 1,
+      "y": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 2,
-      "count": 4,
+      "y": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 3,
+      "y": 1,
+      "count": 4,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
       "y": 2,
-      "count": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 3,
+      "y": 2,
       "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 12,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Igniter",
+      "targetID": "G99"
     },
     {
       "x": 3,
-      "y": 3,
+      "y": 2,
       "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 11,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Igniter",
+      "targetID": "G33"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G83"
     }
   ]
 }

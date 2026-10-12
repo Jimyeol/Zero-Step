@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 224,
   "width": 4,
-  "height": 5,
+  "height": 4,
   "startPoint": {
-    "x": 2,
-    "y": 0
+    "x": 3,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -16,27 +16,11 @@
     {
       "x": 0,
       "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 0,
-      "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 11,
-      "properties": {
-        "isAbsolute": true
-      }
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
       "y": 0,
       "count": 1,
       "type": "Normal"
@@ -44,8 +28,9 @@
     {
       "x": 0,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G57"
     },
     {
       "x": 1,
@@ -56,7 +41,7 @@
     {
       "x": 2,
       "y": 1,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -69,9 +54,7 @@
       "x": 0,
       "y": 2,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 237,
-      "color": "#a78bfa"
+      "type": "Normal"
     },
     {
       "x": 1,
@@ -92,33 +75,25 @@
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 0,
       "y": 3,
       "count": 1,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#f59e0b"
-      }
+      "type": "Igniter",
+      "targetID": "G57"
     },
     {
-      "x": 3,
+      "x": 1,
       "y": 3,
       "count": 2,
-      "type": "BlindCurtain"
+      "type": "Hidden",
+      "groupID": "G57"
     },
     {
       "x": 2,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 237,
-      "color": "#a78bfa"
+      "y": 3,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G57"
     }
   ]
 }

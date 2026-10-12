@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 284,
   "width": 4,
-  "height": 8,
+  "height": 4,
   "startPoint": {
-    "x": 3,
-    "y": 7
+    "x": 1,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -14,24 +14,20 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 178,
-      "color": "#22d3ee"
-    },
-    {
       "x": 1,
       "y": 0,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 524,
-      "color": "#22d3ee"
+      "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
+      "x": 2,
+      "y": 0,
+      "count": 3,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 3,
+      "y": 0,
       "count": 3,
       "type": "Normal"
     },
@@ -39,97 +35,59 @@
       "x": 1,
       "y": 1,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 524,
-      "color": "#22d3ee"
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "BlindCurtain"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 4,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G50"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 40,
-      "color": "#34d399"
-    },
-    {
-      "x": 3,
-      "y": 2,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 178,
-      "color": "#22d3ee"
+      "type": "Igniter",
+      "targetID": "G50"
     },
     {
       "x": 0,
       "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
+      "count": 3,
+      "type": "FixedKnot",
+      "targetOrder": 15,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 1,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 6,
-      "count": 2,
+      "y": 3,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 6,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 6,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 7,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 7,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 40,
-      "color": "#34d399"
-    },
-    {
-      "x": 3,
-      "y": 7,
+      "y": 3,
       "count": 1,
       "type": "Normal"
     }

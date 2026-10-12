@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
-  "height": 6,
+  "stageID": 274,
+  "width": 4,
+  "height": 5,
   "startPoint": {
     "x": 2,
-    "y": 4
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -14,39 +14,46 @@
   },
   "cells": [
     {
+      "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
       "x": 0,
-      "y": 0,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
       "count": 2,
-      "type": "Hidden",
-      "groupID": "G61"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 4,
-      "type": "Hidden",
-      "groupID": "G75"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G82"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G75"
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G61"
+      "type": "Normal"
     },
     {
       "x": 2,
@@ -55,14 +62,14 @@
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 3,
+      "y": 2,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 4,
       "count": 2,
       "type": "Normal"
     },
@@ -71,33 +78,6 @@
       "y": 4,
       "count": 1,
       "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 5,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G42"
-    },
-    {
-      "x": 3,
-      "y": 5,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G42"
-    },
-    {
-      "x": 4,
-      "y": 5,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 5,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G82"
     }
   ]
 }

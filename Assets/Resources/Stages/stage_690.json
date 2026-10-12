@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 690,
   "width": 3,
-  "height": 5,
+  "height": 6,
   "startPoint": {
-    "x": 0,
-    "y": 4
+    "x": 2,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -14,14 +14,20 @@
   },
   "cells": [
     {
-      "x": 1,
+      "x": 0,
       "y": 0,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 1,
       "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
       "count": 2,
       "type": "Normal"
     },
@@ -29,11 +35,13 @@
       "x": 1,
       "y": 1,
       "count": 3,
-      "type": "BlindCurtain"
+      "type": "TwinLink",
+      "linkID": 529,
+      "color": "#22d3ee"
     },
     {
-      "x": 2,
-      "y": 1,
+      "x": 0,
+      "y": 2,
       "count": 1,
       "type": "Normal"
     },
@@ -41,19 +49,33 @@
       "x": 1,
       "y": 2,
       "count": 1,
-      "type": "BlindCurtain"
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 1,
+      "type": "Charge"
     },
     {
       "x": 0,
       "y": 3,
-      "count": 1,
-      "type": "BlindCurtain"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 529,
+      "color": "#22d3ee"
     },
     {
       "x": 0,
@@ -64,8 +86,36 @@
     {
       "x": 1,
       "y": 4,
-      "count": 3,
-      "type": "BlindCurtain"
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Right"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 529,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
     }
   ]
 }

@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 6,
+  "stageID": 870,
+  "width": 4,
+  "height": 4,
   "startPoint": {
-    "x": 2,
-    "y": 5
+    "x": 1,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -13,6 +13,16 @@
     "showGridLines": false
   },
   "cells": [
+    {
+      "x": 1,
+      "y": 0,
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 24,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
     {
       "x": 2,
       "y": 0,
@@ -23,22 +33,13 @@
       "x": 0,
       "y": 1,
       "count": 2,
-      "type": "TwinLink",
-      "linkID": 740,
-      "color": "#00FBFF"
+      "type": "ShortCircuit",
+      "direction": "Right"
     },
     {
       "x": 1,
       "y": 1,
       "count": 2,
-      "type": "TwinLink",
-      "linkID": 382,
-      "color": "#38bdf8"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 1,
       "type": "Normal"
     },
     {
@@ -50,7 +51,7 @@
     {
       "x": 1,
       "y": 2,
-      "count": 3,
+      "count": 5,
       "type": "Normal"
     },
     {
@@ -62,60 +63,39 @@
     {
       "x": 3,
       "y": 2,
-      "count": 2,
+      "count": 3,
       "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 984,
+      "color": "#00FBFF"
     },
     {
       "x": 1,
       "y": 3,
       "count": 2,
-      "type": "Normal"
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FFFF"
+      }
     },
     {
       "x": 2,
       "y": 3,
-      "count": 3,
+      "count": 4,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 3,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 2,
+      "count": 4,
       "type": "TwinLink",
-      "linkID": 740,
+      "linkID": 984,
       "color": "#00FBFF"
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 382,
-      "color": "#38bdf8"
-    },
-    {
-      "x": 4,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
     }
   ]
 }

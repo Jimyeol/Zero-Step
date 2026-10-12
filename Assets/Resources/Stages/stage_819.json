@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 5,
+  "stageID": 819,
+  "width": 5,
+  "height": 4,
   "startPoint": {
     "x": 0,
-    "y": 0
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -14,10 +14,21 @@
   },
   "cells": [
     {
-      "x": 0,
+      "x": 1,
       "y": 0,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Right"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 11,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 0,
@@ -28,25 +39,43 @@
     {
       "x": 1,
       "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 195,
-      "color": "#22d3ee"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 3,
+      "count": 4,
       "type": "Normal"
     },
     {
       "x": 2,
+      "y": 1,
+      "count": 4,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Right"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 2,
+      "type": "ShortCircuit",
+      "direction": "Up"
+    },
+    {
+      "x": 3,
       "y": 2,
       "count": 1,
       "type": "Normal"
@@ -54,24 +83,26 @@
     {
       "x": 0,
       "y": 3,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G96"
+      "count": 3,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G96"
+      "count": 3,
+      "type": "BlindCurtain"
     },
     {
-      "x": 0,
-      "y": 4,
+      "x": 2,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 195,
-      "color": "#22d3ee"
+      "type": "Normal"
     }
   ]
 }

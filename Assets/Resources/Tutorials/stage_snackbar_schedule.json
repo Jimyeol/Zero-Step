@@ -1,9 +1,9 @@
 {
   "entries": [
     {
-      "id": "tile_unlock_preview_48_to_50",
-      "stageIndex": 48,
-      "targetStageIndex": 50,
+      "id": "tile_unlock_preview_19_to_21",
+      "stageIndex": 19,
+      "targetStageIndex": 21,
       "tileType": "ShortCircuit",
       "displayName": "ShortCircuit",
       "messageKey": "snackbar_default_new_tile_unlock",
@@ -11,9 +11,9 @@
       "duration": 2.8
     },
     {
-      "id": "tile_unlock_preview_98_to_100",
-      "stageIndex": 98,
-      "targetStageIndex": 100,
+      "id": "tile_unlock_preview_49_to_51",
+      "stageIndex": 49,
+      "targetStageIndex": 51,
       "tileType": "CrossBlast",
       "displayName": "CrossBlast",
       "messageKey": "snackbar_default_new_tile_unlock",
@@ -21,9 +21,9 @@
       "duration": 2.8
     },
     {
-      "id": "tile_unlock_preview_113_to_115",
-      "stageIndex": 113,
-      "targetStageIndex": 115,
+      "id": "tile_unlock_preview_99_to_101",
+      "stageIndex": 99,
+      "targetStageIndex": 101,
       "tileType": "FixedKnot",
       "displayName": "Fixed",
       "messageKey": "snackbar_default_new_tile_unlock",
@@ -31,9 +31,9 @@
       "duration": 2.8
     },
     {
-      "id": "tile_unlock_preview_138_to_140",
-      "stageIndex": 138,
-      "targetStageIndex": 140,
+      "id": "tile_unlock_preview_149_to_151",
+      "stageIndex": 149,
+      "targetStageIndex": 151,
       "tileType": "TwinLink",
       "displayName": "TwinLink",
       "messageKey": "snackbar_default_new_tile_unlock",
@@ -41,9 +41,9 @@
       "duration": 2.8
     },
     {
-      "id": "tile_unlock_preview_168_to_170",
-      "stageIndex": 168,
-      "targetStageIndex": 170,
+      "id": "tile_unlock_preview_199_to_201",
+      "stageIndex": 199,
+      "targetStageIndex": 201,
       "tileType": "Igniter",
       "displayName": "Igniter",
       "messageKey": "snackbar_default_new_tile_unlock",
@@ -51,9 +51,9 @@
       "duration": 2.8
     },
     {
-      "id": "tile_unlock_preview_198_to_200",
-      "stageIndex": 198,
-      "targetStageIndex": 200,
+      "id": "tile_unlock_preview_249_to_251",
+      "stageIndex": 249,
+      "targetStageIndex": 251,
       "tileType": "BlindCurtain",
       "displayName": "BlindCurtain",
       "messageKey": "snackbar_default_new_tile_unlock",
@@ -61,11 +61,21 @@
       "duration": 2.8
     },
     {
-      "id": "tile_unlock_preview_228_to_230",
-      "stageIndex": 228,
-      "targetStageIndex": 230,
+      "id": "tile_unlock_preview_299_to_301",
+      "stageIndex": 299,
+      "targetStageIndex": 301,
       "tileType": "Blackout",
       "displayName": "BlackOut",
+      "messageKey": "snackbar_default_new_tile_unlock",
+      "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
+      "duration": 2.8
+    },
+    {
+      "id": "tile_unlock_preview_399_to_401",
+      "stageIndex": 399,
+      "targetStageIndex": 401,
+      "tileType": "Charge",
+      "displayName": "Charge",
       "messageKey": "snackbar_default_new_tile_unlock",
       "message": "새로운 타입의 타일이 열립니다! {remainingStages}스테이지 남았습니다.",
       "duration": 2.8

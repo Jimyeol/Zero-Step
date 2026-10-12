@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 3,
+  "stageID": 179,
+  "width": 4,
+  "height": 7,
   "startPoint": {
-    "x": 1,
-    "y": 2
+    "x": 2,
+    "y": 4
   },
   "config": {
     "mode": "Normal",
@@ -16,82 +16,87 @@
     {
       "x": 0,
       "y": 0,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G23"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G71"
-    },
-    {
-      "x": 2,
-      "y": 0,
       "count": 1,
       "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G71"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
       "count": 2,
-      "type": "Hidden",
-      "groupID": "G45"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G25"
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G45"
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 1,
-      "y": 2,
+      "y": 4,
       "count": 1,
+      "type": "TwinLink",
+      "linkID": 21,
+      "color": "#00FBFF"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "y": 5,
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FBFF"
+      }
     },
     {
       "x": 3,
-      "y": 2,
-      "count": 3,
-      "type": "Hidden",
-      "groupID": "G23"
+      "y": 5,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 21,
+      "color": "#00FBFF"
     },
     {
-      "x": 4,
-      "y": 2,
-      "count": 3,
-      "type": "Igniter",
-      "targetID": "G25"
+      "x": 0,
+      "y": 6,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 6,
+      "count": 2,
+      "type": "Normal"
     }
   ]
 }

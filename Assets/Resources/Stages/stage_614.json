@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
+  "stageID": 614,
+  "width": 5,
   "height": 6,
   "startPoint": {
     "x": 2,
-    "y": 3
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -23,111 +23,108 @@
       "x": 0,
       "y": 1,
       "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 12,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 2,
       "type": "CrossBlast",
       "properties": {
-        "beamColor": "#34d399"
-      }
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#a78bfa"
-      }
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 2,
-      "type": "FixedKnot",
-      "targetOrder": 8,
-      "properties": {
-        "isAbsolute": true
-      }
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 2,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#22d3ee"
+        "beamColor": "#00FFFF"
       }
     },
     {
       "x": 3,
-      "y": 4,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 5,
+      "y": 2,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G13"
+    },
+    {
+      "x": 2,
+      "y": 2,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 5,
+      "x": 4,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 3,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 5,
+      "y": 3,
       "count": 1,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FBFF"
-      }
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G13"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 2,
+      "type": "Charge"
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 3,

@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 61,
   "width": 3,
-  "height": 3,
+  "height": 4,
   "startPoint": {
     "x": 1,
-    "y": 1
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -22,7 +22,7 @@
     {
       "x": 1,
       "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -34,28 +34,38 @@
     {
       "x": 1,
       "y": 1,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Left"
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#34d399"
+      }
     },
     {
       "x": 1,
       "y": 2,
       "count": 2,
-      "type": "ShortCircuit",
-      "direction": "Right"
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#38bdf8"
+      }
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
-  "stageID": 0,
+  "stageID": 477,
   "width": 3,
-  "height": 3,
+  "height": 8,
   "startPoint": {
     "x": 2,
     "y": 0
@@ -22,7 +22,7 @@
     {
       "x": 1,
       "y": 0,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -34,18 +34,119 @@
     {
       "x": 1,
       "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G87"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G87"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Up"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G87"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 1,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#34d399"
+      }
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 6,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 2,
+      "y": 6,
       "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 7,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G87"
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G87"
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

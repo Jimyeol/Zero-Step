@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 3,
+  "stageID": 941,
+  "width": 6,
   "height": 6,
   "startPoint": {
     "x": 1,
-    "y": 5
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -16,28 +16,27 @@
     {
       "x": 0,
       "y": 0,
-      "count": 4,
-      "type": "Normal"
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G95"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 3,
+      "count": 5,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G43"
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G43"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 2,
@@ -46,49 +45,91 @@
       "type": "Normal"
     },
     {
+      "x": 1,
+      "y": 2,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 12,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
       "x": 2,
       "y": 2,
-      "count": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 4,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 0,
+      "x": 4,
       "y": 4,
-      "count": 1,
-      "type": "CrossBlast",
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "count": 5,
+      "type": "Hidden",
+      "groupID": "G95"
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 23,
       "properties": {
-        "beamColor": "#38bdf8"
+        "isAbsolute": true
       }
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 5,
-      "count": 3,
-      "type": "Normal"
     }
   ]
 }

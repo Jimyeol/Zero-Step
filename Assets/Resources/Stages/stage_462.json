@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 462,
   "width": 3,
-  "height": 4,
+  "height": 5,
   "startPoint": {
-    "x": 0,
-    "y": 2
+    "x": 2,
+    "y": 4
   },
   "config": {
     "mode": "Normal",
@@ -16,12 +16,24 @@
     {
       "x": 0,
       "y": 0,
-      "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 6,
+      "count": 2,
+      "type": "CrossBlast",
       "properties": {
-        "isAbsolute": true
+        "beamColor": "#00FFFF"
       }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "count": 3,
+      "type": "Hidden",
+      "groupID": "G57"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 0,
@@ -30,43 +42,70 @@
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 2,
       "y": 1,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "Charge"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G57"
     },
     {
       "x": 1,
       "y": 2,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Right"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 2,
-      "properties": {
-        "isAbsolute": true
-      }
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 3,
-      "count": 1,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 538,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
+      "type": "Igniter",
+      "targetID": "G57"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 538,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 2,
       "type": "Normal"
     }
   ]

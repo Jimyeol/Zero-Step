@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
+  "stageID": 466,
+  "width": 5,
   "height": 5,
   "startPoint": {
-    "x": 2,
-    "y": 3
+    "x": 3,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -14,157 +14,109 @@
   },
   "cells": [
     {
+      "x": 0,
+      "y": 0,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G28"
+    },
+    {
       "x": 1,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "ShortCircuit",
+      "direction": "Left"
     },
     {
       "x": 2,
       "y": 0,
-      "count": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 0,
-      "count": 1,
+      "count": 4,
       "type": "Normal"
     },
     {
       "x": 4,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 616,
+      "color": "#34d399"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
+      "count": 4,
+      "type": "Hidden",
+      "groupID": "G28"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 2,
+      "count": 5,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 1,
       "count": 2,
-      "type": "Normal"
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FFFF"
+      }
     },
     {
       "x": 4,
       "y": 1,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 1,
-      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 616,
+      "color": "#34d399"
     },
     {
       "x": 0,
       "y": 3,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 3,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 3,
-      "count": 3,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G28"
     },
     {
       "x": 0,
       "y": 4,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Right"
     },
     {
       "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
       "y": 4,
       "count": 1,
       "type": "Normal"

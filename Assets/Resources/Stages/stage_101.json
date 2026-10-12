@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 101,
   "width": 3,
   "height": 3,
   "startPoint": {
     "x": 2,
-    "y": 1
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -14,48 +14,43 @@
   },
   "cells": [
     {
-      "x": 0,
+      "x": 1,
       "y": 0,
       "count": 1,
-      "type": "CrossBlast",
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 6,
       "properties": {
-        "beamColor": "#38bdf8"
+        "isAbsolute": true
       }
     },
     {
-      "x": 1,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
       "y": 1,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {

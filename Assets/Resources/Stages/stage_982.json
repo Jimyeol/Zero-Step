@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 2,
-  "height": 4,
+  "stageID": 982,
+  "width": 7,
+  "height": 3,
   "startPoint": {
-    "x": 0,
-    "y": 0
+    "x": 2,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -16,11 +16,37 @@
     {
       "x": 0,
       "y": 0,
+      "count": 5,
+      "type": "TwinLink",
+      "linkID": 305,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 4,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
       "y": 0,
       "count": 1,
       "type": "Normal"
@@ -28,19 +54,56 @@
     {
       "x": 0,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 305,
+      "color": "#22d3ee"
     },
     {
       "x": 1,
+      "y": 1,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Up"
+    },
+    {
+      "x": 2,
       "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
+      "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G90"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 305,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G90"
+    },
+    {
       "x": 0,
       "y": 2,
-      "count": 2,
+      "count": 3,
       "type": "Normal"
     },
     {
@@ -50,15 +113,36 @@
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 3,
+      "x": 2,
+      "y": 2,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 3,
+      "x": 3,
+      "y": 2,
       "count": 2,
+      "type": "Hidden",
+      "groupID": "G90"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G90"
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G90"
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "count": 1,
       "type": "Normal"
     }
   ]

@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
-  "height": 5,
+  "stageID": 852,
+  "width": 4,
+  "height": 4,
   "startPoint": {
-    "x": 0,
-    "y": 0
+    "x": 2,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -17,104 +17,63 @@
       "x": 0,
       "y": 0,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G24"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 5,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 5,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G61"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 2,
-      "type": "CrossBlast",
+      "type": "FixedKnot",
+      "targetOrder": 4,
       "properties": {
-        "beamColor": "#00FBFF"
+        "isAbsolute": true
       }
     },
     {
-      "x": 4,
-      "y": 3,
+      "x": 1,
+      "y": 0,
       "count": 2,
-      "type": "Hidden",
-      "groupID": "G24"
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 118,
+      "color": "#00FBFF"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 118,
+      "color": "#00FBFF"
     },
     {
       "x": 3,
-      "y": 4,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 4,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 4,
+      "y": 2,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G61"
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

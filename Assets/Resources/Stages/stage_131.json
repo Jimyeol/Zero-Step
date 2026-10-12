@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 131,
   "width": 3,
   "height": 5,
   "startPoint": {
-    "x": 1,
-    "y": 4
+    "x": 0,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -16,18 +16,20 @@
     {
       "x": 0,
       "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
       "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 6,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 0,
@@ -36,17 +38,16 @@
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 2,
       "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 1,
+      "x": 0,
+      "y": 2,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Left"
+      "type": "Normal"
     },
     {
       "x": 2,
@@ -55,22 +56,38 @@
       "type": "Normal"
     },
     {
+      "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
       "x": 2,
       "y": 3,
-      "count": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 4,
-      "count": 1,
-      "type": "Normal"
+      "count": 3,
+      "type": "ShortCircuit",
+      "direction": "Right"
     },
     {
       "x": 2,
       "y": 4,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FFFF"
+      }
     }
   ]
 }

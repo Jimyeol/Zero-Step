@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 3,
+  "stageID": 964,
+  "width": 6,
   "height": 3,
   "startPoint": {
-    "x": 2,
-    "y": 1
+    "x": 4,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -16,52 +16,99 @@
     {
       "x": 0,
       "y": 0,
-      "count": 4,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#22d3ee"
-      }
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
       "count": 2,
-      "type": "Normal"
+      "type": "TwinLink",
+      "linkID": 775,
+      "color": "#00FBFF"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#38bdf8"
-      }
-    },
-    {
-      "x": 1,
-      "y": 1,
+      "x": 2,
+      "y": 0,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 1,
+      "x": 3,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
+      "x": 1,
+      "y": 1,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 775,
+      "color": "#00FBFF"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G13"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "ShortCircuit",
+      "direction": "Up"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G13"
+    },
+    {
       "x": 0,
       "y": 2,
-      "count": 4,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#22d3ee"
-      }
+      "count": 1,
+      "type": "BlindCurtain"
     },
     {
       "x": 1,
       "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G13"
+    },
+    {
+      "x": 4,
+      "y": 2,
       "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "count": 1,
       "type": "Normal"
     }
   ]

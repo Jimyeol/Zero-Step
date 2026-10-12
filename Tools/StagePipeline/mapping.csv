@@ -1,0 +1,1001 @@
+stage,chapter,theme,provenance,notes,w,h,tiles,sum,p_random,neglog10_p,crit_steps,forced_ratio,solutions,states,types,walls,rule_mechanics,outline_rect,strokes,target_D,changed_vs_shipped
+1,1,First Steps + ShortCircuit,old:1,,3,1,3,4,1,0.0,0,1,1,3,Normal,0,0,1,1,0.0,
+2,1,First Steps + ShortCircuit,old:3,,2,2,3,4,1,0.0,0,1,1,3,Normal,0,0,0,1,0.0,
+3,1,First Steps + ShortCircuit,old:2,,2,2,4,4,1,0.0,0,0.6667,2,5,Normal,0,0,1,1,0.0,
+4,1,First Steps + ShortCircuit,old:9,,4,2,6,8,1,0.0,0,1,1,7,Normal,0,0,0,1,0.0,
+5,1,First Steps + ShortCircuit,new,,3,3,5,6,1,0.0,0,0.8,2,7,Normal,0,0,0,1,0.0,
+6,1,First Steps + ShortCircuit,old:845+fixed,BlindCurtain/Blackout->Normal,3,3,5,7,0.75,0.1249,0.5,0.75,2,11,Normal,0,0,0,1,0.12,
+7,1,First Steps + ShortCircuit,old:407+fixed,BlindCurtain/Blackout->Normal,4,3,6,9,0.3333333333333333,0.4771,2,0.75,2,20,Normal,0,0,0,1,0.15,
+8,1,First Steps + ShortCircuit,old:231+fixed,Blackout->Normal (triggered too late),3,3,7,14,0.5273812585733881,0.2779,0.8603,0.4237,179,331,Normal,0,0,0,1,0.3,
+9,1,First Steps + ShortCircuit,old:617+fixed,BlindCurtain/Blackout->Normal,4,3,8,12,0.6331018518518519,0.1985,0.6333,0.5576,60,147,Normal,0,0,0,1,0.21,
+10,1,First Steps + ShortCircuit,old:487+fixed,Igniter/Hidden:G62,3,4,8,10,0.5,0.301,1,0.7778,2,14,Normal,0,0,0,1,0.24,
+11,1,First Steps + ShortCircuit,old:374,,5,2,7,13,0.5,0.301,1,0.5903,12,37,Normal,0,0,0,1,0.27,
+12,1,First Steps + ShortCircuit,old:254,,3,5,9,15,0.375,0.426,1.5,0.75,4,29,Normal,0,0,0,1,0.42,
+13,1,First Steps + ShortCircuit,old:394+fixed,Blackout->Normal (triggered too late),4,3,8,14,0.4968064128943758,0.3038,0.9518,0.442,228,441,Normal,0,0,0,1,0.33,
+14,1,First Steps + ShortCircuit,old:879+fixed,Igniter/Hidden:G79,6,3,10,14,0.4270833333333333,0.3695,1.25,0.6346,12,44,Normal,0,0,0,1,0.36,
+15,1,First Steps + ShortCircuit,old:949+fixed,Igniter/Hidden:G86,4,5,10,17,0.40258487654320985,0.3951,0.9807,0.4952,207,358,Normal,0,0,0,1,0.39,
+16,1,First Steps + ShortCircuit,old:795,,2,6,8,16,0.29311342592592593,0.533,1.5417,0.4519,144,401,Normal,0,0,0,1,0.54,
+17,1,First Steps + ShortCircuit,old:645+fixed,Blackout->Normal (triggered too late),4,4,10,20,0.36320388856738683,0.4398,1.5617,0.3629,8748,3043,Normal,0,0,0,1,0.45,
+18,1,First Steps + ShortCircuit,old:753,,4,7,12,20,0.3333333333333333,0.4771,2,0.636,48,65,Normal,0,0,0,1,0.48,
+19,1,First Steps + ShortCircuit,old:402,,6,6,12,14,0.3333333333333333,0.4771,2,0.8462,2,25,Normal,0,0,0,1,0.51,
+20,1,First Steps + ShortCircuit,old:557+fixed,Blackout->Normal (triggered too late),4,2,8,41,0.22315728833811854,0.6514,1.2833,0.1538,1000000+,375591,Normal,0,0,1,1,0.66,
+21,1,First Steps + ShortCircuit,new,ShortCircuit intro,3,3,8,9,0.5,0.301,1,0.875,1,9,ShortCircuit,0,1,0,1,0.35,
+22,1,First Steps + ShortCircuit,old:51,,2,2,4,6,0.5,0.301,1,0.8,1,9,ShortCircuit,0,1,1,1,0.39,
+23,1,First Steps + ShortCircuit,old:93+fixed,"ShortCircuit@1,0",5,4,13,20,0.4196807484567901,0.3771,1.3142,0.5193,366,919,ShortCircuit,0,1,0,1,0.43,
+24,1,First Steps + ShortCircuit,old:344+fixed,"ShortCircuit@0,1; ShortCircuit@3,3",6,6,13,19,0.34375,0.4638,1.5,0.7361,8,40,ShortCircuit,0,1,0,1,0.47,
+25,1,First Steps + ShortCircuit,old:288+fixed,"ShortCircuit@0,0; ShortCircuit@1,2",3,5,9,10,0.29166666666666663,0.5351,1.5,0.7222,2,20,ShortCircuit,0,1,0,1,0.51,
+26,1,First Steps + ShortCircuit,old:935+fixed,"ShortCircuit@1,0",3,3,7,11,0.2824074074074074,0.5491,1.6667,0.5583,12,82,ShortCircuit,0,1,0,1,0.55,
+27,1,First Steps + ShortCircuit,old:959,,4,3,8,12,0.26041666666666663,0.5843,2.1111,0.5051,18,106,ShortCircuit,0,1,0,1,0.59,
+28,1,First Steps + ShortCircuit,old:54+fixed,"ShortCircuit@1,1",3,2,5,8,0.25,0.6021,2,0.7143,1,9,ShortCircuit,0,1,0,1,0.63,
+29,1,First Steps + ShortCircuit,old:75+fixed,"ShortCircuit@2,1",4,4,10,14,0.21875,0.6601,2,0.6731,4,71,ShortCircuit,0,1,0,1,0.67,
+30,1,First Steps + ShortCircuit,old:61+fixed,"ShortCircuit@2,1",3,3,7,12,0.19618055555555555,0.7073,3.5,0.5606,18,131,ShortCircuit,0,1,0,1,0.71,
+31,1,First Steps + ShortCircuit,old:863+fixed,Igniter/Hidden:G19,3,3,6,9,0.16666666666666666,0.7782,3,0.625,2,16,ShortCircuit,0,1,0,1,0.75,
+32,1,First Steps + ShortCircuit,old:629+mutated,augmented: +SC,3,6,10,13,0.3333333333333333,0.4771,1,0.9167,1,18,ShortCircuit,0,1,0,1,0.45,
+33,1,First Steps + ShortCircuit,old:960+fixed,BlindCurtain/Blackout->Normal,3,5,10,13,0.2638888888888889,0.5786,1.8,0.7,5,61,ShortCircuit,0,1,0,1,0.57,
+34,1,First Steps + ShortCircuit,old:235+fixed,Blackout->Normal (triggered too late),3,4,9,17,0.20833333333333331,0.6812,2,0.6161,14,177,Normal,0,0,0,1,0.69,
+35,1,First Steps + ShortCircuit,old:276+fixed,Blackout->Normal (triggered too late),3,5,9,15,0.15393518518518517,0.8127,2.1833,0.475,60,405,Normal,0,0,0,1,0.81,
+36,1,First Steps + ShortCircuit,old:326,,6,6,13,16,0.46875,0.3291,1.1,0.7,10,42,Normal,0,0,0,1,0.35,
+37,1,First Steps + ShortCircuit,new,,3,4,10,17,0.421875,0.3748,1.2,0.6937,10,89,ShortCircuit,0,1,0,1,0.363,
+38,1,First Steps + ShortCircuit,old:983,,3,5,10,19,0.2986222743770005,0.5249,1.6619,0.4253,1408,1508,Normal,0,0,0,1,0.463,
+39,1,First Steps + ShortCircuit,old:970,,4,4,9,17,0.2638888888888889,0.5786,2.5,0.5299,96,82,Normal,0,0,0,1,0.563,
+40,1,First Steps + ShortCircuit,old:27,,4,3,11,21,0.21914802779573822,0.6593,1.8497,0.331,18644,5417,Normal,0,0,0,1,0.663,
+41,1,First Steps + ShortCircuit,old:665,,4,4,11,19,0.1715012538580247,0.7657,2.1443,0.4737,194,812,Normal,0,0,0,1,0.763,
+42,1,First Steps + ShortCircuit,old:785+fixed,Blackout->Normal (triggered too late),5,6,16,34,0.1332846787178882,0.8752,2.6161,0.3152,1000000+,243700,Normal,0,0,0,1,0.863,
+43,1,First Steps + ShortCircuit,new,,5,3,12,16,0.4375,0.359,1.1429,0.7238,7,101,ShortCircuit,0,1,0,1,0.35,
+44,1,First Steps + ShortCircuit,old:52,,2,3,5,12,0.375,0.426,1.3333,0.5758,9,56,ShortCircuit,0,1,0,1,0.417,
+45,1,First Steps + ShortCircuit,old:299,,3,3,7,10,0.2986111111111111,0.5249,2,0.4815,12,74,ShortCircuit,0,1,0,1,0.517,
+46,1,First Steps + ShortCircuit,old:530+mutated,augmented: +SC,6,6,15,18,0.25,0.6021,2,0.8824,1,20,ShortCircuit,0,1,0,1,0.617,
+47,1,First Steps + ShortCircuit,old:705,,4,8,14,20,0.19386574074074076,0.7125,2.4,0.6526,20,148,Normal,0,0,0,1,0.717,
+48,1,First Steps + ShortCircuit,old:740,,6,6,15,21,0.14930555555555555,0.8259,3,0.5917,48,96,Normal,0,0,0,1,0.817,
+49,1,First Steps + ShortCircuit,old:392,,4,6,16,22,0.12119020061728394,0.9165,3.0123,0.5873,81,369,Normal,0,0,0,1,0.917,
+50,1,First Steps + ShortCircuit,old:82+fixed,"ShortCircuit@1,2; ShortCircuit@0,3",4,4,12,17,0.01948302469135802,1.7103,5.3125,0.5273,16,303,ShortCircuit,0,1,0,1,1.437,
+51,2,CrossBlast,new,CrossBlast intro,3,3,8,11,0.25,0.6021,2,0.6667,2,20,CrossBlast,0,1,0,1,0.35,
+52,2,CrossBlast,old:749,,4,5,12,19,0.4896839515698827,0.3101,1.3626,0.4095,1368,1456,CrossBlast,0,1,0,1,0.35,
+53,2,CrossBlast,new,,5,4,11,19,0.4375,0.359,1.25,0.7266,8,69,CrossBlast,0,1,0,1,0.35,
+54,2,CrossBlast,new,,4,3,9,19,0.3854952560585277,0.414,1.7417,0.4012,786,1114,CrossBlast+ShortCircuit,0,2,0,1,0.35,
+55,2,CrossBlast,old:595,,3,4,8,13,0.3819444444444444,0.418,1.5385,0.4673,13,48,CrossBlast,0,1,0,1,0.35,
+56,2,CrossBlast,old:103,,4,3,12,20,0.33297870719129397,0.4776,1.5529,0.279,12973,7698,CrossBlast,0,1,1,1,0.387,
+57,2,CrossBlast,old:886+mutated,augmented: +SC+SC,5,3,9,21,0.28125,0.5509,1.9286,0.6295,14,89,CrossBlast+ShortCircuit,0,2,0,1,0.501,
+58,2,CrossBlast,old:984+fixed,"CrossBlast@3,0",4,3,8,12,0.25,0.6021,2,0.4667,9,29,CrossBlast,0,1,0,1,0.615,
+59,2,CrossBlast,old:747,,3,4,8,18,0.1875,0.727,2.5,0.7,4,54,CrossBlast,0,1,0,1,0.729,
+60,2,CrossBlast,new,,4,4,12,19,0.3515625,0.454,1.625,0.6618,16,146,CrossBlast+ShortCircuit,0,2,0,1,0.35,
+61,2,CrossBlast,old:718+fixed,"CrossBlast@0,0",3,4,8,14,0.3333333333333333,0.4771,1.5,0.381,32,100,CrossBlast,0,1,0,1,0.35,
+62,2,CrossBlast,old:327+fixed,Igniter/Hidden:G23,3,5,9,15,0.3958333333333333,0.4025,1.5,0.4881,54,62,Normal,0,0,0,1,0.4,
+63,2,CrossBlast,old:101,,3,3,9,15,0.31495949074074076,0.5017,1.2677,0.4335,127,578,CrossBlast,0,1,1,1,0.495,
+64,2,CrossBlast,new,,6,3,14,20,0.25,0.6021,2,0.7885,3,101,CrossBlast+ShortCircuit,0,2,0,1,0.59,
+65,2,CrossBlast,old:547,,6,6,15,19,0.20833333333333331,0.6812,2.5,0.6667,16,51,Normal,0,0,0,1,0.685,
+66,2,CrossBlast,new,,3,4,11,15,0.17708333333333334,0.7518,2.5,0.6585,6,128,CrossBlast+ShortCircuit,0,2,0,1,0.78,
+67,2,CrossBlast,new,,4,4,8,13,0.47685185185185186,0.3216,1.25,0.5542,40,172,ShortCircuit,0,1,0,1,0.35,
+68,2,CrossBlast,old:473+fixed,Igniter/Hidden:G67,4,6,12,25,0.3863552368517566,0.413,1.5286,0.4644,9432,1373,Normal,0,0,0,1,0.403,
+69,2,CrossBlast,new,,7,4,18,24,0.28125,0.5509,1.6364,0.7479,11,198,CrossBlast+ShortCircuit,0,2,0,1,0.546,
+70,2,CrossBlast,new,,6,4,16,25,0.203125,0.6922,2.4,0.7273,10,160,CrossBlast+ShortCircuit,0,2,0,1,0.688,
+71,2,CrossBlast,old:876,,5,6,14,23,0.14888760288065842,0.8271,3.514,0.5025,179,898,CrossBlast,0,1,0,1,0.831,
+72,2,CrossBlast,old:371,,6,6,14,23,0.450796789266118,0.346,0.875,0.6082,576,577,Normal,0,0,0,1,0.35,
+73,2,CrossBlast,old:546+fixed,"FixedKnot@1,1",6,6,13,16,0.41666666666666663,0.3802,1.5,0.8,4,38,Normal,0,0,0,1,0.393,
+74,2,CrossBlast,old:58,,3,2,6,9,0.3333333333333333,0.4771,2.25,0.5938,4,47,ShortCircuit,0,1,1,1,0.474,
+75,2,CrossBlast,new,,3,4,10,19,0.2806712962962963,0.5518,1.7714,0.4929,70,198,CrossBlast+ShortCircuit,0,2,0,1,0.556,
+76,2,CrossBlast,old:980+mutated,augmented: +SC,4,6,11,12,0.25,0.6021,2,0.8182,1,14,ShortCircuit,0,1,0,1,0.637,
+77,2,CrossBlast,old:69+fixed,"ShortCircuit@0,2",4,3,9,12,0.20138888888888887,0.696,1.6667,0.697,3,44,ShortCircuit,0,1,0,1,0.718,
+78,2,CrossBlast,old:672,,3,5,8,14,0.15625,0.8062,2.75,0.6346,4,47,Normal,0,0,0,1,0.8,
+79,2,CrossBlast,old:971+fixed,Igniter/Hidden:G42; Igniter/Hidden:G1; Igniter/Hidden:G46,4,8,15,19,0.13194444444444445,0.8796,3.5,0.7315,6,45,Normal,0,0,0,1,0.881,
+80,2,CrossBlast,new,,3,4,10,21,0.42306826474771614,0.3736,1.1366,0.278,15948,4613,CrossBlast,0,1,0,1,0.362,
+81,2,CrossBlast,old:215+fixed,BlindCurtain/Blackout->Normal,3,3,8,15,0.31881751543209874,0.4965,1.6558,0.3772,154,511,CrossBlast,0,1,0,1,0.476,
+82,2,CrossBlast,old:669,,3,4,8,12,0.25,0.6021,2,0.7,2,17,CrossBlast,0,1,0,1,0.59,
+83,2,CrossBlast,new,,5,4,15,24,0.20138888888888887,0.696,2.1667,0.7937,6,119,CrossBlast+ShortCircuit,0,2,0,1,0.704,
+84,2,CrossBlast,old:91+fixed,"ShortCircuit@0,3; ShortCircuit@1,3",5,4,11,19,0.15326003086419754,0.8146,2.4643,0.6369,28,225,ShortCircuit,0,1,0,1,0.818,
+85,2,CrossBlast,old:433,,4,4,14,32,0.11871803736176267,0.9255,2.3927,0.268,1000000+,182719,Normal,0,0,0,1,0.932,
+86,2,CrossBlast,new,,4,3,7,10,0.375,0.426,1.5,0.7222,2,21,ShortCircuit,0,1,0,1,0.413,
+87,2,CrossBlast,old:563,,3,5,10,19,0.28402876014517603,0.5466,1.3384,0.4231,2216,1872,Normal,0,0,0,1,0.508,
+88,2,CrossBlast,old:808+mutated,augmented: +SC,3,5,10,11,0.25,0.6021,2,0.7,2,21,ShortCircuit,0,1,0,1,0.603,
+89,2,CrossBlast,old:979,,4,6,15,22,0.20296424897119336,0.6926,2.3654,0.6172,104,657,Normal,0,0,0,1,0.698,
+90,2,CrossBlast,old:79+fixed,"ShortCircuit@1,0",4,4,11,15,0.16666666666666666,0.7782,2,0.5774,12,108,ShortCircuit,0,1,0,1,0.793,
+91,2,CrossBlast,old:695+fixed,"ShortCircuit@4,0",6,6,13,14,0.125,0.9031,3,0.7692,1,21,ShortCircuit,0,1,0,1,0.888,
+92,2,CrossBlast,old:524+fixed,BlindCurtain/Blackout->Normal,5,5,15,32,0.10516496032426459,0.9781,3.3934,0.3891,2229,5674,CrossBlast+ShortCircuit,0,2,0,1,0.983,
+93,2,CrossBlast,old:316,,4,4,7,13,0.34375,0.4638,1.6667,0.6389,6,57,Normal,0,0,0,1,0.463,
+94,2,CrossBlast,old:730,,3,5,9,21,0.2554743260513117,0.5927,1.9444,0.3847,1728,995,Normal,0,0,0,1,0.558,
+95,2,CrossBlast,old:105,,4,3,11,17,0.22607488854595337,0.6457,1.6851,0.3185,289,991,CrossBlast,0,1,0,1,0.653,
+96,2,CrossBlast,old:293,,6,6,16,30,0.18218351028982943,0.7395,1.6438,0.3971,254072,15750,Normal,0,0,0,1,0.748,
+97,2,CrossBlast,old:458,,4,4,14,19,0.1447000385802469,0.8395,2.101,0.5174,208,1179,Normal,0,0,0,1,0.843,
+98,2,CrossBlast,old:762+fixed,"ShortCircuit@5,1; ShortCircuit@1,2; ShortCircuit@1,3",6,6,14,20,0.1171875,0.9311,3.1667,0.693,6,58,ShortCircuit,0,1,0,1,0.938,
+99,2,CrossBlast,old:41,,4,4,13,31,0.088928533474196,1.051,2.769,0.2671,1000000+,292040,Normal,0,0,0,1,1.033,
+100,2,CrossBlast,old:940,,5,4,12,40,0.014975602847780552,1.8246,5.5178,0.3466,161480,57191,CrossBlast,0,1,0,1,1.527,
+101,3,FixedKnot,new,FixedKnot intro,3,3,8,9,0.5,0.301,1,0.875,1,9,FixedKnot,0,1,0,1,0.35,
+102,3,FixedKnot,new,,4,3,11,18,0.35185185185185186,0.4536,2.1,0.6791,10,33,CrossBlast+FixedKnot,0,2,0,1,0.363,
+103,3,FixedKnot,old:511+mutated,augmented: +FK,4,8,16,25,0.28125,0.5509,1.75,0.8333,4,44,FixedKnot,0,1,0,1,0.43,
+104,3,FixedKnot,old:677+mutated,augmented: +FK,6,6,14,17,0.44791666666666663,0.3488,1.3333,0.7708,6,37,FixedKnot,0,1,0,1,0.35,
+105,3,FixedKnot,old:623+mutated,augmented: +FK,6,6,13,24,0.3339572482638889,0.4763,2.3278,0.5746,180,328,FixedKnot+ShortCircuit,0,2,0,1,0.38,
+106,3,FixedKnot,old:550+mutated,augmented: +SC,3,4,8,10,0.25,0.6021,2,0.6667,2,21,FixedKnot+ShortCircuit,0,2,0,1,0.506,
+107,3,FixedKnot,old:930+fixed,"CrossBlast@2,3",3,5,9,16,0.21875,0.6601,2,0.6964,4,61,CrossBlast+FixedKnot,0,2,0,1,0.632,
+108,3,FixedKnot,old:346+mutated,augmented: +SC,3,3,6,11,0.1875,0.727,2.75,0.6,4,50,FixedKnot+ShortCircuit,0,2,0,1,0.758,
+109,3,FixedKnot,old:472,,4,4,8,18,0.12962962962962962,0.8873,3,0.5621,27,98,FixedKnot,0,1,0,1,0.884,
+110,3,FixedKnot,new,,2,4,7,13,0.39438657407407407,0.4041,1.2812,0.4232,64,149,FixedKnot,0,1,0,1,0.35,
+111,3,FixedKnot,old:685+mutated,augmented: +FK,6,6,12,15,0.3333333333333333,0.4771,1,0.8571,2,16,FixedKnot,0,1,0,1,0.415,
+112,3,FixedKnot,new,,7,3,16,26,0.3046875,0.5161,1.7625,0.6615,80,510,ShortCircuit,0,1,0,1,0.52,
+113,3,FixedKnot,old:996+mutated,augmented: +FK,6,4,11,15,0.25,0.6021,2,0.8571,1,17,FixedKnot,0,1,0,1,0.625,
+114,3,FixedKnot,new,,4,5,14,25,0.1962890625,0.7071,1.95,0.6543,40,260,CrossBlast+FixedKnot,0,2,0,1,0.73,
+115,3,FixedKnot,old:455+fixed,BlindCurtain/Blackout->Normal,5,3,10,15,0.15625,0.8062,2.6667,0.6905,3,58,ShortCircuit,0,1,0,1,0.835,
+116,3,FixedKnot,old:246,,5,6,12,22,0.12641460905349797,0.8982,4.1207,0.556,58,325,CrossBlast,0,1,0,1,0.94,
+117,3,FixedKnot,new,,3,4,8,16,0.42361111111111116,0.373,1.0682,0.4377,88,413,CrossBlast,0,1,0,1,0.366,
+118,3,FixedKnot,old:311,,6,6,15,22,0.29318844307270236,0.5329,1.617,0.5284,846,1083,Normal,0,0,0,1,0.524,
+119,3,FixedKnot,old:907,,3,3,6,11,0.2152777777777778,0.667,2.5,0.55,8,35,FixedKnot,0,1,0,1,0.681,
+120,3,FixedKnot,old:701,,4,8,14,22,0.14544753086419754,0.8373,2.4848,0.6104,66,213,Normal,0,0,0,1,0.839,
+121,3,FixedKnot,old:418,,5,6,15,26,0.10249837239583331,0.9893,3.46,0.4963,1200,991,Normal,0,0,0,1,0.996,
+122,3,FixedKnot,old:775,,6,6,14,20,0.3767361111111111,0.424,1.5,0.6158,60,103,Normal,0,0,0,1,0.422,
+123,3,FixedKnot,new,,4,3,9,20,0.30902777777777785,0.51,2.2759,0.5204,58,223,CrossBlast,0,1,0,1,0.512,
+124,3,FixedKnot,old:567+fixed,Igniter/Hidden:G57,6,5,12,14,0.25,0.6021,2,0.8462,1,19,Normal,0,0,0,1,0.602,
+125,3,FixedKnot,new,,4,4,10,14,0.19791666666666666,0.7035,2.6667,0.6667,3,73,FixedKnot+ShortCircuit,0,2,0,1,0.692,
+126,3,FixedKnot,old:132,,3,3,8,10,0.16666666666666666,0.7782,2,0.6667,2,17,FixedKnot+ShortCircuit,0,2,0,1,0.782,
+127,3,FixedKnot,old:802,,3,6,12,24,0.12987477494855967,0.8865,2.576,0.4131,1632,2938,CrossBlast,0,1,0,1,0.872,
+128,3,FixedKnot,old:911,,4,4,9,12,0.12152777777777778,0.9153,2.6667,0.6061,3,25,FixedKnot,0,1,0,1,0.962,
+129,3,FixedKnot,new,,4,3,10,14,0.09375,1.028,3.6667,0.5897,6,70,CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,1.052,
+130,3,FixedKnot,old:751,,6,6,14,15,0.35416666666666663,0.4508,1.6,0.7429,5,32,Normal,0,0,0,1,0.478,
+131,3,FixedKnot,new,,3,5,12,18,0.25,0.6021,2,0.7609,3,87,CrossBlast+ShortCircuit,0,2,0,1,0.604,
+132,3,FixedKnot,old:657+mutated,augmented: +FK,4,6,12,17,0.1875,0.727,2.5,0.7812,2,25,FixedKnot,0,1,0,1,0.73,
+133,3,FixedKnot,old:269+fixed,Igniter/Hidden:G96; Igniter/Hidden:G39; Igniter/Hidden:G3,6,6,14,22,0.1328125,0.8768,3,0.673,15,85,Normal,0,0,0,1,0.856,
+134,3,FixedKnot,old:68,,4,3,9,14,0.11493698559670783,0.9395,2.7778,0.4615,36,329,ShortCircuit,0,1,0,1,0.982,
+135,3,FixedKnot,old:242,,6,5,20,20,0.07445987654320987,1.1281,3.25,0.4456,48,211,CrossBlast,0,1,0,1,1.108,
+136,3,FixedKnot,old:793,,3,3,7,18,0.28937596450617287,0.5385,1.2176,0.4233,193,571,CrossBlast,0,1,0,1,0.534,
+137,3,FixedKnot,old:503,,6,5,14,20,0.22424768518518517,0.6493,1.9783,0.619,46,196,Normal,0,0,0,1,0.639,
+138,3,FixedKnot,old:566,,5,5,14,31,0.1863463245451646,0.7297,1.9095,0.38,558288,10153,Normal,0,0,0,1,0.744,
+139,3,FixedKnot,old:268+fixed,BlindCurtain/Blackout->Normal,3,4,8,16,0.1417824074074074,0.8484,2.5469,0.4111,64,215,CrossBlast+FixedKnot,0,2,0,1,0.849,
+140,3,FixedKnot,old:270+mutated,augmented: +SC,6,6,14,24,0.125,0.9031,3,0.5319,150,117,ShortCircuit,0,1,0,1,0.954,
+141,3,FixedKnot,old:542+mutated,augmented: +FK,4,7,12,20,0.09375,1.028,3.5,0.7632,2,47,FixedKnot+ShortCircuit,0,2,0,1,1.059,
+142,3,FixedKnot,old:249+mutated,augmented: +FK,4,4,10,14,0.06944444444444443,1.1584,4,0.6,3,78,CrossBlast+FixedKnot,0,2,0,1,1.164,
+143,3,FixedKnot,old:73+fixed,"ShortCircuit@0,0; ShortCircuit@2,0; ShortCircuit@0,1",4,3,9,12,0.25,0.6021,2,0.7273,2,41,ShortCircuit,0,1,0,1,0.59,
+144,3,FixedKnot,new,,3,5,12,21,0.1972915237768633,0.7049,2.9444,0.5273,234,1754,CrossBlast+ShortCircuit,0,2,0,1,0.695,
+145,3,FixedKnot,old:745+fixed,"FixedKnot@1,4",3,6,10,15,0.16666666666666666,0.7782,2,0.7381,3,35,FixedKnot,0,1,0,1,0.8,
+146,3,FixedKnot,old:291,,5,5,13,30,0.1292969643061271,0.8884,2.2951,0.3581,2470,4131,CrossBlast,0,1,0,1,0.905,
+147,3,FixedKnot,old:495,,6,6,15,28,0.09423761145404663,1.0258,3.8384,0.4738,6336,638,Normal,0,0,0,1,1.01,
+148,3,FixedKnot,old:99+fixed,"ShortCircuit@2,0; ShortCircuit@4,1; ShortCircuit@1,2",5,5,15,21,0.07291666666666666,1.1372,4,0.75,3,102,ShortCircuit,0,1,0,1,1.115,
+149,3,FixedKnot,old:356,,5,5,15,25,0.05978754965420668,1.2234,4.1753,0.4114,5660,3493,Normal,0,0,0,1,1.22,
+150,3,FixedKnot,old:760+mutated,augmented: +FK+FK,4,5,13,25,0.009476273148148147,2.0234,6,0.5573,24,128,FixedKnot,0,1,0,1,1.766,
+151,4,TwinLink,new,TwinLink intro,3,3,9,10,0.25,0.6021,2,0.7647,2,26,TwinLink,0,1,1,1,0.395,
+152,4,TwinLink,old:732+mutated,augmented: +FK,3,5,8,15,0.36111111111111116,0.4424,1.3333,0.7167,9,76,FixedKnot+TwinLink,0,2,0,1,0.468,
+153,4,TwinLink,old:475,,4,5,12,12,0.28125,0.5509,1.625,0.4868,8,73,TwinLink,0,1,0,1,0.542,
+154,4,TwinLink,old:659,,4,3,8,20,0.4596685730547935,0.3376,0.9498,0.3587,4836,2725,TwinLink,0,1,0,1,0.35,
+155,4,TwinLink,old:997+mutated,augmented: +FK,4,3,8,10,0.3333333333333333,0.4771,1,0.5,6,11,CrossBlast+FixedKnot+TwinLink,0,3,0,1,0.487,
+156,4,TwinLink,old:717+mutated,augmented: +FK,6,3,10,11,0.25,0.6021,2,0.7778,1,10,FixedKnot+TwinLink,0,2,0,1,0.625,
+157,4,TwinLink,old:894+mutated,augmented: +SC,6,6,14,17,0.18402777777777776,0.7351,2,0.7128,6,78,ShortCircuit+TwinLink,0,2,0,1,0.763,
+158,4,TwinLink,old:323,,6,6,16,21,0.12557870370370372,0.9011,3,0.6237,30,655,TwinLink,0,1,0,1,0.901,
+159,4,TwinLink,old:954,,3,4,8,12,0.08333333333333333,1.0792,4.5,0.55,4,102,TwinLink,0,1,0,1,1.039,
+160,4,TwinLink,old:679+fixed,"FixedKnot@2,2",4,3,7,8,0.41666666666666663,0.3802,1,0.6667,2,15,CrossBlast+TwinLink,0,2,0,1,0.41,
+161,4,TwinLink,old:896,,4,4,10,18,0.30048733361276225,0.5222,1.7505,0.3832,1002,2106,TwinLink,0,1,0,1,0.525,
+162,4,TwinLink,old:341+mutated,augmented: +SC,6,6,16,18,0.25,0.6021,2,0.8667,1,78,ShortCircuit+TwinLink,0,2,0,1,0.64,
+163,4,TwinLink,old:950,,4,6,12,20,0.19409347136488342,0.712,3.576,0.4838,250,187,TwinLink,0,1,0,1,0.755,
+164,4,TwinLink,old:343,,6,5,15,20,0.14583333333333334,0.8361,2.25,0.7237,8,53,Normal,0,0,0,1,0.87,
+165,4,TwinLink,old:986,,3,5,9,13,0.125,0.9031,3,0.75,1,18,FixedKnot,0,1,0,1,0.985,
+166,4,TwinLink,old:106,,4,4,14,24,0.08371279699703194,1.0772,2.7831,0.3036,25965,28781,CrossBlast,0,1,0,1,1.1,
+167,4,TwinLink,new,,4,2,6,12,0.375,0.426,1,0.5417,6,24,CrossBlast+ShortCircuit+TwinLink,0,3,0,1,0.471,
+168,4,TwinLink,old:414,,3,6,12,22,0.24437723042052467,0.6119,1.5671,0.447,693,1371,TwinLink,0,1,0,1,0.644,
+169,4,TwinLink,old:348+fixed,Igniter/Hidden:G79,4,5,9,13,0.16666666666666666,0.7782,2.5,0.6667,4,41,Normal,0,0,0,1,0.816,
+170,4,TwinLink,old:284,,4,8,18,28,0.10985368084133515,0.9592,3.1981,0.5145,1242,5874,TwinLink,0,1,0,1,0.989,
+171,4,TwinLink,old:253,,6,4,14,25,0.06841956670949391,1.1648,4.0784,0.4309,2448,5269,Normal,0,0,0,1,1.161,
+172,4,TwinLink,new,,3,4,7,10,0.3333333333333333,0.4771,2,0.7778,2,17,ShortCircuit,0,1,0,1,0.533,
+173,4,TwinLink,old:413+mutated,augmented: +FK,6,5,12,16,0.25,0.6021,2,0.8,2,18,FixedKnot,0,1,0,1,0.631,
+174,4,TwinLink,old:783+mutated,augmented: +FK,6,6,15,20,0.20833333333333331,0.6812,2,0.6667,8,64,FixedKnot+TwinLink,0,2,0,1,0.73,
+175,4,TwinLink,old:662+mutated,augmented: +SC,6,6,13,18,0.1527777777777778,0.8159,2.8,0.6813,10,173,ShortCircuit+TwinLink,0,2,0,1,0.828,
+176,4,TwinLink,old:447+mutated,augmented: +SC+FK,6,5,12,14,0.125,0.9031,3,0.75,1,29,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,0.927,
+177,4,TwinLink,new,,3,4,9,19,0.09375,1.028,3.5,0.6538,2,40,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,1.026,
+178,4,TwinLink,new,,4,4,11,30,0.07521384352137632,1.1237,3.9124,0.3412,662,2452,CrossBlast+ShortCircuit+TwinLink,0,3,0,1,1.124,
+179,4,TwinLink,old:636+fixed,"FixedKnot@1,5; TwinLink@0,6; TwinLink@1,6",4,7,13,18,0.0625,1.2041,4,0.7333,1,283,CrossBlast+TwinLink,0,2,0,1,1.223,
+180,4,TwinLink,old:467+mutated,augmented: +FK,6,6,12,14,0.25,0.6021,2,0.8462,1,16,FixedKnot,0,1,0,1,0.594,
+181,4,TwinLink,old:415+fixed,BlindCurtain/Blackout->Normal,4,8,15,17,0.2013888888888889,0.696,2.4,0.661,5,79,CrossBlast+TwinLink,0,2,0,1,0.732,
+182,4,TwinLink,old:164,,3,3,7,10,0.1388888888888889,0.8573,2,0.4808,6,36,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,0.87,
+183,4,TwinLink,old:734+fixed,Igniter/Hidden:G54,6,3,10,20,0.09876543209876543,1.0054,3.6667,0.5167,60,134,CrossBlast+TwinLink,0,2,0,1,1.008,
+184,4,TwinLink,old:74+fixed,"ShortCircuit@3,0",4,3,10,20,0.07175806851089772,1.1441,5.15,0.5383,180,1506,ShortCircuit,0,1,0,1,1.146,
+185,4,TwinLink,old:444,,4,3,10,20,0.061329188824354036,1.2123,4.9611,0.32,2208,3135,ShortCircuit+TwinLink,0,2,0,1,1.284,
+186,4,TwinLink,old:856,,6,6,14,18,0.21875,0.6601,2.25,0.6912,8,44,Normal,0,0,0,1,0.655,
+187,4,TwinLink,old:851+mutated,augmented: +FK,6,6,15,22,0.1755642361111111,0.7556,2.7273,0.5801,66,113,FixedKnot,0,1,0,1,0.77,
+188,4,TwinLink,old:424+fixed,Igniter/Hidden:G7,6,3,12,20,0.12883391203703703,0.89,3.3611,0.4892,108,114,CrossBlast,0,1,0,1,0.885,
+189,4,TwinLink,old:721,,3,5,10,26,0.09960374065163308,1.0017,3.1667,0.4004,7200,4154,Normal,0,0,0,1,1.0,
+190,4,TwinLink,old:774+fixed,"FixedKnot@0,0",4,4,9,11,0.08333333333333333,1.0792,3,0.7,1,17,FixedKnot,0,1,0,1,1.115,
+191,4,TwinLink,old:878+mutated,augmented: +FK+SC,6,6,14,16,0.0625,1.2041,4,0.6923,1,35,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,1.23,
+192,4,TwinLink,old:628+mutated,augmented: +FK,4,4,9,15,0.05208333333333333,1.2833,3.6667,0.5897,3,62,FixedKnot+TwinLink,0,2,0,1,1.345,
+193,4,TwinLink,old:355+fixed,Igniter/Hidden:G95,3,5,9,12,0.20833333333333331,0.6812,2.25,0.625,4,72,ShortCircuit+TwinLink,0,2,0,1,0.717,
+194,4,TwinLink,old:144,,5,2,8,18,0.14816690243484226,0.8292,2.0727,0.396,330,1290,TwinLink,0,1,0,1,0.832,
+195,4,TwinLink,old:468+mutated,augmented: +FK,6,6,15,16,0.125,0.9031,3,0.68,2,16,FixedKnot+TwinLink,0,2,0,1,0.947,
+196,4,TwinLink,old:990+mutated,augmented: +FK+FK,4,6,14,18,0.09375,1.028,3.5,0.7188,2,26,FixedKnot+TwinLink,0,2,0,1,1.062,
+197,4,TwinLink,old:167,,4,4,12,21,0.06370451638946045,1.1958,4.0087,0.4175,690,6857,CrossBlast+TwinLink,0,2,0,1,1.177,
+198,4,TwinLink,old:199+fixed,Igniter/Hidden:G99,4,4,13,19,0.05222800925925925,1.2821,3.5625,0.5478,32,375,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,1.292,
+199,4,TwinLink,old:378+mutated,augmented: +FK,3,4,7,15,0.03501157407407408,1.4558,4.9286,0.3452,14,99,CrossBlast+FixedKnot+TwinLink,0,3,0,1,1.407,
+200,4,TwinLink,old:168,,4,4,13,24,0.007645218460648148,2.1166,7.0722,0.3752,693,13990,CrossBlast+TwinLink,0,2,0,1,2.005,
+201,5,Igniter & Hidden,new,Igniter intro,3,3,8,9,0.25,0.6021,2,0.75,1,10,Hidden+Igniter,0,1,0,1,0.493,
+202,5,Igniter & Hidden,old:143+mutated,augmented: +IGN,5,2,8,10,0.2638888888888889,0.5786,2.2,0.55,5,41,Hidden+Igniter+TwinLink,0,2,0,1,0.573,
+203,5,Igniter & Hidden,old:641,,4,5,12,26,0.20500507739639354,0.6882,1.8436,0.3106,1000000+,38202,Hidden+Igniter,0,1,0,1,0.653,
+204,5,Igniter & Hidden,old:750+mutated,augmented: +IGN+FK,6,6,15,27,0.3862123842592592,0.4132,1.1429,0.6117,441,161,FixedKnot+Hidden+Igniter,0,2,0,1,0.443,
+205,5,Igniter & Hidden,old:607+mutated,augmented: +IGN+FK,4,4,10,16,0.25,0.6021,2,0.8,2,33,FixedKnot+Hidden+Igniter,0,2,0,1,0.593,
+206,5,Igniter & Hidden,old:531+mutated,augmented: +IGN+FK+SC+FK,3,5,9,16,0.16666666666666666,0.7782,3,0.7333,4,24,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,0.743,
+207,5,Igniter & Hidden,old:259+mutated,augmented: +IGN+FK,4,6,14,26,0.12926181009652404,0.8885,3.0121,0.3959,3624,3390,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,0.893,
+208,5,Igniter & Hidden,old:877,,4,4,10,20,0.0900043149743751,1.0457,3.7064,0.2995,7023,2738,Hidden+Igniter+TwinLink,0,2,0,1,1.043,
+209,5,Igniter & Hidden,old:578+mutated,augmented: +IGN+FK,3,5,11,17,0.06510416666666667,1.1864,3.5333,0.4875,30,63,FixedKnot+Hidden+Igniter,0,2,0,1,1.193,
+210,5,Igniter & Hidden,old:630+fixed,Igniter/Hidden:G19,6,6,15,16,0.3333333333333333,0.4771,1,0.8667,2,28,Hidden+Igniter,0,1,0,1,0.51,
+211,5,Igniter & Hidden,old:939+mutated,augmented: +IGN+FK,6,6,17,22,0.25,0.6021,2,0.75,8,63,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,0.635,
+212,5,Igniter & Hidden,new,,4,4,10,20,0.17737357824645636,0.7511,2.4981,0.4607,269,737,CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,0.76,
+213,5,Igniter & Hidden,old:968,,4,6,12,18,0.12644675925925924,0.8981,2.629,0.5141,62,585,TwinLink,0,1,0,1,0.885,
+214,5,Igniter & Hidden,old:339+mutated,augmented: +FK+IGN,6,6,15,28,0.09798177083333334,1.0089,4,0.6333,90,110,FixedKnot+Hidden+Igniter,0,2,0,1,1.01,
+215,5,Igniter & Hidden,old:702,,3,4,8,14,0.08333333333333333,1.0792,3,0.75,1,21,CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,1.135,
+216,5,Igniter & Hidden,old:890+mutated,augmented: +IGN,7,6,34,34,0.061942394868827154,1.208,3.037,0.4467,432,10735,CrossBlast+Hidden+Igniter,0,2,0,1,1.26,
+217,5,Igniter & Hidden,old:671+mutated,augmented: +IGN,3,5,9,18,0.27759693287037035,0.5566,1.7057,0.4144,333,1072,Hidden+Igniter+TwinLink,0,2,0,1,0.577,
+218,5,Igniter & Hidden,old:451,,6,6,14,18,0.1766975308641975,0.7528,2.3889,0.6732,18,109,Normal,0,0,0,1,0.764,
+219,5,Igniter & Hidden,old:891+mutated,augmented: +IGN+FK+SC,3,5,9,10,0.125,0.9031,3,0.625,1,11,FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,0.952,
+220,5,Igniter & Hidden,old:755,,5,4,12,14,0.07291666666666667,1.1372,3.1667,0.4697,6,112,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,1.139,
+221,5,Igniter & Hidden,old:833+mutated,augmented: +IGN+FK,6,6,15,20,0.0518482349537037,1.2853,3.8889,0.4832,36,573,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,1.327,
+222,5,Igniter & Hidden,new,,4,3,11,21,0.2199502743484225,0.6577,2.5192,0.5327,104,328,CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,0.643,
+223,5,Igniter & Hidden,old:498+mutated,augmented: +IGN+FK,5,4,11,13,0.1875,0.727,2.3333,0.6667,3,25,FixedKnot+Hidden+Igniter,0,2,0,1,0.75,
+224,5,Igniter & Hidden,old:182,,4,4,13,19,0.14001615547839505,0.8538,1.9389,0.4685,180,639,Hidden+Igniter,0,1,0,1,0.858,
+225,5,Igniter & Hidden,old:179+fixed,Igniter/Hidden:G23; Igniter/Hidden:G71,5,3,12,20,0.1171875,0.9311,3.1667,0.693,6,81,Hidden+Igniter,0,1,0,1,0.965,
+226,5,Igniter & Hidden,old:829+fixed,Igniter/Hidden:G76,4,7,13,17,0.08333333333333333,1.0792,4,0.75,2,40,Hidden+Igniter+ShortCircuit,0,2,0,1,1.072,
+227,5,Igniter & Hidden,old:391,,3,6,12,18,0.0703125,1.153,3.85,0.4441,80,124,Hidden+Igniter,0,1,0,1,1.179,
+228,5,Igniter & Hidden,old:622+mutated,augmented: +IGN,4,5,12,24,0.056523633973479655,1.2478,3.2099,0.3968,262,2078,CrossBlast+Hidden+Igniter,0,2,0,1,1.286,
+229,5,Igniter & Hidden,old:614+mutated,augmented: +IGN,4,6,17,23,0.041666666666666664,1.3802,4,0.6458,3,60,CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,1.393,
+230,5,Igniter & Hidden,old:642+mutated,augmented: +IGN+FK,4,8,13,18,0.19791666666666666,0.7035,1.7273,0.6578,11,59,FixedKnot+Hidden+Igniter,0,2,0,1,0.71,
+231,5,Igniter & Hidden,old:429,,6,6,15,21,0.13503086419753085,0.8696,2.3158,0.5461,152,565,Normal,0,0,0,1,0.86,
+232,5,Igniter & Hidden,old:222+fixed,BlindCurtain/Blackout->Normal,4,4,14,26,0.09763001809095441,1.0104,2.2385,0.3493,45354,28622,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,1.01,
+233,5,Igniter & Hidden,old:608,,5,5,13,28,0.0717806927297668,1.144,4.2157,0.3894,15402,11400,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,1.16,
+234,5,Igniter & Hidden,old:916,,4,5,12,24,0.052275853156316686,1.2817,3.2462,0.3485,9912,24023,Hidden+Igniter+TwinLink,0,2,0,1,1.31,
+235,5,Igniter & Hidden,old:405+mutated,augmented: +IGN+FK+SC,6,6,15,24,0.03819444444444444,1.418,4.2,0.6739,10,163,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.46,
+236,5,Igniter & Hidden,old:161+fixed,"ShortCircuit@0,0",3,3,7,10,0.16666666666666666,0.7782,2,0.75,1,59,TwinLink,0,1,0,1,0.777,
+237,5,Igniter & Hidden,old:735+fixed,"FixedKnot@0,4",6,6,14,19,0.125,0.9031,3,0.6728,9,65,FixedKnot,0,1,0,1,0.902,
+238,5,Igniter & Hidden,old:369,,6,5,14,21,0.0954861111111111,1.0201,3.8,0.5967,30,125,Hidden+Igniter+ShortCircuit,0,2,0,1,1.027,
+239,5,Igniter & Hidden,old:884+mutated,augmented: +FK+SC,6,6,15,17,0.07291666666666666,1.1372,3.5,0.7188,2,27,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.152,
+240,5,Igniter & Hidden,old:461+mutated,augmented: +FK,5,5,11,19,0.059895833333333336,1.2226,3.8621,0.5042,29,697,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,1.277,
+241,5,Igniter & Hidden,old:410+mutated,augmented: +IGN+FK,3,6,12,24,0.038802083333333334,1.4111,5.25,0.49,168,1298,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,1.402,
+242,5,Igniter & Hidden,old:684,,4,5,12,24,0.032825082744917584,1.4838,6.3575,0.3923,4221,14963,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,1.527,
+243,5,Igniter & Hidden,old:342,,6,4,12,18,0.14711130401234568,0.8324,2.8864,0.4766,88,1037,Hidden+Igniter+TwinLink,0,2,0,1,0.843,
+244,5,Igniter & Hidden,old:340,,6,6,18,28,0.10937499999999999,0.9611,3.8333,0.6975,36,203,Normal,0,0,0,1,0.968,
+245,5,Igniter & Hidden,old:197,,4,3,10,14,0.08333333333333333,1.0792,3.2,0.5833,5,135,FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,1.093,
+246,5,Igniter & Hidden,old:652+mutated,augmented: +FK,4,4,10,16,0.06534529320987655,1.1848,2.9868,0.4315,76,434,FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,1.218,
+247,5,Igniter & Hidden,old:357+mutated,augmented: +IGN,6,6,16,20,0.04513888888888889,1.3454,4.25,0.6974,4,156,Hidden+Igniter+ShortCircuit,0,2,0,1,1.343,
+248,5,Igniter & Hidden,old:601+fixed,Igniter/Hidden:G62,6,3,10,18,0.035590277777777776,1.4487,3.9474,0.5387,19,247,Hidden+Igniter+ShortCircuit,0,2,0,1,1.468,
+249,5,Igniter & Hidden,old:944+mutated,augmented: +IGN+FK,4,5,12,26,0.02485210905349794,1.6046,6,0.4133,360,186,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,1.593,
+250,5,Igniter & Hidden,old:258,,6,6,18,44,0.004549500964422958,2.342,7.5958,0.3366,1000000+,34037,Hidden+Igniter,0,1,0,1,2.243,
+251,6,BlindCurtain,new,BlindCurtain intro,2,3,6,9,0.5,0.301,1,0.6667,3,28,BlindCurtain,0,0,1,1,0.633,
+252,6,BlindCurtain,old:528+mutated,augmented: +FK,4,7,11,18,0.21296296296296297,0.6717,2.2,0.7,10,52,BlindCurtain+FixedKnot+TwinLink,0,2,0,1,0.713,
+253,6,BlindCurtain,old:409+mutated,augmented: +IGN+FK,5,5,13,18,0.1593364197530864,0.7977,2.2059,0.6011,34,204,BlindCurtain+FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,0.793,
+254,6,BlindCurtain,old:514,,3,5,7,11,0.25,0.6021,2,0.7,2,18,BlindCurtain,0,0,0,1,0.583,
+255,6,BlindCurtain,old:846+mutated,+BlindCurtain,6,6,15,21,0.1997685185185185,0.6995,3.2368,0.5837,76,583,BlindCurtain+TwinLink,0,1,0,1,0.733,
+256,6,BlindCurtain,old:837,,6,4,11,16,0.125,0.9031,3,0.8,1,24,BlindCurtain,0,0,0,1,0.883,
+257,6,BlindCurtain,old:929+fixed,"ShortCircuit@1,1",6,5,14,16,0.10416666666666666,0.9823,3,0.641,3,101,BlindCurtain+TwinLink,0,1,0,1,1.033,
+258,6,BlindCurtain,old:976+fixed,"ShortCircuit@3,7",6,8,20,24,0.0625,1.2041,4,0.7826,2,38,BlindCurtain+Hidden+Igniter,0,1,0,1,1.183,
+259,6,BlindCurtain,old:425,,6,4,14,22,0.044943085205189755,1.3473,3.38,0.4398,1421,4656,BlindCurtain,0,0,0,1,1.333,
+260,6,BlindCurtain,old:899+mutated,augmented: +IGN,4,3,7,17,0.2257908950617284,0.6463,3.3077,0.5769,13,139,BlindCurtain+Hidden+Igniter,0,1,0,1,0.65,
+261,6,BlindCurtain,old:817+mutated,augmented: +FK,3,5,8,11,0.16666666666666666,0.7782,2,0.7,2,15,BlindCurtain+FixedKnot,0,1,0,1,0.775,
+262,6,BlindCurtain,old:952+mutated,+BlindCurtain,5,5,14,17,0.125,0.9031,3,0.7857,1,46,BlindCurtain+TwinLink,0,1,0,1,0.9,
+263,6,BlindCurtain,new,,6,5,16,29,0.09238836258121398,1.0344,2.9297,0.3714,66366,24080,BlindCurtain+CrossBlast+Hidden+Igniter,0,2,0,1,1.025,
+264,6,BlindCurtain,old:218,,4,4,13,27,0.07845744235394182,1.1054,3.1234,0.2864,223216,78545,BlindCurtain+CrossBlast+TwinLink,0,2,0,1,1.15,
+265,6,BlindCurtain,old:533+mutated,augmented: +IGN,4,4,10,18,0.055579668209876545,1.2551,3.7619,0.5043,21,224,BlindCurtain+Hidden+Igniter+TwinLink,0,2,0,1,1.275,
+266,6,BlindCurtain,old:836+mutated,+BlindCurtain,3,5,11,16,0.041666666666666664,1.3802,4,0.6154,2,135,BlindCurtain+CrossBlast,0,1,0,1,1.4,
+267,6,BlindCurtain,old:584+mutated,augmented: +IGN+SC,3,5,9,13,0.2222222222222222,0.6532,2.3333,0.6944,6,54,BlindCurtain+Hidden+Igniter+ShortCircuit,0,2,0,1,0.717,
+268,6,BlindCurtain,old:857+mutated,augmented: +SC,6,6,15,20,0.125,0.9031,3,0.7544,3,32,BlindCurtain+ShortCircuit,0,1,0,1,0.904,
+269,6,BlindCurtain,old:460,,3,5,9,15,0.08471579218106995,1.072,3.6667,0.4492,45,143,BlindCurtain,0,0,0,1,1.092,
+270,6,BlindCurtain,old:822+mutated,augmented: +FK+IGN,6,3,12,26,0.053240740740740734,1.2738,5,0.688,20,66,BlindCurtain+FixedKnot+Hidden+Igniter,0,2,0,1,1.279,
+271,6,BlindCurtain,old:470+mutated,+BlindCurtain,6,6,18,24,0.03515625,1.454,5,0.6184,18,65,BlindCurtain+FixedKnot,0,1,0,1,1.467,
+272,6,BlindCurtain,old:184+mutated,+BlindCurtain,5,3,14,14,0.16666666666666666,0.7782,2,0.8462,1,18,BlindCurtain+Hidden+Igniter,0,1,0,1,0.783,
+273,6,BlindCurtain,old:757+mutated,augmented: +IGN+FK,3,6,10,24,0.1457471808288323,0.8364,2.3898,0.4021,2560,565,BlindCurtain+FixedKnot+Hidden+Igniter,0,2,0,1,0.89,
+274,6,BlindCurtain,old:536,,4,5,11,17,0.10385320216049382,0.9836,2.7692,0.5152,78,522,Normal,0,0,0,1,0.998,
+275,6,BlindCurtain,old:668+mutated,+BlindCurtain,5,3,9,16,0.08333333333333333,1.0792,4,0.7143,2,73,BlindCurtain+Hidden+Igniter+TwinLink,0,2,0,1,1.105,
+276,6,BlindCurtain,old:545,,3,6,10,21,0.06426474488811729,1.192,4.5,0.4015,800,743,BlindCurtain,0,0,0,1,1.212,
+277,6,BlindCurtain,old:676,,3,4,11,16,0.050282921810699585,1.2986,4.1111,0.4212,27,478,BlindCurtain+FixedKnot+TwinLink,0,2,0,1,1.319,
+278,6,BlindCurtain,old:110+mutated,+BlindCurtain,4,4,15,28,0.03873407783730748,1.4119,4.0543,0.3553,11210,34987,BlindCurtain+CrossBlast+ShortCircuit,0,2,0,1,1.426,
+279,6,BlindCurtain,old:820+mutated,+BlindCurtain,6,5,19,19,0.032407407407407406,1.4894,4,0.5111,8,92,BlindCurtain+CrossBlast,0,1,0,1,1.533,
+280,6,BlindCurtain,old:586+mutated,augmented: +SC+FK,4,3,8,12,0.14583333333333331,0.8361,2.75,0.5227,8,71,BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,0.85,
+281,6,BlindCurtain,old:686,,6,4,14,30,0.10340025471430506,0.9855,2.799,0.3527,14438,20625,BlindCurtain+CrossBlast+TwinLink,0,2,0,1,1.0,
+282,6,BlindCurtain,old:178+mutated,+BlindCurtain,5,3,14,26,0.07706312654523739,1.1132,3.4653,0.3507,69188,16418,BlindCurtain+Hidden+Igniter,0,1,0,1,1.15,
+283,6,BlindCurtain,old:330+mutated,+BlindCurtain,5,5,13,29,0.05109019338348766,1.2917,3.9737,0.3153,722,2690,BlindCurtain+CrossBlast,0,1,0,1,1.3,
+284,6,BlindCurtain,old:211+mutated,augmented: +IGN+FK,4,4,12,20,0.036458333333333336,1.4382,5.3333,0.5965,9,54,BlindCurtain+FixedKnot+Hidden+Igniter,0,2,0,1,1.45,
+285,6,BlindCurtain,old:600+mutated,augmented: +FK+IGN,3,6,10,17,0.027777777777777776,1.5563,5.8333,0.5938,6,104,BlindCurtain+FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.6,
+286,6,BlindCurtain,old:900+mutated,augmented: +FK,6,3,10,12,0.125,0.9031,3,0.7273,1,20,BlindCurtain+FixedKnot,0,1,0,1,0.917,
+287,6,BlindCurtain,old:107+mutated,+BlindCurtain,4,4,14,27,0.08775421841832697,1.0567,2.3757,0.4004,8784,48669,BlindCurtain+CrossBlast,0,1,0,1,1.042,
+288,6,BlindCurtain,old:111+mutated,+BlindCurtain,4,4,15,28,0.06677507655271601,1.1754,3.3854,0.4049,16422,40730,BlindCurtain+CrossBlast+ShortCircuit,0,2,0,1,1.167,
+289,6,BlindCurtain,old:737+mutated,augmented: +IGN,4,6,14,32,0.05115951205901322,1.2911,4.2267,0.3368,538920,13300,BlindCurtain+Hidden+Igniter,0,1,0,1,1.292,
+290,6,BlindCurtain,old:527,,4,4,14,30,0.040504620689714194,1.3925,4.0739,0.4107,22504,39602,BlindCurtain+ShortCircuit,0,1,0,1,1.417,
+291,6,BlindCurtain,old:438+mutated,augmented: +FK+FK,6,3,12,20,0.03125,1.5051,5,0.6316,6,57,BlindCurtain+FixedKnot+Hidden+Igniter,0,2,0,1,1.542,
+292,6,BlindCurtain,old:166+mutated,+BlindCurtain,5,4,13,26,0.022064202330344982,1.6563,5.789,0.3912,5256,10446,BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,1.667,
+293,6,BlindCurtain,old:770+mutated,+BlindCurtain,3,4,11,16,0.12473958333333332,0.904,3.7895,0.428,38,142,BlindCurtain+CrossBlast+FixedKnot+TwinLink,0,3,0,1,0.983,
+294,6,BlindCurtain,old:191+mutated,+BlindCurtain,3,3,7,10,0.08333333333333333,1.0792,3,0.6667,1,21,BlindCurtain+Hidden+Igniter+ShortCircuit,0,2,0,1,1.108,
+295,6,BlindCurtain,old:681+mutated,+BlindCurtain,6,6,16,26,0.0625,1.2041,4,0.8,2,37,BlindCurtain+FixedKnot,0,1,0,1,1.233,
+296,6,BlindCurtain,old:912+mutated,+BlindCurtain,6,6,15,19,0.048611111111111105,1.3133,4.5,0.6333,4,258,BlindCurtain+TwinLink,0,1,0,1,1.358,
+297,6,BlindCurtain,old:252+mutated,augmented: +IGN+FK,5,6,16,20,0.03250385802469136,1.4881,3.5833,0.6272,12,122,BlindCurtain+FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.483,
+298,6,BlindCurtain,old:94+mutated,+BlindCurtain,5,4,16,23,0.026090205942161777,1.5835,4.967,0.5063,455,3585,BlindCurtain+ShortCircuit,0,1,0,1,1.608,
+299,6,BlindCurtain,old:724,,3,6,12,26,0.0175388303040695,1.756,4.8217,0.4902,129,2637,BlindCurtain+CrossBlast+TwinLink,0,2,0,1,1.733,
+300,6,BlindCurtain,old:219,,4,4,15,23,0.002564871970736168,2.5909,7.6829,0.4889,41,589,BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,2.383,
+301,7,Blackout,new,Blackout intro,3,2,6,8,0.5,0.301,1.5,0.7857,2,15,Blackout,0,0,1,1,0.773,
+302,7,Blackout,old:955+mutated,augmented: +SC,6,6,13,18,0.16666666666666666,0.7782,2,0.8824,1,28,Blackout+ShortCircuit,0,1,0,1,0.853,
+303,7,Blackout,old:421,,6,6,12,16,0.125,0.9031,3,0.8,1,24,Blackout,0,0,0,1,0.933,
+304,7,Blackout,old:147+mutated,+Blackout,4,3,9,14,0.169921875,0.7698,3.1,0.4123,10,106,Blackout+TwinLink,0,1,0,1,0.723,
+305,7,Blackout,old:237,,3,4,10,24,0.1329684787326389,0.8763,2.5617,0.4498,2592,3006,Blackout,0,0,0,1,0.873,
+306,7,Blackout,old:728+mutated,augmented: +IGN,6,6,15,20,0.1015625,0.9933,3.1429,0.6767,7,149,Blackout+Hidden+Igniter,0,1,0,1,1.023,
+307,7,Blackout,old:260+mutated,+Blackout,6,6,17,25,0.0642361111111111,1.1922,3.5385,0.4988,234,2988,Blackout+TwinLink,0,1,0,1,1.173,
+308,7,Blackout,old:963+mutated,+Blackout,5,4,12,24,0.046875,1.3291,4.5,0.605,10,285,Blackout+CrossBlast,0,1,0,1,1.323,
+309,7,Blackout,old:481,,6,6,18,24,0.0341566353559385,1.4665,4.4442,0.4821,1272,4643,Blackout,0,0,0,1,1.473,
+310,7,Blackout,old:993+mutated,+Blackout,5,4,12,24,0.167592701434435,0.7757,2.324,0.3432,27108,8707,Blackout+Hidden+Igniter,0,1,0,1,0.79,
+311,7,Blackout,old:661+mutated,augmented: +FK,6,6,14,20,0.125,0.9031,2.5,0.7105,8,58,Blackout+FixedKnot,0,1,0,1,0.915,
+312,7,Blackout,new,,5,3,12,19,0.0954861111111111,1.0201,3.3846,0.5117,78,748,Blackout+BlindCurtain+TwinLink,0,1,0,1,1.04,
+313,7,Blackout,old:483+mutated,+Blackout,6,7,16,20,0.0703125,1.153,3.6,0.6842,5,69,Blackout+Hidden+Igniter,0,1,0,1,1.165,
+314,7,Blackout,new,,6,4,14,31,0.05424843324803605,1.2656,3.441,0.4732,6939,9872,Blackout+BlindCurtain+Hidden+Igniter+ShortCircuit,0,2,0,1,1.29,
+315,7,Blackout,old:318+mutated,augmented: +FK+FK,5,4,10,14,0.041666666666666664,1.3802,4,0.6923,1,16,Blackout+FixedKnot,0,1,0,1,1.415,
+316,7,Blackout,old:649+mutated,+Blackout,6,6,15,18,0.03125,1.5051,5,0.6,2,62,Blackout+TwinLink,0,1,0,1,1.54,
+317,7,Blackout,old:713,,7,5,25,27,0.1446759259259259,0.8396,3.3333,0.7244,96,197,Normal,0,0,0,1,0.857,
+318,7,Blackout,new,,5,5,13,22,0.09375,1.028,3.5,0.7063,6,78,Blackout+BlindCurtain,0,0,0,1,1.044,
+319,7,Blackout,new,,5,4,16,29,0.061442057291666664,1.2115,3.9189,0.625,37,912,Blackout+BlindCurtain+CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,1.232,
+320,7,Blackout,new,,3,8,18,28,0.03855161313657408,1.414,5.2117,0.541,1710,1011,Blackout+BlindCurtain,0,0,0,1,1.419,
+321,7,Blackout,old:853+mutated,+Blackout,5,5,14,20,0.02697402263374486,1.5691,6.625,0.6118,16,362,Blackout+ShortCircuit,0,1,0,1,1.607,
+322,7,Blackout,old:754+mutated,augmented: +FK+IGN+FK,6,6,13,19,0.125,0.9031,3,0.8333,1,22,Blackout+FixedKnot+Hidden+Igniter,0,2,0,1,0.923,
+323,7,Blackout,old:441+mutated,augmented: +FK+IGN+FK,4,5,10,28,0.09662543402777778,1.0149,3.9213,0.5148,635,201,Blackout+FixedKnot+Hidden+Igniter,0,2,0,1,1.03,
+324,7,Blackout,old:590,,4,4,10,22,0.0732421875,1.1352,3.75,0.6071,16,104,Blackout,0,0,0,1,1.138,
+325,7,Blackout,old:422+mutated,+Blackout,3,6,12,22,0.05887761813669654,1.23,3.7683,0.3937,1256,7918,Blackout+Hidden+Igniter+TwinLink,0,2,0,1,1.245,
+326,7,Blackout,old:987+mutated,augmented: +IGN+FK,5,4,12,19,0.04540412808641975,1.3429,4.9643,0.5258,28,155,Blackout+FixedKnot+Hidden+Igniter,0,2,0,1,1.352,
+327,7,Blackout,old:134+mutated,+Blackout,5,2,10,17,0.03418370627572016,1.4662,4.5902,0.4078,61,248,Blackout+FixedKnot+ShortCircuit,0,2,1,1,1.459,
+328,7,Blackout,old:183+mutated,+Blackout,4,4,13,22,0.028887629672496567,1.5393,4.5489,0.3901,798,2514,Blackout+Hidden+Igniter,0,1,0,1,1.566,
+329,7,Blackout,old:764+mutated,+Blackout,3,6,12,14,0.020833333333333332,1.6812,5,0.4545,2,120,Blackout+CrossBlast,0,1,0,1,1.673,
+330,7,Blackout,new,,6,8,24,34,0.1015625,0.9933,3.2308,0.7855,13,252,Blackout+BlindCurtain+ShortCircuit,0,1,0,1,0.99,
+331,7,Blackout,old:499,,5,3,9,18,0.07291666666666667,1.1372,4.25,0.5167,16,399,TwinLink,0,1,0,1,1.14,
+332,7,Blackout,old:639+mutated,+Blackout,5,5,17,33,0.05385931590911256,1.2687,4.7727,0.5356,572,12292,Blackout+CrossBlast,0,1,0,1,1.29,
+333,7,Blackout,old:492+mutated,+Blackout,6,5,16,24,0.036458333333333336,1.4382,4.3333,0.6522,12,116,Blackout,0,0,0,1,1.44,
+334,7,Blackout,old:552+mutated,+Blackout,6,6,15,20,0.027777777777777776,1.5563,4,0.7895,1,51,Blackout+ShortCircuit,0,1,0,1,1.59,
+335,7,Blackout,old:408+mutated,+Blackout,5,6,16,36,0.019007526055739306,1.7211,5.3772,0.3315,1000000+,68295,Blackout+Hidden+Igniter+ShortCircuit,0,2,0,1,1.74,
+336,7,Blackout,old:832,,6,3,9,21,0.09190739133230452,1.0366,3.5833,0.4422,360,350,BlindCurtain,0,0,0,1,1.057,
+337,7,Blackout,new,,5,3,11,20,0.06757839291838133,1.1702,4.0278,0.4568,468,1133,Blackout+BlindCurtain+Hidden+Igniter,0,1,0,1,1.182,
+338,7,Blackout,old:646+mutated,+Blackout,5,5,14,21,0.05208333333333333,1.2833,4.5,0.6667,4,380,Blackout+TwinLink,0,1,0,1,1.307,
+339,7,Blackout,old:861+mutated,+Blackout,6,6,15,20,0.037037037037037035,1.4314,4.5,0.7632,2,59,Blackout+ShortCircuit,0,1,0,1,1.432,
+340,7,Blackout,old:419+mutated,augmented: +FK,6,6,18,40,0.0308837890625,1.5103,4.5,0.5037,5292,269,Blackout+FixedKnot,0,1,0,1,1.557,
+341,7,Blackout,old:336+mutated,+Blackout,5,5,14,26,0.019097222222222224,1.719,6.1053,0.5833,19,485,Blackout+CrossBlast+Hidden+Igniter,0,2,0,1,1.682,
+342,7,Blackout,old:278+mutated,+Blackout,6,5,18,24,0.015625,1.8062,6,0.6471,1,73,Blackout+ShortCircuit+TwinLink,0,2,0,1,1.807,
+343,7,Blackout,new,,3,6,10,24,0.08663676697530864,1.0623,3.75,0.5068,76,1119,Blackout+BlindCurtain+CrossBlast+TwinLink,0,2,0,1,1.123,
+344,7,Blackout,old:324+mutated,+Blackout,5,5,11,20,0.05787037037037037,1.2375,4.5,0.6491,12,175,Blackout+Hidden+Igniter,0,1,0,1,1.248,
+345,7,Blackout,new,,5,5,16,31,0.04351806640625,1.3613,4.9803,0.5654,152,1328,Blackout+BlindCurtain+ShortCircuit,0,1,0,1,1.373,
+346,7,Blackout,old:625+mutated,+Blackout,7,4,17,23,0.03125,1.5051,5,0.7727,1,22,Blackout+FixedKnot,0,1,0,1,1.498,
+347,7,Blackout,old:523+mutated,augmented: +IGN+FK+SC,6,6,15,19,0.020833333333333332,1.6812,5,0.7222,1,32,Blackout+FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.623,
+348,7,Blackout,old:763+mutated,+Blackout,6,5,12,18,0.017361111111111112,1.7604,5,0.6,2,102,Blackout+CrossBlast+TwinLink,0,2,0,1,1.748,
+349,7,Blackout,old:844+mutated,+Blackout,5,5,14,23,0.013294110082304527,1.8763,6.24,0.462,50,1106,Blackout+CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,1.873,
+350,7,Blackout,old:562+mutated,augmented: +IGN+FK,6,5,16,22,0.001953125,2.7093,9,0.5714,1,51,Blackout+FixedKnot+Hidden+Igniter,0,2,0,1,2.523,
+351,8,Remix: classic mechanics combined,old:664+mutated,+Blackout,4,3,8,12,0.15914351851851852,0.7982,1.8235,0.5561,17,95,Blackout+FixedKnot+ShortCircuit,0,2,0,1,0.913,
+352,8,Remix: classic mechanics combined,new,,4,3,10,16,0.125,0.9031,2.5,0.7308,2,94,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,0.993,
+353,8,Remix: classic mechanics combined,old:797+mutated,augmented: +SC,3,3,6,10,0.08333333333333333,1.0792,3,0.6667,1,21,FixedKnot+ShortCircuit,0,2,0,1,1.073,
+354,8,Remix: classic mechanics combined,old:250+mutated,augmented: +IGN+FK,6,6,16,25,0.16735789609053497,0.7764,3.0218,0.6317,229,352,Blackout+FixedKnot+Hidden+Igniter,0,2,0,1,0.863,
+355,8,Remix: classic mechanics combined,old:351+mutated,augmented: +FK,6,5,15,21,0.09722222222222222,1.0122,3,0.7667,6,50,FixedKnot,0,1,0,1,1.013,
+356,8,Remix: classic mechanics combined,old:910+mutated,+Blackout,4,4,10,16,0.07497427983539094,1.1251,3.7111,0.4037,90,1090,Blackout+Hidden+Igniter+TwinLink,0,2,0,1,1.163,
+357,8,Remix: classic mechanics combined,old:301,,4,6,14,22,0.05100711077710619,1.2924,4.3874,0.4008,1306,13568,TwinLink,0,1,0,1,1.313,
+358,8,Remix: classic mechanics combined,new,,6,3,12,33,0.036840368200231476,1.4337,4.838,0.4561,142,976,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,1.463,
+359,8,Remix: classic mechanics combined,old:903+mutated,augmented: +IGN+FK,5,6,18,26,0.026041666666666668,1.5843,4.6667,0.6667,12,94,FixedKnot+Hidden+Igniter,0,2,0,1,1.613,
+360,8,Remix: classic mechanics combined,old:790+mutated,augmented: +IGN+FK,6,6,14,23,0.13119695216049382,0.8821,2.7273,0.6074,66,231,Blackout+FixedKnot+Hidden+Igniter,0,2,0,1,0.93,
+361,8,Remix: classic mechanics combined,new,,4,4,13,20,0.09265270677940673,1.0331,2.7969,0.4012,832,4569,CrossBlast+ShortCircuit+TwinLink,0,3,0,1,1.055,
+362,8,Remix: classic mechanics combined,new,,4,6,18,27,0.0625,1.2041,3.6,0.7787,5,301,CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,1.18,
+363,8,Remix: classic mechanics combined,new,,4,3,9,16,0.05307998971193415,1.2751,4.6435,0.3124,115,330,CrossBlast+FixedKnot,0,2,0,1,1.305,
+364,8,Remix: classic mechanics combined,old:207+mutated,augmented: +IGN+FK,4,3,10,19,0.040364583333333336,1.394,4.7955,0.4975,44,259,BlindCurtain+FixedKnot+Hidden+Igniter,0,2,0,1,1.43,
+365,8,Remix: classic mechanics combined,old:720+mutated,augmented: +IGN+FK,3,5,11,26,0.03110829629361711,1.5071,4.7157,0.412,2058,1553,FixedKnot+Hidden+Igniter,0,2,0,1,1.555,
+366,8,Remix: classic mechanics combined,old:169+mutated,augmented: +IGN,5,3,13,21,0.022831749935699586,1.6415,4.4554,0.4321,224,5018,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,1.68,
+367,8,Remix: classic mechanics combined,new,,3,7,13,26,0.09912109375,1.0038,3.087,0.5435,46,1034,CrossBlast+TwinLink,0,2,0,1,0.997,
+368,8,Remix: classic mechanics combined,new,,3,4,9,13,0.0625,1.2041,4,0.6667,1,26,Blackout+BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,1.184,
+369,8,Remix: classic mechanics combined,old:155+mutated,augmented: +IGN,4,4,11,19,0.044945987654320986,1.3473,5.2143,0.5682,14,319,Hidden+Igniter+TwinLink,0,2,0,1,1.372,
+370,8,Remix: classic mechanics combined,old:709+mutated,augmented: +SC,6,6,18,27,0.029296875,1.5332,5,0.6232,12,541,ShortCircuit+TwinLink,0,2,0,1,1.559,
+371,8,Remix: classic mechanics combined,old:901+mutated,augmented: +IGN+FK,3,6,14,20,0.017505787037037035,1.7568,5.1538,0.5709,13,274,FixedKnot+Hidden+Igniter,0,2,0,1,1.747,
+372,8,Remix: classic mechanics combined,new,,3,3,7,20,0.08333333333333333,1.0792,4,0.5652,4,94,CrossBlast+FixedKnot+TwinLink,0,3,0,1,1.063,
+373,8,Remix: classic mechanics combined,old:611+mutated,+BlindCurtain,4,4,10,20,0.07324486668381346,1.1352,4.1153,0.3212,1596,1798,BlindCurtain+Hidden+Igniter+TwinLink,0,2,0,1,1.17,
+374,8,Remix: classic mechanics combined,old:596,,4,5,16,30,0.05974887217997512,1.2237,3.7045,0.3883,110922,16768,Hidden+Igniter,0,1,0,1,1.278,
+375,8,Remix: classic mechanics combined,new,,5,4,11,27,0.042255919656635804,1.3741,3.74,0.4402,1800,4606,CrossBlast+ShortCircuit,0,2,0,1,1.385,
+376,8,Remix: classic mechanics combined,new,,5,5,17,35,0.031612913098476025,1.5001,5.0432,0.3595,120960,105976,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,1.492,
+377,8,Remix: classic mechanics combined,new,,3,6,17,27,0.026644483024691357,1.5744,6.0417,0.5684,144,1619,BlindCurtain+Hidden+Igniter+ShortCircuit,0,2,0,1,1.599,
+378,8,Remix: classic mechanics combined,old:217,,4,4,14,31,0.02030419135543467,1.6924,5.6541,0.2771,174416,256460,BlindCurtain+CrossBlast+TwinLink,0,2,0,1,1.706,
+379,8,Remix: classic mechanics combined,old:591+mutated,augmented: +IGN,6,5,17,22,0.016609163727219284,1.7797,6.1111,0.5285,18,1042,Hidden+Igniter+TwinLink,0,2,0,1,1.813,
+380,8,Remix: classic mechanics combined,old:537+mutated,augmented: +IGN+FK,6,5,13,31,0.07555313778051533,1.1217,3.3159,0.3675,180484,31412,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,1.13,
+381,8,Remix: classic mechanics combined,old:771+mutated,augmented: +IGN+FK,6,3,12,18,0.05495876736111111,1.26,4.068,0.4642,147,363,FixedKnot+Hidden+Igniter,0,2,0,1,1.28,
+382,8,Remix: classic mechanics combined,old:84+mutated,augmented: +IGN,4,4,12,25,0.038831263312732386,1.4108,6.9824,0.386,41085,18280,Hidden+Igniter+ShortCircuit,0,2,0,1,1.43,
+383,8,Remix: classic mechanics combined,new,,3,6,14,27,0.027642897617669755,1.5584,5.8946,0.41,1044,4999,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,1.58,
+384,8,Remix: classic mechanics combined,old:828+mutated,augmented: +IGN,4,5,12,20,0.018638117283950616,1.7296,4.5333,0.4468,45,2241,Hidden+Igniter+TwinLink,0,2,0,1,1.73,
+385,8,Remix: classic mechanics combined,old:224,,4,5,16,25,0.012935731261143418,1.8882,5.7852,0.3949,945,9597,BlindCurtain+CrossBlast+FixedKnot+TwinLink,0,3,0,1,1.88,
+386,8,Remix: classic mechanics combined,new,,3,5,11,17,0.0625,1.2041,4,0.7333,1,24,Blackout+BlindCurtain+CrossBlast+Hidden+Igniter,0,2,0,1,1.197,
+387,8,Remix: classic mechanics combined,new,,5,3,14,25,0.05086966306584362,1.2935,2.9947,0.3813,1329,7208,BlindCurtain+CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,1.322,
+388,8,Remix: classic mechanics combined,new,,7,2,10,16,0.0375,1.426,4.3333,0.6341,3,152,FixedKnot+TwinLink,0,2,0,1,1.447,
+389,8,Remix: classic mechanics combined,new,,5,7,20,46,0.02792501449584961,1.554,5.538,0.5792,1472,38601,Blackout+BlindCurtain+CrossBlast+TwinLink,0,2,0,1,1.572,
+390,8,Remix: classic mechanics combined,old:956+mutated,augmented: +FK+SC,4,5,12,16,0.020833333333333332,1.6812,5,0.6667,1,72,BlindCurtain+FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.697,
+391,8,Remix: classic mechanics combined,old:711+mutated,augmented: +FK+IGN,6,8,18,26,0.014756944444444442,1.831,6.25,0.62,16,276,FixedKnot+Hidden+Igniter,0,2,0,1,1.822,
+392,8,Remix: classic mechanics combined,old:883,,4,6,14,16,0.011574074074074072,1.9365,6.3333,0.4487,6,546,CrossBlast+TwinLink,0,2,0,1,1.947,
+393,8,Remix: classic mechanics combined,old:493+mutated,augmented: +SC+FK,6,6,15,22,0.0625,1.2041,4,0.8095,1,42,FixedKnot+ShortCircuit,0,2,0,1,1.263,
+394,8,Remix: classic mechanics combined,old:148+mutated,augmented: +IGN+FK,4,3,9,19,0.040895061728395056,1.3883,4.4141,0.4301,128,560,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,1.388,
+395,8,Remix: classic mechanics combined,old:985+mutated,augmented: +FK,6,6,15,19,0.03125,1.5051,5,0.7222,1,24,FixedKnot+ShortCircuit,0,2,0,1,1.513,
+396,8,Remix: classic mechanics combined,old:176+mutated,augmented: +FK+SC,5,3,13,16,0.02546296296296296,1.5941,5,0.6667,2,67,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.638,
+397,8,Remix: classic mechanics combined,old:97+mutated,augmented: +IGN,5,5,16,29,0.017231385692391066,1.7637,7.4471,0.5245,832,3608,Hidden+Igniter+ShortCircuit,0,2,0,1,1.763,
+398,8,Remix: classic mechanics combined,old:373+fixed,"ShortCircuit@2,3",4,5,10,21,0.012148256655092593,1.9155,6.4524,0.4536,84,978,Hidden+Igniter+ShortCircuit,0,2,0,1,1.888,
+399,8,Remix: classic mechanics combined,old:385+mutated,augmented: +IGN+FK,6,6,18,25,0.009548611111111112,2.0201,5.7143,0.6369,7,139,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.013,
+400,8,Remix: classic mechanics combined,old:256+mutated,augmented: +IGN,6,6,18,26,0.0013503086419753086,2.8696,10.5,0.5435,8,2270,CrossBlast+Hidden+Igniter,0,2,0,1,2.663,
+401,9,Charge,new,Charge intro,3,3,9,9,0.25,0.6021,2,0.5556,4,41,Charge,0,1,1,1,1.053,replaced: new Charge tutorial board (Wall intro removed)
+402,9,Charge,new,,5,4,10,14,0.07291666666666667,1.1372,3.4444,0.5167,9,187,Charge+CrossBlast,0,2,0,1,1.133,replaced by wall-free candidate (new)
+403,9,Charge,new,,5,5,9,15,0.0625,1.2041,3.5,0.7,2,96,BlindCurtain+Charge,0,1,0,1,1.213,replaced by wall-free candidate (new)
+404,9,Charge,new,,4,3,9,19,0.09508373119212962,1.0219,2.8889,0.3205,1674,3653,Charge+CrossBlast,0,2,0,1,1.003,replaced by wall-free candidate (new)
+405,9,Charge,new,,3,5,10,17,0.06901041666666667,1.1611,4.4103,0.5228,39,473,Blackout+BlindCurtain+Charge,0,1,0,1,1.153,replaced by wall-free candidate (new)
+406,9,Charge,old:637+mutated,charge,3,5,9,21,0.04992926954732509,1.3016,4.1429,0.4842,252,3533,Charge,0,1,0,1,1.303,replaced by wall-free candidate (oldvar)
+407,9,Charge,new,,5,4,16,29,0.03970424824781379,1.4012,4.566,0.5417,447,15972,Blackout+BlindCurtain+Charge,0,1,0,1,1.453,replaced by wall-free candidate (new)
+408,9,Charge,old:305+mutated,charge,4,6,18,30,0.0236476086530902,1.6262,4.8783,0.4035,24072,90549,Charge,0,1,0,1,1.603,replaced by wall-free candidate (oldvar)
+409,9,Charge,old:210+mutated+nowall,charge+walls; walls removed,4,4,12,25,0.01611898432706773,1.7927,5.3845,0.3649,13530,83054,BlindCurtain+Charge,0,1,0,1,1.753,replaced by wall-free board (walls removed from former stage 578)
+410,9,Charge,old:145+mutated,charge,5,2,9,24,0.08946326405729954,1.0484,2.4729,0.2732,149107,45199,Charge+TwinLink,0,2,0,1,1.07,replaced by wall-free candidate (oldvar)
+411,9,Charge,old:974+mutated,charge,5,5,12,17,0.0625,1.2041,3.5,0.7353,2,233,Blackout+Charge,0,1,0,1,1.195,replaced by wall-free candidate (oldvar)
+412,9,Charge,new,,5,4,11,15,0.0625,1.2041,4,0.6154,2,46,Charge+Hidden+Igniter+TwinLink,0,3,0,1,1.32,replaced by wall-free candidate (new)
+413,9,Charge,new,,4,4,12,25,0.03515625,1.454,3.9286,0.5644,14,698,Charge+Hidden+Igniter+TwinLink,0,3,0,1,1.445,replaced by wall-free candidate (new)
+414,9,Charge,new,,5,4,15,32,0.031074849091732325,1.5076,4.5037,0.3026,1000000+,853291,Charge+TwinLink,0,2,0,1,1.57,replaced by wall-free candidate (new)
+415,9,Charge,new,,6,5,16,20,0.021604938271604937,1.6654,4.875,0.4762,56,2091,Blackout+BlindCurtain+Charge+ShortCircuit,0,2,0,1,1.695,replaced by wall-free candidate (new)
+416,9,Charge,old:345+mutated,augmented: +FK+FK+IGN,4,6,13,21,0.015890239197530864,1.7989,5.8333,0.5691,12,224,Blackout+Charge+FixedKnot+Hidden+Igniter,0,3,0,1,1.82,replaced by wall-free candidate (oldvar)
+417,9,Charge,new,,5,3,9,22,0.07783564814814814,1.1088,3.8462,0.432,26,112,Charge+FixedKnot+TwinLink,0,3,0,1,1.137,replaced by wall-free candidate (new)
+418,9,Charge,new,,3,5,12,20,0.05078125,1.2943,4.5,0.5556,10,234,Charge+CrossBlast+ShortCircuit,0,3,0,1,1.324,replaced by wall-free candidate (new)
+419,9,Charge,new,,3,6,14,26,0.03167812273169787,1.4992,4.0489,0.3784,50938,68742,Charge+Hidden+Igniter+ShortCircuit,0,3,0,1,1.512,replaced by wall-free candidate (new)
+420,9,Charge,new,,4,3,9,13,0.020833333333333332,1.6812,5,0.6154,1,68,Charge+Hidden+Igniter,0,2,0,1,1.699,replaced by wall-free candidate (new)
+421,9,Charge,new,,7,3,16,30,0.013088650173611114,1.8831,4.697,0.5387,132,18715,Blackout+BlindCurtain+Charge+TwinLink,0,2,0,1,1.887,replaced by wall-free candidate (new)
+422,9,Charge,new,,4,4,12,17,0.06510416666666667,1.1864,2.8125,0.5188,16,658,BlindCurtain+Charge+TwinLink,0,2,0,1,1.203,replaced by wall-free candidate (new)
+423,9,Charge,old:390+mutated,charge,5,3,10,13,0.0625,1.2041,4,0.6923,1,37,BlindCurtain+Charge+FixedKnot,0,2,0,1,1.31,replaced by wall-free candidate (oldvar)
+424,9,Charge,old:666+mutated,augmented: +FK,4,4,10,14,0.041666666666666664,1.3802,4,0.7143,1,148,Charge+FixedKnot,0,2,0,1,1.418,replaced by wall-free candidate (oldvar)
+425,9,Charge,new,,6,4,16,23,0.03125,1.5051,5,0.7143,2,224,BlindCurtain+Charge+ShortCircuit+TwinLink,0,3,0,1,1.525,replaced by wall-free candidate (new)
+426,9,Charge,new,,6,3,16,25,0.023704246238425923,1.6252,5.1596,0.4911,282,4415,Charge+CrossBlast+ShortCircuit,0,3,0,1,1.632,replaced by wall-free candidate (new)
+427,9,Charge,new,,5,8,23,39,0.0194549560546875,1.711,5.4121,0.5888,495,21132,Charge+CrossBlast+TwinLink,0,3,0,1,1.739,replaced by wall-free candidate (new)
+428,9,Charge,new,,4,4,10,19,0.015625,1.8062,5.5,0.6579,2,650,Charge+TwinLink,0,2,0,1,1.846,replaced by wall-free candidate (new)
+429,9,Charge,old:858+mutated,augmented: +FK+SC+FK,4,6,16,25,0.01199905960648148,1.9209,4.4595,0.598,37,337,Charge+FixedKnot+ShortCircuit,0,3,0,1,1.953,replaced by wall-free candidate (oldvar)
+430,9,Charge,new,,4,4,7,17,0.0625,1.2041,4,0.5833,2,73,Charge+CrossBlast+Hidden+Igniter+TwinLink,0,4,0,1,1.27,replaced by wall-free candidate (new)
+431,9,Charge,new,,3,8,19,32,0.039435492621527776,1.4041,4.3427,0.6041,248,9154,BlindCurtain+Charge+ShortCircuit,0,2,0,1,1.42,replaced by wall-free candidate (new)
+432,9,Charge,new,,5,3,10,20,0.027777777777777776,1.5563,5.6667,0.5952,3,85,Charge+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,1.57,replaced by wall-free candidate (new)
+433,9,Charge,new,,3,8,20,33,0.02037975612842521,1.6908,4.4602,0.4791,34077,162671,BlindCurtain+Charge+ShortCircuit,0,2,0,1,1.72,replaced by wall-free candidate (new)
+434,9,Charge,new,,4,5,13,23,0.013728835564200388,1.8624,5.5,0.4209,1104,8604,BlindCurtain+Charge+ShortCircuit,0,2,0,1,1.87,replaced by wall-free candidate (new)
+435,9,Charge,new,,5,3,12,29,0.00933924871071721,2.0297,6.5142,0.3551,3168,9124,Charge+FixedKnot+TwinLink,0,3,0,1,2.02,replaced by wall-free candidate (new)
+436,9,Charge,new,,4,3,9,16,0.04976851851851852,1.303,4,0.5391,8,401,Charge+ShortCircuit+TwinLink,0,3,0,1,1.337,replaced by wall-free candidate (new)
+437,9,Charge,new,,3,7,16,28,0.03247723363554526,1.4884,3.6211,0.4613,768,43487,Charge+CrossBlast,0,2,0,1,1.462,replaced by wall-free candidate (new)
+438,9,Charge,old:830+mutated,augmented: +FK+SC+FK,6,6,14,21,0.025390625,1.5953,4.9091,0.5945,11,404,Charge+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,1.587,replaced by wall-free candidate (oldvar)
+439,9,Charge,new,,5,3,14,30,0.02041484691478588,1.6901,5.056,0.4202,1607,9369,Charge+CrossBlast+Hidden+Igniter,0,3,0,1,1.712,replaced by wall-free candidate (new)
+440,9,Charge,old:653+mutated,augmented: +FK,6,6,16,19,0.015625,1.8062,6,0.6842,1,51,Charge+FixedKnot,0,2,0,1,1.837,replaced by wall-free candidate (oldvar)
+441,9,Charge,old:262+mutated,augmented: +FK,6,5,14,28,0.011329933449074075,1.9458,5.1034,0.6281,29,2840,BlindCurtain+Charge+FixedKnot+Hidden+Igniter,0,3,0,1,1.962,replaced by wall-free candidate (oldvar)
+442,9,Charge,old:400+mutated,augmented: +FK,3,6,12,19,0.008246527777777776,2.0837,6.375,0.477,16,200,Charge+FixedKnot,0,2,0,1,2.087,replaced by wall-free candidate (oldvar)
+443,9,Charge,new,,5,6,19,32,0.0478515625,1.3201,4.5833,0.6503,48,982,Charge+CrossBlast+ShortCircuit,0,3,0,1,1.403,replaced by wall-free candidate (new)
+444,9,Charge,old:520+mutated,augmented: +FK+SC+SC,6,6,15,19,0.03125,1.5051,5,0.6842,2,54,Charge+FixedKnot+ShortCircuit,0,3,0,1,1.528,replaced by wall-free candidate (oldvar)
+445,9,Charge,new,,5,3,11,22,0.0234375,1.6301,5.5,0.6579,2,78,Charge+CrossBlast+Hidden+Igniter,0,3,0,1,1.653,replaced by wall-free candidate (new)
+446,9,Charge,new,,6,4,20,31,0.01718594323261267,1.7648,4.9546,0.5069,6768,44286,Charge+ShortCircuit,0,2,0,1,1.778,replaced by wall-free candidate (new)
+447,9,Charge,old:847+mutated,augmented: +FK+SC+FK,6,6,14,22,0.012442129629629628,1.9051,5.1667,0.6439,6,337,Charge+FixedKnot+ShortCircuit,0,3,0,1,1.903,replaced by wall-free candidate (oldvar)
+448,9,Charge,new,,6,3,11,22,0.009259259259259259,2.0334,7,0.5526,8,1145,Charge+ShortCircuit+TwinLink,0,3,0,1,2.028,replaced by wall-free candidate (new)
+449,9,Charge,old:582+mutated,"charge; ShortCircuit@0,4",3,5,13,23,0.007573903797058375,2.1207,7.9877,0.413,486,3801,Charge+ShortCircuit,0,2,0,1,2.153,replaced by wall-free candidate (oldvar)
+450,9,Charge,old:129+mutated+nowall,charge+walls; walls removed,5,4,18,29,0.0008892023859545873,3.051,8.7648,0.3742,2194,164842,Charge+FixedKnot,0,2,0,1,2.803,replaced by wall-free board (walls removed from former stage 942)
+451,10,One-way mazes: ShortCircuit combos,old:610+mutated+nowall,augmented: +WALL+SC+IGN; walls removed,6,6,13,16,0.1284722222222222,0.8912,3.375,0.675,8,62,Hidden+Igniter+ShortCircuit,0,2,0,1,1.193,walls removed (same board)
+452,10,One-way mazes: ShortCircuit combos,old:759+mutated+nowall,augmented: +WALL+SC+FK+SC; walls removed,4,8,14,19,0.11805555555555555,0.9279,3.5,0.7037,6,77,FixedKnot+ShortCircuit,0,2,0,1,1.273,walls removed (same board)
+453,10,One-way mazes: ShortCircuit combos,old:257+mutated+nowall,augmented: +WALL+SC+FK; walls removed,6,6,15,21,0.0625,1.2041,4,0.7,4,62,FixedKnot+ShortCircuit,0,2,0,1,1.353,walls removed (same board)
+454,10,One-way mazes: ShortCircuit combos,old:581+mutated+nowall,augmented: +SC+WALL+FK; walls removed,4,6,12,16,0.25,0.6021,2,0.7381,3,37,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,1.143,walls removed (same board)
+455,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,4,4,16,28,0.04673508919939389,1.3304,3.5153,0.405,10811,26636,CrossBlast+Hidden+Igniter+ShortCircuit,0,3,1,1,1.293,walls removed (same board)
+456,10,One-way mazes: ShortCircuit combos,new,,3,6,14,21,0.041666666666666664,1.3802,4,0.7778,1,50,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,1.443,replaced by wall-free candidate (new)
+457,10,One-way mazes: ShortCircuit combos,new,,3,7,17,26,0.024522569444444444,1.6104,5,0.6111,36,598,Charge+ShortCircuit,0,2,0,1,1.593,replaced by wall-free candidate (new)
+458,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,4,6,22,33,0.02273418634080647,1.6433,4.3236,0.5299,3724,90045,CrossBlast+ShortCircuit,0,2,0,1,1.743,walls removed (same board)
+459,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,5,5,17,35,0.011163886070784432,1.9522,7.2228,0.4824,3204,20420,CrossBlast+ShortCircuit,0,2,0,1,1.893,walls removed (same board)
+460,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,7,2,14,24,0.03728084276406036,1.4285,3.3709,0.4921,213,3394,CrossBlast+FixedKnot+ShortCircuit,0,3,1,1,1.21,walls removed (same board)
+461,10,One-way mazes: ShortCircuit combos,old:376+mutated+nowall,augmented: +WALL+SC+FK; walls removed,4,4,10,20,0.04543905670502464,1.3426,4.23,0.4064,426,789,BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,1.335,walls removed (same board)
+462,10,One-way mazes: ShortCircuit combos,new,,3,5,14,32,0.03497255061061948,1.4563,4.3399,0.346,15156,29693,Charge+CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,1.46,replaced by wall-free candidate (new)
+463,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,3,5,12,26,0.04130367447083142,1.384,3.6078,0.4136,1530,7337,ShortCircuit+TwinLink,0,2,0,1,1.585,walls removed (same board)
+464,10,One-way mazes: ShortCircuit combos,new,,4,4,12,25,0.02222650891632373,1.6531,6.6066,0.5191,122,1494,Blackout+BlindCurtain+ShortCircuit+TwinLink,0,2,0,1,1.71,replaced by wall-free candidate (new)
+465,10,One-way mazes: ShortCircuit combos,new,,3,5,11,17,0.014419367283950615,1.8411,5.1944,0.4412,36,337,Charge+FixedKnot+ShortCircuit,0,3,0,1,1.835,replaced by wall-free candidate (new)
+466,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,5,5,16,38,0.009876327851809816,2.0054,5.7271,0.354,651752,215037,CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,1.96,walls removed (same board)
+467,10,One-way mazes: ShortCircuit combos,old:395+mutated+nowall,augmented: +SC+WALL+FK+IGN; walls removed,6,6,15,17,0.05555555555555555,1.2553,3.5,0.7188,2,46,Blackout+FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.277,replaced by wall-free board (walls removed from former stage 417)
+468,10,One-way mazes: ShortCircuit combos,old:436+mutated+nowall,augmented: +WALL+FK; walls removed,5,4,12,20,0.023958601251714673,1.6205,5.3974,0.4703,78,383,BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,1.464,walls removed (same board)
+469,10,One-way mazes: ShortCircuit combos,old:766+mutated+nowall,augmented: +WALL+SC+FK+FK; walls removed,6,6,15,22,0.0166015625,1.7799,5.8333,0.5952,6,68,FixedKnot+ShortCircuit,0,2,0,1,1.652,walls removed (same board)
+470,10,One-way mazes: ShortCircuit combos,old:96+mutated+nowall,augmented: +IGN+FK+WALL; walls removed,5,5,17,29,0.009254453171413045,2.0336,6.0178,0.4168,11315,34972,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.839,walls removed (same board)
+471,10,One-way mazes: ShortCircuit combos,old:579+mutated+nowall,augmented: +IGN+FK+WALL+SC; walls removed,4,7,22,28,0.010416666666666666,1.9823,5.1429,0.6772,14,465,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.027,walls removed (same board)
+472,10,One-way mazes: ShortCircuit combos,old:251+mutated+nowall,augmented: +WALL+SC; walls removed,6,6,20,28,0.02561567644032922,1.5915,4.6829,0.561,328,1584,ShortCircuit,0,1,0,1,1.343,walls removed (same board)
+473,10,One-way mazes: ShortCircuit combos,new,,5,3,12,25,0.03586891289437586,1.4453,3.8073,0.4563,109,2974,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,1.45,replaced by wall-free candidate (new)
+474,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,6,3,15,28,0.026508294281748522,1.5766,5.0851,0.4302,7568,22805,Hidden+Igniter+ShortCircuit,0,2,0,1,1.558,walls removed (same board)
+475,10,One-way mazes: ShortCircuit combos,new,,3,7,18,25,0.022802282262731483,1.642,6.0833,0.4293,456,6676,BlindCurtain+CrossBlast+ShortCircuit,0,2,0,1,1.665,replaced by wall-free candidate (new)
+476,10,One-way mazes: ShortCircuit combos,old:308+mutated+nowall,augmented: +WALL+SC; walls removed,5,5,13,24,0.017841914523418843,1.7486,7.0669,0.4249,1674,1940,Hidden+Igniter+ShortCircuit,0,2,0,1,1.772,walls removed (same board)
+477,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,3,8,21,33,0.021454907854186113,1.6685,5.2706,0.5058,3644,47782,CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,1.879,walls removed (same board)
+478,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,4,4,13,24,0.006655092592592592,2.1768,5.75,0.5714,8,514,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,1.986,walls removed (same board)
+479,10,One-way mazes: ShortCircuit combos,old:882+mutated+nowall,augmented: +WALL+SC; walls removed,4,5,12,32,0.007009851180628823,2.1543,6.8371,0.2886,270100,132962,BlindCurtain+ShortCircuit+TwinLink,0,2,0,1,2.093,walls removed (same board)
+480,10,One-way mazes: ShortCircuit combos,old:714+mutated+nowall,augmented: +IGN+WALL+SC; walls removed,3,3,8,14,0.04571759259259259,1.3399,3.7273,0.4851,11,102,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,1.41,walls removed (same board)
+481,10,One-way mazes: ShortCircuit combos,new,,4,4,12,30,0.027560763888888885,1.5597,5.4,0.4551,240,1150,BlindCurtain+CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,1.56,replaced by wall-free candidate (new)
+482,10,One-way mazes: ShortCircuit combos,old:569+mutated+nowall,augmented: +WALL+SC+IGN; walls removed,5,3,9,16,0.010416666666666666,1.9823,5.5,0.5667,2,69,Hidden+Igniter+ShortCircuit,0,2,0,1,1.71,walls removed (same board)
+483,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,6,4,20,34,0.011545774290613318,1.9376,6.7191,0.4623,8036,111752,Charge+CrossBlast+Hidden+Igniter+ShortCircuit,0,4,0,1,1.86,replaced by wall-free board (walls removed from former stage 597)
+484,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,4,5,14,24,0.010030864197530864,1.9987,6.75,0.5324,12,814,CrossBlast+ShortCircuit+TwinLink,0,3,0,1,2.01,replaced by wall-free board (walls removed from former stage 872)
+485,10,One-way mazes: ShortCircuit combos,old:229+mutated+nowall,augmented: +WALL+FK; walls removed,5,5,20,32,0.007380273655493774,2.1319,6.1937,0.437,9240,32719,BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.16,walls removed (same board)
+486,10,One-way mazes: ShortCircuit combos,old:240+mutated+nowall,augmented: +IGN+FK+WALL+SC; walls removed,4,4,15,28,0.020213533306620877,1.6944,5.0861,0.4376,604,473,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.477,walls removed (same board)
+487,10,One-way mazes: ShortCircuit combos,new,,3,6,14,22,0.023533950617283948,1.6283,4.3,0.5952,40,778,Blackout+BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,1.602,replaced by wall-free candidate (new)
+488,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,5,4,15,27,0.030849908550525836,1.5107,5.4826,0.4278,1032,6294,CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,1.727,walls removed (same board)
+489,10,One-way mazes: ShortCircuit combos,new,,5,3,9,16,0.013888888888888888,1.8573,6,0.6,2,147,Charge+CrossBlast+ShortCircuit,0,3,0,1,1.852,replaced by wall-free candidate (new)
+490,10,One-way mazes: ShortCircuit combos,old:286+mutated+nowall,augmented: +WALL+SC+FK+SC+FK+WALL; walls removed,6,6,15,26,0.02025462962962963,1.6935,5.8462,0.5733,39,101,FixedKnot+ShortCircuit,0,2,0,1,1.977,walls removed (same board)
+491,10,One-way mazes: ShortCircuit combos,old:789+mutated+nowall,augmented: +WALL+SC+WALL; walls removed,6,5,16,24,0.013014749353423638,1.8856,6.6129,0.452,372,5067,ShortCircuit+TwinLink,0,2,0,1,2.102,walls removed (same board)
+492,10,One-way mazes: ShortCircuit combos,old:573+mutated+nowall,augmented: +WALL+SC+FK; walls removed,6,6,16,24,0.005859375,2.2321,7.5,0.587,4,101,FixedKnot+ShortCircuit,0,2,0,1,2.227,walls removed (same board)
+493,10,One-way mazes: ShortCircuit combos,old:587+mutated+nowall,augmented: +WALL+SC+FK; walls removed,6,4,14,18,0.05208333333333333,1.2833,4,0.6667,3,50,FixedKnot+ShortCircuit,0,2,0,1,1.543,walls removed (same board)
+494,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,4,4,11,27,0.033081059048150736,1.4804,4.9558,0.2636,16599,5379,CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,1.668,walls removed (same board)
+495,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,3,7,20,33,0.018401007091785024,1.7352,5.6713,0.4113,24688,253828,CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,1.793,walls removed (same board)
+496,10,One-way mazes: ShortCircuit combos,old:159+mutated+nowall,augmented: +WALL+SC; walls removed,5,5,20,37,0.009211009609258495,2.0357,6.1603,0.3378,1000000+,673817,ShortCircuit+TwinLink,0,2,0,1,1.918,walls removed (same board)
+497,10,One-way mazes: ShortCircuit combos,new,,3,8,20,29,0.008910881639017487,2.0501,6.2933,0.5704,208,28935,Charge+ShortCircuit,0,2,0,1,2.043,replaced by wall-free candidate (new)
+498,10,One-way mazes: ShortCircuit combos,new+nowall,walls removed,4,5,16,26,0.00682332300954504,2.166,6.3958,0.4569,288,75050,Charge+ShortCircuit+TwinLink,0,3,0,1,2.168,replaced by wall-free board (walls removed from former stage 671)
+499,10,One-way mazes: ShortCircuit combos,old:280+mutated,augmented: +FK+SC+IGN+FK,4,6,16,30,0.005679869684499315,2.2457,6.4783,0.5782,138,228,Charge+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,2.293,replaced by wall-free candidate (oldvar)
+500,10,One-way mazes: ShortCircuit combos,old:522+mutated+nowall,augmented: +WALL+SC+FK+FK+FK+WALL+IGN; walls removed,6,6,18,35,0.0005118357410265203,3.2909,9.8242,0.5032,330,441,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.943,walls removed (same board)
+501,11,Locked doors: FixedKnot + Igniter,new,,3,4,10,16,0.046875,1.3291,4.5,0.6071,2,28,CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,1.333,
+502,11,Locked doors: FixedKnot + Igniter,old:313+mutated,augmented: +FK+IGN,6,6,14,22,0.0390625,1.4082,4.6667,0.619,9,88,FixedKnot+Hidden+Igniter,0,2,0,1,1.413,
+503,11,Locked doors: FixedKnot + Igniter,new,,5,5,17,29,0.030002170138888888,1.5228,5.1111,0.6079,36,148,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,1.493,
+504,11,Locked doors: FixedKnot + Igniter,old:353+mutated+nowall,augmented: +WALL+FK+FK; walls removed,5,3,9,19,0.049262152777777776,1.3075,3.3793,0.4082,29,156,CrossBlast+FixedKnot,0,2,0,1,1.283,walls removed (same board)
+505,11,Locked doors: FixedKnot + Igniter,new,,3,7,18,26,0.036771797839506175,1.4345,5.1154,0.5385,156,460,CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,1.433,replaced by wall-free candidate (new)
+506,11,Locked doors: FixedKnot + Igniter,old:889+mutated,augmented: +FK+FK+IGN,3,3,8,15,0.02369068287037037,1.6254,4.3684,0.4061,19,299,Charge+FixedKnot+Hidden+Igniter,0,3,0,1,1.583,replaced by wall-free candidate (oldvar)
+507,11,Locked doors: FixedKnot + Igniter,old:634+mutated+nowall,augmented: +IGN+FK+WALL; walls removed,6,6,18,32,0.01118054895708346,1.9515,4.9286,0.4257,68676,19199,FixedKnot+Hidden+Igniter,0,2,0,1,1.733,walls removed (same board)
+508,11,Locked doors: FixedKnot + Igniter,new+nowall,walls removed,6,4,15,30,0.008715217496141976,2.0597,6.4769,0.3802,130,7356,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,1.883,walls removed (same board)
+509,11,Locked doors: FixedKnot + Igniter,old:347+mutated+nowall,augmented: +FK+WALL; walls removed,6,6,15,21,0.009420010288065843,2.0259,7.25,0.5208,24,172,BlindCurtain+FixedKnot+Hidden+Igniter,0,2,0,1,2.033,replaced by wall-free board (walls removed from former stage 435)
+510,11,Locked doors: FixedKnot + Igniter,old:196+mutated,+BlindCurtain,4,3,10,18,0.03974971064814815,1.4007,4.6316,0.4443,38,206,BlindCurtain+FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.35,replaced by wall-free candidate (oldvar)
+511,11,Locked doors: FixedKnot + Igniter,old:454+mutated+nowall,augmented: +IGN+FK+WALL+FK; walls removed,6,6,15,24,0.033540702160493825,1.4744,4.5312,0.5693,128,111,FixedKnot+Hidden+Igniter,0,2,0,1,1.475,walls removed (same board)
+512,11,Locked doors: FixedKnot + Igniter,old:680+mutated,augmented: +FK+IGN,3,3,7,20,0.02286256389853395,1.6409,4.7573,0.3434,309,1375,Blackout+Charge+FixedKnot+Hidden+Igniter,0,3,0,1,1.6,replaced by wall-free candidate (oldvar)
+513,11,Locked doors: FixedKnot + Igniter,old:198+mutated+nowall,"walls; Igniter/Hidden:G31; Wall@0,0,Right; walls removed",4,4,13,20,0.019466949588477365,1.7107,5.48,0.4844,25,507,FixedKnot+TwinLink,0,2,0,1,1.725,walls removed (same board)
+514,11,Locked doors: FixedKnot + Igniter,new,,4,4,10,25,0.01531597222222222,1.8149,5.5,0.4843,44,916,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,1.85,
+515,11,Locked doors: FixedKnot + Igniter,new+nowall,walls removed,5,4,16,29,0.009743019386574077,2.0113,6.8571,0.5256,126,1612,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,1.975,walls removed (same board)
+516,11,Locked doors: FixedKnot + Igniter,old:265+mutated,augmented: +IGN+FK,6,3,12,24,0.007994851948302469,2.0972,5.4971,0.4343,171,1168,BlindCurtain+FixedKnot+Hidden+Igniter,0,2,0,1,2.1,replaced by wall-free candidate (oldvar)
+517,11,Locked doors: FixedKnot + Igniter,new+nowall,walls removed,5,5,15,32,0.02153638611861528,1.6668,4.5529,0.3689,538012,159677,Hidden+Igniter+TwinLink,0,2,0,1,1.417,walls removed (same board)
+518,11,Locked doors: FixedKnot + Igniter,new,,4,4,9,17,0.024537037037037034,1.6102,5.5455,0.4277,22,861,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,1.604,
+519,11,Locked doors: FixedKnot + Igniter,new,,6,3,15,30,0.02022702862674474,1.6941,5.7046,0.3608,11061,36000,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,1.792,replaced by wall-free candidate (new)
+520,11,Locked doors: FixedKnot + Igniter,new,,6,3,9,23,0.010416666666666666,1.9823,7,0.5,2,139,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,1.979,
+521,11,Locked doors: FixedKnot + Igniter,old:803+mutated+nowall,augmented: +WALL+SC+FK; walls removed,6,6,20,28,0.006944444444444444,2.1584,7,0.6667,8,120,FixedKnot+ShortCircuit,0,2,0,1,2.167,walls removed (same board)
+522,11,Locked doors: FixedKnot + Igniter,old:999+mutated+nowall,augmented: +IGN+FK+WALL+FK; walls removed,6,6,14,26,0.03316293724279835,1.4793,4.8571,0.6357,28,227,Blackout+FixedKnot+Hidden+Igniter,0,2,0,1,1.483,replaced by wall-free board (walls removed from former stage 716)
+523,11,Locked doors: FixedKnot + Igniter,new,,3,4,10,15,0.026041666666666668,1.5843,4.75,0.5179,4,57,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.59,
+524,11,Locked doors: FixedKnot + Igniter,new,,5,3,10,19,0.020833333333333332,1.6812,6,0.6471,2,39,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,1.698,replaced by wall-free candidate (new)
+525,11,Locked doors: FixedKnot + Igniter,new,,7,3,16,28,0.018229166666666664,1.7392,5.5,0.7174,2,68,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,1.805,replaced by wall-free candidate (new)
+526,11,Locked doors: FixedKnot + Igniter,new+nowall,walls removed,6,4,21,33,0.014198526013000987,1.8478,5.1339,0.3379,827422,681835,CrossBlast+Hidden+Igniter,0,2,0,1,1.912,walls removed (same board)
+527,11,Locked doors: FixedKnot + Igniter,new+nowall,walls removed,7,5,22,36,0.007307452920042439,2.1362,6.4394,0.5418,264,31577,Hidden+Igniter+TwinLink,0,2,0,1,2.019,walls removed (same board)
+528,11,Locked doors: FixedKnot + Igniter,old:310+mutated+nowall,augmented: +WALL+SC; walls removed,6,6,18,28,0.003984930930641289,2.3996,7.6385,0.4193,426,36605,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.126,walls removed (same board)
+529,11,Locked doors: FixedKnot + Igniter,old:621+mutated,augmented: +IGN+FK+SC,6,6,18,44,0.005931217871768972,2.2269,8.6664,0.3265,1000000+,387477,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.233,
+530,11,Locked doors: FixedKnot + Igniter,new,,3,4,10,19,0.031901041666666664,1.4962,4.875,0.5078,8,111,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,1.55,replaced by wall-free candidate (new)
+531,11,Locked doors: FixedKnot + Igniter,new+nowall,walls removed,4,5,18,31,0.02665088818806198,1.5743,4.2165,0.3737,54084,94699,Hidden+Igniter+TwinLink,0,2,0,1,1.7,walls removed (same board)
+532,11,Locked doors: FixedKnot + Igniter,new+nowall,walls removed,3,6,16,25,0.01048900462962963,1.9793,6.5185,0.4477,108,191,CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,1.85,walls removed (same board)
+533,11,Locked doors: FixedKnot + Igniter,old:497+mutated+nowall,augmented: +IGN+FK+WALL; walls removed,4,7,15,26,0.010779521647358683,1.9674,6.1616,0.5158,229,1572,FixedKnot+Hidden+Igniter,0,2,0,1,2.0,walls removed (same board)
+534,11,Locked doors: FixedKnot + Igniter,old:572+mutated,augmented: +IGN+FK,6,6,16,24,0.007512431412894375,2.1242,7.75,0.5408,48,325,FixedKnot+Hidden+Igniter,0,2,0,1,2.15,
+535,11,Locked doors: FixedKnot + Igniter,old:226,,4,5,16,27,0.005309668267057272,2.2749,6.2614,0.3706,3187,20498,BlindCurtain+FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,2.3,
+536,11,Locked doors: FixedKnot + Igniter,new,,5,3,11,22,0.02092375578703704,1.6794,4.225,0.4017,80,1660,Charge+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,1.617,replaced by wall-free candidate (new)
+537,11,Locked doors: FixedKnot + Igniter,new+nowall,walls removed,7,3,20,35,0.015328400165201449,1.8145,5.3572,0.4468,5748,175175,CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,1.742,walls removed (same board)
+538,11,Locked doors: FixedKnot + Igniter,new+nowall,walls removed,4,4,12,22,0.02669270833333333,1.5736,4.8095,0.5142,21,490,CrossBlast+FixedKnot,0,2,0,1,1.867,walls removed (same board)
+539,11,Locked doors: FixedKnot + Igniter,new,,4,4,11,25,0.010597994734175848,1.9748,5.3983,0.3396,1898,3129,Charge+CrossBlast+FixedKnot+Hidden+Igniter,0,4,0,1,1.992,replaced by wall-free candidate (new)
+540,11,Locked doors: FixedKnot + Igniter,new,,4,5,11,27,0.007835273062414265,2.1059,6.0516,0.3994,310,3462,Charge+CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,5,0,1,2.117,replaced by wall-free candidate (new)
+541,11,Locked doors: FixedKnot + Igniter,old:848+mutated,augmented: +IGN+FK,4,7,19,25,0.005787037037037036,2.2375,6,0.6806,3,91,FixedKnot+Hidden+Igniter,0,2,0,1,2.242,
+542,11,Locked doors: FixedKnot + Igniter,old:244+mutated+nowall,augmented: +WALL+SC+IGN; walls removed,6,6,15,28,0.005642361111111111,2.2485,6.5,0.6111,18,133,Hidden+Igniter+ShortCircuit,0,2,0,1,2.367,walls removed (same board)
+543,11,Locked doors: FixedKnot + Igniter,old:274+mutated,augmented: +FK,6,6,13,20,0.020833333333333332,1.6812,5,0.7368,1,36,FixedKnot+Hidden+Igniter,0,2,0,1,1.683,
+544,11,Locked doors: FixedKnot + Igniter,new,,3,6,16,25,0.016221788194444444,1.7899,6.2273,0.5146,22,640,BlindCurtain+CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,1.808,
+545,11,Locked doors: FixedKnot + Igniter,old:576+mutated+nowall,augmented: +IGN+FK+WALL+SC; walls removed,5,5,18,28,0.010325386295306655,1.9861,5.9346,0.4448,3410,2208,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,1.933,walls removed (same board)
+546,11,Locked doors: FixedKnot + Igniter,old:220,,4,4,15,30,0.008776595302636634,2.0567,6.2221,0.4132,7173,8626,BlindCurtain+FixedKnot+Hidden+Igniter,0,2,0,1,2.058,
+547,11,Locked doors: FixedKnot + Igniter,old:838+mutated,augmented: +FK+IGN,6,6,18,42,0.0065404458519090075,2.1844,7.7451,0.6019,2040,8699,CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,2.183,
+548,11,Locked doors: FixedKnot + Igniter,old:580+mutated+nowall,augmented: +IGN+FK+WALL+SC+FK+FK; walls removed,6,6,18,33,0.004466199417009602,2.3501,7.5854,0.549,328,591,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.308,walls removed (same board)
+549,11,Locked doors: FixedKnot + Igniter,old:490+mutated+nowall,augmented: +IGN+FK+WALL+FK; walls removed,6,5,17,31,0.0018581814236111112,2.7309,8.65,0.4683,240,386,FixedKnot+Hidden+Igniter,0,2,0,1,2.433,walls removed (same board)
+550,11,Locked doors: FixedKnot + Igniter,new,,5,5,21,32,0.0004213856214164676,3.3753,9.0212,0.443,753,43726,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,3.083,replaced by wall-free candidate (new)
+551,12,Charge remix,new,Charge intro,3,3,8,10,0.375,0.426,1.3333,0.7,3,33,Charge,0,1,0,1,1.473,
+552,12,Charge remix,old:315+mutated,charge,6,6,15,20,0.03125,1.5051,4.3333,0.6842,3,183,Blackout+Charge,0,1,0,1,1.553,
+553,12,Charge remix,old:767+mutated,charge,4,5,16,35,0.02142166153089486,1.6691,6.5934,0.3688,23282,215667,Charge+TwinLink,0,2,0,1,1.633,
+554,12,Charge remix,old:835+mutated,augmented: +FK,6,6,13,19,0.041666666666666664,1.3802,5,0.7222,2,106,Blackout+Charge+FixedKnot,0,2,0,1,1.423,
+555,12,Charge remix,old:417+mutated,charge,6,3,12,22,0.026475694444444448,1.5772,5.2857,0.5539,28,1636,Charge,0,1,0,1,1.573,
+556,12,Charge remix,old:521+mutated,augmented: +FK+SC+SC+FK,4,6,14,32,0.018682843687408534,1.7286,5.3855,0.4561,14476,10727,Charge+FixedKnot+ShortCircuit,0,3,0,1,1.723,
+557,12,Charge remix,old:602+mutated+nowall,charge+walls; walls removed,6,2,10,30,0.015411400473123218,1.8122,4.2234,0.3913,110058,94428,Charge,0,1,0,1,1.873,walls removed (same board)
+558,12,Charge remix,old:297+mutated,augmented: +FK,6,6,20,31,0.009032355414496528,2.0442,6.1187,0.5303,758,2657,Charge+FixedKnot,0,2,0,1,2.023,
+559,12,Charge remix,new,,3,6,14,32,0.0066194887514467605,2.1792,7.6429,0.4402,1176,28837,Charge+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.173,replaced by wall-free candidate (new)
+560,12,Charge remix,old:824+mutated+nowall,augmented: +FK+WALL; walls removed,5,3,9,16,0.050130208333333336,1.2999,3.8333,0.5377,12,595,Charge+FixedKnot,0,2,0,1,1.49,walls removed (same board)
+561,12,Charge remix,old:364+mutated,augmented: +FK,5,5,13,24,0.0263671875,1.5789,5.5,0.6458,8,524,Charge+FixedKnot,0,2,0,1,1.615,
+562,12,Charge remix,new+nowall,walls removed,4,6,18,30,0.011313661826200154,1.9464,5.772,0.4321,15984,113850,BlindCurtain+Charge,0,1,0,1,1.74,walls removed (same board)
+563,12,Charge remix,old:177+mutated,augmented: +FK,5,3,14,17,0.013346354166666666,1.8746,5.25,0.4853,12,184,Charge+FixedKnot+Hidden+Igniter,0,3,0,1,1.865,
+564,12,Charge remix,old:388+mutated+nowall,augmented: +FK+FK+WALL; walls removed,5,5,19,26,0.010416666666666666,1.9823,6,0.72,2,246,Charge+FixedKnot,0,2,0,1,1.99,walls removed (same board)
+565,12,Charge remix,new,,5,5,20,31,0.008569457440662316,2.067,6.4243,0.3899,21550,426650,BlindCurtain+Charge+ShortCircuit+TwinLink,0,3,0,1,2.115,replaced by wall-free candidate (new)
+566,12,Charge remix,new+nowall,walls removed,3,6,15,26,0.0029899621587612885,2.5243,9.1847,0.3619,574,47831,Charge+TwinLink,0,2,0,1,2.24,walls removed (same board)
+567,12,Charge remix,old:289+mutated,augmented: +FK+SC,3,6,12,27,0.02893067898561586,1.5386,4.9418,0.408,10935,14082,BlindCurtain+Charge+FixedKnot+ShortCircuit,0,3,0,1,1.557,
+568,12,Charge remix,old:540+mutated,charge,6,5,16,23,0.018928433641975308,1.7229,4.7917,0.4879,144,933,Charge+Hidden+Igniter,0,2,0,1,1.744,
+569,12,Charge remix,old:560+mutated,augmented: +FK+SC,6,4,14,24,0.011911651234567902,1.924,7.3,0.5783,20,513,Charge+FixedKnot+ShortCircuit,0,3,0,1,1.932,
+570,12,Charge remix,new+nowall,walls removed,7,3,18,31,0.004860535477757743,2.3133,6.7839,0.444,5840,129008,Charge+CrossBlast+Hidden+Igniter,0,3,0,1,2.119,walls removed (same board)
+571,12,Charge remix,old:539+mutated+nowall,augmented: +FK+SC+FK+FK+IGN+WALL+SC; walls removed,4,6,18,23,0.003472222222222222,2.4594,7,0.6364,2,194,Charge+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,2.307,walls removed (same board)
+572,12,Charge remix,new,,5,3,13,26,0.023893882217721197,1.6217,5.8219,0.477,146,9957,Charge+CrossBlast+Hidden+Igniter+TwinLink,0,4,0,1,1.623,
+573,12,Charge remix,new,,4,4,14,23,0.01939863040123457,1.7122,4.5949,0.4355,274,2687,Charge+CrossBlast+FixedKnot+Hidden+Igniter,0,4,0,1,1.73,
+574,12,Charge remix,new,,4,3,7,14,0.015625,1.8062,5.5,0.35,2,36,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,1.838,replaced by wall-free candidate (new)
+575,12,Charge remix,new+nowall,walls removed,5,5,14,21,0.014756944444444446,1.831,4.7692,0.5502,13,518,Charge+CrossBlast,0,2,0,1,1.945,walls removed (same board)
+576,12,Charge remix,old:585+mutated,"charge+walls; Igniter/Hidden:G50; Wall@1,3,Right",5,5,13,31,0.008811869575490024,2.0549,6.3647,0.4437,2484,6916,BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.052,
+577,12,Charge remix,new,,4,4,13,23,0.007161458333333333,2.145,6.6667,0.6111,6,2035,BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.159,
+578,12,Charge remix,new,,5,7,27,41,0.005488642939814815,2.2605,5.9619,0.6192,105,59164,Charge+CrossBlast+TwinLink,0,3,0,1,2.266,replaced by wall-free candidate (new)
+579,12,Charge remix,old:486+mutated,charge,5,5,14,25,0.004340277777777778,2.3625,8.4,0.5435,10,3534,Charge+TwinLink,0,2,0,1,2.373,
+580,12,Charge remix,old:898+mutated,charge,6,2,10,18,0.021267361111111115,1.6723,5.25,0.5531,12,436,Charge,0,1,0,1,1.69,
+581,12,Charge remix,new,,4,3,9,26,0.015625,1.8062,6,0.549,3,118,Charge+Hidden+Igniter+TwinLink,0,3,0,1,1.84,
+582,12,Charge remix,old:594+mutated,augmented: +SC,6,6,15,18,0.010416666666666666,1.9823,6,0.6667,1,412,Charge+ShortCircuit,0,2,0,1,1.99,
+583,12,Charge remix,old:631+mutated+nowall,augmented: +FK+FK+WALL+FK+WALL+IGN+FK; walls removed,5,4,13,27,0.006661874276620371,2.1764,6.9211,0.4291,380,1190,Charge+FixedKnot+Hidden+Igniter,0,3,0,1,2.14,replaced by wall-free board (walls removed from former stage 739)
+584,12,Charge remix,new,,3,7,18,28,0.005353009259259259,2.2714,6.4,0.5522,20,5782,Charge+FixedKnot+TwinLink,0,3,0,1,2.29,replaced by wall-free candidate (new)
+585,12,Charge remix,old:577+mutated+nowall,charge+walls; walls removed,5,4,12,22,0.0037254050925925927,2.4288,8.2222,0.4318,36,1542,Blackout+Charge,0,1,0,1,2.44,walls removed (same board)
+586,12,Charge remix,old:925+mutated,charge,5,5,13,31,0.01652803640506595,1.7818,5.8294,0.3935,22680,9052,BlindCurtain+Charge,0,1,0,1,1.757,replaced by wall-free candidate (oldvar)
+587,12,Charge remix,new,,4,5,15,23,0.01332968834096603,1.8752,5.8711,0.4631,419,17210,Charge+CrossBlast,0,2,0,1,1.882,
+588,12,Charge remix,old:998+mutated,augmented: +FK+SC,6,6,17,33,0.009623209635416666,2.0167,7.8214,0.5963,112,9184,Charge+FixedKnot+ShortCircuit,0,3,0,1,2.007,
+589,12,Charge remix,new,,5,5,15,36,0.00827612264549654,2.0822,5.8282,0.2926,124854,175967,Charge+CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,2.132,replaced by wall-free candidate (new)
+590,12,Charge remix,old:904+mutated,augmented: +FK,6,3,12,22,0.005726755401234569,2.2421,7.2381,0.5238,21,738,Charge+FixedKnot,0,2,0,1,2.257,
+591,12,Charge remix,old:810+mutated+nowall,charge+walls; walls removed,5,4,13,33,0.0036668537630029714,2.4357,8.7205,0.4787,4680,18305,Charge+ShortCircuit,0,2,0,1,2.382,walls removed (same board)
+592,12,Charge remix,old:128+mutated,augmented: +FK+SC+IGN,5,4,18,28,0.0031716326827084286,2.4987,7.0267,0.5615,75,4698,Charge+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,2.507,
+593,12,Charge remix,old:500+mutated,charge,5,5,13,24,0.017126012731481483,1.7663,4.7738,0.4777,168,8192,Charge,0,1,0,1,1.823,
+594,12,Charge remix,old:329+mutated+nowall,charge+walls; walls removed,4,8,22,31,0.005657682693544238,2.2474,6.8253,0.5351,372,26306,Charge,0,1,0,1,1.948,walls removed (same board)
+595,12,Charge remix,new,,6,4,17,30,0.008680555555555556,2.0615,6.8,0.5948,10,2495,Charge+ShortCircuit+TwinLink,0,3,0,1,2.073,
+596,12,Charge remix,new,,4,5,14,27,0.006606640917725639,2.18,7.8791,0.4361,2530,118622,Blackout+BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.198,
+597,12,Charge remix,new,,4,4,12,19,0.0048828125,2.3113,7,0.4737,8,655,Charge+CrossBlast+ShortCircuit,0,3,0,1,2.323,replaced by wall-free candidate (new)
+598,12,Charge remix,old:604+mutated,"charge; CrossBlast@0,2",5,5,14,31,0.003623397262008102,2.4409,8.8125,0.5322,64,5939,Charge+Hidden+Igniter,0,2,0,1,2.448,
+599,12,Charge remix,old:627+mutated,charge,6,5,14,24,0.002665291749225219,2.5743,8.9444,0.4942,180,4391,Charge+ShortCircuit,0,2,0,1,2.573,
+600,12,Charge remix,old:779+mutated,"charge; CrossBlast@1,2; CrossBlast@4,3; CrossBlast@2,4; CrossBlast@3,4",6,6,18,25,0.000277295524691358,3.5571,10,0.5208,4,8523,Charge+CrossBlast,0,2,0,1,3.223,
+601,13,Power grid: Charge + CrossBlast,new,,5,3,12,23,0.030707465277777776,1.5128,4.4419,0.482,43,1480,Charge+CrossBlast+TwinLink,0,3,0,1,1.613,
+602,13,Power grid: Charge + CrossBlast,new,,5,4,14,33,0.0244140625,1.6124,6,0.5422,14,477,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,1.693,
+603,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,5,5,15,33,0.01567782265842935,1.8047,4.077,0.3077,400700,359510,Charge+CrossBlast+Hidden+Igniter,0,3,0,1,1.773,walls removed (same board)
+604,13,Power grid: Charge + CrossBlast,old:726+mutated+nowall,augmented: +WALL; walls removed,3,4,8,12,0.03125,1.5051,4.5,0.4706,2,95,Charge+CrossBlast,0,2,0,1,1.563,walls removed (same board)
+605,13,Power grid: Charge + CrossBlast,old:715+mutated,augmented: +FK,4,5,12,14,0.020833333333333332,1.6812,5,0.5714,2,34,Charge+FixedKnot,0,2,0,1,1.713,
+606,13,Power grid: Charge + CrossBlast,new,,4,8,21,37,0.017578125,1.755,5.4286,0.6429,56,1722,CrossBlast+TwinLink,0,2,0,1,1.863,
+607,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,4,6,20,40,0.005018936899118608,2.2994,6.8939,0.396,4448,32584,CrossBlast+TwinLink,0,2,0,1,2.013,walls removed (same board)
+608,13,Power grid: Charge + CrossBlast,old:823+mutated+nowall,augmented: +WALL; walls removed,4,3,12,18,0.009620949074074073,2.0168,6,0.5208,6,554,Charge+CrossBlast+Hidden+Igniter+ShortCircuit,0,4,1,1,2.163,walls removed (same board)
+609,13,Power grid: Charge + CrossBlast,new,,5,6,18,36,0.00494384765625,2.3059,7.9286,0.5779,56,8616,Charge+CrossBlast,0,2,0,1,2.313,
+610,13,Power grid: Charge + CrossBlast,old:871+mutated,augmented: +FK,3,5,9,18,0.027777777777777776,1.5563,4,0.5214,8,217,Charge+CrossBlast+FixedKnot,0,3,0,1,1.63,
+611,13,Power grid: Charge + CrossBlast,new,,6,7,22,37,0.0206298828125,1.6855,5.1875,0.6695,32,378,CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,1.755,
+612,13,Power grid: Charge + CrossBlast,new,,5,3,12,34,0.014068603515625,1.8517,6.5,0.477,32,3221,Charge+CrossBlast+Hidden+Igniter+TwinLink,0,4,0,1,1.88,
+613,13,Power grid: Charge + CrossBlast,old:504+mutated+nowall,augmented: +FK+SC+WALL; walls removed,3,3,9,27,0.012175132217721193,1.9145,9.4167,0.2931,72,2053,Charge+CrossBlast+FixedKnot+ShortCircuit,0,4,1,1,2.005,walls removed (same board)
+614,13,Power grid: Charge + CrossBlast,new,,5,6,19,29,0.009602864583333334,2.0176,7.3333,0.6161,24,2341,Charge+CrossBlast+Hidden+Igniter,0,3,0,1,2.13,replaced by wall-free candidate (new)
+615,13,Power grid: Charge + CrossBlast,new,,5,4,12,27,0.006510416666666666,2.1864,6.0625,0.5522,16,1927,Charge+CrossBlast,0,2,0,1,2.255,
+616,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,6,3,15,24,0.002700617283950617,2.5685,7.5,0.4498,24,437,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,2.38,walls removed (same board)
+617,13,Power grid: Charge + CrossBlast,old:941+mutated,charge,3,6,12,21,0.0234375,1.6301,5.5,0.6829,2,257,BlindCurtain+Charge+CrossBlast,0,2,0,1,1.697,
+618,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,4,3,11,19,0.00939411151120256,2.0271,6.3415,0.3762,82,5459,Charge+CrossBlast+TwinLink,0,3,0,1,1.884,walls removed (same board)
+619,13,Power grid: Charge + CrossBlast,new,,3,6,17,29,0.010432658045053155,1.9816,6.6923,0.4553,260,18684,Charge+CrossBlast+ShortCircuit+TwinLink,0,4,0,1,2.072,replaced by wall-free candidate (new)
+620,13,Power grid: Charge + CrossBlast,new,,4,5,16,30,0.00634765625,2.1974,6.6364,0.5363,33,1898,Charge+CrossBlast+TwinLink,0,3,0,1,2.259,
+621,13,Power grid: Charge + CrossBlast,old:303+mutated,augmented: +FK+FK,5,3,9,19,0.00390625,2.4082,8,0.5789,1,111,Charge+CrossBlast+FixedKnot+ShortCircuit,0,4,0,1,2.447,
+622,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,7,2,14,26,0.01511729466735254,1.8205,5.092,0.4631,87,11024,Charge+CrossBlast+ShortCircuit+TwinLink,0,4,1,1,1.763,walls removed (same board)
+623,13,Power grid: Charge + CrossBlast,new,,4,4,10,29,0.017984593465113455,1.7451,5.3874,0.3068,2096,4886,Charge+CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,6,0,1,1.87,replaced by wall-free candidate (new)
+624,13,Power grid: Charge + CrossBlast,new,,5,3,14,24,0.013279151306012803,1.8768,5.6099,0.4897,423,4690,Charge+FixedKnot+ShortCircuit,0,3,0,1,1.978,
+625,13,Power grid: Charge + CrossBlast,new,,7,8,26,40,0.009765625,2.0103,7.7143,0.6943,7,8664,Charge+TwinLink,0,2,0,1,2.085,
+626,13,Power grid: Charge + CrossBlast,new,,6,3,16,30,0.00857069758460912,2.067,7.1722,0.3991,11176,77996,Charge+CrossBlast+ShortCircuit,0,3,0,1,2.192,replaced by wall-free candidate (new)
+627,13,Power grid: Charge + CrossBlast,old:615+mutated,charge,5,4,12,18,0.005208333333333333,2.2833,7,0.5333,1,840,Charge+CrossBlast+Hidden+Igniter+TwinLink,0,4,0,1,2.299,
+628,13,Power grid: Charge + CrossBlast,new,,4,5,16,33,0.0041656494140625,2.3803,8.875,0.5625,8,11969,Charge+CrossBlast+TwinLink,0,3,0,1,2.406,
+629,13,Power grid: Charge + CrossBlast,new,,7,4,24,37,0.0033198809183211785,2.4789,8.0305,0.4692,2424,479561,Charge+CrossBlast,0,2,0,1,2.513,
+630,13,Power grid: Charge + CrossBlast,new,,6,4,19,27,0.01915147569444444,1.7178,5.1538,0.6186,13,623,CrossBlast+ShortCircuit,0,2,0,1,1.83,
+631,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,5,5,17,32,0.007112730677726336,2.148,7.6983,0.4306,527,15775,Charge+CrossBlast+TwinLink,0,3,0,1,1.98,walls removed (same board)
+632,13,Power grid: Charge + CrossBlast,old:875+mutated,augmented: +FK,3,4,8,17,0.008246527777777776,2.0837,6.7143,0.38,7,355,BlindCurtain+Charge+CrossBlast+FixedKnot,0,3,0,1,2.13,
+633,13,Power grid: Charge + CrossBlast,old:325+mutated,augmented: +FK,5,5,14,31,0.00537109375,2.2699,7.6667,0.5867,6,184,CrossBlast+FixedKnot,0,2,0,1,2.28,
+634,13,Power grid: Charge + CrossBlast,new,,6,6,20,32,0.004114992606569002,2.3856,5.5954,0.4388,2071,164861,Charge+CrossBlast,0,2,0,1,2.43,
+635,13,Power grid: Charge + CrossBlast,old:966+mutated,charge,6,6,18,32,0.002908501714454375,2.5363,7.9626,0.4048,2804,55092,Charge+CrossBlast,0,2,0,1,2.58,
+636,13,Power grid: Charge + CrossBlast,new,,5,3,9,20,0.017578125,1.755,5.6,0.5341,5,345,Charge+CrossBlast+Hidden+Igniter,0,3,0,1,1.897,replaced by wall-free candidate (new)
+637,13,Power grid: Charge + CrossBlast,old:322+mutated,augmented: +FK,4,5,12,17,0.010416666666666666,1.9823,6,0.5,2,320,Charge+CrossBlast+FixedKnot,0,3,0,1,2.022,
+638,13,Power grid: Charge + CrossBlast,old:333+mutated,augmented: +FK,4,6,17,35,0.007985153036709686,2.0977,6.514,0.3998,80076,354882,Charge+FixedKnot,0,2,0,1,2.147,
+639,13,Power grid: Charge + CrossBlast,new,,7,5,18,29,0.00541354206854424,2.2665,6.9217,0.4554,1328,55720,Charge+CrossBlast,0,2,0,1,2.272,
+640,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,5,3,12,32,0.006981560791834265,2.156,7.4189,0.3566,4266,119732,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,2.397,walls removed (same board)
+641,13,Power grid: Charge + CrossBlast,new,,4,8,20,32,0.0029296875,2.5332,8.5,0.6724,2,218,Charge+CrossBlast+FixedKnot,0,3,0,1,2.522,
+642,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,5,4,16,26,0.001987912527327675,2.7016,7.4375,0.3916,112,15012,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,2.647,walls removed (same board)
+643,13,Power grid: Charge + CrossBlast,new,,4,6,18,29,0.011403030742647912,1.943,6.4421,0.4216,24513,568590,Charge+CrossBlast+ShortCircuit,0,3,0,1,1.963,replaced by wall-free candidate (new)
+644,13,Power grid: Charge + CrossBlast,new,,5,5,17,30,0.0087890625,2.0561,7,0.64,4,1169,Charge+CrossBlast+TwinLink,0,3,0,1,2.088,
+645,13,Power grid: Charge + CrossBlast,new,,3,4,9,26,0.006613297325102881,2.1796,6.3333,0.4079,30,1679,Charge+CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,5,0,1,2.213,replaced by wall-free candidate (new)
+646,13,Power grid: Charge + CrossBlast,old:102+mutated+nowall,augmented: +FK+SC+FK+WALL+WALL+IGN; walls removed,4,3,12,21,0.005473572530864197,2.2617,7.1951,0.4345,41,1460,Charge+CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,5,1,1,2.338,walls removed (same board)
+647,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,6,5,22,35,0.001982889057677469,2.7027,7.7254,0.5111,874,123725,Charge+CrossBlast+TwinLink,0,3,0,1,2.463,walls removed (same board)
+648,13,Power grid: Charge + CrossBlast,new+nowall,walls removed,5,5,20,35,0.002979524505154749,2.5259,8.3537,0.5285,410,20310,Charge+CrossBlast,0,2,0,1,2.588,walls removed (same board)
+649,13,Power grid: Charge + CrossBlast,new,,6,4,22,33,0.0019638387384279567,2.7069,7.6935,0.3375,22584,557823,Charge+CrossBlast,0,2,0,1,2.713,
+650,13,Power grid: Charge + CrossBlast,old:554+mutated,augmented: +FK+FK,6,4,16,27,0.00019491062242798355,3.7102,11,0.4293,16,6861,BlindCurtain+Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,3.363,replaced by wall-free candidate (oldvar)
+651,14,Charge + TwinLink,new,,3,4,9,20,0.0183720564700503,1.7358,5.8333,0.3742,78,372,Blackout+BlindCurtain+FixedKnot+TwinLink,0,2,0,1,1.753,
+652,14,Charge + TwinLink,new+nowall,walls removed,3,5,15,26,0.02145516858879913,1.6685,3.96,0.3791,5103,34373,Charge+TwinLink,0,2,1,1,1.833,walls removed (same board)
+653,14,Charge + TwinLink,new,,7,6,22,35,0.012451171875,1.9048,6.1786,0.6701,28,3604,Blackout+BlindCurtain+Charge+TwinLink,0,2,0,1,1.913,replaced by wall-free candidate (new)
+654,14,Charge + TwinLink,new,,4,5,14,23,0.0234375,1.6301,5.25,0.6104,4,509,Charge+CrossBlast+TwinLink,0,3,0,1,1.703,
+655,14,Charge + TwinLink,new,,6,5,18,30,0.015625,1.8062,6,0.72,2,321,BlindCurtain+Charge+TwinLink,0,2,0,1,1.853,replaced by wall-free candidate (new)
+656,14,Charge + TwinLink,new,,7,6,23,33,0.009765625,2.0103,6.9091,0.695,11,1373,Charge+FixedKnot+ShortCircuit,0,3,0,1,2.003,
+657,14,Charge + TwinLink,new,,4,5,13,32,0.0071524272856833765,2.1455,6.849,0.3512,29136,54397,CrossBlast+ShortCircuit+TwinLink,0,3,0,1,2.153,
+658,14,Charge + TwinLink,new,,3,8,18,38,0.00508880615234375,2.2934,7.4694,0.5498,98,18423,Charge+TwinLink,0,2,0,1,2.303,
+659,14,Charge + TwinLink,new,,3,7,17,33,0.0035205364881392533,2.4534,6.6614,0.441,5328,65273,Charge+TwinLink,0,2,0,1,2.453,
+660,14,Charge + TwinLink,old:616+mutated,augmented: +FK+SC,6,3,12,18,0.017939814814814815,1.7462,6,0.5333,7,436,Charge+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,1.77,
+661,14,Charge + TwinLink,new,,5,2,10,18,0.013671875,1.8642,5.9,0.4295,10,293,Charge+FixedKnot+ShortCircuit+TwinLink,0,4,1,1,1.895,
+662,14,Charge + TwinLink,new,,4,5,18,36,0.00961572316973726,2.017,4.7828,0.3697,50470,368436,BlindCurtain+CrossBlast+TwinLink,0,2,0,1,2.02,
+663,14,Charge + TwinLink,new,,5,4,14,27,0.007538790674475594,2.1227,6.8439,0.3831,807,34011,Charge+CrossBlast,0,2,0,1,2.145,
+664,14,Charge + TwinLink,new,,6,6,20,36,0.005859375,2.2321,7.8571,0.6339,7,8936,Charge+TwinLink,0,2,0,1,2.27,
+665,14,Charge + TwinLink,old:149+mutated,augmented: +FK+SC,4,4,14,25,0.00459803758716278,2.3374,5.3821,0.4278,212,6822,Charge+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.395,
+666,14,Charge + TwinLink,new,,7,4,18,26,0.0031346450617283947,2.5038,8.1667,0.5311,36,12255,Charge+ShortCircuit+TwinLink,0,3,0,1,2.52,
+667,14,Charge + TwinLink,new,,4,6,20,28,0.014419813814586189,1.841,4.7125,0.5431,407,14761,Charge+ShortCircuit,0,2,0,1,1.837,
+668,14,Charge + TwinLink,new,,4,3,10,15,0.010416666666666666,1.9823,6,0.4167,2,152,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,2.024,replaced by wall-free candidate (new)
+669,14,Charge + TwinLink,old:673+mutated,charge,6,3,12,23,0.007016782407407407,2.1539,9,0.5909,30,263,Charge+Hidden+Igniter+TwinLink,0,3,0,1,2.212,
+670,14,Charge + TwinLink,new,,5,8,22,41,0.00439453125,2.3571,7.75,0.68,4,442,Charge+FixedKnot+TwinLink,0,3,0,1,2.399,
+671,14,Charge + TwinLink,new,,3,7,14,27,0.0026041666666666665,2.5843,8,0.5735,3,293,Charge+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,5,0,1,2.587,replaced by wall-free candidate (new)
+672,14,Charge + TwinLink,new,,4,4,11,18,0.01273148148148148,1.8951,6,0.6,2,394,Blackout+BlindCurtain+ShortCircuit+TwinLink,0,2,0,1,1.903,
+673,14,Charge + TwinLink,new+nowall,walls removed,3,8,23,35,0.005106416120839642,2.2919,4.8446,0.4239,49704,783489,Blackout+BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.01,walls removed (same board)
+674,14,Charge + TwinLink,new,,5,4,14,26,0.0078125,2.1072,7,0.6316,1,54,Charge+FixedKnot+TwinLink,0,3,0,1,2.118,
+675,14,Charge + TwinLink,new,,6,6,22,34,0.006123219010691931,2.213,5.9245,0.4141,76150,749978,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.225,
+676,14,Charge + TwinLink,new+nowall,walls removed,3,6,15,26,0.00647022890946502,2.1891,6.3929,0.4717,224,9473,Charge+TwinLink,0,2,0,1,2.332,walls removed (same board)
+677,14,Charge + TwinLink,new+nowall,walls removed,7,5,18,34,0.0022475172472871435,2.6483,8.4139,0.3965,7152,57594,Charge+FixedKnot+TwinLink,0,3,0,1,2.439,walls removed (same board)
+678,14,Charge + TwinLink,new+nowall,walls removed,4,6,18,30,0.0019561390817901237,2.7086,8.6667,0.5924,6,3202,Charge+FixedKnot+TwinLink,0,3,0,1,2.546,walls removed (same board)
+679,14,Charge + TwinLink,new,,6,4,15,32,0.002272188861663475,2.6436,7.3229,0.349,5510,12658,Charge+FixedKnot+TwinLink,0,3,0,1,2.653,
+680,14,Charge + TwinLink,new,,7,4,19,34,0.010699668407690521,1.9706,5.108,0.3654,80800,626057,Charge+TwinLink,0,2,0,1,1.97,
+681,14,Charge + TwinLink,new,,4,6,18,26,0.007613570601851852,2.1184,5.381,0.5692,42,6223,Charge+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.12,replaced by wall-free candidate (new)
+682,14,Charge + TwinLink,old:464+mutated,augmented: +IGN,6,6,18,28,0.005391438802083332,2.2683,6.0571,0.5198,35,3773,Hidden+Igniter+TwinLink,0,2,0,1,2.27,
+683,14,Charge + TwinLink,new,,4,8,20,29,0.00390625,2.4082,8,0.6538,2,628,Charge+ShortCircuit+TwinLink,0,3,0,1,2.42,
+684,14,Charge + TwinLink,old:157+mutated+nowall,"charge+walls; Wall@0,2,Right; walls removed",5,5,19,28,0.004367404513888889,2.3598,8.2857,0.6,14,5482,Charge+TwinLink,0,2,0,1,2.57,walls removed (same board)
+685,14,Charge + TwinLink,new,,5,4,15,35,0.001907076528206447,2.7196,8.306,0.5043,549,17924,Blackout+BlindCurtain+Charge+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.72,replaced by wall-free candidate (new)
+686,14,Charge + TwinLink,new,,3,7,16,35,0.009229871961805554,2.0348,6.5988,0.5078,172,10503,CrossBlast+TwinLink,0,2,0,1,2.037,
+687,14,Charge + TwinLink,new+nowall,walls removed,4,6,18,36,0.007432223347479423,2.1289,7.4069,0.5111,290,32854,Hidden+Igniter+TwinLink,0,2,0,1,2.162,walls removed (same board)
+688,14,Charge + TwinLink,old:406+mutated,augmented: +FK,5,6,16,33,0.005198872465492112,2.2841,7.3333,0.4525,2340,55656,Charge+FixedKnot,0,2,0,1,2.287,
+689,14,Charge + TwinLink,new,,7,3,20,31,0.004336440792741714,2.3629,10.5581,0.4016,792,217497,Charge+TwinLink,0,2,0,1,2.412,
+690,14,Charge + TwinLink,new,,3,6,16,30,0.0028730060174468447,2.5417,7.7011,0.4243,174,10932,Charge+ShortCircuit+TwinLink,0,3,0,1,2.537,
+691,14,Charge + TwinLink,old:379+mutated,charge,4,8,24,39,0.002166676484947559,2.6642,8.7711,0.464,18585,358202,Charge+Hidden+Igniter+TwinLink,0,3,0,1,2.662,
+692,14,Charge + TwinLink,new+nowall,walls removed,5,4,19,29,0.0015294511513345903,2.8155,6.454,0.3828,522,25429,Charge+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,2.787,walls removed (same board)
+693,14,Charge + TwinLink,new,,4,5,13,28,0.007820537551440328,2.1068,7.3058,0.4781,242,4533,BlindCurtain+Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.103,
+694,14,Charge + TwinLink,new,,6,6,23,37,0.0059392624334282905,2.2263,6.1454,0.4473,12171,690569,ShortCircuit+TwinLink,0,2,0,1,2.228,
+695,14,Charge + TwinLink,old:165+mutated+nowall,augmented: +FK+WALL; walls removed,4,3,11,20,0.006192646329365079,2.2081,6.8202,0.3769,89,668,Charge+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.353,walls removed (same board)
+696,14,Charge + TwinLink,new,,4,5,18,29,0.0033191693247229654,2.479,7.0697,0.4062,3630,716443,Charge+TwinLink,0,2,0,1,2.478,
+697,14,Charge + TwinLink,new+nowall,walls removed,3,7,18,33,0.001341005640457843,2.8726,8.621,0.3599,13598,352006,Charge+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.603,walls removed (same board)
+698,14,Charge + TwinLink,new+nowall,walls removed,5,5,19,31,0.0016549541680955645,2.7812,8.5171,0.5061,205,22512,Charge+FixedKnot+TwinLink,0,3,0,1,2.728,walls removed (same board)
+699,14,Charge + TwinLink,old:870+mutated,charge,5,6,16,29,0.001408264597384164,2.8513,9.5993,0.3717,1797,122407,Charge+TwinLink,0,2,0,1,2.853,
+700,14,Charge + TwinLink,new,,7,3,17,37,0.00012771573553546934,3.8938,12.7333,0.3394,240,124908,Charge+TwinLink,0,2,0,1,3.503,
+701,15,Circuits: TwinLink + Igniter,new,,6,5,17,31,0.014879501708389774,1.8274,4.9884,0.4011,15150,112135,CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,1.893,
+702,15,Circuits: TwinLink + Igniter,new,,6,3,15,25,0.012428825249342705,1.9056,5.7817,0.4277,788,9186,Charge+Hidden+Igniter+TwinLink,0,3,0,1,1.973,replaced by wall-free candidate (new)
+703,15,Circuits: TwinLink + Igniter,new,,4,5,10,26,0.008969907407407407,2.0472,6.3158,0.4823,57,1652,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,2.053,
+704,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,4,6,20,31,0.01149202406978738,1.9396,5.395,0.578,119,24734,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,1.843,walls removed (same board)
+705,15,Circuits: TwinLink + Igniter,new,,5,3,12,22,0.010127314814814813,1.9945,6.8182,0.512,11,501,Hidden+Igniter+TwinLink,0,2,0,1,1.993,
+706,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,3,6,14,29,0.014924281800125741,1.8261,5.9474,0.5026,456,9691,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.143,walls removed (same board)
+707,15,Circuits: TwinLink + Igniter,new,,4,4,10,22,0.005208333333333333,2.2833,7,0.5556,2,169,BlindCurtain+FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,2.293,
+708,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,4,6,14,34,0.005012292430234053,2.3,6.8584,0.3801,565,3887,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,2.443,walls removed (same board)
+709,15,Circuits: TwinLink + Igniter,new,,4,5,16,32,0.0026468145056189945,2.5773,7.9645,0.3988,4903,428269,Charge+CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,2.593,replaced by wall-free candidate (new)
+710,15,Circuits: TwinLink + Igniter,new,,3,6,13,22,0.012586805555555556,1.9001,5.2,0.5474,10,192,Blackout+BlindCurtain+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,1.91,
+711,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,5,5,16,33,0.013672545021163923,1.8642,5.2675,0.3525,206169,395844,Hidden+Igniter+TwinLink,0,2,0,1,2.035,walls removed (same board)
+712,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,3,5,12,29,0.004865757122833434,2.3128,6.3229,0.3733,353,13441,CrossBlast+TwinLink,0,2,0,1,2.16,walls removed (same board)
+713,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,3,6,16,36,0.0047469738688597565,2.3236,6.9087,0.3972,2628,51850,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,2.285,walls removed (same board)
+714,15,Circuits: TwinLink + Igniter,new,,7,3,20,31,0.0041467538422844865,2.3823,7.1762,0.3932,976,13467,Charge+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,2.41,replaced by wall-free candidate (new)
+715,15,Circuits: TwinLink + Igniter,new,,5,5,13,27,0.003038194444444444,2.5174,7.9167,0.5198,24,5106,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.535,
+716,15,Circuits: TwinLink + Igniter,new,,6,3,14,27,0.0022692686899862826,2.6441,8.6735,0.4605,49,1821,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,2.66,replaced by wall-free candidate (new)
+717,15,Circuits: TwinLink + Igniter,old:187+mutated+nowall,augmented: +WALL+SC; walls removed,5,4,16,26,0.009765625,2.0103,5.6667,0.5967,24,423,Hidden+Igniter+ShortCircuit,0,2,0,1,1.977,walls removed (same board)
+718,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,3,7,20,34,0.004355273764955799,2.361,7.0143,0.455,698,98300,CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.164,walls removed (same board)
+719,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,5,6,20,36,0.009118512182744945,2.0401,5.6957,0.4448,2547,29640,ShortCircuit+TwinLink,0,2,0,1,2.352,walls removed (same board)
+720,15,Circuits: TwinLink + Igniter,new,,5,5,20,37,0.002989823780777868,2.5244,7.3792,0.499,691,301795,BlindCurtain+CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,2.539,
+721,15,Circuits: TwinLink + Igniter,new,,5,3,11,27,0.0018918386702674896,2.7231,8.2917,0.4167,48,1277,Charge+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,2.727,replaced by wall-free candidate (new)
+722,15,Circuits: TwinLink + Igniter,new,,4,5,14,26,0.010127314814814813,1.9945,6.1429,0.5248,84,2413,Charge+Hidden+Igniter+TwinLink,0,3,0,1,2.043,replaced by wall-free candidate (new)
+723,15,Circuits: TwinLink + Igniter,old:603+mutated+nowall,augmented: +IGN+FK+WALL; walls removed,4,8,23,39,0.004817171457978213,2.3172,7.2371,0.3743,1000000+,151346,FixedKnot+Hidden+Igniter,0,2,0,1,2.15,walls removed (same board)
+724,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,6,4,20,41,0.0060374952180999525,2.2191,7.8142,0.413,118528,411458,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.258,replaced by wall-free board (walls removed from former stage 912)
+725,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,3,5,13,37,0.0034469026653924026,2.4626,8.8018,0.3199,188964,128787,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,2.365,walls removed (same board)
+726,15,Circuits: TwinLink + Igniter,new,,5,4,19,36,0.003278661716705758,2.4843,7.4286,0.3476,159610,487100,CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.472,
+727,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,3,6,15,31,0.003505851399208295,2.4552,5.6486,0.3499,21816,192853,FixedKnot+TwinLink,0,2,0,1,2.579,walls removed (same board)
+728,15,Circuits: TwinLink + Igniter,new,,5,7,21,45,0.0021578073501586914,2.666,7.5947,0.5232,417,78585,Hidden+Igniter+TwinLink,0,2,0,1,2.686,
+729,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,7,3,17,37,0.0026731137876157413,2.573,8.0641,0.4907,78,16153,CrossBlast+TwinLink,0,2,0,1,2.793,walls removed (same board)
+730,15,Circuits: TwinLink + Igniter,new,,7,3,16,31,0.00824987675754458,2.0836,7.0048,0.4806,210,6579,Blackout+BlindCurtain+Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.11,
+731,15,Circuits: TwinLink + Igniter,old:320+mutated,+BlindCurtain,4,6,14,38,0.005773876025123451,2.2385,4.8913,0.3274,415292,606259,BlindCurtain+CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,2.26,replaced by wall-free candidate (oldvar)
+732,15,Circuits: TwinLink + Igniter,new,,4,5,15,29,0.004155053032769097,2.3814,6.3054,0.3928,239,1471,FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.41,
+733,15,Circuits: TwinLink + Igniter,old:526+mutated+nowall,augmented: +FK+IGN+WALL+FK+SC+FK; walls removed,6,6,22,36,0.0035445601851851853,2.4504,7.3,0.6467,30,372,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.56,walls removed (same board)
+734,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,6,6,24,36,0.0021613792136863422,2.6653,7.141,0.5467,156,55298,Hidden+Igniter+TwinLink,0,2,0,1,2.71,walls removed (same board)
+735,15,Circuits: TwinLink + Igniter,old:227+mutated+nowall,augmented: +FK+WALL; walls removed,5,5,21,31,0.0011370996388878841,2.9442,8.1715,0.4187,1388,3347,BlindCurtain+FixedKnot+Hidden+Igniter,0,2,0,1,2.86,walls removed (same board)
+736,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,3,6,16,34,0.008684994355480442,2.0612,5.9319,0.3275,496692,185096,CrossBlast+Hidden+Igniter,0,2,0,1,2.177,walls removed (same board)
+737,15,Circuits: TwinLink + Igniter,new,,5,5,16,28,0.005135995370370371,2.2894,7.1053,0.5172,19,596,BlindCurtain+Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.302,
+738,15,Circuits: TwinLink + Igniter,new,,5,4,15,34,0.0035764347978198587,2.4465,7.1247,0.4361,1363,102542,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,2.427,
+739,15,Circuits: TwinLink + Igniter,new,,5,5,13,33,0.0028053566261574078,2.552,7.5357,0.5271,28,4961,Charge+CrossBlast+Hidden+Igniter+TwinLink,0,4,0,1,2.552,replaced by wall-free candidate (new)
+740,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,6,4,20,35,0.002167424928869194,2.6641,7.248,0.3635,71751,288678,FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.677,replaced by wall-free board (walls removed from former stage 731)
+741,15,Circuits: TwinLink + Igniter,old:228+mutated+nowall,walls; walls removed,5,5,19,31,0.0018518113850130031,2.7324,7.8681,0.3824,2304,52605,BlindCurtain+Hidden+Igniter+TwinLink,0,2,0,1,2.802,replaced by wall-free board (walls removed from former stage 449)
+742,15,Circuits: TwinLink + Igniter,old:432+mutated+nowall,augmented: +FK+IGN+WALL; walls removed,4,6,19,30,0.001370172019808231,2.8632,9.8656,0.5006,372,5021,BlindCurtain+FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.927,walls removed (same board)
+743,15,Circuits: TwinLink + Igniter,new,,6,3,14,33,0.005835928426106713,2.2339,5.6713,0.3386,31059,46540,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,2.243,
+744,15,Circuits: TwinLink + Igniter,new,,4,5,15,34,0.0038514718650031546,2.4144,6.3743,0.3308,22034,225152,Charge+CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,5,0,1,2.368,replaced by wall-free candidate (new)
+745,15,Circuits: TwinLink + Igniter,new,,3,7,19,38,0.003186872607918847,2.4966,8.2419,0.5198,1083,7011,Blackout+BlindCurtain+CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,2.493,
+746,15,Circuits: TwinLink + Igniter,old:389+mutated+nowall,augmented: +WALL+SC; walls removed,5,5,15,29,0.0036537787878300754,2.4373,7.2367,0.4469,283,2047,Hidden+Igniter+ShortCircuit,0,2,0,1,2.618,walls removed (same board)
+747,15,Circuits: TwinLink + Igniter,old:868+mutated+nowall,augmented: +IGN+FK+WALL+FK; walls removed,6,6,18,35,0.0012505927694187243,2.9029,8.6296,0.5482,216,2035,FixedKnot+Hidden+Igniter,0,2,0,1,2.743,walls removed (same board)
+748,15,Circuits: TwinLink + Igniter,new+nowall,walls removed,5,4,17,31,0.0012611575602201137,2.8992,8.8295,0.4475,88,3882,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,2.868,replaced by wall-free board (walls removed from former stage 724)
+749,15,Circuits: TwinLink + Igniter,old:223+mutated+nowall,walls; Igniter/Hidden:G75; walls removed,4,5,18,35,0.002113050733587977,2.6751,7.837,0.4039,13722,567492,BlindCurtain+CrossBlast+ShortCircuit+TwinLink,0,3,0,1,2.993,walls removed (same board)
+750,15,Circuits: TwinLink + Igniter,old:463+mutated+nowall,augmented: +IGN+FK+WALL+FK; walls removed,3,6,16,34,9.0343475604393e-05,4.0441,11.3731,0.3793,7843,85268,FixedKnot+Hidden+Igniter,0,2,0,1,3.643,walls removed (same board)
+751,16,Timing: FixedKnot + Charge + ShortCircuit,new,,4,5,11,21,0.009684244791666666,2.0139,7.3333,0.5,18,814,BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,2.033,
+752,16,Timing: FixedKnot + Charge + ShortCircuit,new,,3,6,16,25,0.008198302469135802,2.0863,6.7273,0.5571,11,933,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.113,
+753,16,Timing: FixedKnot + Charge + ShortCircuit,old:561+mutated+nowall,augmented: +WALL+SC+FK; walls removed,4,8,18,27,0.007791401427469134,2.1084,6.3636,0.5406,110,207,FixedKnot+ShortCircuit,0,2,0,1,2.193,walls removed (same board)
+754,16,Timing: FixedKnot + Charge + ShortCircuit,new,,7,3,19,34,0.011006208031882535,1.9584,5.1782,0.3796,476120,328484,BlindCurtain+Charge+ShortCircuit,0,2,0,1,1.983,
+755,16,Timing: FixedKnot + Charge + ShortCircuit,new,,3,5,12,24,0.0077589163237311385,2.1102,6.9615,0.4341,52,662,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,2.133,
+756,16,Timing: FixedKnot + Charge + ShortCircuit,new+nowall,walls removed,4,6,17,32,0.010309194286609818,1.9868,5.8181,0.4305,10733,50522,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,2.283,walls removed (same board)
+757,16,Timing: FixedKnot + Charge + ShortCircuit,new,,3,7,15,24,0.003656834731867284,2.4369,8.6842,0.5201,38,2240,Charge+ShortCircuit,0,2,0,1,2.433,
+758,16,Timing: FixedKnot + Charge + ShortCircuit,new,,3,7,17,31,0.002668381803241535,2.5738,5.7975,0.5054,953,34535,Blackout+BlindCurtain+CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.583,
+759,16,Timing: FixedKnot + Charge + ShortCircuit,new+nowall,walls removed,3,8,22,34,0.0014167134281748417,2.8487,7.4677,0.4457,6633,910512,BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.733,walls removed (same board)
+760,16,Timing: FixedKnot + Charge + ShortCircuit,new,,5,4,10,19,0.008969907407407407,2.0472,5.8889,0.5123,9,338,FixedKnot+ShortCircuit,0,2,0,1,2.05,
+761,16,Timing: FixedKnot + Charge + ShortCircuit,old:513+mutated,augmented: +IGN+FK,5,3,10,17,0.006944444444444444,2.1584,5.6667,0.5417,3,123,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.175,
+762,16,Timing: FixedKnot + Charge + ShortCircuit,old:840+mutated+nowall,charge+walls; walls removed,5,5,15,27,0.004230849863897462,2.3736,8.8365,0.5163,636,34068,Charge+ShortCircuit,0,2,0,1,2.3,walls removed (same board)
+763,16,Timing: FixedKnot + Charge + ShortCircuit,new,,5,4,13,27,0.00390625,2.4082,8,0.4394,18,311,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.425,
+764,16,Timing: FixedKnot + Charge + ShortCircuit,new+nowall,walls removed,4,5,16,30,0.004421192850032388,2.3545,7.1523,0.4429,1320,4846,Charge+FixedKnot+Hidden+Igniter,0,3,0,1,2.55,walls removed (same board)
+765,16,Timing: FixedKnot + Charge + ShortCircuit,new,,6,5,17,37,0.002274400303774791,2.6431,7.4826,0.4569,2468,40616,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.675,
+766,16,Timing: FixedKnot + Charge + ShortCircuit,new,,5,4,18,30,0.001551276886601858,2.8093,8.0906,0.4082,1303,32368,CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.8,
+767,16,Timing: FixedKnot + Charge + ShortCircuit,new,,5,4,11,18,0.0078125,2.1072,6,0.5647,5,166,Blackout+BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,2.117,
+768,16,Timing: FixedKnot + Charge + ShortCircuit,old:236+mutated+nowall,augmented: +IGN+FK+WALL+SC+FK; walls removed,3,4,11,18,0.011284722222222222,1.9475,7.25,0.5441,4,49,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.304,walls removed (same board)
+769,16,Timing: FixedKnot + Charge + ShortCircuit,new,,3,6,9,17,0.003472222222222222,2.4594,7,0.5333,1,250,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.492,
+770,16,Timing: FixedKnot + Charge + ShortCircuit,new,,5,3,14,32,0.002237955729166667,2.6501,7.8684,0.4485,38,1535,FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.679,
+771,16,Timing: FixedKnot + Charge + ShortCircuit,old:525+mutated+nowall,augmented: +WALL+SC+FK; walls removed,3,6,14,33,0.0009666905896832857,3.0147,8.1688,0.4103,4212,9320,FixedKnot+ShortCircuit,0,2,0,1,2.867,walls removed (same board)
+772,16,Timing: FixedKnot + Charge + ShortCircuit,new+nowall,walls removed,3,7,16,36,0.0071835141274455795,2.1437,5.3162,0.3401,485875,166273,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.183,walls removed (same board)
+773,16,Timing: FixedKnot + Charge + ShortCircuit,new+nowall,walls removed,5,4,16,39,0.0039061024150020165,2.4083,7.3758,0.31,421751,185002,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.29,walls removed (same board)
+774,16,Timing: FixedKnot + Charge + ShortCircuit,new,,4,4,12,21,0.004409079218106995,2.3557,8.1667,0.3411,96,1671,Blackout+BlindCurtain+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.398,
+775,16,Timing: FixedKnot + Charge + ShortCircuit,old:281+mutated,augmented: +FK,5,6,16,18,0.003472222222222222,2.4594,7,0.5882,1,189,Blackout+Charge+FixedKnot,0,2,0,1,2.505,
+776,16,Timing: FixedKnot + Charge + ShortCircuit,new,,6,4,14,28,0.00244140625,2.6124,8.7778,0.5117,81,7559,BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.612,
+777,16,Timing: FixedKnot + Charge + ShortCircuit,new,,3,5,12,28,0.0020017689311128254,2.6986,8.2083,0.5111,144,5460,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,2.719,
+778,16,Timing: FixedKnot + Charge + ShortCircuit,old:710+mutated,augmented: +FK+FK,5,5,13,24,0.0015432098765432098,2.8116,8,0.625,4,136,Charge+FixedKnot,0,2,0,1,2.826,
+779,16,Timing: FixedKnot + Charge + ShortCircuit,new+nowall,walls removed,4,6,20,38,0.000774347496875774,3.1111,10.2283,0.4578,736,57450,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.933,walls removed (same board)
+780,16,Timing: FixedKnot + Charge + ShortCircuit,new,,4,5,14,32,0.005799658571827172,2.2366,6.3626,0.3321,199294,64834,Blackout+BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,2.25,
+781,16,Timing: FixedKnot + Charge + ShortCircuit,new,,6,5,20,27,0.004340277777777777,2.3625,8,0.6296,8,134,Charge+ShortCircuit,0,2,0,1,2.4,
+782,16,Timing: FixedKnot + Charge + ShortCircuit,new,,3,6,15,29,0.0028490329039494743,2.5453,7.5118,0.425,764,23499,BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.55,
+783,16,Timing: FixedKnot + Charge + ShortCircuit,new,,5,3,12,32,0.002047301660022291,2.6888,7.3785,0.359,531,47918,BlindCurtain+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.7,
+784,16,Timing: FixedKnot + Charge + ShortCircuit,new,,3,7,17,27,0.001519097222222222,2.8184,10,0.6154,3,97,FixedKnot+ShortCircuit,0,2,0,1,2.85,
+785,16,Timing: FixedKnot + Charge + ShortCircuit,old:647+mutated,augmented: +FK,4,7,18,27,0.0009902933170438956,3.0042,8.0625,0.5041,128,10463,Charge+FixedKnot,0,2,0,1,3.0,
+786,16,Timing: FixedKnot + Charge + ShortCircuit,new+nowall,walls removed,4,4,14,31,0.004103831838632672,2.3868,7.015,0.3742,6992,21624,CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.317,walls removed (same board)
+787,16,Timing: FixedKnot + Charge + ShortCircuit,new,,4,5,18,34,0.0034964496101092947,2.4564,7.7242,0.4453,4018,10109,Blackout+BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,2.442,
+788,16,Timing: FixedKnot + Charge + ShortCircuit,new+nowall,walls removed,5,5,17,37,0.003078231919840652,2.5117,6.8871,0.3275,1000000+,471008,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.567,walls removed (same board)
+789,16,Timing: FixedKnot + Charge + ShortCircuit,new,,7,3,16,29,0.0021701388888888886,2.6635,9,0.61,4,279,BlindCurtain+CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.692,
+790,16,Timing: FixedKnot + Charge + ShortCircuit,old:136+mutated,augmented: +IGN,5,4,14,17,0.0015432098765432098,2.8116,7,0.5625,1,139,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,2.817,
+791,16,Timing: FixedKnot + Charge + ShortCircuit,old:114+mutated,augmented: +SC,5,5,18,26,0.0011556648913724924,2.9372,9.0656,0.4754,61,59970,Charge+CrossBlast+ShortCircuit,0,3,0,1,2.942,
+792,16,Timing: FixedKnot + Charge + ShortCircuit,new+nowall,walls removed,5,5,24,34,0.000769857002378504,3.1136,8.2666,0.4199,10761,908671,Charge+Hidden+Igniter+ShortCircuit,0,3,0,1,3.067,replaced by wall-free board (walls removed from former stage 796)
+793,16,Timing: FixedKnot + Charge + ShortCircuit,new,,4,5,15,23,0.0049144417533531475,2.3085,6.7097,0.4226,124,1913,Blackout+BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.383,
+794,16,Timing: FixedKnot + Charge + ShortCircuit,new,,4,7,19,38,0.003207312689887153,2.4939,5.4057,0.4912,1018,6128,CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.508,
+795,16,Timing: FixedKnot + Charge + ShortCircuit,old:298+mutated,augmented: +SC+FK,5,5,14,27,0.0023871527777777775,2.6221,9.125,0.5962,16,925,FixedKnot+ShortCircuit,0,2,0,1,2.633,
+796,16,Timing: FixedKnot + Charge + ShortCircuit,new,,4,6,18,40,0.0018268646835608556,2.7383,8.0827,0.5396,834,235772,Charge+ShortCircuit+TwinLink,0,3,0,1,2.758,replaced by wall-free candidate (new)
+797,16,Timing: FixedKnot + Charge + ShortCircuit,old:459+mutated,augmented: +FK+SC,6,6,20,34,0.0012871989868894842,2.8904,8.7288,0.4441,10221,54625,Charge+FixedKnot+ShortCircuit,0,3,0,1,2.883,
+798,16,Timing: FixedKnot + Charge + ShortCircuit,old:359+mutated,augmented: +FK,6,6,18,30,0.0009682605962215967,3.014,9.9,0.481,820,225669,Charge+FixedKnot+TwinLink,0,3,0,1,3.008,
+799,16,Timing: FixedKnot + Charge + ShortCircuit,old:777+mutated,augmented: +FK+SC,5,5,13,21,0.0006872106481481481,3.1629,11,0.4762,3,718,Charge+FixedKnot+ShortCircuit,0,3,0,1,3.133,
+800,16,Timing: FixedKnot + Charge + ShortCircuit,new,,7,5,25,43,6.069560691253237e-05,4.2168,14.4857,0.4785,105,70329,Charge+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,5,0,1,3.783,replaced by wall-free candidate (new)
+801,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,3,5,12,25,0.006582754629629629,2.1816,7.25,0.5458,40,1390,Blackout+BlindCurtain+ShortCircuit,0,1,0,1,2.173,
+802,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,3,6,17,39,0.006109761526818085,2.214,8.1381,0.4699,67000,170812,Blackout+BlindCurtain+Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.253,
+803,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new+nowall,walls removed,5,6,23,34,0.004890383752521409,2.3107,6.5155,0.5374,1680,6557,BlindCurtain+ShortCircuit,0,1,0,1,2.333,replaced by wall-free board (walls removed from former stage 838)
+804,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,old:518+mutated,+BlindCurtain,4,8,17,23,0.0078125,2.1072,7,0.5294,2,137,BlindCurtain+CrossBlast+ShortCircuit+TwinLink,0,3,0,1,2.123,replaced by wall-free candidate (oldvar)
+805,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,3,8,21,39,0.005612127104913406,2.2509,5.9541,0.3932,1000000+,752739,BlindCurtain+ShortCircuit,0,1,0,1,2.273,
+806,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,old:843+mutated,+Blackout,3,6,10,21,0.004050925925925926,2.3924,7.3333,0.5,3,183,Blackout+CrossBlast+ShortCircuit+TwinLink,0,3,0,1,2.423,
+807,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,4,16,24,0.0028653870884773665,2.5428,7.6444,0.4667,45,1492,Blackout+BlindCurtain+CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,2.573,
+808,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,7,3,16,27,0.001965181327160494,2.7066,8.3333,0.5,24,5379,BlindCurtain+ShortCircuit+TwinLink,0,2,0,1,2.723,
+809,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,3,7,19,40,0.0013549628243082702,2.8681,8.0429,0.3725,284857,735118,Blackout+BlindCurtain+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.873,
+810,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,4,6,19,33,0.006322036554783951,2.1991,6.7071,0.5748,198,2655,BlindCurtain+Hidden+Igniter+ShortCircuit,0,2,0,1,2.19,
+811,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,6,4,13,29,0.0050994286975415805,2.2925,7.4962,0.484,133,23355,Blackout+BlindCurtain+ShortCircuit+TwinLink,0,2,0,1,2.315,
+812,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,old:221+mutated+nowall,"walls; Wall@0,2,Up; Wall@0,3,Right; walls removed",4,4,14,27,0.0021972920796144773,2.6581,5.6887,0.3197,4318,14303,BlindCurtain+FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,2.44,walls removed (same board)
+813,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,4,5,15,29,0.0029449462890625,2.5309,8.3056,0.5291,72,8819,BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.565,
+814,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,5,16,25,0.002170138888888889,2.6635,9.1429,0.4935,14,1159,BlindCurtain+CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,2.69,
+815,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,6,6,20,36,0.0016106499565972222,2.793,8.25,0.5735,36,10968,Blackout+BlindCurtain+Charge+ShortCircuit+TwinLink,0,3,0,1,2.815,replaced by wall-free candidate (new)
+816,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,3,7,18,32,0.001285694263599537,2.8909,8.5,0.5136,180,5402,Blackout+BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.94,
+817,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new+nowall,walls removed,3,6,16,30,0.004882877392943205,2.3113,6.722,0.3672,26816,17717,Blackout+BlindCurtain,0,0,0,1,2.257,walls removed (same board)
+818,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,5,17,28,0.00390625,2.4082,8,0.68,1,337,Blackout+BlindCurtain+Charge+TwinLink,0,2,0,1,2.444,replaced by wall-free candidate (new)
+819,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,old:137+mutated,+BlindCurtain,4,4,14,26,0.002479816799767526,2.6056,8.557,0.4253,79,2359,BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,2.632,
+820,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,4,6,16,30,0.001745392643153091,2.7581,9.1007,0.3937,6144,41369,BlindCurtain+Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.819,
+821,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,6,5,19,41,0.0011286735534667969,2.9474,7.8878,0.503,588,153937,Blackout+BlindCurtain+Charge+ShortCircuit+TwinLink,0,3,0,1,3.007,replaced by wall-free candidate (new)
+822,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,6,12,21,0.004991319444444445,2.3018,7.1687,0.4447,166,8885,BlindCurtain+Charge,0,1,0,1,2.323,
+823,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,4,16,30,0.004754658207590305,2.3229,6.9091,0.5195,792,53457,BlindCurtain+Charge+ShortCircuit+TwinLink,0,3,0,1,2.43,replaced by wall-free candidate (new)
+824,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,7,4,22,33,0.0030467343428497943,2.5162,7.539,0.5481,141,37573,Blackout+BlindCurtain+CrossBlast+ShortCircuit,0,2,0,1,2.538,
+825,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,6,3,16,33,0.0023656244711919598,2.6261,8.3526,0.4168,1208,18796,BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.645,
+826,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,3,4,10,23,0.0018988715277777778,2.7215,8.875,0.483,8,171,BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,2.752,replaced by wall-free candidate (new)
+827,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,6,4,16,36,0.001449583798097303,2.8388,7.9662,0.4013,532,28313,BlindCurtain+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.859,
+828,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,5,21,28,0.0011574074074074073,2.9365,9,0.6548,6,569,Blackout+BlindCurtain+Charge+FixedKnot+ShortCircuit,0,3,0,1,2.966,replaced by wall-free candidate (new)
+829,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,3,6,15,30,0.0008522595343221309,3.0694,8.4203,0.4473,276,20113,BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,3.073,
+830,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,6,4,16,21,0.004308127572016461,2.3657,6.2727,0.5579,22,2464,BlindCurtain+Charge,0,1,0,1,2.39,
+831,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,6,3,14,22,0.003094457304526749,2.5094,7.4,0.4929,20,293,BlindCurtain+Hidden+Igniter+ShortCircuit,0,2,0,1,2.54,replaced by wall-free candidate (new)
+832,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,old:989+mutated,augmented: +FK+SC,5,5,15,27,0.002358351551783265,2.6274,8.0357,0.3993,672,5994,BlindCurtain+Charge+FixedKnot+ShortCircuit,0,3,0,1,2.69,replaced by wall-free candidate (oldvar)
+833,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,old:947+mutated+nowall,augmented: +FK+SC+WALL; walls removed,6,3,12,23,0.001519097222222222,2.8184,9,0.5111,6,173,BlindCurtain+Charge+FixedKnot+ShortCircuit,0,3,0,1,2.84,walls removed (same board)
+834,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,6,4,18,27,0.001103153935185185,2.9574,8.8,0.6,5,539,BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.99,
+835,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,3,6,13,23,0.0007866753472222222,3.1042,7.8333,0.5088,6,1336,BlindCurtain+Charge+FixedKnot+TwinLink,0,3,0,1,3.14,replaced by wall-free candidate (new)
+836,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,4,7,20,32,0.003233105066872428,2.4904,7.8269,0.611,52,1210,Blackout+BlindCurtain+Hidden+Igniter+ShortCircuit,0,2,0,1,2.457,
+837,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,3,7,16,31,0.002706252407544343,2.5676,7.7866,0.4473,1584,11541,BlindCurtain+CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.582,
+838,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,7,4,18,36,0.0020345052083333335,2.6915,9.375,0.5927,16,2668,Blackout+BlindCurtain+ShortCircuit+TwinLink,0,2,0,1,2.707,replaced by wall-free candidate (new)
+839,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new+nowall,walls removed,4,6,18,31,0.0012454437130272635,2.9047,9.9928,0.4455,3312,68927,Blackout+BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.832,walls removed (same board)
+840,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,4,5,13,26,0.0011604214891975308,2.9354,9,0.4542,20,2004,BlindCurtain+CrossBlast+ShortCircuit,0,2,0,1,2.957,replaced by wall-free candidate (new)
+841,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,old:139+mutated,+Blackout,5,5,17,30,0.0009978223197048212,3.0009,10.1019,0.435,520,9162,Blackout+CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,3.082,replaced by wall-free candidate (oldvar)
+842,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,7,20,33,0.0006464045991235248,3.1895,9.1135,0.4322,4977,191947,Blackout+BlindCurtain+Charge+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,3.207,replaced by wall-free candidate (new)
+843,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new+nowall,walls removed,6,3,14,28,0.004308026911717876,2.3657,6.6721,0.3285,181110,711925,BlindCurtain+Charge,0,1,0,1,2.523,walls removed (same board)
+844,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,5,19,31,0.0023148148148148147,2.6355,8.6667,0.6071,12,3848,BlindCurtain+ShortCircuit+TwinLink,0,2,0,1,2.648,
+845,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,6,27,41,0.001864992447343115,2.7293,8.0071,0.431,141640,382338,Blackout+BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.773,replaced by wall-free candidate (new)
+846,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,5,8,18,39,0.0013103328123995304,2.8826,7.6667,0.4976,1056,76990,Blackout+BlindCurtain+ShortCircuit+TwinLink,0,2,0,1,2.898,
+847,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new+nowall,walls removed,6,5,20,31,0.0013531227152515813,2.8687,9.3963,0.5011,540,90675,BlindCurtain+Charge+ShortCircuit,0,2,0,1,3.023,walls removed (same board)
+848,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,new,,7,3,14,28,0.0007716049382716049,3.1126,9,0.6296,4,98,Blackout+BlindCurtain+FixedKnot+ShortCircuit,0,2,0,1,3.148,replaced by wall-free candidate (new)
+849,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,old:362+mutated,augmented: +FK,6,6,18,36,0.0005271619748204352,3.2781,12.0558,0.3844,25404,155453,BlindCurtain+Charge+FixedKnot,0,2,0,1,3.273,replaced by wall-free candidate (oldvar)
+850,17,Memory: BlindCurtain/Blackout + ShortCircuit/Charge,old:862+mutated,augmented: +FK+FK,6,6,20,40,4.553352559856034e-05,4.3417,13.1359,0.4378,5400,110512,BlindCurtain+Charge+FixedKnot,0,2,0,1,3.923,
+851,18,CrossBlast + TwinLink,new,,3,6,16,38,0.004936154886928024,2.3066,7.1921,0.3892,15668,252783,CrossBlast+ShortCircuit+TwinLink,0,3,0,1,2.313,replaced by wall-free candidate (new)
+852,18,CrossBlast + TwinLink,new+nowall,walls removed,4,4,9,19,0.003428252988438174,2.4649,6.2727,0.4246,44,850,FixedKnot+TwinLink,0,2,0,1,2.393,walls removed (same board)
+853,18,CrossBlast + TwinLink,new,,5,3,12,30,0.00353853845311615,2.4512,8.1307,0.3218,750,8071,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.473,replaced by wall-free candidate (new)
+854,18,CrossBlast + TwinLink,new,,4,6,18,34,0.005288150684442158,2.2767,7.2454,0.449,1296,59958,CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.263,
+855,18,CrossBlast + TwinLink,new,,5,4,15,32,0.0039825439453125,2.3998,8.2051,0.4462,78,4267,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,2.413,replaced by wall-free candidate (new)
+856,18,CrossBlast + TwinLink,new,,5,5,17,34,0.0029296875,2.5332,8.5,0.6149,6,948,CrossBlast+TwinLink,0,2,0,1,2.563,
+857,18,CrossBlast + TwinLink,new,,3,4,10,21,0.0019290123456790122,2.7147,7.875,0.3622,8,1314,Charge+CrossBlast+Hidden+Igniter+TwinLink,0,4,0,1,2.713,replaced by wall-free candidate (new)
+858,18,CrossBlast + TwinLink,new,,3,6,12,26,0.0014467592592592594,2.8396,8.8333,0.4537,6,237,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,2.863,replaced by wall-free candidate (new)
+859,18,CrossBlast + TwinLink,new+nowall,walls removed,6,4,20,37,0.0012750908397654668,2.8945,8.9788,0.3617,42984,99260,CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,3.013,walls removed (same board)
+860,18,CrossBlast + TwinLink,new,,4,4,13,23,0.004909157807498857,2.309,7.9478,0.4131,402,6016,Blackout+BlindCurtain+CrossBlast+FixedKnot+TwinLink,0,3,0,1,2.33,
+861,18,CrossBlast + TwinLink,new,,3,7,19,36,0.003631881610568216,2.4399,7.1825,0.3918,38784,213617,CrossBlast+ShortCircuit+TwinLink,0,3,0,1,2.455,
+862,18,CrossBlast + TwinLink,new,,6,5,19,47,0.0028494777578647753,2.5452,6.5647,0.3495,751059,232582,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,2.58,replaced by wall-free candidate (new)
+863,18,CrossBlast + TwinLink,new+nowall,walls removed,5,4,19,45,0.004188172088334378,2.378,6.3955,0.3616,49644,703764,Hidden+Igniter+TwinLink,0,2,0,1,2.705,walls removed (same board)
+864,18,CrossBlast + TwinLink,new+nowall,walls removed,5,5,21,40,0.0019868867895566533,2.7018,7.7688,0.4326,18102,583930,CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.83,walls removed (same board)
+865,18,CrossBlast + TwinLink,new,,4,8,22,42,0.0012455692997685186,2.9046,7.9333,0.5792,90,11293,CrossBlast+FixedKnot+TwinLink,0,3,0,1,2.955,replaced by wall-free candidate (new)
+866,18,CrossBlast + TwinLink,old:448+mutated+nowall,augmented: +WALL; walls removed,3,6,12,28,0.0006446786051097393,3.1907,8.748,0.44,127,3416,CrossBlast+FixedKnot,0,2,0,1,3.08,walls removed (same board)
+867,18,CrossBlast + TwinLink,new,,7,4,20,30,0.004541216563786008,2.3428,6.6875,0.5075,64,8645,CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.397,
+868,18,CrossBlast + TwinLink,new,,3,6,16,29,0.0025827331961591217,2.5879,9,0.5525,21,3086,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,2.584,replaced by wall-free candidate (new)
+869,18,CrossBlast + TwinLink,new,,3,7,17,31,0.0017929767875514405,2.7464,7.9483,0.4647,58,15463,BlindCurtain+CrossBlast+FixedKnot+TwinLink,0,3,0,1,2.772,
+870,18,CrossBlast + TwinLink,new,,4,4,12,31,0.0011187057599772805,2.9513,9.1355,0.3753,937,47041,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.959,
+871,18,CrossBlast + TwinLink,new+nowall,walls removed,7,5,24,41,0.0006983851548260634,3.1559,10.5394,0.4987,1066,656136,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,3.147,walls removed (same board)
+872,18,CrossBlast + TwinLink,new,,2,6,11,29,0.003889678751968703,2.4101,7.8107,0.3821,206,8043,Charge+CrossBlast+ShortCircuit+TwinLink,0,4,0,1,2.463,replaced by wall-free candidate (new)
+873,18,CrossBlast + TwinLink,new,,4,5,15,28,0.0029319945749504647,2.5328,7.3045,0.3851,312,4848,CrossBlast+FixedKnot+TwinLink,0,3,0,1,2.57,replaced by wall-free candidate (new)
+874,18,CrossBlast + TwinLink,new,,4,6,14,26,0.002490929288301612,2.6036,8.5893,0.4042,112,2677,Charge+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,5,0,1,2.678,replaced by wall-free candidate (new)
+875,18,CrossBlast + TwinLink,new+nowall,walls removed,4,4,12,25,0.0033707481352880657,2.4723,7.8247,0.3147,97,1395,FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.785,walls removed (same board)
+876,18,CrossBlast + TwinLink,new,,7,3,15,31,0.001388888888888889,2.8573,9.3333,0.5942,3,2200,BlindCurtain+CrossBlast+TwinLink,0,2,0,1,2.892,replaced by wall-free candidate (new)
+877,18,CrossBlast + TwinLink,new,,5,6,18,45,0.000999233751986572,3.0003,8.4429,0.4202,20060,353702,Blackout+BlindCurtain+CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.999,
+878,18,CrossBlast + TwinLink,new,,7,7,24,47,0.00079345703125,3.1005,7.3846,0.586,13,5912,CrossBlast+TwinLink,0,2,0,1,3.106,
+879,18,CrossBlast + TwinLink,new,,3,8,20,47,0.0005897035949319699,3.2294,10.2868,0.3731,418992,982125,Blackout+BlindCurtain+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,3.213,replaced by wall-free candidate (new)
+880,18,CrossBlast + TwinLink,new,,3,6,17,28,0.003134645061728395,2.5038,8.8125,0.5417,16,855,Blackout+BlindCurtain+CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,2.53,replaced by wall-free candidate (new)
+881,18,CrossBlast + TwinLink,new,,3,8,21,31,0.002335411040380658,2.6316,9.5051,0.5206,99,8808,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.68,replaced by wall-free candidate (new)
+882,18,CrossBlast + TwinLink,new,,3,7,17,37,0.001526020191333912,2.8164,9.0345,0.4873,87,20440,Charge+CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,5,0,1,2.83,replaced by wall-free candidate (new)
+883,18,CrossBlast + TwinLink,new+nowall,walls removed,5,6,24,36,0.0015633229420072801,2.806,8.9454,0.4872,1356,95813,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.98,walls removed (same board)
+884,18,CrossBlast + TwinLink,new,,5,4,19,35,0.0007450046094197254,3.1278,9.2543,0.4461,2442,513329,CrossBlast+ShortCircuit+TwinLink,0,3,0,1,3.13,
+885,18,CrossBlast + TwinLink,new+nowall,walls removed,5,6,18,47,0.0004188820822145998,3.3779,10.5844,0.352,26898,302496,Hidden+Igniter+TwinLink,0,2,0,1,3.28,walls removed (same board)
+886,18,CrossBlast + TwinLink,new,,4,5,13,31,0.002468532986111111,2.6076,9.3,0.5292,10,1150,BlindCurtain+CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,2.597,
+887,18,CrossBlast + TwinLink,new+nowall,walls removed,7,3,19,31,0.0023543188219807385,2.6281,7.2216,0.5015,185,42640,ShortCircuit+TwinLink,0,2,0,1,2.722,walls removed (same board)
+888,18,CrossBlast + TwinLink,new+nowall,walls removed,3,6,17,29,0.0025761910572118865,2.589,7.9848,0.4377,396,21860,Charge+FixedKnot+TwinLink,0,3,0,1,2.847,walls removed (same board)
+889,18,CrossBlast + TwinLink,new+nowall,walls removed,5,4,15,27,0.0015412004886831273,2.8121,7.7727,0.4545,44,11061,Charge+ShortCircuit+TwinLink,0,3,0,1,2.972,walls removed (same board)
+890,18,CrossBlast + TwinLink,new,,7,3,18,38,0.0008240152445816245,3.0841,8.7031,0.3751,18356,422137,CrossBlast+FixedKnot+TwinLink,0,3,0,1,3.097,
+891,18,CrossBlast + TwinLink,new,,4,6,20,35,0.0005836315620488386,3.2339,10.6002,0.3883,1158,122189,BlindCurtain+CrossBlast+TwinLink,0,2,0,1,3.222,
+892,18,CrossBlast + TwinLink,new+nowall,walls removed,4,5,16,29,0.00038396053026406034,3.4157,10.1607,0.395,56,40385,Charge+CrossBlast+TwinLink,0,3,0,1,3.347,replaced by wall-free board (walls removed from former stage 858)
+893,18,CrossBlast + TwinLink,new+nowall,walls removed,5,5,17,34,0.0013111554733870965,2.8823,8.4073,0.427,8888,371067,ShortCircuit+TwinLink,0,2,0,1,2.663,walls removed (same board)
+894,18,CrossBlast + TwinLink,new,,6,5,20,45,0.0015970017012072995,2.7967,8.9815,0.4962,1782,331499,CrossBlast+TwinLink,0,2,0,1,2.788,replaced by wall-free candidate (new)
+895,18,CrossBlast + TwinLink,new+nowall,walls removed,7,3,17,38,0.001245678770776126,2.9046,7.3997,0.3977,29823,92745,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,2.913,walls removed (same board)
+896,18,CrossBlast + TwinLink,new,,5,4,12,33,0.0009134133002722052,3.0393,10.12,0.3662,275,2274,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,3.038,
+897,18,CrossBlast + TwinLink,new,,3,6,14,27,0.0006430041152263374,3.1918,10,0.4819,8,13637,Charge+CrossBlast+ShortCircuit+TwinLink,0,4,0,1,3.163,replaced by wall-free candidate (new)
+898,18,CrossBlast + TwinLink,new+nowall,walls removed,4,6,23,37,0.0005485856168160076,3.2608,9.9658,0.4001,7934,384092,CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,3.288,replaced by wall-free board (walls removed from former stage 882)
+899,18,CrossBlast + TwinLink,old:435+mutated,augmented: +IGN,6,6,18,36,0.00038670707976347146,3.4126,9.5476,0.3467,9700,672808,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,3.413,
+900,18,CrossBlast + TwinLink,new,,7,5,26,39,2.5024321035284253e-05,4.6016,14.5,0.55,16,47618,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,4.063,replaced by wall-free candidate (new)
+901,19,Everything,new,,4,4,10,25,0.003640117741197987,2.4389,8.3387,0.4131,62,4004,CrossBlast+ShortCircuit+TwinLink,0,3,0,1,2.453,
+902,19,Everything,new,,7,3,18,36,0.0031838332020533273,2.497,6.5706,0.4415,8882,108821,BlindCurtain+CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,2.533,
+903,19,Everything,new,,4,6,19,37,0.002406437319601623,2.6186,8.8046,0.4609,2175,36341,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.613,
+904,19,Everything,new,,3,6,15,29,0.004086393973177666,2.3887,6.1799,0.3344,9127,24003,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.403,
+905,19,Everything,new,,7,5,21,39,0.0028723731578202912,2.5418,7.2176,0.4254,10927,376868,Charge+CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,5,0,1,2.553,
+906,19,Everything,new,,5,5,15,31,0.0021195274321630657,2.6738,7.9672,0.4097,548,7779,CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.703,
+907,19,Everything,new,,6,5,18,28,0.0014437451774691357,2.8405,8.625,0.488,48,3184,Charge+Hidden+Igniter+TwinLink,0,3,0,1,2.853,replaced by wall-free candidate (new)
+908,19,Everything,old:445+mutated+nowall,augmented: +WALL+SC+FK+FK; walls removed,6,6,20,29,0.001060956790123457,2.9743,10,0.5441,51,517,FixedKnot+ShortCircuit,0,2,0,1,3.003,walls removed (same board)
+909,19,Everything,old:112+mutated+nowall,augmented: +FK+WALL; walls removed,5,4,18,32,0.0011444091796875,2.9414,7.6667,0.5172,63,18397,Charge+CrossBlast+FixedKnot+ShortCircuit,0,4,0,1,3.153,walls removed (same board)
+910,19,Everything,new,,6,3,15,33,0.0032767762518551144,2.4846,6.5774,0.4553,1867,32543,BlindCurtain+CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.47,
+911,19,Everything,new+nowall,walls removed,5,5,17,32,0.0015130397696045184,2.8201,7.8326,0.3419,18107,137220,Charge+CrossBlast+FixedKnot,0,3,0,1,2.595,walls removed (same board)
+912,19,Everything,new,,6,4,20,34,0.0019801729536877777,2.7033,8.6548,0.46,1408,127506,Charge+CrossBlast+ShortCircuit,0,3,0,1,2.72,replaced by wall-free candidate (new)
+913,19,Everything,new,,5,4,17,34,0.001450691694094811,2.8384,7.5226,0.4003,1971,39632,CrossBlast+FixedKnot+TwinLink,0,3,0,1,2.845,
+914,19,Everything,new+nowall,walls removed,3,6,15,28,0.0009765625,3.0103,9.7778,0.5238,9,3026,BlindCurtain+Charge+ShortCircuit,0,2,0,1,2.97,walls removed (same board)
+915,19,Everything,old:592+mutated+nowall,charge+walls; walls removed,3,5,11,22,0.0008725766782407407,3.0592,9.1667,0.4773,12,1631,Charge+ShortCircuit,0,2,0,1,3.095,walls removed (same board)
+916,19,Everything,new+nowall,walls removed,6,4,18,36,0.00042599676910806206,3.3706,9.9079,0.3916,15468,90451,Charge+FixedKnot+Hidden+Igniter,0,3,0,1,3.22,walls removed (same board)
+917,19,Everything,new,,6,3,17,30,0.003046231995884774,2.5162,7.7127,0.4482,268,3480,BlindCurtain+CrossBlast+FixedKnot+TwinLink,0,3,0,1,2.537,
+918,19,Everything,old:804+mutated,augmented: +FK,5,5,17,32,0.0019825122974537037,2.7028,8.875,0.5647,32,2505,Charge+FixedKnot,0,2,0,1,2.724,
+919,19,Everything,new+nowall,walls removed,6,4,20,31,0.001314668799296982,2.8812,8.5284,0.4085,846,99674,Charge+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.912,walls removed (same board)
+920,19,Everything,new,,5,4,15,38,0.0008026597041534945,3.0955,9.8105,0.3253,13622,23584,Blackout+BlindCurtain+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,3.099,
+921,19,Everything,new,,5,4,16,34,0.0005321528849451302,3.274,8.2766,0.5422,47,98661,Charge+CrossBlast+Hidden+Igniter+ShortCircuit,0,4,0,1,3.287,
+922,19,Everything,new,,5,5,12,34,0.0024390914227815567,2.6128,8.0112,0.4605,2055,27299,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,2.603,
+923,19,Everything,new+nowall,walls removed,4,6,22,30,0.002701789426868998,2.5683,7.8202,0.5599,89,11450,Charge+FixedKnot+ShortCircuit,0,3,0,1,2.71,walls removed (same board)
+924,19,Everything,new,,5,7,19,34,0.0015501686849110031,2.8096,8.4128,0.4048,56781,513164,BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.818,replaced by wall-free candidate (new)
+925,19,Everything,new,,5,4,15,31,0.00120421224214675,2.9193,9.7812,0.4077,672,48800,Charge+ShortCircuit+TwinLink,0,3,0,1,2.925,replaced by wall-free candidate (new)
+926,19,Everything,new,,7,3,17,27,0.0009765625,3.0103,10,0.5577,8,3205,Charge+Hidden+Igniter+ShortCircuit,0,3,0,1,3.032,
+927,19,Everything,new,,6,5,19,34,0.0007357097491295176,3.1333,11.8549,0.3909,2254,40887,BlindCurtain+CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,3.139,
+928,19,Everything,new,,6,4,20,35,0.0005751129010294701,3.2402,7.7067,0.4071,7119,298626,Blackout+BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,3.246,
+929,19,Everything,old:321+mutated+nowall,augmented: +WALL+SC+FK; walls removed,6,6,18,40,0.00046504285690275317,3.3325,12.6423,0.4441,33600,7211,FixedKnot+ShortCircuit,0,2,0,1,3.353,walls removed (same board)
+930,19,Everything,new,,5,3,13,20,0.0021219135802469135,2.6733,7.125,0.4722,8,214,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,2.67,
+931,19,Everything,new,,4,5,16,30,0.0014779265581936671,2.8303,5.8039,0.3818,3662,92241,Charge+CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,5,0,1,2.82,replaced by wall-free candidate (new)
+932,19,Everything,new+nowall,walls removed,6,4,14,32,0.0008538024043335035,3.0686,9.3335,0.4337,5256,118371,Charge+ShortCircuit,0,2,0,1,2.97,walls removed (same board)
+933,19,Everything,new,,5,5,20,33,0.0007414641203703703,3.1299,8.75,0.5714,8,1285,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,3.12,replaced by wall-free candidate (new)
+934,19,Everything,old:800+mutated+nowall,augmented: +IGN+FK+WALL+FK+SC; walls removed,4,7,15,31,0.0008215434981368756,3.0854,9.9797,0.4105,936,4905,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,3.27,walls removed (same board)
+935,19,Everything,old:403+mutated,augmented: +FK,5,5,13,26,0.00038580246913580245,3.4136,11,0.5769,4,1234,Charge+FixedKnot+ShortCircuit,0,3,0,1,3.42,
+936,19,Everything,old:866+mutated+nowall,augmented: +IGN+FK+WALL+FK; walls removed,4,8,23,44,0.002616319930057487,2.5823,7.0794,0.4127,1000000+,4177,FixedKnot+Hidden+Igniter,0,2,0,1,2.737,walls removed (same board)
+937,19,Everything,new+nowall,walls removed,5,5,17,34,0.0017350547374414041,2.7607,9.7382,0.3593,77415,934228,Charge+CrossBlast+FixedKnot+ShortCircuit,0,4,0,1,2.862,walls removed (same board)
+938,19,Everything,new,,6,3,16,34,0.0010236720132269577,2.9898,8.732,0.3448,2840,23822,Blackout+BlindCurtain+CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,2.987,
+939,19,Everything,new,,7,3,14,24,0.0007716049382716049,3.1126,10,0.5238,4,1561,Charge+CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,6,0,1,3.112,replaced by wall-free candidate (new)
+940,19,Everything,old:839+mutated,augmented: +FK+SC,6,6,20,29,0.0005941090106310015,3.2261,10.0714,0.5204,28,9265,Charge+FixedKnot+ShortCircuit,0,3,0,1,3.237,
+941,19,Everything,old:914+mutated+nowall,augmented: +IGN+FK+WALL+FK; walls removed,6,6,18,40,0.0008991407464971966,3.0462,9.1823,0.3988,268263,24227,FixedKnot+Hidden+Igniter,0,2,0,1,3.362,walls removed (same board)
+942,19,Everything,new+nowall,walls removed,5,4,15,31,0.00033445196286267543,3.4757,10.1543,0.3516,4394,107392,Charge+FixedKnot+TwinLink,0,3,0,1,3.487,replaced by wall-free board (walls removed from former stage 939)
+943,19,Everything,old:22+mutated+nowall,augmented: +FK+WALL; walls removed,4,3,10,21,0.003368180584133516,2.4726,7.3427,0.3476,143,2272,Charge+FixedKnot,0,2,0,1,2.803,walls removed (same board)
+944,19,Everything,new,,5,5,20,36,0.0012369231091555496,2.9077,8.5467,0.387,11918,204775,BlindCurtain+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,2.928,
+945,19,Everything,new+nowall,walls removed,6,4,17,34,0.0016106172353137762,2.793,7.2667,0.3473,172890,682381,Charge+Hidden+Igniter+ShortCircuit,0,3,0,1,3.053,walls removed (same board)
+946,19,Everything,old:786+mutated,augmented: +FK+SC+IGN,4,7,20,30,0.0006781684027777776,3.1687,10.6,0.5517,10,1683,Charge+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,3.178,
+947,19,Everything,old:31+mutated+nowall,augmented: +FK+SC+FK+FK+WALL; walls removed,4,4,15,28,0.0006101445769449683,3.2146,9.0574,0.4663,244,4493,Charge+FixedKnot+ShortCircuit,0,3,0,1,3.303,walls removed (same board)
+948,19,Everything,old:283+mutated,augmented: +FK+SC+FK,6,5,16,28,0.0003818493938867575,3.4181,10.7282,0.4177,1100,16230,Charge+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,3.428,
+949,19,Everything,new+nowall,walls removed,3,8,20,35,0.0005726755401234568,3.2421,9.8,0.5533,20,11544,Charge+CrossBlast+TwinLink,0,3,0,1,3.553,walls removed (same board)
+950,19,Everything,new,,5,5,20,29,1.808449074074074e-05,4.7427,12.6667,0.5222,6,2298,Charge+FixedKnot+ShortCircuit,0,3,0,1,4.203,
+951,20,Grand finale,new,,5,3,10,25,0.002483603395061728,2.6049,8.5,0.396,6,694,CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,2.593,
+952,20,Grand finale,old:887+mutated+nowall,augmented: +FK+FK+FK+FK+FK+WALL; walls removed,3,4,10,30,0.0013638061642047199,2.8652,9.3764,0.366,263,7040,Charge+FixedKnot,0,2,0,1,2.673,walls removed (same board)
+953,20,Grand finale,new,,4,6,15,37,0.001729963258175782,2.762,6.5984,0.2903,136900,173295,CrossBlast+FixedKnot+TwinLink,0,3,0,1,2.753,
+954,20,Grand finale,old:831+mutated,augmented: +FK,3,5,9,22,0.0028154035654578188,2.5505,6.8081,0.4009,198,4105,Charge+FixedKnot,0,2,0,1,2.543,
+955,20,Grand finale,new,,3,8,17,34,0.0021621327341338733,2.6651,9.3095,0.5072,378,10215,CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,2.693,
+956,20,Grand finale,new,,5,4,17,28,0.0013666070101737541,2.8644,8.9167,0.5157,108,6816,CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.843,
+957,20,Grand finale,new+nowall,walls removed,5,4,16,39,0.0006579987459176763,3.1818,8.1341,0.3187,32768,135109,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,5,0,1,2.993,walls removed (same board)
+958,20,Grand finale,new,,6,5,18,34,0.0007323865537290221,3.1353,9.7391,0.506,276,24418,Charge+Hidden+Igniter+ShortCircuit,0,3,0,1,3.143,replaced by wall-free candidate (new)
+959,20,Grand finale,new,,3,7,14,33,0.0005221896701388889,3.2822,10.5676,0.483,74,2390,Blackout+BlindCurtain+CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,3.293,
+960,20,Grand finale,new+nowall,walls removed,3,8,22,34,0.002890028608980085,2.5391,8.4153,0.4193,15431,88901,Charge+FixedKnot+Hidden+Igniter,0,3,0,1,2.61,replaced by wall-free board (walls removed from former stage 933)
+961,20,Grand finale,new+nowall,walls removed,3,7,18,44,0.001653092178870644,2.7817,6.3648,0.3775,557514,428262,CrossBlast+FixedKnot+TwinLink,0,3,0,1,2.735,walls removed (same board)
+962,20,Grand finale,new,,6,4,18,45,0.0013509342500011906,2.8694,11.4934,0.49,1216,96301,CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,2.86,
+963,20,Grand finale,new,,7,3,16,39,0.001080604138088706,2.9663,9.3333,0.5253,288,1927,Charge+CrossBlast+FixedKnot+ShortCircuit,0,4,0,1,2.985,replaced by wall-free candidate (new)
+964,20,Grand finale,new,,6,3,15,24,0.0008785043724279835,3.0563,8.875,0.5057,8,4120,BlindCurtain+Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,3.11,
+965,20,Grand finale,new,,7,4,21,34,0.0006178867669753086,3.2091,9.8846,0.5397,26,1072,BlindCurtain+FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,3.235,
+966,20,Grand finale,old:88+mutated+nowall,augmented: +IGN+WALL; walls removed,4,4,14,35,0.0005633699114485096,3.2492,10.2593,0.4946,486,23936,Hidden+Igniter+ShortCircuit,0,2,0,1,3.36,walls removed (same board)
+967,20,Grand finale,new+nowall,walls removed,5,6,20,36,0.0016480773029395653,2.783,9.282,0.4202,40872,510450,ShortCircuit+TwinLink,0,2,0,1,2.677,walls removed (same board)
+968,20,Grand finale,new,,5,4,15,27,0.001328965873003115,2.8765,7.3159,0.3324,364,34829,CrossBlast+Hidden+Igniter+TwinLink,0,3,0,1,2.864,
+969,20,Grand finale,new,,6,3,12,29,0.00092141596650663,3.0355,9,0.3889,36,2392,BlindCurtain+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,3.052,
+970,20,Grand finale,new,,6,3,15,35,0.000603794419335182,3.2191,8.1963,0.3365,129316,81605,BlindCurtain+FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,3.239,
+971,20,Grand finale,old:239+mutated+nowall,augmented: +FK+SC+FK+FK+WALL; walls removed,4,4,14,25,0.0004822809945844766,3.3167,9.9327,0.3802,104,2585,Charge+FixedKnot+ShortCircuit,0,3,0,1,3.427,walls removed (same board)
+972,20,Grand finale,old:541+mutated+nowall,augmented: +FK+WALL+SC+FK; walls removed,6,6,18,24,0.00390625,2.4082,7.5,0.5435,8,57,FixedKnot+ShortCircuit,0,2,0,1,2.743,walls removed (same board)
+973,20,Grand finale,new+nowall,walls removed,6,4,20,38,0.0009778142974718627,3.0097,9.6863,0.4333,6780,494218,CrossBlast+FixedKnot+ShortCircuit,0,3,0,1,2.85,walls removed (same board)
+974,20,Grand finale,new,,7,4,18,37,0.001103153935185185,2.9574,9.3846,0.5938,26,432,CrossBlast+FixedKnot+Hidden+Igniter,0,3,0,1,2.958,
+975,20,Grand finale,new,,7,3,18,40,0.0009055812987910725,3.0431,9.4677,0.3416,81522,330096,BlindCurtain+CrossBlast+Hidden+Igniter+ShortCircuit+TwinLink,0,4,0,1,3.065,
+976,20,Grand finale,old:372+mutated,augmented: +FK+FK,3,6,12,30,0.0006872106481481482,3.1629,8.6154,0.5225,13,2714,Charge+CrossBlast+FixedKnot,0,3,0,1,3.172,replaced by wall-free candidate (oldvar)
+977,20,Grand finale,new,,7,3,15,38,0.0005500654580770806,3.2596,10.545,0.3022,12988,109068,Blackout+BlindCurtain+CrossBlast+FixedKnot+ShortCircuit+TwinLink,0,4,0,1,3.279,
+978,20,Grand finale,new,,5,5,18,36,0.00040644892939814813,3.391,11.3478,0.4577,46,5113,Blackout+BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,3.386,
+979,20,Grand finale,new,,3,8,14,29,0.0003255208333333333,3.4874,11,0.5128,3,3296,Charge+CrossBlast+Hidden+Igniter,0,3,0,1,3.493,
+980,20,Grand finale,new,,7,4,20,35,0.0017269118823141716,2.7627,8.8327,0.5505,281,41578,FixedKnot+ShortCircuit+TwinLink,0,3,0,1,2.81,
+981,20,Grand finale,new+nowall,walls removed,4,6,22,32,0.0010024752309456446,2.9989,9.3462,0.4423,234,13998,CrossBlast+Hidden+Igniter+ShortCircuit,0,3,0,1,2.96,walls removed (same board)
+982,20,Grand finale,new,,7,3,20,39,0.0007626873971759848,3.1177,8.9002,0.442,2165,405489,Hidden+Igniter+ShortCircuit+TwinLink,0,3,0,1,3.11,
+983,20,Grand finale,old:248+mutated+nowall,augmented: +IGN+FK+WALL+FK+WALL+WALL+FK; walls removed,6,6,18,36,0.0006694222079078832,3.1743,8.5261,0.4204,7965,5589,FixedKnot+Hidden+Igniter,0,2,0,1,3.26,walls removed (same board)
+984,20,Grand finale,new,,3,7,16,33,0.00039026777549154096,3.4086,11.1538,0.5192,26,1269,Blackout+BlindCurtain+FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,3.41,
+985,20,Grand finale,old:784+mutated,augmented: +FK+SC,6,6,20,28,0.00028935185185185184,3.5386,11.5,0.537,8,16204,Charge+FixedKnot+ShortCircuit,0,3,0,1,3.56,
+986,20,Grand finale,new,,3,5,12,22,0.0013020833333333333,2.8854,9,0.4706,1,232,FixedKnot+Hidden+Igniter+TwinLink,0,3,0,1,2.877,
+987,20,Grand finale,new,,4,5,11,24,0.0009765625,3.0103,10,0.4211,2,119,Charge+CrossBlast+FixedKnot+TwinLink,0,4,0,1,3.002,replaced by wall-free candidate (new)
+988,20,Grand finale,new,,6,3,14,27,0.000732421875,3.1352,10.5,0.54,2,158,BlindCurtain+Charge+FixedKnot+TwinLink,0,3,0,1,3.127,replaced by wall-free candidate (new)
+989,20,Grand finale,old:241+mutated+nowall,augmented: +WALL+SC+FK; walls removed,5,5,21,34,0.0006056076590137766,3.2178,10.4786,0.5203,468,3000,FixedKnot+ShortCircuit,0,2,0,1,3.252,walls removed (same board)
+990,20,Grand finale,old:885+mutated,augmented: +FK+SC,6,6,18,27,0.00043402777777777775,3.3625,9.5,0.6111,2,2009,Charge+FixedKnot+ShortCircuit,0,3,0,1,3.377,
+991,20,Grand finale,new,,4,7,15,35,0.0003213160031816796,3.4931,10.9048,0.3936,252,14058,BlindCurtain+FixedKnot+ShortCircuit+TwinLink,0,3,0,1,3.502,
+992,20,Grand finale,old:736+mutated,augmented: +FK+SC,5,5,19,33,0.00023127724485241162,3.6359,10.4878,0.3706,40112,413095,Charge+FixedKnot+ShortCircuit,0,3,0,1,3.627,
+993,20,Grand finale,new,,5,6,20,35,0.0012885199652777778,2.8899,10.3393,0.5731,112,125300,Charge+ShortCircuit+TwinLink,0,3,0,1,2.943,replaced by wall-free candidate (new)
+994,20,Grand finale,new,,5,6,22,37,0.0008993720551419433,3.0461,8.0844,0.3868,15971,495157,Blackout+BlindCurtain+CrossBlast+FixedKnot+Hidden+Igniter+TwinLink,0,4,0,1,3.068,
+995,20,Grand finale,new+nowall,walls removed,3,8,19,27,0.0003456147119341564,3.4614,9.8462,0.5185,26,2752,Charge+FixedKnot+ShortCircuit,0,3,0,1,3.193,walls removed (same board)
+996,20,Grand finale,new,,5,5,21,31,0.0004601498199588477,3.3371,9.187,0.4876,230,29094,Blackout+BlindCurtain+Charge+FixedKnot+ShortCircuit,0,3,0,1,3.318,replaced by wall-free candidate (new)
+997,20,Grand finale,old:78+mutated,augmented: +IGN+FK,4,4,12,27,0.0003605734882258802,3.443,9.7391,0.4741,46,3529,FixedKnot+Hidden+Igniter+ShortCircuit,0,3,0,1,3.443,
+998,20,Grand finale,old:909+mutated,augmented: +FK,6,5,17,31,0.0002553178449717078,3.5929,13,0.4857,21,7924,Charge+CrossBlast+FixedKnot,0,3,0,1,3.568,replaced by wall-free candidate (oldvar)
+999,20,Grand finale,old:304+mutated,augmented: +FK+SC+IGN,6,6,20,36,0.00020948891310049658,3.6788,12.3612,0.4208,4336,61704,Charge+FixedKnot+Hidden+Igniter+ShortCircuit,0,4,0,1,3.693,
+1000,20,Grand finale,new+nowall,"finale: lightning-bolt 7x8, all mechanics; wall removed",7,8,29,45,1.7163521304869683e-06,5.7654,16.25,0.4936,12,18729,Blackout+BlindCurtain+Charge+CrossBlast+FixedKnot+Hidden+Igniter+ShortCircuit+TwinLink,0,6,0,1,4.343,walls removed (same board)

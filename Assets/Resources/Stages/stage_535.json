@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 535,
   "width": 4,
-  "height": 4,
+  "height": 5,
   "startPoint": {
-    "x": 0,
-    "y": 3
+    "x": 2,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -14,6 +14,14 @@
   },
   "cells": [
     {
+      "x": 0,
+      "y": 0,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 743,
+      "color": "#a78bfa"
+    },
+    {
       "x": 1,
       "y": 0,
       "count": 2,
@@ -22,54 +30,92 @@
     {
       "x": 2,
       "y": 0,
-      "count": 4,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 1,
-      "y": 2,
       "count": 1,
       "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 1,
-      "type": "BlindCurtain"
     },
     {
       "x": 0,
-      "y": 3,
-      "count": 2,
+      "y": 1,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 3,
+      "y": 1,
       "count": 4,
       "type": "Normal"
     },
     {
       "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 3,
+      "type": "Igniter",
+      "targetID": "G22"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 743,
+      "color": "#a78bfa"
+    },
+    {
+      "x": 0,
       "y": 3,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G22"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 11,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 2,
+      "y": 4,
       "count": 2,
       "type": "Normal"
     }

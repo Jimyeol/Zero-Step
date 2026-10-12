@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
+  "stageID": 370,
+  "width": 6,
   "height": 6,
   "startPoint": {
-    "x": 0,
-    "y": 2
+    "x": 5,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -14,84 +14,100 @@
   },
   "cells": [
     {
+      "x": 0,
+      "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
       "x": 1,
       "y": 0,
       "count": 2,
-      "type": "Hidden",
-      "groupID": "G27"
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 0,
       "count": 1,
+      "type": "TwinLink",
+      "linkID": 636,
+      "color": "#a78bfa"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 4,
       "y": 1,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G84"
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 971,
+      "color": "#a78bfa"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 971,
+      "color": "#a78bfa"
     },
     {
-      "x": 1,
+      "x": 4,
       "y": 2,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G84"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 4,
       "y": 3,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 4,
+      "x": 5,
+      "y": 3,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 3,
       "y": 4,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G27"
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 770,
+      "color": "#34d399"
     },
     {
-      "x": 1,
-      "y": 5,
+      "x": 4,
+      "y": 4,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 5,
+      "x": 5,
+      "y": 4,
       "count": 2,
       "type": "Normal"
     },
@@ -99,7 +115,24 @@
       "x": 3,
       "y": 5,
       "count": 1,
-      "type": "Normal"
+      "type": "TwinLink",
+      "linkID": 636,
+      "color": "#a78bfa"
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 770,
+      "color": "#34d399"
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
     }
   ]
 }

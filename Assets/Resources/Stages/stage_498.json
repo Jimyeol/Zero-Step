@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 4,
+  "stageID": 498,
+  "width": 4,
+  "height": 5,
   "startPoint": {
-    "x": 4,
-    "y": 0
+    "x": 2,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -14,46 +14,63 @@
   },
   "cells": [
     {
-      "x": 4,
+      "x": 0,
       "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 3,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
+      "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "y": 1,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 987,
+      "color": "#34d399"
     },
     {
       "x": 1,
-      "y": 2,
-      "count": 1,
+      "y": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 2,
+      "y": 1,
       "count": 2,
       "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 2,
+      "type": "Charge"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 987,
+      "color": "#34d399"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Up"
     },
     {
       "x": 3,
@@ -62,9 +79,15 @@
       "type": "Normal"
     },
     {
+      "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
       "x": 1,
       "y": 3,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -78,6 +101,19 @@
       "y": 3,
       "count": 1,
       "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
     }
   ]
 }

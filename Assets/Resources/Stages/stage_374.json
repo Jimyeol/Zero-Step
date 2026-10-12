@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 2,
+  "stageID": 374,
+  "width": 4,
+  "height": 5,
   "startPoint": {
-    "x": 0,
+    "x": 2,
     "y": 1
   },
   "config": {
@@ -14,21 +14,21 @@
   },
   "cells": [
     {
-      "x": 3,
+      "x": 1,
       "y": 0,
-      "count": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 4,
+      "x": 2,
       "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -40,19 +40,77 @@
     {
       "x": 2,
       "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G79"
+    },
+    {
+      "x": 0,
+      "y": 3,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 4,
-      "y": 1,
-      "count": 1,
+      "x": 1,
+      "y": 3,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G61"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G61"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 4,
+      "type": "Hidden",
+      "groupID": "G79"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 4,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "count": 2,
       "type": "Normal"
     }
   ]

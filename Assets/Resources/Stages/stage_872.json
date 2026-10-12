@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 5,
+  "stageID": 872,
+  "width": 2,
+  "height": 6,
   "startPoint": {
-    "x": 0,
-    "y": 4
+    "x": 1,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -14,108 +14,80 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "C"
-    },
-    {
       "x": 1,
       "y": 0,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "C"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "C"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "C"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "C"
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "C"
+      "count": 2,
+      "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 1,
       "y": 1,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "B"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "C"
+      "count": 4,
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "C"
+      "count": 3,
+      "type": "ShortCircuit",
+      "direction": "Down"
     },
     {
-      "x": 2,
+      "x": 1,
       "y": 2,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "B"
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#34d399"
+      }
     },
     {
-      "x": 3,
-      "y": 2,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "B"
+      "x": 0,
+      "y": 3,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 483,
+      "color": "#00FBFF"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "A"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "A"
+      "count": 3,
+      "type": "Charge"
     },
     {
       "x": 0,
       "y": 4,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 4,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "A"
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 483,
+      "color": "#00FBFF"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 483,
+      "color": "#00FBFF"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
     }
   ]
 }

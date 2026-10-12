@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 4,
+  "stageID": 568,
+  "width": 6,
+  "height": 5,
   "startPoint": {
-    "x": 2,
+    "x": 1,
     "y": 0
   },
   "config": {
@@ -14,80 +14,104 @@
   },
   "cells": [
     {
-      "x": 0,
+      "x": 1,
       "y": 0,
+      "count": 1,
+      "type": "Charge"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
       "x": 1,
-      "y": 0,
-      "count": 5,
+      "y": 2,
+      "count": 1,
       "type": "Igniter",
-      "targetID": "G93"
+      "targetID": "G26"
     },
     {
       "x": 2,
-      "y": 0,
-      "count": 5,
+      "y": 2,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 3,
+      "x": 3,
+      "y": 2,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 4,
+      "x": 4,
+      "y": 2,
+      "count": 1,
       "type": "Hidden",
-      "groupID": "G57"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 3,
-      "type": "Igniter",
-      "targetID": "G57"
+      "groupID": "G26"
     },
     {
       "x": 2,
-      "y": 2,
-      "count": 3,
+      "y": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 3,
-      "count": 5,
-      "type": "Hidden",
-      "groupID": "G93"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 5,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
+      "x": 3,
       "y": 3,
       "count": 2,
-      "type": "BlindCurtain"
+      "type": "Hidden",
+      "groupID": "G79"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 4,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G79"
     }
   ]
 }

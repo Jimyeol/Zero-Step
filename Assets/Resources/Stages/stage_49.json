@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 49,
   "width": 4,
-  "height": 4,
+  "height": 6,
   "startPoint": {
     "x": 1,
-    "y": 0
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -14,39 +14,15 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 7,
-      "type": "Normal"
-    },
-    {
       "x": 2,
       "y": 0,
-      "count": 7,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -58,13 +34,13 @@
     {
       "x": 3,
       "y": 1,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -76,13 +52,13 @@
     {
       "x": 2,
       "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -92,20 +68,44 @@
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 3,
       "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 3,
+      "y": 4,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 3,
-      "y": 3,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
       "count": 1,
       "type": "Normal"
     }

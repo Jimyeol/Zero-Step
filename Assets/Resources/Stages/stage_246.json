@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 6,
+  "stageID": 246,
+  "width": 4,
+  "height": 4,
   "startPoint": {
-    "x": 2,
-    "y": 5
+    "x": 1,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -14,83 +14,73 @@
   },
   "cells": [
     {
+      "x": 1,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
       "x": 0,
-      "y": 0,
+      "y": 1,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#38bdf8"
-      }
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
+      "type": "TwinLink",
+      "linkID": 804,
+      "color": "#a78bfa"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 2,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
       "count": 2,
-      "type": "CrossBlast",
+      "type": "FixedKnot",
+      "targetOrder": 2,
       "properties": {
-        "beamColor": "#38bdf8"
+        "isAbsolute": true
       }
     },
     {
       "x": 3,
       "y": 1,
-      "count": 2,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#f59e0b"
-      }
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 804,
+      "color": "#a78bfa"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 3,
+      "type": "Hidden",
+      "groupID": "G90"
     },
     {
       "x": 2,
+      "y": 2,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G90"
+    },
+    {
+      "x": 3,
       "y": 2,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 1,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 5,
       "count": 1,
       "type": "Normal"
     }

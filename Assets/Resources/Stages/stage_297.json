@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
+  "stageID": 297,
+  "width": 5,
   "height": 6,
   "startPoint": {
-    "x": 1,
-    "y": 1
+    "x": 0,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -16,7 +16,7 @@
     {
       "x": 0,
       "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -26,109 +26,92 @@
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
       "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 5,
+      "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 5,
+      "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G99"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 5,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Up"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G99"
+    },
+    {
+      "x": 0,
       "y": 5,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 4,
+      "x": 1,
       "y": 5,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "BlindCurtain"
     },
     {
-      "x": 5,
+      "x": 2,
       "y": 5,
       "count": 1,
       "type": "Normal"

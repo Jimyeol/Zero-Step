@@ -1,6 +1,6 @@
 {
-  "stageID": 0,
-  "width": 6,
+  "stageID": 371,
+  "width": 3,
   "height": 6,
   "startPoint": {
     "x": 1,
@@ -14,39 +14,46 @@
   },
   "cells": [
     {
-      "x": 3,
+      "x": 0,
+      "y": 0,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G24"
+    },
+    {
+      "x": 1,
       "y": 0,
       "count": 1,
+      "type": "Hidden",
+      "groupID": "G24"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 12,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 4,
-      "y": 0,
-      "count": 3,
-      "type": "Normal"
+      "x": 1,
+      "y": 1,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G24"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -58,7 +65,7 @@
     {
       "x": 1,
       "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -68,26 +75,27 @@
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 0,
       "y": 3,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 4,
-      "count": 1,
+      "x": 1,
+      "y": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 5,
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G24"
+    },
+    {
+      "x": 1,
+      "y": 4,
       "count": 1,
       "type": "Normal"
     },

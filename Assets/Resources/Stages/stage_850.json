@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 10,
-  "height": 3,
+  "stageID": 850,
+  "width": 6,
+  "height": 6,
   "startPoint": {
-    "x": 0,
+    "x": 4,
     "y": 1
   },
   "config": {
@@ -14,213 +14,131 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 3,
       "y": 0,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "BlindCurtain"
     },
     {
       "x": 4,
       "y": 0,
-      "count": 2,
-      "type": "Normal"
+      "count": 3,
+      "type": "BlindCurtain"
     },
     {
       "x": 5,
       "y": 0,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 6,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 7,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 8,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 9,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
+      "type": "FixedKnot",
+      "targetOrder": 34,
       "properties": {
-        "beamColor": "#00FFFF"
-      }
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
+        "isAbsolute": true
       }
     },
     {
       "x": 4,
       "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 5,
       "y": 1,
       "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
-    },
-    {
-      "x": 6,
-      "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
-    },
-    {
-      "x": 7,
-      "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
-    },
-    {
-      "x": 8,
-      "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
-    },
-    {
-      "x": 9,
-      "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "BlindCurtain"
     },
     {
       "x": 4,
       "y": 2,
-      "count": 2,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 5,
       "y": 2,
+      "count": 3,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 3,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 1,
+      "type": "Charge"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 3,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 1,
+      "y": 4,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 6,
-      "y": 2,
+      "x": 0,
+      "y": 5,
       "count": 2,
-      "type": "Normal"
+      "type": "BlindCurtain"
     },
     {
-      "x": 7,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
+      "x": 1,
+      "y": 5,
+      "count": 3,
+      "type": "FixedKnot",
+      "targetOrder": 19,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
-      "x": 8,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 9,
-      "y": 2,
-      "count": 2,
+      "x": 2,
+      "y": 5,
+      "count": 1,
       "type": "Normal"
     }
   ]

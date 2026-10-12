@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 6,
+  "stageID": 803,
+  "width": 5,
   "height": 6,
   "startPoint": {
-    "x": 5,
+    "x": 4,
     "y": 0
   },
   "config": {
@@ -17,10 +17,29 @@
       "x": 0,
       "y": 0,
       "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 5,
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 2,
+      "type": "ShortCircuit",
+      "direction": "Left"
+    },
+    {
+      "x": 4,
       "y": 0,
       "count": 1,
       "type": "Normal"
@@ -28,103 +47,103 @@
     {
       "x": 0,
       "y": 1,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 1,
       "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 2,
+      "y": 3,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 4,
       "y": 3,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 3,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 4,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 4,
       "count": 2,
-      "type": "Normal"
+      "type": "BlindCurtain"
     },
     {
       "x": 4,
       "y": 4,
-      "count": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 5,
-      "y": 4,
+      "x": 0,
+      "y": 5,
       "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 5,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {

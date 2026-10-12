@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
+  "stageID": 849,
+  "width": 6,
   "height": 6,
   "startPoint": {
-    "x": 2,
-    "y": 2
+    "x": 3,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -14,63 +14,49 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 2,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 3,
       "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 2,
+      "x": 4,
+      "y": 0,
+      "count": 4,
       "type": "BlindCurtain"
     },
     {
-      "x": 1,
-      "y": 1,
-      "count": 2,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 1,
-      "y": 2,
+      "x": 5,
+      "y": 0,
       "count": 3,
+      "type": "FixedKnot",
+      "targetOrder": 29,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 2,
       "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 1,
+      "type": "BlindCurtain"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -80,39 +66,57 @@
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 3,
+      "x": 4,
+      "y": 2,
       "count": 1,
       "type": "BlindCurtain"
     },
     {
-      "x": 2,
+      "x": 1,
       "y": 3,
       "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 3,
       "count": 1,
-      "type": "Normal"
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 1,
+      "type": "Charge"
     },
     {
       "x": 1,
       "y": 4,
-      "count": 1,
-      "type": "BlindCurtain"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
       "count": 3,
       "type": "BlindCurtain"
     },
     {
-      "x": 3,
-      "y": 4,
-      "count": 2,
+      "x": 1,
+      "y": 5,
+      "count": 4,
       "type": "Normal"
     },
     {
@@ -120,12 +124,6 @@
       "y": 5,
       "count": 2,
       "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 5,
-      "count": 2,
-      "type": "BlindCurtain"
     }
   ]
 }

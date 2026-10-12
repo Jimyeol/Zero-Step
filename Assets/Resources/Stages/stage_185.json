@@ -1,6 +1,6 @@
 {
-  "stageID": 0,
-  "width": 5,
+  "stageID": 185,
+  "width": 4,
   "height": 3,
   "startPoint": {
     "x": 1,
@@ -17,8 +17,9 @@
       "x": 0,
       "y": 0,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G42"
+      "type": "TwinLink",
+      "linkID": 413,
+      "color": "#00FBFF"
     },
     {
       "x": 1,
@@ -29,65 +30,53 @@
     {
       "x": 2,
       "y": 0,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G38"
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 3,
-      "type": "Hidden",
-      "groupID": "G42"
+      "count": 5,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
       "count": 3,
-      "type": "Hidden",
-      "groupID": "G50"
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 1,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G39"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G50"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G39"
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
       "count": 2,
-      "type": "Igniter",
-      "targetID": "G38"
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G16"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G16"
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 413,
+      "color": "#00FBFF"
     }
   ]
 }

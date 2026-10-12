@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 4,
+  "stageID": 527,
+  "width": 7,
+  "height": 5,
   "startPoint": {
-    "x": 0,
-    "y": 3
+    "x": 4,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -22,81 +22,142 @@
     {
       "x": 1,
       "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 3,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Down"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 2,
-      "type": "ShortCircuit",
-      "direction": "Up"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 3,
-      "type": "BlindCurtain"
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 123,
+      "color": "#f59e0b"
     },
     {
       "x": 0,
-      "y": 3,
+      "y": 1,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G40"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G40"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G40"
+    },
+    {
+      "x": 3,
+      "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 3,
+      "x": 4,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
       "count": 2,
+      "type": "Hidden",
+      "groupID": "G40"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 180,
+      "color": "#38bdf8"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 180,
+      "color": "#38bdf8"
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 3,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 3,
       "count": 3,
+      "type": "TwinLink",
+      "linkID": 123,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G40"
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 4,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 123,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 5,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 4,
+      "count": 2,
       "type": "Normal"
     }
   ]

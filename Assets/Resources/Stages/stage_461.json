@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 5,
+  "stageID": 461,
+  "width": 4,
+  "height": 4,
   "startPoint": {
     "x": 3,
-    "y": 4
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -14,12 +14,17 @@
   },
   "cells": [
     {
-      "x": 1,
+      "x": 3,
       "y": 0,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 544,
-      "color": "#38bdf8"
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Up"
     },
     {
       "x": 1,
@@ -30,61 +35,46 @@
     {
       "x": 2,
       "y": 1,
+      "count": 4,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
       "count": 2,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#22d3ee"
-      }
+      "type": "BlindCurtain"
     },
     {
       "x": 0,
       "y": 2,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G77"
+      "type": "FixedKnot",
+      "targetOrder": 9,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 1,
       "y": 2,
       "count": 2,
-      "type": "Normal"
+      "type": "BlindCurtain"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 3,
+      "count": 4,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
       "count": 2,
-      "type": "TwinLink",
-      "linkID": 544,
-      "color": "#38bdf8"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G77"
+      "type": "BlindCurtain"
     },
     {
       "x": 3,
       "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 4,
       "count": 1,
       "type": "Normal"
     }

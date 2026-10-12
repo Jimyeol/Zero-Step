@@ -1,5 +1,5 @@
 {
-  "stageID": 3,
+  "stageID": 2,
   "width": 2,
   "height": 2,
   "startPoint": {
@@ -23,13 +23,7 @@
       "x": 1,
       "y": 0,
       "type": "Normal",
-      "count": 1
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "type": "Normal",
-      "count": 1
+      "count": 2
     },
     {
       "x": 1,

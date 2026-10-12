@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
-  "height": 6,
+  "stageID": 479,
+  "width": 4,
+  "height": 5,
   "startPoint": {
     "x": 0,
-    "y": 0
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -14,72 +14,79 @@
   },
   "cells": [
     {
-      "x": 0,
+      "x": 1,
       "y": 0,
       "count": 1,
-      "type": "Normal"
+      "type": "BlindCurtain"
     },
     {
       "x": 0,
       "y": 1,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 579,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 3,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 1,
       "count": 1,
-      "type": "Normal"
+      "type": "BlindCurtain"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 1,
+      "count": 4,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 1,
+      "count": 5,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 5,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 4,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
       "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Right"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
+      "x": 3,
+      "y": 3,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 579,
+      "color": "#22d3ee"
     },
     {
       "x": 2,
       "y": 4,
-      "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 6,
-      "properties": {
-        "isAbsolute": true
-      }
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 5,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 5,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 5,
       "count": 1,
       "type": "Normal"
     }

@@ -1,7 +1,7 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 5,
+  "stageID": 748,
+  "width": 5,
+  "height": 4,
   "startPoint": {
     "x": 2,
     "y": 3
@@ -14,58 +14,122 @@
   },
   "cells": [
     {
+      "x": 0,
+      "y": 0,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G93"
+    },
+    {
       "x": 2,
       "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
+      "x": 4,
+      "y": 0,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G93"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
       "x": 1,
       "y": 1,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 503,
+      "color": "#34d399"
     },
     {
       "x": 2,
       "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
       "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Right"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 3,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 4,
+      "x": 4,
+      "y": 2,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 503,
+      "color": "#34d399"
+    },
+    {
+      "x": 0,
+      "y": 3,
       "count": 1,
-      "type": "Normal"
+      "type": "FixedKnot",
+      "targetOrder": 6,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 2,
-      "y": 4,
+      "y": 3,
       "count": 1,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FBFF"
+      }
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 2,
       "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 503,
+      "color": "#34d399"
     }
   ]
 }

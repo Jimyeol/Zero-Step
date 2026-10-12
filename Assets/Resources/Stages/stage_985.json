@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
+  "stageID": 985,
   "width": 6,
   "height": 6,
   "startPoint": {
-    "x": 0,
+    "x": 5,
     "y": 5
   },
   "config": {
@@ -14,17 +14,22 @@
   },
   "cells": [
     {
-      "x": 3,
+      "x": 2,
       "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 4,
+      "x": 3,
       "y": 0,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Up"
+      "type": "Charge"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 3,
@@ -33,28 +38,27 @@
       "type": "Normal"
     },
     {
-      "x": 4,
-      "y": 1,
-      "count": 3,
+      "x": 1,
+      "y": 2,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 5,
-      "y": 1,
-      "count": 1,
+      "x": 2,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 4,
       "y": 2,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Up"
-    },
-    {
-      "x": 5,
-      "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -73,23 +77,22 @@
       "x": 3,
       "y": 3,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 5,
+      "x": 4,
       "y": 3,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
       "y": 4,
       "count": 1,
       "type": "ShortCircuit",
@@ -103,6 +106,34 @@
     },
     {
       "x": 1,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 3,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
       "y": 5,
       "count": 1,
       "type": "Normal"

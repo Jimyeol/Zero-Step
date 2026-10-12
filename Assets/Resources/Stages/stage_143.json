@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 2,
+  "stageID": 143,
+  "width": 4,
+  "height": 3,
   "startPoint": {
-    "x": 1,
-    "y": 1
+    "x": 2,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -41,15 +41,15 @@
       "x": 1,
       "y": 1,
       "count": 2,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Down"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 642,
-      "color": "#a78bfa"
+      "count": 2,
+      "type": "ShortCircuit",
+      "direction": "Left"
     },
     {
       "x": 3,
@@ -58,12 +58,16 @@
       "type": "Normal"
     },
     {
-      "x": 4,
-      "y": 1,
+      "x": 2,
+      "y": 2,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 642,
-      "color": "#a78bfa"
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 3,
+  "stageID": 161,
+  "width": 4,
+  "height": 4,
   "startPoint": {
-    "x": 0,
-    "y": 1
+    "x": 2,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -14,24 +14,17 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
-    },
-    {
       "x": 1,
       "y": 0,
       "count": 1,
       "type": "TwinLink",
-      "linkID": 649,
-      "color": "#34d399"
+      "linkID": 683,
+      "color": "#00FBFF"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 2,
+      "x": 2,
+      "y": 0,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -47,18 +40,42 @@
       "type": "Normal"
     },
     {
-      "x": 0,
+      "x": 1,
       "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 3,
       "count": 1,
       "type": "TwinLink",
-      "linkID": 649,
-      "color": "#34d399"
+      "linkID": 683,
+      "color": "#00FBFF"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

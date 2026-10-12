@@ -1,7 +1,7 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 3,
+  "stageID": 633,
+  "width": 5,
+  "height": 5,
   "startPoint": {
     "x": 0,
     "y": 0
@@ -20,39 +20,40 @@
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 0,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G90"
-    },
-    {
       "x": 0,
       "y": 1,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 3,
       "type": "CrossBlast",
       "properties": {
         "beamColor": "#00FBFF"
       }
     },
     {
+      "x": 1,
+      "y": 1,
+      "count": 1,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
+    },
+    {
       "x": 2,
       "y": 1,
-      "count": 3,
-      "type": "BlindCurtain"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 1,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G90"
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 5,
+      "type": "Normal"
     },
     {
       "x": 0,
@@ -61,8 +62,54 @@
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 4,
       "y": 2,
+      "count": 4,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 3,
+      "type": "FixedKnot",
+      "targetOrder": 16,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 5,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#f59e0b"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
       "count": 1,
       "type": "Normal"
     }

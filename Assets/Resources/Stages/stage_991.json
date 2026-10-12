@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 5,
+  "stageID": 991,
+  "width": 4,
+  "height": 7,
   "startPoint": {
-    "x": 1,
-    "y": 4
+    "x": 0,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -16,26 +16,22 @@
     {
       "x": 0,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
+      "count": 3,
+      "type": "BlindCurtain"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 3,
-      "type": "Normal"
+      "count": 6,
+      "type": "TwinLink",
+      "linkID": 618,
+      "color": "#34d399"
     },
     {
       "x": 1,
@@ -44,33 +40,38 @@
       "type": "Normal"
     },
     {
+      "x": 0,
+      "y": 2,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 9,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
       "x": 2,
-      "y": 1,
+      "y": 2,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
+    },
+    {
+      "x": 3,
+      "y": 2,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 2,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
       "y": 3,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -82,24 +83,34 @@
     {
       "x": 2,
       "y": 3,
-      "count": 3,
-      "type": "Normal"
+      "count": 5,
+      "type": "TwinLink",
+      "linkID": 618,
+      "color": "#34d399"
     },
     {
-      "x": 0,
-      "y": 4,
+      "x": 3,
+      "y": 3,
       "count": 2,
-      "type": "Normal"
+      "type": "TwinLink",
+      "linkID": 618,
+      "color": "#34d399"
     },
     {
       "x": 1,
       "y": 4,
       "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 4,
+      "x": 1,
+      "y": 6,
       "count": 1,
       "type": "Normal"
     }

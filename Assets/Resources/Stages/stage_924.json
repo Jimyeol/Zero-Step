@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
-  "height": 6,
+  "stageID": 924,
+  "width": 5,
+  "height": 7,
   "startPoint": {
-    "x": 5,
-    "y": 5
+    "x": 2,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -14,76 +14,97 @@
   },
   "cells": [
     {
-      "x": 0,
+      "x": 2,
       "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 150,
+      "color": "#a78bfa"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 150,
+      "color": "#a78bfa"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 3,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
+      "y": 4,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 2,
+      "y": 4,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 3,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 4,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 4,
-      "count": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 4,
       "y": 4,
       "count": 1,
-      "type": "Normal"
+      "type": "FixedKnot",
+      "targetOrder": 24,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
-      "x": 5,
-      "y": 4,
+      "x": 1,
+      "y": 5,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Down"
     },
     {
       "x": 2,
@@ -94,14 +115,26 @@
     {
       "x": 3,
       "y": 5,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 1,
+      "y": 6,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 5,
-      "y": 5,
+      "x": 2,
+      "y": 6,
       "count": 1,
-      "type": "Normal"
+      "type": "BlindCurtain"
     }
   ]
 }

@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 5,
+  "stageID": 956,
+  "width": 5,
+  "height": 4,
   "startPoint": {
-    "x": 2,
+    "x": 4,
     "y": 0
   },
   "config": {
@@ -14,29 +14,56 @@
   },
   "cells": [
     {
-      "x": 1,
-      "y": 0,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Up"
-    },
-    {
-      "x": 2,
+      "x": 0,
       "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
+      "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
       "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 1,
-      "type": "BlindCurtain"
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 3,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 0,
@@ -53,40 +80,49 @@
     {
       "x": 2,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G45"
+      "count": 2,
+      "type": "ShortCircuit",
+      "direction": "Right"
     },
     {
-      "x": 1,
+      "x": 4,
+      "y": 2,
+      "count": 1,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FFFF"
+      }
+    },
+    {
+      "x": 0,
       "y": 3,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 1,
+      "y": 3,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Down"
+    },
+    {
+      "x": 3,
       "y": 3,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 4,
-      "count": 2,
+      "x": 4,
+      "y": 3,
+      "count": 1,
       "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G45"
     }
   ]
 }

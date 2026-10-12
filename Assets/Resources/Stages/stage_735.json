@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
-  "height": 6,
+  "stageID": 735,
+  "width": 5,
+  "height": 5,
   "startPoint": {
-    "x": 0,
-    "y": 5
+    "x": 3,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -13,6 +13,22 @@
     "showGridLines": false
   },
   "cells": [
+    {
+      "x": 0,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 9,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
     {
       "x": 2,
       "y": 0,
@@ -28,18 +44,8 @@
     {
       "x": 4,
       "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 0,
       "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 10,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Normal"
     },
     {
       "x": 0,
@@ -50,7 +56,7 @@
     {
       "x": 1,
       "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -68,42 +74,80 @@
     {
       "x": 4,
       "y": 1,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 1,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
+      "count": 2,
       "type": "FixedKnot",
-      "targetOrder": 1,
+      "targetOrder": 12,
       "properties": {
         "isAbsolute": true
       }
     },
     {
-      "x": 0,
-      "y": 5,
+      "x": 1,
+      "y": 2,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
       "count": 1,
       "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G34"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G34"
     }
   ]
 }

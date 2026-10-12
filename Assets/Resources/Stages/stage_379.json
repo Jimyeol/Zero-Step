@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 8,
+  "stageID": 379,
+  "width": 6,
+  "height": 5,
   "startPoint": {
-    "x": 3,
-    "y": 4
+    "x": 0,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -16,26 +16,6 @@
     {
       "x": 0,
       "y": 0,
-      "count": 3,
-      "type": "Igniter",
-      "targetID": "G33"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 4,
-      "type": "Igniter",
-      "targetID": "G53"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
       "count": 1,
       "type": "Normal"
     },
@@ -49,125 +29,110 @@
       "x": 1,
       "y": 1,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G33"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
       "type": "TwinLink",
-      "linkID": 612,
-      "color": "#22d3ee"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 612,
-      "color": "#22d3ee"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 250,
+      "linkID": 379,
       "color": "#34d399"
     },
     {
       "x": 2,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
+      "y": 1,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G39"
     },
     {
       "x": 3,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 5,
+      "y": 1,
       "count": 1,
       "type": "TwinLink",
-      "linkID": 250,
+      "linkID": 500,
+      "color": "#38bdf8"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 379,
+      "color": "#34d399"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G39"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 104,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 104,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 517,
       "color": "#34d399"
     },
     {
       "x": 0,
-      "y": 6,
-      "count": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 500,
+      "color": "#38bdf8"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G39"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 7,
+      "y": 4,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G53"
+      "type": "TwinLink",
+      "linkID": 517,
+      "color": "#34d399"
     }
   ]
 }

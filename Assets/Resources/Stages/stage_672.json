@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 5,
+  "stageID": 672,
+  "width": 4,
+  "height": 4,
   "startPoint": {
-    "x": 2,
+    "x": 3,
     "y": 1
   },
   "config": {
@@ -14,25 +14,22 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 1,
       "y": 0,
-      "count": 2,
-      "type": "Normal"
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 865,
+      "color": "#00FBFF"
     },
     {
       "x": 2,
       "y": 0,
       "count": 2,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Left"
     },
     {
-      "x": 0,
+      "x": 1,
       "y": 1,
       "count": 1,
       "type": "Normal"
@@ -40,8 +37,28 @@
     {
       "x": 2,
       "y": 1,
-      "count": 2,
+      "count": 3,
+      "type": "Blackout"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
       "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 865,
+      "color": "#00FBFF"
     },
     {
       "x": 2,
@@ -50,16 +67,23 @@
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 0,
       "y": 3,
-      "count": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 4,
+      "y": 3,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Left"
     }
   ]
 }

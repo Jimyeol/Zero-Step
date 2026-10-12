@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 266,
   "width": 3,
-  "height": 4,
+  "height": 5,
   "startPoint": {
-    "x": 1,
-    "y": 0
+    "x": 2,
+    "y": 4
   },
   "config": {
     "mode": "Normal",
@@ -17,24 +17,6 @@
       "x": 0,
       "y": 0,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 2,
       "type": "CrossBlast",
       "properties": {
         "beamColor": "#f59e0b"
@@ -42,33 +24,66 @@
     },
     {
       "x": 1,
-      "y": 2,
-      "count": 2,
+      "y": 0,
+      "count": 3,
       "type": "CrossBlast",
       "properties": {
-        "beamColor": "#22d3ee"
+        "beamColor": "#34d399"
       }
     },
     {
       "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 3,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 3,
+      "x": 0,
+      "y": 4,
       "count": 1,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#22d3ee"
-      }
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

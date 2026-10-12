@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 3,
+  "stageID": 206,
+  "width": 3,
+  "height": 5,
   "startPoint": {
-    "x": 2,
-    "y": 0
+    "x": 1,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -17,72 +17,66 @@
       "x": 0,
       "y": 0,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G50"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
-      "type": "Normal"
+      "count": 3,
+      "type": "Hidden",
+      "groupID": "G50"
     },
     {
       "x": 1,
       "y": 1,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
+      "type": "Igniter",
+      "targetID": "G50"
     },
     {
       "x": 0,
       "y": 2,
       "count": 1,
-      "type": "Normal"
+      "type": "FixedKnot",
+      "targetOrder": 8,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 1,
       "y": 2,
       "count": 2,
-      "type": "Normal"
+      "type": "FixedKnot",
+      "targetOrder": 7,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 2,
       "y": 2,
-      "count": 2,
-      "type": "BlindCurtain"
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
     },
     {
-      "x": 3,
-      "y": 2,
+      "x": 1,
+      "y": 3,
       "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 1,
       "type": "Normal"
     }
   ]

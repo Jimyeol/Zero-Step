@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
+  "stageID": 547,
   "width": 6,
   "height": 6,
   "startPoint": {
-    "x": 3,
+    "x": 0,
     "y": 5
   },
   "config": {
@@ -16,47 +16,77 @@
     {
       "x": 0,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#38bdf8"
+      }
     },
     {
       "x": 1,
       "y": 0,
-      "count": 1,
+      "count": 6,
+      "type": "Hidden",
+      "groupID": "G75"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
       "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 6,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FBFF"
+      }
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "count": 3,
+      "type": "Igniter",
+      "targetID": "G75"
     },
     {
       "x": 4,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 3,
+      "type": "FixedKnot",
+      "targetOrder": 33,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 0,
       "y": 2,
       "count": 2,
       "type": "Normal"
@@ -64,44 +94,46 @@
     {
       "x": 5,
       "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 4,
+      "x": 0,
       "y": 3,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 5,
+      "y": 3,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G75"
+    },
+    {
+      "x": 0,
       "y": 4,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
+      "x": 5,
       "y": 4,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 0,
       "y": 5,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 5,
       "y": 5,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G75"
     }
   ]
 }

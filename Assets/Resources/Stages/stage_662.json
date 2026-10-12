@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
-  "height": 6,
+  "stageID": 662,
+  "width": 4,
+  "height": 5,
   "startPoint": {
-    "x": 5,
-    "y": 0
+    "x": 1,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -14,86 +14,119 @@
   },
   "cells": [
     {
-      "x": 4,
+      "x": 0,
+      "y": 0,
+      "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 1,
       "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 5,
+      "x": 2,
       "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 4,
-      "y": 1,
+      "x": 3,
+      "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 143,
-      "color": "#f59e0b"
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 1,
-      "y": 2,
+      "y": 1,
       "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 4,
       "type": "TwinLink",
-      "linkID": 143,
+      "linkID": 225,
       "color": "#f59e0b"
     },
     {
       "x": 3,
       "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 0,
       "y": 3,
       "count": 3,
       "type": "Normal"
     },
     {
+      "x": 1,
+      "y": 3,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 225,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
       "x": 3,
       "y": 3,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 0,
       "y": 4,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 1,
       "y": 4,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 5,
-      "count": 1,
+      "y": 4,
+      "count": 3,
       "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "count": 1,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
     }
   ]
 }

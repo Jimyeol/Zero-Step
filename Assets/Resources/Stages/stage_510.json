@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 3,
+  "stageID": 510,
+  "width": 4,
   "height": 3,
   "startPoint": {
-    "x": 1,
-    "y": 2
+    "x": 2,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -14,46 +14,71 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G86"
-    },
-    {
       "x": 1,
       "y": 0,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 295,
-      "color": "#f59e0b"
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 9,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 2,
       "y": 0,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 295,
-      "color": "#f59e0b"
+      "count": 5,
+      "type": "BlindCurtain"
     },
     {
-      "x": 1,
+      "x": 3,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
       "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 1,
       "y": 1,
       "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Right"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 5,
       "type": "Igniter",
-      "targetID": "G86"
+      "targetID": "G10"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G10"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "BlindCurtain"
     },
     {
       "x": 1,
       "y": 2,
       "count": 1,
       "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 1,
+      "type": "BlindCurtain"
     }
   ]
 }

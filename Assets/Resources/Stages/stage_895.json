@@ -1,6 +1,6 @@
 {
-  "stageID": 0,
-  "width": 4,
+  "stageID": 895,
+  "width": 7,
   "height": 3,
   "startPoint": {
     "x": 0,
@@ -14,55 +14,118 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
-    },
-    {
       "x": 1,
       "y": 0,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Up"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
+      "y": 0,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 356,
+      "color": "#00FBFF"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G62"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G62"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 6,
+      "type": "TwinLink",
+      "linkID": 356,
+      "color": "#00FBFF"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 6,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 5,
       "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 6,
       "y": 1,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G62"
+    },
+    {
+      "x": 0,
+      "y": 2,
       "count": 1,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G62"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 2,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Down"
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

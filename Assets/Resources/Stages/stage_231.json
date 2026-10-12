@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 3,
+  "stageID": 231,
+  "width": 6,
+  "height": 6,
   "startPoint": {
-    "x": 1,
+    "x": 5,
     "y": 0
   },
   "config": {
@@ -17,7 +17,7 @@
       "x": 0,
       "y": 0,
       "count": 1,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
       "x": 1,
@@ -26,33 +26,81 @@
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 2,
+      "x": 2,
+      "y": 0,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 1,
-      "count": 3,
+      "x": 3,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 2,
+      "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 2,
-      "count": 3,
+      "y": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
       "y": 2,
       "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 1,
       "type": "Normal"
     }
   ]

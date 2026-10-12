@@ -1,7 +1,7 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 3,
+  "stageID": 860,
+  "width": 4,
+  "height": 4,
   "startPoint": {
     "x": 1,
     "y": 2
@@ -16,48 +16,91 @@
     {
       "x": 0,
       "y": 0,
-      "count": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
       "count": 1,
       "type": "FixedKnot",
-      "targetOrder": 6,
+      "targetOrder": 14,
       "properties": {
         "isAbsolute": true
       }
     },
     {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
       "x": 0,
       "y": 2,
-      "count": 3,
-      "type": "Normal"
+      "count": 2,
+      "type": "BlindCurtain"
     },
     {
       "x": 1,
       "y": 2,
       "count": 3,
       "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 3,
+      "type": "Blackout"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 286,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FBFF"
+      }
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 286,
+      "color": "#22d3ee"
     }
   ]
 }

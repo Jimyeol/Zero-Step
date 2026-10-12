@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 4,
+  "stageID": 743,
+  "width": 6,
+  "height": 3,
   "startPoint": {
-    "x": 0,
+    "x": 3,
     "y": 1
   },
   "config": {
@@ -16,71 +16,95 @@
     {
       "x": 0,
       "y": 0,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G38"
+    },
+    {
+      "x": 1,
+      "y": 0,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 3,
+      "x": 2,
+      "y": 0,
+      "count": 2,
       "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G38"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G38"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 2,
       "type": "FixedKnot",
-      "targetOrder": 7,
+      "targetOrder": 3,
       "properties": {
         "isAbsolute": true
       }
     },
     {
-      "x": 2,
+      "x": 3,
       "y": 1,
-      "count": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 4,
       "y": 1,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 754,
-      "color": "#f59e0b"
-    },
-    {
-      "x": 0,
-      "y": 2,
       "count": 3,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 1,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#22d3ee"
-      }
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 780,
+      "color": "#22d3ee"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
-      "count": 1,
+      "count": 5,
       "type": "TwinLink",
-      "linkID": 754,
-      "color": "#f59e0b"
+      "linkID": 780,
+      "color": "#22d3ee"
     },
     {
-      "x": 0,
-      "y": 3,
+      "x": 4,
+      "y": 2,
       "count": 2,
       "type": "Normal"
     }

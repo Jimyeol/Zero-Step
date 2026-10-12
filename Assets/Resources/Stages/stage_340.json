@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
+  "stageID": 340,
   "width": 6,
   "height": 6,
   "startPoint": {
     "x": 5,
-    "y": 0
+    "y": 5
   },
   "config": {
     "mode": "Normal",
@@ -14,111 +14,115 @@
   },
   "cells": [
     {
-      "x": 0,
+      "x": 1,
       "y": 0,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 5,
-      "count": 3,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 5,
-      "count": 4,
+      "y": 0,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 3,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 26,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 4,
+      "count": 2,
+      "type": "Blackout"
+    },
+    {
+      "x": 0,
       "y": 5,
-      "count": 4,
+      "count": 6,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 5,
       "type": "Normal"
     },
     {
       "x": 4,
       "y": 5,
-      "count": 3,
+      "count": 5,
       "type": "Normal"
     },
     {
       "x": 5,
       "y": 5,
-      "count": 1,
+      "count": 6,
       "type": "Normal"
     }
   ]

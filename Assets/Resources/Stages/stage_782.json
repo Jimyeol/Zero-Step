@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 7,
-  "height": 7,
+  "stageID": 782,
+  "width": 3,
+  "height": 6,
   "startPoint": {
-    "x": 2,
-    "y": 6
+    "x": 1,
+    "y": 5
   },
   "config": {
     "mode": "Normal",
@@ -14,94 +14,62 @@
   },
   "cells": [
     {
-      "x": 2,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 1,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 1,
+      "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 2,
-      "count": 1,
+      "y": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 2,
-      "count": 1,
+      "y": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "BlindCurtain"
     },
     {
-      "x": 5,
+      "x": 0,
       "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "count": 3,
+      "type": "FixedKnot",
+      "targetOrder": 4,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
-      "x": 6,
+      "x": 2,
       "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "BlindCurtain"
     },
     {
       "x": 0,
       "y": 3,
-      "count": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 1,
       "y": 3,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 6,
+      "x": 2,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "BlindCurtain"
     },
     {
       "x": 0,
@@ -116,68 +84,31 @@
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 2,
       "y": 4,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Up"
     },
     {
-      "x": 5,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 6,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
+      "x": 0,
+      "y": 5,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 223,
+      "color": "#00FBFF"
     },
     {
       "x": 1,
       "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 6,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 223,
+      "color": "#00FBFF"
     },
     {
       "x": 2,
-      "y": 6,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 6,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 6,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 6,
+      "y": 5,
       "count": 1,
       "type": "Normal"
     }

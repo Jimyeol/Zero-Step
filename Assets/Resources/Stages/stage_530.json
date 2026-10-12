@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
-  "height": 6,
+  "stageID": 530,
+  "width": 3,
+  "height": 4,
   "startPoint": {
-    "x": 3,
-    "y": 5
+    "x": 1,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -16,31 +16,24 @@
     {
       "x": 0,
       "y": 0,
-      "count": 2,
-      "type": "Normal"
+      "count": 3,
+      "type": "Igniter",
+      "targetID": "G55"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 7,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 2,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -50,57 +43,44 @@
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 1,
       "y": 1,
       "count": 1,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G55"
     },
     {
-      "x": 4,
+      "x": 2,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 578,
+      "color": "#34d399"
     },
     {
-      "x": 5,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
+      "x": 1,
       "y": 2,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 5,
+      "x": 2,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 578,
+      "color": "#34d399"
     },
     {
-      "x": 5,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 5,
-      "count": 1,
+      "x": 1,
+      "y": 3,
+      "count": 2,
       "type": "Normal"
     }
   ]

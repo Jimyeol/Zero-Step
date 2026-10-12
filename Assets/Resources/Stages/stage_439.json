@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 6,
-  "height": 6,
+  "stageID": 439,
+  "width": 5,
+  "height": 3,
   "startPoint": {
-    "x": 5,
+    "x": 0,
     "y": 1
   },
   "config": {
@@ -14,86 +14,93 @@
   },
   "cells": [
     {
-      "x": 5,
+      "x": 0,
       "y": 0,
-      "count": 1,
+      "count": 3,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FFFF"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "count": 4,
       "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G22"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G22"
     },
     {
       "x": 4,
-      "y": 1,
-      "count": 1,
+      "y": 0,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 5,
+      "x": 0,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G22"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G22"
+    },
+    {
+      "x": 4,
       "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 4,
+      "x": 0,
+      "y": 2,
+      "count": 3,
+      "type": "Charge"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
       "y": 2,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 4,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 5,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 5,
+      "y": 2,
       "count": 1,
       "type": "Normal"
     }

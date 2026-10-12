@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
+  "stageID": 645,
+  "width": 3,
   "height": 4,
   "startPoint": {
-    "x": 1,
-    "y": 1
+    "x": 0,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -14,64 +14,73 @@
   },
   "cells": [
     {
-      "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 1,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
+      "y": 0,
       "count": 1,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G82"
     },
     {
       "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "y": 1,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 935,
+      "color": "#f59e0b"
     },
     {
       "x": 1,
+      "y": 1,
+      "count": 5,
+      "type": "TwinLink",
+      "linkID": 935,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 3,
+      "type": "Charge"
+    },
+    {
+      "x": 0,
       "y": 2,
       "count": 4,
       "type": "Normal"
     },
     {
+      "x": 1,
+      "y": 2,
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 3,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
       "x": 2,
       "y": 2,
       "count": 2,
-      "type": "Blackout"
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FFFF"
+      }
     },
     {
       "x": 0,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 935,
+      "color": "#f59e0b"
     },
     {
-      "x": 1,
+      "x": 2,
       "y": 3,
       "count": 2,
-      "type": "Normal"
+      "type": "Igniter",
+      "targetID": "G82"
     }
   ]
 }

@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 4,
+  "stageID": 557,
+  "width": 6,
   "height": 2,
   "startPoint": {
-    "x": 0,
+    "x": 2,
     "y": 1
   },
   "config": {
@@ -14,33 +14,39 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 5,
-      "type": "Blackout"
-    },
-    {
       "x": 1,
       "y": 0,
-      "count": 5,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 0,
-      "count": 5,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 0,
-      "count": 5,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 6,
+      "count": 3,
       "type": "Normal"
     },
     {
@@ -52,14 +58,20 @@
     {
       "x": 2,
       "y": 1,
-      "count": 5,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 3,
       "y": 1,
-      "count": 5,
+      "count": 3,
       "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "Charge"
     }
   ]
 }

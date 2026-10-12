@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 8,
+  "stageID": 701,
+  "width": 6,
+  "height": 5,
   "startPoint": {
-    "x": 0,
-    "y": 7
+    "x": 4,
+    "y": 4
   },
   "config": {
     "mode": "Normal",
@@ -14,25 +14,89 @@
   },
   "cells": [
     {
-      "x": 2,
+      "x": 3,
       "y": 0,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Right"
     },
     {
-      "x": 3,
+      "x": 4,
       "y": 0,
       "count": 2,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G31"
     },
     {
-      "x": 3,
+      "x": 5,
+      "y": 0,
+      "count": 1,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#38bdf8"
+      }
+    },
+    {
+      "x": 0,
       "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
+      "x": 1,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G31"
+    },
+    {
       "x": 3,
+      "y": 1,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 875,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G31"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G31"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
       "y": 2,
       "count": 1,
       "type": "Normal"
@@ -40,7 +104,15 @@
     {
       "x": 3,
       "y": 3,
-      "count": 1,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 875,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -50,51 +122,9 @@
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 5,
+      "x": 4,
+      "y": 4,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 6,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 6,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 7,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 7,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 7,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 7,
-      "count": 3,
       "type": "Normal"
     }
   ]

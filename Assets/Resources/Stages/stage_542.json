@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 7,
+  "stageID": 542,
+  "width": 6,
+  "height": 6,
   "startPoint": {
-    "x": 3,
-    "y": 6
+    "x": 1,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -14,47 +14,70 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Up"
-    },
-    {
-      "x": 1,
+      "x": 4,
       "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
+      "x": 5,
+      "y": 0,
       "count": 1,
       "type": "ShortCircuit",
-      "direction": "Right"
+      "direction": "Left"
     },
     {
       "x": 1,
       "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 5,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 5,
+      "type": "Hidden",
+      "groupID": "G10"
+    },
+    {
+      "x": 4,
+      "y": 1,
       "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Down"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
       "count": 2,
       "type": "Normal"
     },
@@ -65,30 +88,24 @@
       "type": "Normal"
     },
     {
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G10"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
       "x": 1,
       "y": 5,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 6,
-      "count": 3,
-      "type": "Hidden",
-      "groupID": "G42"
-    },
-    {
-      "x": 2,
-      "y": 6,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G42"
-    },
-    {
-      "x": 3,
-      "y": 6,
       "count": 1,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G10"
     }
   ]
 }

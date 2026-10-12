@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 4,
+  "stageID": 189,
+  "width": 3,
+  "height": 5,
   "startPoint": {
-    "x": 3,
-    "y": 1
+    "x": 1,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -17,111 +17,61 @@
       "x": 1,
       "y": 0,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G10"
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 0,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G10"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G77"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G80"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G44"
+      "count": 5,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 2,
+      "count": 4,
       "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 3,
-      "type": "Igniter",
-      "targetID": "G77"
     },
     {
       "x": 0,
       "y": 2,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G47"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G80"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G37"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G47"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G44"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G24"
-    },
-    {
-      "x": 1,
-      "y": 3,
       "count": 3,
-      "type": "Igniter",
-      "targetID": "G24"
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 5,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 3,
+      "count": 4,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G37"
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

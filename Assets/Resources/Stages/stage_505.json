@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 4,
+  "stageID": 505,
+  "width": 3,
+  "height": 7,
   "startPoint": {
-    "x": 3,
-    "y": 2
+    "x": 0,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -28,23 +28,26 @@
     {
       "x": 2,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
       "count": 1,
-      "type": "Normal"
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FBFF"
+      }
     },
     {
       "x": 0,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
       "y": 2,
       "count": 1,
       "type": "Normal"
@@ -52,20 +55,18 @@
     {
       "x": 2,
       "y": 2,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 7,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 1,
@@ -76,12 +77,58 @@
     {
       "x": 2,
       "y": 3,
-      "count": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 3,
+      "x": 0,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G58"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G58"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 3,
+      "type": "Hidden",
+      "groupID": "G58"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G58"
+    },
+    {
+      "x": 1,
+      "y": 6,
       "count": 2,
       "type": "Normal"
     }

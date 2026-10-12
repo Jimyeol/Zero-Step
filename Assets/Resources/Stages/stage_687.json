@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
-  "height": 4,
+  "stageID": 687,
+  "width": 4,
+  "height": 6,
   "startPoint": {
-    "x": 5,
-    "y": 0
+    "x": 0,
+    "y": 5
   },
   "config": {
     "mode": "Normal",
@@ -14,10 +14,25 @@
   },
   "cells": [
     {
-      "x": 5,
+      "x": 1,
       "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G37"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 848,
+      "color": "#34d399"
     },
     {
       "x": 1,
@@ -38,31 +53,13 @@
       "type": "Normal"
     },
     {
-      "x": 5,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
+      "x": 0,
       "y": 2,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 3,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
       "y": 2,
       "count": 2,
       "type": "Normal"
@@ -70,14 +67,25 @@
     {
       "x": 0,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 963,
+      "color": "#f59e0b"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G37"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 963,
+      "color": "#f59e0b"
     },
     {
       "x": 3,
@@ -86,8 +94,40 @@
       "type": "Normal"
     },
     {
-      "x": 4,
-      "y": 3,
+      "x": 1,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 848,
+      "color": "#34d399"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 5,
       "count": 1,
       "type": "Normal"
     }

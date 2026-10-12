@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 3,
+  "stageID": 758,
+  "width": 3,
+  "height": 7,
   "startPoint": {
     "x": 0,
-    "y": 1
+    "y": 5
   },
   "config": {
     "mode": "Normal",
@@ -16,31 +16,28 @@
     {
       "x": 0,
       "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 2,
-      "type": "Normal"
+      "count": 3,
+      "type": "BlindCurtain"
     },
     {
       "x": 2,
       "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -52,13 +49,13 @@
     {
       "x": 2,
       "y": 1,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -68,14 +65,61 @@
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 2,
-      "count": 3,
+      "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "ShortCircuit",
+      "direction": "Right"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 2,
+      "x": 0,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 2,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 2,
+      "type": "Blackout"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 1,
+      "y": 6,
       "count": 1,
       "type": "Normal"
     }

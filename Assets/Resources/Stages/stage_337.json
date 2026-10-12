@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 6,
+  "stageID": 337,
+  "width": 5,
+  "height": 3,
   "startPoint": {
-    "x": 0,
-    "y": 3
+    "x": 1,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -14,86 +14,73 @@
   },
   "cells": [
     {
-      "x": 3,
+      "x": 1,
       "y": 0,
       "count": 1,
-      "type": "Normal"
+      "type": "BlindCurtain"
     },
     {
       "x": 2,
-      "y": 1,
+      "y": 0,
       "count": 1,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G45"
     },
     {
-      "x": 3,
+      "x": 1,
+      "y": 1,
+      "count": 2,
+      "type": "Blackout"
+    },
+    {
+      "x": 2,
       "y": 1,
       "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 5,
-      "type": "Normal"
+      "type": "Hidden",
+      "groupID": "G45"
     },
     {
       "x": 3,
-      "y": 2,
-      "count": 4,
-      "type": "Normal"
+      "y": 1,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G45"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G45"
     },
     {
       "x": 0,
-      "y": 3,
+      "y": 2,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 3,
-      "count": 1,
+      "y": 2,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 3,
-      "count": 5,
-      "type": "Normal"
+      "y": 2,
+      "count": 2,
+      "type": "Igniter",
+      "targetID": "G45"
     },
     {
       "x": 3,
-      "y": 3,
-      "count": 3,
+      "y": 2,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 5,
+      "x": 4,
+      "y": 2,
       "count": 2,
       "type": "Normal"
     }

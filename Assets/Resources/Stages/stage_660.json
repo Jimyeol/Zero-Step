@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 5,
+  "stageID": 660,
+  "width": 6,
   "height": 3,
   "startPoint": {
-    "x": 4,
+    "x": 5,
     "y": 2
   },
   "config": {
@@ -14,61 +14,86 @@
   },
   "cells": [
     {
-      "x": 1,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 3,
       "y": 0,
       "count": 1,
-      "type": "Normal"
+      "type": "Charge"
     },
     {
       "x": 4,
       "y": 0,
       "count": 1,
-      "type": "BlindCurtain"
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 657,
+      "color": "#a78bfa"
     },
     {
       "x": 0,
       "y": 1,
       "count": 1,
-      "type": "BlindCurtain"
+      "type": "TwinLink",
+      "linkID": 861,
+      "color": "#38bdf8"
     },
     {
       "x": 1,
       "y": 1,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 1,
-      "type": "BlindCurtain"
+      "type": "FixedKnot",
+      "targetOrder": 13,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 2,
-      "y": 2,
-      "count": 1,
-      "type": "BlindCurtain"
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 657,
+      "color": "#a78bfa"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
       "count": 1,
-      "type": "Normal"
+      "type": "TwinLink",
+      "linkID": 861,
+      "color": "#38bdf8"
     },
     {
       "x": 4,
+      "y": 2,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
+    },
+    {
+      "x": 5,
       "y": 2,
       "count": 1,
       "type": "Normal"

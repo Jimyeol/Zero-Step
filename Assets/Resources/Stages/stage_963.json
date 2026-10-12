@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
-  "height": 4,
+  "stageID": 963,
+  "width": 7,
+  "height": 3,
   "startPoint": {
-    "x": 3,
-    "y": 0
+    "x": 4,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -16,44 +16,83 @@
     {
       "x": 0,
       "y": 0,
-      "count": 2,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#34d399"
-      }
+      "count": 3,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#f59e0b"
-      }
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 0,
-      "count": 3,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Up"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 4,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 5,
       "y": 0,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 4,
+      "x": 6,
       "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
+      "count": 3,
       "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 2,
+      "type": "ShortCircuit",
+      "direction": "Left"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 4,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 5,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 3,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FBFF"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 8,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 0,
@@ -62,32 +101,20 @@
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
       "x": 2,
-      "y": 3,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 2,
+      "y": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 4,
-      "y": 3,
+      "y": 2,
+      "count": 4,
+      "type": "Charge"
+    },
+    {
+      "x": 5,
+      "y": 2,
       "count": 1,
       "type": "Normal"
     }

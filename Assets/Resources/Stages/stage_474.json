@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
-  "height": 5,
+  "stageID": 474,
+  "width": 6,
+  "height": 3,
   "startPoint": {
-    "x": 2,
-    "y": 4
+    "x": 0,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -14,36 +14,75 @@
   },
   "cells": [
     {
+      "x": 0,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
       "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Right"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
       "y": 0,
       "count": 1,
       "type": "Hidden",
-      "groupID": "G43"
+      "groupID": "G41"
     },
     {
-      "x": 3,
+      "x": 5,
       "y": 0,
       "count": 1,
+      "type": "Hidden",
+      "groupID": "G41"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 3,
-      "type": "Igniter",
-      "targetID": "G43"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 1,
       "count": 3,
+      "type": "Igniter",
+      "targetID": "G41"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "x": 5,
+      "y": 1,
+      "count": 3,
+      "type": "Hidden",
+      "groupID": "G41"
     },
     {
       "x": 1,
@@ -58,26 +97,15 @@
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 3,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
       "x": 3,
-      "y": 3,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 4,
+      "y": 2,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Down"
     },
     {
-      "x": 3,
-      "y": 4,
+      "x": 5,
+      "y": 2,
       "count": 1,
       "type": "Normal"
     }

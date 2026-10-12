@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 6,
+  "stageID": 283,
+  "width": 5,
   "height": 5,
   "startPoint": {
-    "x": 0,
-    "y": 3
+    "x": 4,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -22,42 +22,41 @@
     {
       "x": 3,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G78"
-    },
-    {
-      "x": 2,
-      "y": 2,
       "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#38bdf8"
+      }
     },
     {
       "x": 4,
+      "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 3,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#38bdf8"
+      }
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
       "y": 2,
       "count": 1,
       "type": "Normal"
@@ -65,50 +64,46 @@
     {
       "x": 0,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "BlindCurtain"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
+      "count": 3,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#a78bfa"
+      }
     },
     {
       "x": 2,
       "y": 3,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 0,
+      "y": 4,
       "count": 3,
-      "type": "Normal"
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
     },
     {
-      "x": 3,
-      "y": 3,
+      "x": 1,
+      "y": 4,
       "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
     },
     {
       "x": 2,
       "y": 4,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G78"
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     }
   ]

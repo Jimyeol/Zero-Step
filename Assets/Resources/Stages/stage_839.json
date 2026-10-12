@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 6,
+  "stageID": 839,
+  "width": 4,
   "height": 6,
   "startPoint": {
-    "x": 5,
+    "x": 1,
     "y": 4
   },
   "config": {
@@ -14,15 +14,21 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 1,
       "y": 0,
       "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -34,78 +40,79 @@
     {
       "x": 1,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
+      "count": 3,
+      "type": "BlindCurtain"
     },
     {
-      "x": 0,
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Up"
+    },
+    {
+      "x": 1,
       "y": 2,
       "count": 1,
-      "type": "Normal"
+      "type": "BlindCurtain"
     },
     {
-      "x": 1,
+      "x": 2,
       "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "count": 2,
+      "type": "BlindCurtain"
     },
     {
       "x": 0,
       "y": 3,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
+      "count": 3,
+      "type": "Blackout"
     },
     {
       "x": 3,
       "y": 3,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 4,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 4,
-      "count": 3,
-      "type": "Normal"
+      "count": 2,
+      "type": "Charge"
     },
     {
       "x": 2,
       "y": 4,
-      "count": 3,
-      "type": "Normal"
+      "count": 2,
+      "type": "BlindCurtain"
     },
     {
       "x": 3,
       "y": 4,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 4,
-      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
       "count": 1,
       "type": "Normal"
     },
@@ -113,25 +120,7 @@
       "x": 2,
       "y": 5,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 5,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
+      "type": "Charge"
     }
   ]
 }

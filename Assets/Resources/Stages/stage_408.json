@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 5,
+  "stageID": 408,
+  "width": 4,
   "height": 6,
   "startPoint": {
     "x": 3,
-    "y": 2
+    "y": 5
   },
   "config": {
     "mode": "Normal",
@@ -14,25 +14,22 @@
   },
   "cells": [
     {
-      "x": 1,
+      "x": 2,
       "y": 0,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G83"
+      "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
+      "x": 3,
+      "y": 0,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 5,
-      "type": "Hidden",
-      "groupID": "G13"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 2,
@@ -41,20 +38,19 @@
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 2,
+      "x": 3,
+      "y": 1,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 5,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 0,
+      "y": 2,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
       "y": 2,
       "count": 3,
       "type": "Normal"
@@ -66,48 +62,58 @@
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
+      "x": 0,
       "y": 3,
       "count": 3,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 1,
       "y": 3,
-      "count": 5,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 4,
+      "x": 2,
       "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 2,
+      "type": "Charge"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 4,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G13"
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "count": 5,
+      "y": 5,
+      "count": 2,
       "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 4,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Left"
     },
     {
       "x": 3,

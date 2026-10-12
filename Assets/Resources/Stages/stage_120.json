@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 3,
+  "stageID": 120,
+  "width": 4,
+  "height": 8,
   "startPoint": {
-    "x": 2,
-    "y": 0
+    "x": 0,
+    "y": 7
   },
   "config": {
     "mode": "Normal",
@@ -14,65 +14,87 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
+      "x": 2,
       "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 3,
       "y": 0,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 0,
+      "x": 3,
       "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 6,
       "count": 3,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 0,
-      "y": 2,
+      "y": 7,
       "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 8,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Normal"
     },
     {
       "x": 1,
-      "y": 2,
+      "y": 7,
       "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 11,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Normal"
     },
     {
       "x": 2,
-      "y": 2,
-      "count": 1,
+      "y": 7,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "count": 3,
       "type": "Normal"
     }
   ]

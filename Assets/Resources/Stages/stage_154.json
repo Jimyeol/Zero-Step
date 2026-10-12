@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 4,
+  "stageID": 154,
+  "width": 4,
+  "height": 3,
   "startPoint": {
-    "x": 1,
+    "x": 2,
     "y": 0
   },
   "config": {
@@ -14,80 +14,56 @@
   },
   "cells": [
     {
-      "x": 1,
+      "x": 0,
       "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 1,
+      "x": 1,
+      "y": 0,
+      "count": 4,
       "type": "TwinLink",
-      "linkID": 395,
-      "color": "#34d399"
+      "linkID": 885,
+      "color": "#38bdf8"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 2,
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 885,
+      "color": "#38bdf8"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 4,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 1,
+      "y": 2,
+      "count": 4,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 395,
-      "color": "#34d399"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 294,
-      "color": "#00FBFF"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 334,
-      "color": "#00FBFF"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 294,
-      "color": "#00FBFF"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 922,
-      "color": "#00FBFF"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 334,
-      "color": "#00FBFF"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 922,
-      "color": "#00FBFF"
+      "type": "Normal"
     }
   ]
 }

@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 3,
-  "height": 6,
+  "stageID": 764,
+  "width": 4,
+  "height": 5,
   "startPoint": {
-    "x": 1,
-    "y": 1
+    "x": 2,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -14,80 +14,104 @@
   },
   "cells": [
     {
-      "x": 1,
+      "x": 0,
       "y": 0,
       "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 1,
-      "type": "CrossBlast",
+      "type": "FixedKnot",
+      "targetOrder": 4,
       "properties": {
-        "beamColor": "#38bdf8"
+        "isAbsolute": true
       }
     },
     {
-      "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
+      "y": 1,
       "count": 2,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#f59e0b"
-      }
+      "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 4,
-      "count": 1,
+      "x": 3,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 5,
+      "y": 2,
+      "count": 2,
+      "type": "Hidden",
+      "groupID": "G22"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Charge"
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 1,
+      "type": "Igniter",
+      "targetID": "G22"
+    },
+    {
+      "x": 3,
+      "y": 4,
       "count": 1,
       "type": "Normal"
     }

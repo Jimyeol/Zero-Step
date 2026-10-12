@@ -15,8 +15,8 @@
       "closeButtonText": "확인"
     },
     {
-      "id": "tutorial_stage_50_short_circuit",
-      "stageIndex": 50,
+      "id": "tutorial_stage_21_short_circuit",
+      "stageIndex": 21,
       "tutorialType": "ShortCircuit",
       "titleKey": "tutorial_short_circuit_title",
       "descriptionKey": "tutorial_short_circuit_description",
@@ -28,8 +28,8 @@
       "closeButtonText": "확인"
     },
     {
-      "id": "tutorial_stage_100_cross_blast",
-      "stageIndex": 100,
+      "id": "tutorial_stage_51_cross_blast",
+      "stageIndex": 51,
       "tutorialType": "CrossBlast",
       "titleKey": "tutorial_cross_blast_title",
       "descriptionKey": "tutorial_cross_blast_description",
@@ -41,8 +41,8 @@
       "closeButtonText": "확인"
     },
     {
-      "id": "tutorial_stage_115_fixed_knot",
-      "stageIndex": 115,
+      "id": "tutorial_stage_101_fixed_knot",
+      "stageIndex": 101,
       "tutorialType": "FixedKnot",
       "titleKey": "tutorial_fixed_knot_title",
       "descriptionKey": "tutorial_fixed_knot_description",
@@ -54,8 +54,8 @@
       "closeButtonText": "확인"
     },
     {
-      "id": "tutorial_stage_140_twin_link",
-      "stageIndex": 140,
+      "id": "tutorial_stage_151_twin_link",
+      "stageIndex": 151,
       "tutorialType": "TwinLink",
       "titleKey": "tutorial_twin_link_title",
       "descriptionKey": "tutorial_twin_link_description",
@@ -67,8 +67,8 @@
       "closeButtonText": "확인"
     },
     {
-      "id": "tutorial_stage_170_igniter",
-      "stageIndex": 170,
+      "id": "tutorial_stage_201_igniter",
+      "stageIndex": 201,
       "tutorialType": "Igniter",
       "titleKey": "tutorial_igniter_title",
       "descriptionKey": "tutorial_igniter_description",
@@ -80,8 +80,8 @@
       "closeButtonText": "확인"
     },
     {
-      "id": "tutorial_stage_200_blind_curtain",
-      "stageIndex": 200,
+      "id": "tutorial_stage_251_blind_curtain",
+      "stageIndex": 251,
       "tutorialType": "BlindCurtain",
       "titleKey": "tutorial_blind_curtain_title",
       "descriptionKey": "tutorial_blind_curtain_description",
@@ -93,8 +93,8 @@
       "closeButtonText": "확인"
     },
     {
-      "id": "tutorial_stage_230_blackout",
-      "stageIndex": 230,
+      "id": "tutorial_stage_301_blackout",
+      "stageIndex": 301,
       "tutorialType": "Blackout",
       "titleKey": "tutorial_blackout_title",
       "descriptionKey": "tutorial_blackout_description",
@@ -103,6 +103,19 @@
       "title": "깜깜 타일",
       "description": "밟으면 모든 타일 숫자가 ?로 바뀝니다.",
       "instructionText": "1. 모든 숫자가 가려져요\n   깜깜 타일을 밟으면 보드 위 숫자가 모두 ?로 바뀝니다.\n2. 기억해서 움직이기\n   숫자가 가려지기 전에 타일의 숫자와 위치를 기억해 두세요.",
+      "closeButtonText": "확인"
+    },
+    {
+      "id": "tutorial_stage_401_charge",
+      "stageIndex": 401,
+      "tutorialType": "Charge",
+      "titleKey": "tutorial_charge_title",
+      "descriptionKey": "tutorial_charge_description",
+      "instructionTextKey": "tutorial_charge_instructions",
+      "closeButtonTextKey": "help_close_button",
+      "title": "충전 타일",
+      "description": "이 타일에서 나가면 십자방향 타일 숫자가 1 늘어납니다.",
+      "instructionText": "1. 십자방향 숫자가 늘어나요\n   충전 타일에서 다른 타일로 이동하면 상하좌우 타일 숫자가 1씩 늘어납니다.\n2. 방금 간 타일과 0인 타일은 제외\n   이동한 다음 타일과 이미 0이 된 타일은 늘어나지 않습니다. 순서·켜기·숨은 타일도 영향을 받지 않습니다.",
       "closeButtonText": "확인"
     }
   ]

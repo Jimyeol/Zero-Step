@@ -1,9 +1,9 @@
 {
-  "stageID": 0,
+  "stageID": 215,
   "width": 3,
-  "height": 3,
+  "height": 4,
   "startPoint": {
-    "x": 1,
+    "x": 0,
     "y": 0
   },
   "config": {
@@ -16,51 +16,57 @@
     {
       "x": 0,
       "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 0,
+      "x": 0,
+      "y": 1,
       "count": 3,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 1,
       "y": 1,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
       "count": 1,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#f59e0b"
-      }
+      "type": "Igniter",
+      "targetID": "G52"
     },
     {
       "x": 0,
       "y": 2,
       "count": 1,
-      "type": "Normal"
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#34d399"
+      }
     },
     {
       "x": 1,
       "y": 2,
-      "count": 3,
-      "type": "BlindCurtain"
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 3,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 2,
       "y": 2,
+      "count": 3,
+      "type": "Hidden",
+      "groupID": "G52"
+    },
+    {
+      "x": 2,
+      "y": 3,
       "count": 2,
       "type": "Normal"
     }

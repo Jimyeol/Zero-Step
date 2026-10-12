@@ -1,10 +1,10 @@
 {
-  "stageID": 0,
-  "width": 4,
+  "stageID": 82,
+  "width": 3,
   "height": 4,
   "startPoint": {
     "x": 2,
-    "y": 3
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -14,9 +14,15 @@
   },
   "cells": [
     {
-      "x": 1,
+      "x": 0,
       "y": 0,
       "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "count": 3,
       "type": "Normal"
     },
     {
@@ -28,63 +34,32 @@
     {
       "x": 1,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
       "count": 1,
-      "type": "Normal"
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FBFF"
+      }
     },
     {
       "x": 1,
       "y": 2,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Left"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 2,
       "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Up"
     },
     {
       "x": 0,
       "y": 3,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
+      "type": "Normal"
     },
     {
       "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
-    },
-    {
-      "x": 2,
       "y": 3,
       "count": 3,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 2,
       "y": 3,
       "count": 1,
       "type": "Normal"

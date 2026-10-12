@@ -1,7 +1,7 @@
 {
-  "stageID": 0,
-  "width": 2,
-  "height": 4,
+  "stageID": 874,
+  "width": 4,
+  "height": 6,
   "startPoint": {
     "x": 0,
     "y": 1
@@ -14,52 +14,100 @@
   },
   "cells": [
     {
-      "x": 0,
+      "x": 1,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
       "y": 0,
       "count": 2,
       "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 4,
+      "properties": {
+        "isAbsolute": true
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 178,
+      "color": "#00FBFF"
     },
     {
       "x": 1,
-      "y": 0,
+      "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 0,
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
       "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 2,
       "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
     },
     {
       "x": 1,
       "y": 3,
       "count": 2,
       "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "count": 2,
+      "type": "Charge"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#38bdf8"
+      }
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 178,
+      "color": "#00FBFF"
     }
   ]
 }
