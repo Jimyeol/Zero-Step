@@ -742,7 +742,7 @@ public class ProceduralGridBackground : MonoBehaviour
             corrected = true;
         }
 
-        if (restoreMotionDefaults && !gridMotionEnabled)
+        if (restoreMotionDefaults && !gridMotionEnabled && !VisualTheme.IsSoftClay)
         {
             gridMotionEnabled = true;
             corrected = true;
