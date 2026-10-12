@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 using TMPro;
 
 public interface IGameOverBlackoutVisual
@@ -408,7 +409,9 @@ public class Tile : MonoBehaviour
     private IEnumerator HeartbeatPulseRoutine(float restMult, float peakMult)
     {
         Vector3 restScale = baseScale * restMult;
-        Vector3 peakScale = baseScale * Mathf.Max(restMult, peakMult);
+        // 효과 강도에 비례해 심장박동 폭을 줄이고, Minimal에서는 정지시킨다.
+        float pulseAmount = Mathf.Max(0f, peakMult - restMult) * GameplayFeedback.Intensity;
+        Vector3 peakScale = baseScale * (restMult + pulseAmount);
         WaitForSeconds pulseWait = new WaitForSeconds(pulseInterval);
 
         while (true)
@@ -524,9 +527,12 @@ public class Tile : MonoBehaviour
         if (willDisappear && !fixedKnotOwnsDisappearVisual)
             PlayCountZeroDisappear(particleColor, numberWasVisible, spriteWasVisible, tileImageWasVisible, linkedWasVisible);
         else
+        {
             PlayTensionAnimation();
+            PlayNumberPop();
+        }
 
-        if (hitEffect != null)
+        if (hitEffect != null && GameplayFeedback.Intensity > 0f)
         {
             var main = hitEffect.main;
             main.startColor = new ParticleSystem.MinMaxGradient(particleColor);
@@ -545,8 +551,8 @@ public class Tile : MonoBehaviour
     private void UpdateNumberDisplay()
     {
         if (numberText == null) return;
-        // Blackout 타일 자체 또는 Blackout 발동 후 전역 ? 모드: 숫자 노출 금지
-        if (displayAsQuestion || GetComponent<BlackoutTile>() != null)
+        // Blackout/BlindCurtain 타일 자체 또는 Blackout 발동 후 전역 ? 모드: 숫자 노출 금지
+        if (displayAsQuestion || GetComponent<BlackoutTile>() != null || GetComponent<BlindCurtainTile>() != null)
         {
             numberText.text = "?";
         }
@@ -583,8 +589,9 @@ public class Tile : MonoBehaviour
         Color numberDisplayColor;
         if (numberColorOverride.HasValue && currentNumber > 0)
         {
-            numberDisplayColor = numberColorOverride.Value;
-            hdrColor = numberDisplayColor * hdrIntensity;
+            // TwinLink 등 링크 색은 타일 테두리에만 쓰고, 숫자는 숫자 팔레트 색을 유지해 "색 = 남은 횟수" 의미가 깨지지 않게 한다.
+            numberDisplayColor = GetBaseColorForNumber(currentNumber);
+            hdrColor = numberColorOverride.Value * hdrIntensity;
             if (isStartPoint) hdrColor *= 1.3f * StartPointTint;
         }
         else
@@ -622,8 +629,8 @@ public class Tile : MonoBehaviour
         Color numberDisplayColor;
         if (numberColorOverride.HasValue && currentNumber > 0)
         {
-            numberDisplayColor = numberColorOverride.Value;
-            hdrColor = numberDisplayColor * hdrIntensity;
+            numberDisplayColor = GetBaseColorForNumber(currentNumber);
+            hdrColor = numberColorOverride.Value * hdrIntensity;
             if (spriteRenderer != null) spriteRenderer.color = hdrColor;
             if (tileImage != null && tileImage != spriteRenderer) tileImage.color = hdrColor;
             ApplyLinkedRendererColor(hdrColor);
@@ -756,6 +763,61 @@ public class Tile : MonoBehaviour
             SetActiveState(false);
     }
 
+    /// <summary>Charge 타일 효과: 남아 있는 타일의 숫자를 1 늘린다(0인 타일은 되살리지 않는다).</summary>
+    public void IncreaseNumber()
+    {
+        if (currentNumber <= 0)
+            return;
+        SetNumber(currentNumber + 1);
+        PlayNumberPop();
+    }
+
+    /// <summary>되돌리기: 연출 없이 숫자·표시 상태를 지정한 값으로 즉시 되돌린다(0에서 다시 살아나는 경우 포함).</summary>
+    public void RestoreCountForUndo(int count)
+    {
+        ResetTransientVisualState();
+        if (numberText != null)
+            numberText.transform.DOKill(true);
+
+        currentNumber = Mathf.Max(0, count);
+        UpdateNumberDisplay();
+        ApplyNumberColor();
+        SetActiveState(currentNumber > 0);
+        transform.localScale = baseScale * scaleOverride;
+    }
+
+    /// <summary>실패 설명 단계: 원인이 아닌 타일을 어둡게 눌러 원인 타일이 눈에 띄게 한다.</summary>
+    public void SetFailureDim(float factor)
+    {
+        if (currentNumber <= 0)
+            return;
+
+        ApplyNumberColor();
+        Color c = spriteRenderer != null ? spriteRenderer.color : Color.white;
+        float f = Mathf.Clamp01(factor);
+        SetGlitchColor(new Color(c.r * f, c.g * f, c.b * f, c.a));
+        if (numberText != null)
+        {
+            Color textColor = numberText.color;
+            numberText.color = new Color(textColor.r, textColor.g, textColor.b, Mathf.Lerp(0.25f, 1f, f));
+        }
+    }
+
+    /// <summary>현재 타일 스프라이트에 적용된 색(HDR 포함).</summary>
+    public Color CurrentDisplayColor => spriteRenderer != null ? spriteRenderer.color : Color.white;
+
+    /// <summary>실패 강조 맥동을 즉시 멈추고 원래 색·크기로 되돌린다.</summary>
+    public void StopFailureFocusPulse()
+    {
+        if (failureFocusRoutine == null)
+            return;
+
+        StopCoroutine(failureFocusRoutine);
+        failureFocusRoutine = null;
+        transform.localScale = baseScale * scaleOverride;
+        RestoreNeonColor();
+    }
+
     public void PlayFailureFocusPulse(Color color, int pulseCount = 2)
     {
         if (currentNumber <= 0)
@@ -826,6 +888,18 @@ public class Tile : MonoBehaviour
     /// <summary>
     /// 코루틴: 0.9x 수축 후 1.0x로 빠르게 복구 (텐션 애니메이션). 외부 라이브러리 없음.
     /// </summary>
+    /// <summary>숫자가 바뀌는 순간 숫자만 짧게 튀어 "줄었다"는 변화가 눈에 띄게 한다.</summary>
+    private void PlayNumberPop()
+    {
+        if (numberText == null || !numberText.gameObject.activeInHierarchy)
+            return;
+
+        Transform numberTransform = numberText.transform;
+        numberTransform.DOKill(true);
+        float strength = Mathf.Lerp(0.06f, 0.2f, GameplayFeedback.Intensity);
+        numberTransform.DOPunchScale(numberTransform.localScale * strength, 0.12f, 1, 0f);
+    }
+
     private void PlayTensionAnimation()
     {
         if (scaleRoutine != null)
@@ -836,7 +910,8 @@ public class Tile : MonoBehaviour
     private IEnumerator ScaleTensionRoutine()
     {
         Vector3 targetScale = baseScale * scaleOverride;
-        Vector3 small = targetScale * shrinkScale;
+        // Minimal에서도 0.95배 눌림은 남겨 이동 피드백이 완전히 사라지지 않게 한다.
+        Vector3 small = targetScale * Mathf.Lerp(Mathf.Max(shrinkScale, 0.95f), shrinkScale, GameplayFeedback.Intensity);
         float elapsed = 0f;
 
         while (elapsed < shrinkDuration)
@@ -884,10 +959,11 @@ public class Tile : MonoBehaviour
             numberText.gameObject.SetActive(numberWasVisible);
 
         Vector3 startScale = transform.localScale == Vector3.zero ? baseScale * scaleOverride : transform.localScale;
-        Vector3 flashScale = startScale * 1.08f;
-        Vector3 endScale = startScale * Mathf.Clamp(countZeroEndScale, 0.1f, 1f);
+        float feedbackIntensity = GameplayFeedback.Intensity;
+        Vector3 flashScale = startScale * Mathf.Lerp(1f, 1.08f, feedbackIntensity);
+        Vector3 endScale = startScale * Mathf.Lerp(1f, Mathf.Clamp(countZeroEndScale, 0.1f, 1f), feedbackIntensity);
         float duration = Mathf.Max(0.05f, countZeroDisappearDuration);
-        Color flashColor = sourceColor * Mathf.Max(1f, countZeroFlashIntensity);
+        Color flashColor = sourceColor * Mathf.Lerp(1f, Mathf.Max(1f, countZeroFlashIntensity), feedbackIntensity);
         flashColor.a = 1f;
 
         float elapsed = 0f;

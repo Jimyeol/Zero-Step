@@ -65,6 +65,17 @@
                 <ui:Label name="HintBadgeText" text="x3" class="neon-ad-badge-text"/>
             </ui:VisualElement>
         </ui:Button>
+        <ui:Button name="UndoButton" text="" class="neon-action-button neon-action-button-undo">
+            <ui:VisualElement class="neon-button-glow" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-outer" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-ring neon-button-ring-bright" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-a" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-arc neon-button-arc-b" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-disc" picking-mode="Ignore"/>
+            <ui:VisualElement class="neon-button-icon-slot" picking-mode="Ignore">
+                <ui:Image name="UndoIcon" class="neon-button-icon"/>
+            </ui:VisualElement>
+        </ui:Button>
         <ui:Button name="ResetButton" text="" class="neon-action-button neon-action-button-reset">
             <ui:VisualElement class="neon-button-glow" picking-mode="Ignore"/>
             <ui:VisualElement class="neon-button-ring neon-button-ring-outer" picking-mode="Ignore"/>
@@ -217,6 +228,7 @@
             <ui:Label name="HeartDepletedMessage" text="광고를 시청하면 하트 5개가 즉시 충전되고 현재 스테이지가 다시 시작됩니다." style="font-size: 34px; color: rgba(210, 236, 255, 1); -unity-text-align: middle-center; margin-bottom: 18px;"/>
             <ui:Label name="HeartRefillRewardHint" text="보상: 하트 5개 + 즉시 재시작" style="font-size: 30px; color: rgba(161, 231, 255, 1); -unity-text-align: middle-center; margin-bottom: 26px;"/>
             <ui:Button name="HeartRefillAdButton" text="광고 보고 하트 5개 충전" style="width: 92%; max-width: 790px; height: 126px; font-size: 40px; color: rgb(255, 255, 255); border-radius: 22px; background-color: rgba(74, 193, 255, 0.26); border-left-width: 3px; border-right-width: 3px; border-top-width: 3px; border-bottom-width: 3px; border-left-color: rgba(189, 239, 255, 0.95); border-right-color: rgba(189, 239, 255, 0.95); border-top-color: rgba(189, 239, 255, 0.95); border-bottom-color: rgba(189, 239, 255, 0.95);"/>
+            <ui:Button name="HeartWaitRefillButton" text="3:00 후 무료 충전" style="width: 92%; max-width: 790px; height: 96px; margin-top: 18px; font-size: 34px; color: rgba(210, 236, 255, 1); border-radius: 22px; background-color: rgba(255, 255, 255, 0.04); border-left-width: 2px; border-right-width: 2px; border-top-width: 2px; border-bottom-width: 2px; border-left-color: rgba(156, 227, 255, 0.55); border-right-color: rgba(156, 227, 255, 0.55); border-top-color: rgba(156, 227, 255, 0.55); border-bottom-color: rgba(156, 227, 255, 0.55);"/>
             <ui:Label name="HeartRefillStatusLabel" text="" style="font-size: 30px; color: rgba(181, 226, 255, 1); -unity-text-align: middle-center; margin-top: 18px; min-height: 44px;"/>
         </ui:VisualElement>
     </ui:VisualElement>

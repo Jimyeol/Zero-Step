@@ -65,4 +65,65 @@ public static class StageManager
         stageCache[stageNumber] = data;
         return data;
     }
+
+    // ===== 검증된 정답 경로 =====
+    // Resources/Stages/solutions.txt 한 줄 형식: N|x,y;x,y;...|x,y;...  ('|' 구간 = 손을 떼지 않는 한 번의 드래그)
+    // 힌트가 정답 경로를 따라가는 동안에는 탐색 없이 즉시 힌트를 보여주는 데 쓴다.
+    private const string SolutionsPath = "Stages/solutions";
+    private static Dictionary<int, string> solutionLines;
+    private static readonly Dictionary<int, List<Vector2Int>> solutionMoveCache = new Dictionary<int, List<Vector2Int>>();
+
+    /// <summary>시작 칸 다음부터 끝까지 이어지는 정답 이동 칸 목록. 없으면 null.</summary>
+    public static List<Vector2Int> LoadSolutionMoves(int stageNumber)
+    {
+        if (solutionMoveCache.TryGetValue(stageNumber, out List<Vector2Int> cached))
+            return cached;
+
+        EnsureSolutionLines();
+        List<Vector2Int> moves = null;
+        if (solutionLines != null && solutionLines.TryGetValue(stageNumber, out string line))
+            moves = ParseSolutionMoves(line);
+        solutionMoveCache[stageNumber] = moves;
+        return moves;
+    }
+
+    private static void EnsureSolutionLines()
+    {
+        if (solutionLines != null)
+            return;
+
+        solutionLines = new Dictionary<int, string>();
+        TextAsset asset = Resources.Load<TextAsset>(SolutionsPath);
+        if (asset == null)
+            return;
+
+        foreach (string rawLine in asset.text.Split('\n'))
+        {
+            string line = rawLine.Trim();
+            int bar = line.IndexOf('|');
+            if (bar <= 0)
+                continue;
+            if (int.TryParse(line.Substring(0, bar), out int stage))
+                solutionLines[stage] = line.Substring(bar + 1);
+        }
+        Resources.UnloadAsset(asset);
+    }
+
+    private static List<Vector2Int> ParseSolutionMoves(string strokesText)
+    {
+        var moves = new List<Vector2Int>();
+        string[] strokes = strokesText.Split('|');
+        for (int s = 0; s < strokes.Length; s++)
+        {
+            string[] cells = strokes[s].Split(';');
+            // 각 드래그의 첫 칸은 현재 위치이므로 이동에서 제외한다.
+            for (int i = 1; i < cells.Length; i++)
+            {
+                string[] xy = cells[i].Split(',');
+                if (xy.Length == 2 && int.TryParse(xy[0], out int x) && int.TryParse(xy[1], out int y))
+                    moves.Add(new Vector2Int(x, y));
+            }
+        }
+        return moves.Count > 0 ? moves : null;
+    }
 }

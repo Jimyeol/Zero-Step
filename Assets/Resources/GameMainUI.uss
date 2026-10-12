@@ -1183,6 +1183,15 @@
     border-top-color: rgba(82, 255, 245, 0.9);
 }
 
+.neon-action-button-undo .neon-button-arc-a {
+    border-left-color: rgba(176, 140, 255, 0.92);
+    border-top-color: rgba(176, 140, 255, 0.92);
+}
+
+.neon-action-button-undo:disabled {
+    opacity: 0.45;
+}
+
 .neon-action-button-block .neon-button-arc-a {
     border-left-color: rgba(66, 198, 255, 0.95);
     border-top-color: rgba(66, 198, 255, 0.95);
@@ -1333,6 +1342,81 @@
 
 .settings-switch-off .settings-switch-knob {
     background-color: rgba(255, 234, 234, 1);
+}
+
+.settings-effect-row {
+    min-height: 122px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    padding-left: 30px;
+    padding-right: 30px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: rgba(255, 255, 255, 0.35);
+    border-right-color: rgba(255, 255, 255, 0.35);
+    border-top-color: rgba(255, 255, 255, 0.35);
+    border-bottom-color: rgba(255, 255, 255, 0.35);
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.settings-effect-label {
+    min-width: 160px;
+    flex-shrink: 1;
+    white-space: normal;
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+}
+
+.settings-effect-button-group {
+    min-width: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-left: 20px;
+}
+
+.settings-effect-button {
+    min-width: 104px;
+    min-height: 70px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-left: 6px;
+    margin-right: 6px;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgba(129, 224, 255, 0.42);
+    border-right-color: rgba(129, 224, 255, 0.42);
+    border-top-color: rgba(129, 224, 255, 0.42);
+    border-bottom-color: rgba(129, 224, 255, 0.42);
+    border-radius: 16px;
+    background-color: rgba(18, 34, 48, 0.68);
+    color: rgba(235, 250, 255, 1);
+    font-size: 22px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.settings-effect-button-selected {
+    background-color: rgba(70, 236, 182, 0.28);
+    border-left-color: rgba(129, 255, 215, 0.95);
+    border-right-color: rgba(129, 255, 215, 0.95);
+    border-top-color: rgba(129, 255, 215, 0.95);
+    border-bottom-color: rgba(129, 255, 215, 0.95);
+    color: rgb(255, 255, 255);
 }
 
 #HeartContainer > Image {
@@ -2435,5 +2519,11 @@
     border-bottom-color: rgba(160, 242, 255, 0.88);
     color: rgba(245, 255, 255, 1);
     font-size: 24px;
+    -unity-font-style: bold;
+}
+
+/* 인트로 숫자·부제 */
+.neon-intro-text {
+    -unity-font-definition: url("project://database/Assets/Fonts/Orbitron-Medium.ttf?fileID=12800000&guid=d788a3059e71747c680a1ce1e963cd99&type=3#Orbitron-Medium");
     -unity-font-style: bold;
 }

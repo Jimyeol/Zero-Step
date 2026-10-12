@@ -92,7 +92,7 @@ public sealed class FirebaseBootstrap : MonoBehaviour
 
 #if UNITY_EDITOR
         isInitializing = false;
-        Debug.Log("[FirebaseBootstrap] Firebase initialization is skipped in Unity Editor. Validate on iOS/Android device build.");
+        DevLog.Log("[FirebaseBootstrap] Firebase initialization is skipped in Unity Editor. Validate on iOS/Android device build.");
         yield break;
 #endif
 
@@ -148,7 +148,7 @@ public sealed class FirebaseBootstrap : MonoBehaviour
             }, queueIfNotReady: false);
 
             FlushPendingEvents();
-            Debug.Log("[FirebaseBootstrap] Firebase initialized successfully.");
+            DevLog.Log("[FirebaseBootstrap] Firebase initialized successfully.");
         }
         catch (Exception ex)
         {
@@ -209,7 +209,7 @@ public sealed class FirebaseBootstrap : MonoBehaviour
             { "activated", activated },
             { "minimum_fetch_interval_seconds", minimumFetchIntervalSeconds }
         });
-        Debug.Log($"[FirebaseBootstrap] Remote Config ready. activated={activated}");
+        DevLog.Log($"[FirebaseBootstrap] Remote Config ready. activated={activated}");
     }
 
     private void OnActiveSceneChanged(Scene from, Scene to)

@@ -49,6 +49,66 @@ public class ShortCircuitTile : MonoBehaviour
     private void LateUpdate()
     {
         SyncDirectionVisualRenderer();
+        UpdateFlowChevron();
+    }
+
+    // 출구 쪽으로 흘러가는 작은 쉐브론: 밟기 전에 "이쪽으로만 나간다"를 보여준다(효과 강도 반영, Minimal은 정지 표시).
+    private const float ChevronCycleSeconds = 0.8f;
+    private LineRenderer flowChevron;
+
+    private void EnsureFlowChevron()
+    {
+        if (flowChevron != null || spriteRenderer == null)
+            return;
+
+        var go = new GameObject("ShortCircuitFlowChevron");
+        go.transform.SetParent(transform, false);
+        flowChevron = go.AddComponent<LineRenderer>();
+        flowChevron.useWorldSpace = false;
+        flowChevron.positionCount = 3;
+        flowChevron.numCapVertices = 3;
+        flowChevron.numCornerVertices = 3;
+        flowChevron.alignment = LineAlignment.TransformZ;
+        if (spriteRenderer.sharedMaterial != null)
+            flowChevron.sharedMaterial = spriteRenderer.sharedMaterial;
+        flowChevron.sortingLayerID = spriteRenderer.sortingLayerID;
+        flowChevron.sortingOrder = spriteRenderer.sortingOrder + 4;
+        flowChevron.enabled = false;
+    }
+
+    private void UpdateFlowChevron()
+    {
+        EnsureFlowChevron();
+        if (flowChevron == null)
+            return;
+
+        bool visible = tile != null && tile.IsActive && !tile.IsGameOverBlackoutActive && transform.localScale.sqrMagnitude > 0.0001f;
+        flowChevron.enabled = visible;
+        if (!visible)
+            return;
+
+        // 로컬 좌표 기준 타일 반 크기(스프라이트 bounds는 월드 단위이므로 스케일로 나눈다).
+        float scale = Mathf.Max(0.0001f, Mathf.Abs(transform.lossyScale.x));
+        float half = directionVisualRenderer != null && directionVisualRenderer.sprite != null
+            ? directionVisualRenderer.sprite.bounds.extents.x
+            : 0.5f;
+        float intensity = GameplayFeedback.Intensity;
+        float t = intensity > 0f ? Mathf.Repeat(Time.time / ChevronCycleSeconds, 1f) : 0.55f;
+        Vector3 dir = new Vector3(dirX, dirY, 0f);
+        Vector3 side = new Vector3(-dirY, dirX, 0f);
+        float travel = Mathf.Lerp(0.1f, 0.62f, t) * half;
+        float size = 0.2f * half;
+        Vector3 tip = dir * (travel + size * 0.5f);
+        Vector3 back = dir * (travel - size * 0.5f);
+        flowChevron.SetPosition(0, back + side * size);
+        flowChevron.SetPosition(1, tip);
+        flowChevron.SetPosition(2, back - side * size);
+        flowChevron.widthMultiplier = half * 0.09f;
+        float alpha = intensity > 0f ? Mathf.Sin(t * Mathf.PI) * 0.85f : 0.6f;
+        Color c = new Color(1f, 1f, 1f, alpha);
+        flowChevron.startColor = c;
+        flowChevron.endColor = c;
+        flowChevron.transform.localPosition = new Vector3(0f, 0f, -0.02f / scale);
     }
 
     private void OnDestroy()

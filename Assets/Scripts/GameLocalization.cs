@@ -12,37 +12,19 @@ public static class GameLocalization
 {
     public const string LanguageAuto = "auto";
 
+    // 출시 언어는 번역이 완료된 한국어·영어만 노출한다.
+    // 나머지 언어 테이블은 번역이 완료되면 SelectionOrder/SupportedLanguages/ResolveSystemLanguageCode에 다시 추가한다.
     private static readonly string[] SelectionOrder =
     {
         LanguageAuto,
         "ko",
-        "en",
-        "ja",
-        "zh-Hans",
-        "zh-Hant",
-        "es",
-        "fr",
-        "de",
-        "pt",
-        "ru",
-        "id",
-        "th"
+        "en"
     };
 
     private static readonly HashSet<string> SupportedLanguages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "ko",
-        "en",
-        "ja",
-        "zh-Hans",
-        "zh-Hant",
-        "es",
-        "fr",
-        "de",
-        "pt",
-        "ru",
-        "id",
-        "th"
+        "en"
     };
 
     private static readonly Dictionary<string, string> LanguageDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -77,6 +59,10 @@ public static class GameLocalization
                     { "section_data_policy", "Data & Policy" },
                     { "label_sound", "Sound" },
                     { "label_vibration", "Vibration" },
+                    { "label_effect_level", "Effects" },
+                    { "effect_level_full", "Full" },
+                    { "effect_level_reduced", "Reduced" },
+                    { "effect_level_minimal", "Minimal" },
                     { "menu_help", "Help" },
                     { "menu_language", "Language: {language}" },
                     { "language_select_title", "Select Language" },
@@ -147,7 +133,7 @@ public static class GameLocalization
                     { "tutorial_blackout_step_memory", "Use memory to finish the board." },
                     { "snackbar_short_circuit_only_direction", "You can only move {direction}." },
                     { "snackbar_short_circuit_blocked_entry", "You cannot enter from the {direction} side." },
-                    { "snackbar_fixed_knot_only_order", "You can only step on this tile at move {order}." },
+                    { "snackbar_fixed_knot_only_order", "Order tiles can only be entered when their number shows 1. (Now {order})" },
                     { "snackbar_fixed_knot_missed", "Order tiles must be stepped on at the exact move." },
                     { "snackbar_gameover_no_legal_move", "Game over: no legal move from here." },
                     { "snackbar_gameover_unreachable_remaining_tiles", "Game over: the remaining tiles are cut off from here." },
@@ -162,6 +148,25 @@ public static class GameLocalization
                     { "snackbar_idle_hint_bonus_granted", "Free hint granted." },
                     { "snackbar_hint_recharging", "Hint is recharging: {time}" },
                     { "snackbar_skip_recharging", "Skip is recharging: {time}" },
+                    { "snackbar_stage_stars", "Clear!  {stars}" },
+                    { "snackbar_stage_stars_one_stroke", "Clear!  {stars}   One-stroke bonus!" },
+                    { "tutorial_charge_title", "Charge Tile" },
+                    { "tutorial_charge_description", "Leaving a charge tile adds 1 to its neighbors." },
+                    { "tutorial_charge_instructions", "1. Neighbors +1\n   When you leave a charge tile, each remaining neighbor gains 1.\n2. Except where you go\n   The tile you move into is not charged.\n3. Come back later\n   Charged tiles need extra visits, so plan your route." },
+                    { "tutorial_charge_step_intro", "This is a charge tile." },
+                    { "tutorial_charge_step_enter", "Step onto the charge tile." },
+                    { "tutorial_charge_step_charge", "Leaving it charged the neighbor: +1." },
+                    { "tutorial_charge_step_return", "Come back to clear the charged tile." },
+                    { "snackbar_undo_unavailable", "Nothing to undo right now." },
+                    { "snackbar_heart_first_loss", "Hearts only drop when you get stuck. Reset and Undo are free." },
+                    { "heart_wait_button_waiting", "Free refill in {time}" },
+                    { "heart_wait_button_ready", "Claim Free Refill" },
+                    { "heart_status_offline", "No internet connection. Wait for the free refill." },
+                    { "heart_status_load_failed_retrying", "Couldn't load the ad. Retrying automatically..." },
+                    { "snackbar_skip_final_stage", "The final stage can't be skipped." },
+                    { "snackbar_skip_confirm", "Tap Skip again to skip this stage." },
+                    { "snackbar_assist_ad_unavailable", "Ad isn't ready yet. Free charge in {time}." },
+                    { "snackbar_assist_ad_offline", "No internet connection. Free charge in {time}." },
                     { "direction_left", "left" },
                     { "direction_right", "right" },
                     { "direction_up", "up" },
@@ -173,7 +178,7 @@ public static class GameLocalization
                     { "tutorial_step_right", "Right tile count -1" },
                     { "tutorial_step_clear", "Remaining count 0: Stage Clear!" },
                     { "heart_rewarded_title", "You're out of hearts" },
-                    { "heart_rewarded_message", "Watch an ad to refill 5 hearts and restart this stage." },
+                    { "heart_rewarded_message", "Watch an ad to refill 5 hearts now, or wait a moment for a free refill." },
                     { "heart_rewarded_hint", "Reward: 5 hearts + instant restart" },
                     { "heart_rewarded_button", "Watch Ad to Refill 5 Hearts" },
                     { "heart_session_title", "Free Heart Refill" },
@@ -247,6 +252,10 @@ public static class GameLocalization
                     { "section_data_policy", "데이터 · 정책" },
                     { "label_sound", "소리" },
                     { "label_vibration", "진동" },
+                    { "label_effect_level", "효과" },
+                    { "effect_level_full", "전체" },
+                    { "effect_level_reduced", "줄임" },
+                    { "effect_level_minimal", "최소" },
                     { "menu_help", "도움말" },
                     { "menu_language", "언어 변경: {language}" },
                     { "language_select_title", "언어 선택" },
@@ -317,7 +326,7 @@ public static class GameLocalization
                     { "tutorial_blackout_step_memory", "기억한 숫자로 남은 경로를 이어가세요." },
                     { "snackbar_short_circuit_only_direction", "{direction}으로만 이동할 수 있습니다." },
                     { "snackbar_short_circuit_blocked_entry", "{direction} 방향에서는 진입할 수 없습니다." },
-                    { "snackbar_fixed_knot_only_order", "{order}번째 순서에만 밟을 수 있습니다." },
+                    { "snackbar_fixed_knot_only_order", "순서 타일은 숫자가 1일 때만 밟을 수 있어요. (지금 {order})" },
                     { "snackbar_fixed_knot_missed", "순서 타일은 정해진 순서에 꼭 밟아야 합니다." },
                     { "snackbar_gameover_no_legal_move", "더 이동할 수 없어 게임오버입니다." },
                     { "snackbar_gameover_unreachable_remaining_tiles", "남은 타일로 다시 이어갈 수 없어 게임오버입니다." },
@@ -332,6 +341,25 @@ public static class GameLocalization
                     { "snackbar_idle_hint_bonus_granted", "무료 힌트가 지급되었습니다." },
                     { "snackbar_hint_recharging", "힌트 충전 중입니다: {time}" },
                     { "snackbar_skip_recharging", "스킵 충전 중입니다: {time}" },
+                    { "snackbar_stage_stars", "클리어!  {stars}" },
+                    { "snackbar_stage_stars_one_stroke", "클리어!  {stars}   한붓 보너스!" },
+                    { "tutorial_charge_title", "충전 타일" },
+                    { "tutorial_charge_description", "충전 타일에서 나가면 이웃 타일 숫자가 1씩 늘어나요." },
+                    { "tutorial_charge_instructions", "1. 이웃이 +1\n   충전 타일에서 나가면 남아 있는 이웃 타일 숫자가 1씩 늘어나요.\n2. 들어가는 칸은 제외\n   지금 들어가는 칸은 늘어나지 않아요.\n3. 다시 와야 해요\n   늘어난 칸은 더 지나가야 하니 길을 미리 계획하세요." },
+                    { "tutorial_charge_step_intro", "이것이 충전 타일이에요." },
+                    { "tutorial_charge_step_enter", "충전 타일로 들어가세요." },
+                    { "tutorial_charge_step_charge", "나가는 순간 이웃이 +1 됐어요." },
+                    { "tutorial_charge_step_return", "늘어난 칸은 다시 와서 지나가야 해요." },
+                    { "snackbar_undo_unavailable", "지금은 되돌릴 이동이 없어요." },
+                    { "snackbar_heart_first_loss", "하트는 막혀서 실패할 때만 줄어요. 리셋과 되돌리기는 무료예요." },
+                    { "heart_wait_button_waiting", "{time} 후 무료 충전" },
+                    { "heart_wait_button_ready", "무료로 하트 5개 받기" },
+                    { "heart_status_offline", "인터넷 연결이 없어요. 잠시 기다리면 무료로 충전돼요." },
+                    { "heart_status_load_failed_retrying", "광고를 불러오지 못했어요. 자동으로 다시 시도하는 중..." },
+                    { "snackbar_skip_final_stage", "마지막 스테이지는 건너뛸 수 없어요." },
+                    { "snackbar_skip_confirm", "한 번 더 누르면 이 스테이지를 건너뜁니다." },
+                    { "snackbar_assist_ad_unavailable", "광고가 아직 준비되지 않았어요. 무료 충전까지 {time}" },
+                    { "snackbar_assist_ad_offline", "인터넷 연결이 없어요. 무료 충전까지 {time}" },
                     { "direction_left", "왼쪽" },
                     { "direction_right", "오른쪽" },
                     { "direction_up", "위쪽" },
@@ -343,7 +371,7 @@ public static class GameLocalization
                     { "tutorial_step_right", "오른쪽 타일 카운트 -1" },
                     { "tutorial_step_clear", "남은 카운트 0: 스테이지 클리어!" },
                     { "heart_rewarded_title", "하트가 모두 소진됐어요" },
-                    { "heart_rewarded_message", "광고를 시청하면 하트 5개가 즉시 충전되고 현재 스테이지가 다시 시작됩니다." },
+                    { "heart_rewarded_message", "광고를 보면 바로, 잠시 기다리면 무료로 하트 5개가 충전됩니다." },
                     { "heart_rewarded_hint", "보상: 하트 5개 + 즉시 재시작" },
                     { "heart_rewarded_button", "광고 보고 하트 5개 충전" },
                     { "heart_session_title", "무료 하트 충전 기회" },
@@ -628,36 +656,7 @@ public static class GameLocalization
 
     public static string ResolveSystemLanguageCode()
     {
-        switch (Application.systemLanguage)
-        {
-            case SystemLanguage.Korean:
-                return "ko";
-            case SystemLanguage.Japanese:
-                return "ja";
-            case SystemLanguage.ChineseSimplified:
-                return "zh-Hans";
-            case SystemLanguage.ChineseTraditional:
-                return "zh-Hant";
-            case SystemLanguage.Chinese:
-                return "zh-Hans";
-            case SystemLanguage.Spanish:
-                return "es";
-            case SystemLanguage.French:
-                return "fr";
-            case SystemLanguage.German:
-                return "de";
-            case SystemLanguage.Portuguese:
-                return "pt";
-            case SystemLanguage.Russian:
-                return "ru";
-            case SystemLanguage.Indonesian:
-                return "id";
-            case SystemLanguage.Thai:
-                return "th";
-            case SystemLanguage.English:
-            default:
-                return "en";
-        }
+        return Application.systemLanguage == SystemLanguage.Korean ? "ko" : "en";
     }
 
     public static string GetNextSelectionCode(string currentSelectionCode)

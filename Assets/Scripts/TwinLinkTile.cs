@@ -63,6 +63,7 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
     private LightningBoltScript[] boltScripts = new LightningBoltScript[4];
     private LineRenderer[] boltLineRenderers = new LineRenderer[4];
     private LineRenderer[] activationLines = new LineRenderer[0];
+    private int activationLineObjectCount;
     private readonly List<TwinLinkTile> activationTargets = new List<TwinLinkTile>();
     private float boltTimer;
     private int nextIdleEdgeIndex;
@@ -255,15 +256,20 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
             UpdateBadgeVisibility();
             return;
         }
-        SetBoltsActive(true);
+        // 효과 강도 Minimal에서는 상시 번개를 끄고(그룹 배지로 연결을 표시), Reduced에서는 절반 빈도로 친다.
+        float effectIntensity = GameplayFeedback.Intensity;
+        bool idleBoltsEnabled = effectIntensity > 0f;
+        SetBoltsActive(idleBoltsEnabled);
         UpdateBadgeVisibility();
+        if (!idleBoltsEnabled)
+            return;
 
         if (lightningBoltPrefab == null || boltScripts[0] == null) return;
 
         boltTimer -= Time.deltaTime;
         if (boltTimer <= 0f)
         {
-            boltTimer = boltInterval;
+            boltTimer = effectIntensity >= 1f ? boltInterval : boltInterval * 2f;
             int triggerCount = Mathf.Clamp(idleEdgesPerPulse, 1, 4);
             for (int step = 0; step < triggerCount; step++)
             {
@@ -362,6 +368,8 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
         if (consumeTile == null)
             return;
 
+        GameplayFeedback feedback = GameplayFeedback.Instance;
+        bool directorOwnsActivation = feedback != null;
         activationTargets.Clear();
         foreach (var p in partners)
         {
@@ -370,15 +378,19 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
                 continue;
             if (p.tile.CurrentNumber <= 0)
                 continue;
+            int before = p.tile.CurrentNumber;
             consumeTile(p.tile);
+            if (p.tile.CurrentNumber < before)
+                feedback?.TwinLink(tile, p.tile);
             activationTargets.Add(p);
             p.FlashBolt();
-            p.Shake();
+            p.Shake(directorOwnsActivation);
         }
 
-        PlayActivationNetwork(activationTargets);
+        if (!directorOwnsActivation)
+            PlayActivationNetwork(activationTargets);
         FlashBolt();
-        Shake();
+        Shake(directorOwnsActivation);
     }
 
     public void ResetTransientVisualState()
@@ -449,7 +461,11 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
 
     private LineRenderer CreateActivationLine()
     {
-        LineRenderer line = gameObject.AddComponent<LineRenderer>();
+        // 한 GameObject에는 Renderer를 하나만 붙일 수 있어, 짝이 2개 이상인 그룹(선 2개 이상)에서
+        // 두 번째 선부터 생성이 실패하고 스테이지 로딩이 중단됐다. 선마다 자식 오브젝트를 만든다.
+        var lineObject = new GameObject($"TwinLinkActivationLine{activationLineObjectCount++}");
+        lineObject.transform.SetParent(transform, false);
+        LineRenderer line = lineObject.AddComponent<LineRenderer>();
         line.enabled = false;
         line.useWorldSpace = true;
         line.positionCount = 0;
@@ -531,8 +547,9 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
 
     private void ApplyActivationLineColor(LineRenderer line, float alpha)
     {
-        Color start = WithAlpha(linkColor, alpha);
-        Color end = WithAlpha(linkColor, alpha * 0.55f);
+        float feedbackIntensity = FeedbackIntensity();
+        Color start = WithAlpha(linkColor, alpha * feedbackIntensity);
+        Color end = WithAlpha(linkColor, alpha * 0.55f * feedbackIntensity);
         line.startColor = start;
         line.endColor = end;
     }
@@ -589,10 +606,12 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
         if (IsInGameOverBlackout())
             return;
 
-        Color bright = linkColor * flashIntensityMult;
+        float feedbackIntensity = FeedbackIntensity();
+        Color bright = linkColor * Mathf.Lerp(1f, flashIntensityMult, feedbackIntensity);
         bright.a = 1f;
         ApplyBoltColor(bright);
-        PulseBadge();
+        if (feedbackIntensity > 0f)
+            PulseBadge(feedbackIntensity);
         if (flashResetTween != null && flashResetTween.IsActive())
             flashResetTween.Kill();
         flashResetTween = DOVirtual.DelayedCall(flashDuration, () =>
@@ -603,12 +622,20 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
         });
     }
 
-    private void Shake()
+    private void Shake(bool cosmeticChildrenOnly = false)
     {
         if (IsInGameOverBlackout())
             return;
 
-        transform.DOShakePosition(shakeDuration, shakeStrength, 14, 90f, false, true).SetUpdate(true);
+        float feedbackIntensity = FeedbackIntensity();
+        if (feedbackIntensity <= 0f)
+            return;
+
+        float scaledShakeStrength = shakeStrength * feedbackIntensity;
+        if (cosmeticChildrenOnly)
+            return;
+
+        transform.DOShakePosition(shakeDuration, scaledShakeStrength, 14, 90f, false, true).SetUpdate(true);
     }
 
     private void EnsureBadgeText()
@@ -710,7 +737,7 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
         badgeText.SetMaterialDirty();
     }
 
-    private void PulseBadge()
+    private void PulseBadge(float feedbackIntensity)
     {
         if (IsInGameOverBlackout())
             return;
@@ -721,9 +748,10 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
         UpdateBadgeVisibility();
         badgePulseTween?.Kill();
         badgeTransform.localScale = badgeBaseScale;
-        badgeText.color = WithAlpha(linkColor * flashIntensityMult, 1f);
+        badgeText.color = WithAlpha(linkColor * Mathf.Lerp(1f, flashIntensityMult, feedbackIntensity), 1f);
+        float pulseScale = Mathf.Lerp(1f, BadgePulseScale, feedbackIntensity);
         badgePulseTween = DOTween.Sequence()
-            .Append(badgeTransform.DOScale(badgeBaseScale * BadgePulseScale, BadgePulseDuration).SetEase(Ease.OutQuad))
+            .Append(badgeTransform.DOScale(badgeBaseScale * pulseScale, BadgePulseDuration).SetEase(Ease.OutQuad))
             .Append(badgeTransform.DOScale(badgeBaseScale, BadgePulseDuration).SetEase(Ease.InQuad))
             .OnComplete(() =>
             {
@@ -776,6 +804,11 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
     {
         int normalized = Mathf.Abs(id) % 26;
         return ((char)('A' + normalized)).ToString();
+    }
+
+    private static float FeedbackIntensity()
+    {
+        return Mathf.Clamp01(GameplayFeedback.Intensity);
     }
 
     public int LinkID => linkID;

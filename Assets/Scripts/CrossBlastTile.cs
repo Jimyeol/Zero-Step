@@ -72,8 +72,9 @@ public class CrossBlastTile : MonoBehaviour
             HideBurstLines();
         }
 
-        int affectedCount = gameManager.GetCrossBlastAffectedTiles(tile, nextTile, affectedTilesBuffer);
+        // 연출 준비(실패할 수 있음)를 먼저 하고, 그 다음에 규칙상 감소 대상을 고른다.
         EnsureBurstLines();
+        int affectedCount = gameManager.GetCrossBlastAffectedTiles(tile, nextTile, affectedTilesBuffer);
         BeginPendingBoardMutation(gameManager, null, affectedCount);
         explosionRoutine = StartCoroutine(FlashAndDecreaseAdjacentRoutine(gameManager, affectedCount));
     }
@@ -96,6 +97,7 @@ public class CrossBlastTile : MonoBehaviour
         if (tile != null)
             tile.RestoreNeonColor();
         HideBurstLines();
+        ClearAffectedTiles();
     }
 
     private void ParseBeamColor(string hex)
@@ -166,7 +168,11 @@ public class CrossBlastTile : MonoBehaviour
             if (burstLines[i] != null)
                 continue;
 
-            LineRenderer line = gameObject.AddComponent<LineRenderer>();
+            // 한 GameObject에는 Renderer를 하나만 붙일 수 있다(타일에는 이미 SpriteRenderer가 있음).
+            // 그래서 빔 선은 자식 오브젝트에 만든다.
+            var lineObject = new GameObject($"CrossBlastBurstLine{i}");
+            lineObject.transform.SetParent(transform, false);
+            LineRenderer line = lineObject.AddComponent<LineRenderer>();
             line.enabled = false;
             line.useWorldSpace = true;
             line.positionCount = 2;
@@ -208,22 +214,28 @@ public class CrossBlastTile : MonoBehaviour
 
     private IEnumerator FlashAndDecreaseAdjacentRoutine(GameManager gameManager, int affectedCount)
     {
-        Color centerColor = WithAlpha(baseBeamColor, 1f) * flashIntensityMultiplier;
-        centerColor.a = 1f;
+        float feedbackIntensity = FeedbackIntensity();
 
-        if (spriteRenderer != null)
+        if (spriteRenderer != null && feedbackIntensity > 0f)
+        {
+            Color centerColor = WithAlpha(baseBeamColor, 1f) * Mathf.Lerp(1f, flashIntensityMultiplier, feedbackIntensity);
+            centerColor.a = 1f;
             spriteRenderer.color = centerColor;
+        }
 
-        yield return new WaitForSeconds(chargeDuration);
+        // 빔이 이웃에 닿는 순간 숫자가 줄도록, 충전 시간 동안 빔을 이웃까지 뻗게 한다(원인 → 결과 순서).
+        yield return ExtendBurstLines(affectedCount, chargeDuration);
 
         gameManager.DecreaseCrossBlastAffectedTiles(affectedTilesBuffer, affectedCount);
+        GameplayFeedback.Instance?.CrossBlast(tile, affectedTilesBuffer, affectedCount);
         CompletePendingBoardMutation(true);
-        yield return AnimateBurstLines(affectedCount);
+        yield return FadeBurstLines(affectedCount);
 
         if (tile != null)
             tile.RestoreNeonColor();
 
         HideBurstLines();
+        ClearAffectedTiles();
         explosionRoutine = null;
     }
 
@@ -254,19 +266,17 @@ public class CrossBlastTile : MonoBehaviour
             owner.CompletePendingBoardMutation("cross_blast", clearReferenceTile, requestFailureCheck);
     }
 
-    private IEnumerator AnimateBurstLines(int affectedCount)
+    private IEnumerator ExtendBurstLines(int affectedCount, float duration)
     {
+        float feedbackIntensity = FeedbackIntensity();
         int count = Mathf.Clamp(affectedCount, 0, affectedTilesBuffer.Length);
-        if (count <= 0)
+        if (count <= 0 || feedbackIntensity <= 0f || !HasBurstLines())
         {
-            yield return new WaitForSeconds(releaseDuration + fadeDuration);
+            yield return new WaitForSeconds(duration);
             yield break;
         }
 
         Vector3 center = GetCuePosition(transform.position);
-        Color bright = WithAlpha(baseBeamColor, 0.95f);
-        Color soft = WithAlpha(baseBeamColor, 0.35f);
-
         for (int i = 0; i < burstLines.Length; i++)
         {
             LineRenderer line = burstLines[i];
@@ -274,18 +284,16 @@ public class CrossBlastTile : MonoBehaviour
             if (line == null) continue;
             line.enabled = active;
             if (!active) continue;
-            line.widthMultiplier = burstLineWidth;
-            line.startColor = bright;
-            line.endColor = soft;
             line.SetPosition(0, center);
             line.SetPosition(1, center);
         }
 
         float elapsed = 0f;
-        while (elapsed < releaseDuration)
+        float safeDuration = Mathf.Max(0.01f, duration);
+        while (elapsed < safeDuration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / releaseDuration);
+            float t = Mathf.Clamp01(elapsed / safeDuration);
             float eased = 1f - (1f - t) * (1f - t);
             for (int i = 0; i < count; i++)
             {
@@ -295,27 +303,36 @@ public class CrossBlastTile : MonoBehaviour
                 Vector3 targetPosition = GetCuePosition(target.transform.position);
                 line.SetPosition(0, center);
                 line.SetPosition(1, Vector3.Lerp(center, targetPosition, eased));
-                float alpha = Mathf.Lerp(0.95f, 0.5f, t);
+                float alpha = 0.95f * feedbackIntensity;
                 line.startColor = WithAlpha(baseBeamColor, alpha);
-                line.endColor = WithAlpha(baseBeamColor, Mathf.Max(0.18f, alpha * 0.55f));
-                line.widthMultiplier = Mathf.Lerp(burstLineWidth * 1.25f, burstLineWidth * 0.85f, t);
+                line.endColor = WithAlpha(baseBeamColor, alpha * 0.6f);
+                line.widthMultiplier = burstLineWidth * 1.2f * Mathf.Lerp(0.65f, 1f, feedbackIntensity);
             }
             yield return null;
         }
+    }
 
-        elapsed = 0f;
-        while (elapsed < fadeDuration)
+    private IEnumerator FadeBurstLines(int affectedCount)
+    {
+        float feedbackIntensity = FeedbackIntensity();
+        int count = Mathf.Clamp(affectedCount, 0, affectedTilesBuffer.Length);
+        float duration = Mathf.Max(0.01f, releaseDuration * 0.5f + fadeDuration);
+        if (count <= 0 || feedbackIntensity <= 0f || !HasBurstLines())
+            yield break;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / fadeDuration);
-            float alpha = Mathf.Lerp(0.5f, 0f, t);
+            float t = Mathf.Clamp01(elapsed / duration);
+            float alpha = Mathf.Lerp(0.8f, 0f, t) * feedbackIntensity;
             for (int i = 0; i < count; i++)
             {
                 LineRenderer line = burstLines[i];
                 if (line == null || !line.enabled) continue;
                 line.startColor = WithAlpha(baseBeamColor, alpha);
                 line.endColor = WithAlpha(baseBeamColor, alpha * 0.35f);
-                line.widthMultiplier = Mathf.Lerp(burstLineWidth * 0.85f, burstLineWidth * 0.25f, t);
+                line.widthMultiplier = Mathf.Lerp(burstLineWidth * 1.2f, burstLineWidth * 0.25f, t);
             }
             yield return null;
         }
@@ -327,8 +344,17 @@ public class CrossBlastTile : MonoBehaviour
         {
             if (burstLines[i] != null)
                 burstLines[i].enabled = false;
-            affectedTilesBuffer[i] = null;
         }
+    }
+
+    /// <summary>
+    /// 감소 대상 목록은 게임 규칙 데이터이므로 연출 정리(HideBurstLines)와 분리해서 비운다.
+    /// (예전에는 빔 생성 실패 처리에서 이 목록까지 비워 첫 폭발이 이웃 숫자를 줄이지 못했다.)
+    /// </summary>
+    private void ClearAffectedTiles()
+    {
+        for (int i = 0; i < affectedTilesBuffer.Length; i++)
+            affectedTilesBuffer[i] = null;
     }
 
     private static Vector3 GetCuePosition(Vector3 source)
@@ -340,5 +366,10 @@ public class CrossBlastTile : MonoBehaviour
     {
         color.a = Mathf.Clamp01(alpha);
         return color;
+    }
+
+    private static float FeedbackIntensity()
+    {
+        return Mathf.Clamp01(GameplayFeedback.Intensity);
     }
 }

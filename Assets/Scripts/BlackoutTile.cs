@@ -10,7 +10,7 @@ using DG.Tweening;
 public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
 {
     [Header("스프라이트")]
-    [SerializeField] private string tileSpritePath = "Sprites/blind_curtain_tile";
+    [SerializeField] private string tileSpritePath = "Sprites/black_out_tile";
     [SerializeField] private float coverScale = 0.7f;
 
     [Header("노이즈·플리커")]
@@ -49,6 +49,8 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
     private Tween pulseTween;
     private bool isStepped;
     private bool gameOverBlackoutVisualActive;
+    private Texture2D noiseTexture;
+    private Sprite noiseSprite;
 
     private void Awake()
     {
@@ -75,6 +77,11 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
             StopCoroutine(glitchRoutine);
         if (coverObject != null)
             Destroy(coverObject);
+        // 스테이지마다 새로 만드는 노이즈 텍스처/스프라이트는 직접 해제해야 누수가 없다.
+        if (noiseSprite != null)
+            Destroy(noiseSprite);
+        if (noiseTexture != null)
+            Destroy(noiseTexture);
     }
 
     /// <summary>
@@ -85,11 +92,12 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         if (IsInGameOverBlackout())
             return;
 
-        if (questionText != null && questionText.gameObject.activeInHierarchy)
+        Transform icon = GetAnimatedIconTransform();
+        if (icon != null && GameplayFeedback.Intensity > 0f)
         {
-            questionText.transform.DOKill();
-            questionText.transform.localScale = Vector3.one;
-            questionText.transform.DOPunchScale(Vector3.one * punchScaleStrength, 0.25f, 4, 0.5f).SetEase(Ease.OutQuad);
+            icon.DOKill();
+            icon.localScale = Vector3.one * coverScale;
+            icon.DOPunchScale(Vector3.one * coverScale * punchScaleStrength * GameplayFeedback.Intensity, 0.25f, 4, 0.5f).SetEase(Ease.OutQuad);
         }
         if (tileSpriteRenderer != null && !isStepped)
         {
@@ -134,6 +142,7 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         // 데이터 손상 느낌의 정적 노이즈 텍스처 생성
         int size = 64;
         Texture2D noiseTex = new Texture2D(size, size);
+        noiseTexture = noiseTex;
         noiseTex.filterMode = FilterMode.Point;
         Color[] pixels = new Color[size * size];
         for (int i = 0; i < pixels.Length; i++)
@@ -151,7 +160,7 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         overlayGo.transform.localRotation = Quaternion.identity;
 
         noiseOverlay = overlayGo.AddComponent<SpriteRenderer>();
-        Sprite noiseSprite = Sprite.Create(noiseTex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+        noiseSprite = Sprite.Create(noiseTex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
         noiseOverlay.sprite = noiseSprite;
         noiseOverlay.color = new Color(1f, 1f, 1f, noiseAlpha);
         noiseOverlay.sortingOrder = tileSpriteRenderer != null ? tileSpriteRenderer.sortingOrder + 2 : 2;
@@ -173,9 +182,11 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         if (questionText == null)
             return;
 
-        questionText.text = string.Empty;
         if (questionText.gameObject.activeSelf)
+        {
+            questionText.text = string.Empty;
             questionText.gameObject.SetActive(false);
+        }
     }
 
     private void RefreshVisualState()
@@ -204,10 +215,13 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         if (pulseTween != null && pulseTween.IsActive())
             return;
 
-        if (questionText == null || !questionText.gameObject.activeInHierarchy) return;
-        questionText.transform.localScale = Vector3.one * pulseScaleMin;
-        pulseTween = questionText.transform
-            .DOScale(pulseScaleMax, pulseDuration * 0.5f)
+        Transform icon = GetAnimatedIconTransform();
+        if (icon == null || !icon.gameObject.activeInHierarchy || GameplayFeedback.Intensity <= 0f)
+            return;
+        float amplitude = (pulseScaleMax - pulseScaleMin) * GameplayFeedback.Intensity;
+        icon.localScale = Vector3.one * coverScale * pulseScaleMin;
+        pulseTween = icon
+            .DOScale(coverScale * (pulseScaleMin + amplitude), pulseDuration * 0.5f)
             .SetEase(Ease.InOutSine)
             .SetLoops(-1, LoopType.Yoyo);
     }
@@ -218,7 +232,8 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         {
             float wait = Random.Range(glitchIntervalMin, glitchIntervalMax);
             yield return new WaitForSeconds(wait);
-            if (IsInGameOverBlackout())
+            // 효과 강도 Minimal에서는 깜빡임을 완전히 끈다(광과민 대응).
+            if (IsInGameOverBlackout() || GameplayFeedback.Intensity <= 0f)
                 continue;
 
             // 50% 확률: 타일 밝기 플리커, 50%: 물음표 글리치(짧은 지직)
@@ -228,7 +243,8 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
                 if (tileSpriteRenderer != null)
                 {
                     Color orig = tileSpriteRenderer.color;
-                    Color dim = new Color(orig.r * flickerDim, orig.g * flickerDim, orig.b * flickerDim, orig.a);
+                    float dimFactor = Mathf.Lerp(1f, flickerDim, GameplayFeedback.Intensity);
+                    Color dim = new Color(orig.r * dimFactor, orig.g * dimFactor, orig.b * dimFactor, orig.a);
                     tileSpriteRenderer.color = dim;
                     yield return new WaitForSeconds(glitchDuration);
                     tileSpriteRenderer.color = orig;
@@ -237,20 +253,19 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
             else
             {
                 // 물음표 짧은 글리치 (위치/스케일 미세 지직, 숫자 노출 없음)
-                if (questionText != null && questionText.gameObject.activeInHierarchy)
+                Transform icon = GetAnimatedIconTransform();
+                if (icon != null && icon.gameObject.activeInHierarchy)
                 {
-                    Vector3 origPos = questionText.transform.localPosition;
-                    Vector3 origScale = questionText.transform.localScale;
+                    Vector3 origPos = icon.localPosition;
+                    float jitter = 0.02f * GameplayFeedback.Intensity;
                     float elapsed = 0f;
                     while (elapsed < glitchDuration)
                     {
-                        questionText.transform.localPosition = origPos + new Vector3(Random.Range(-0.02f, 0.02f), Random.Range(-0.02f, 0.02f), 0f);
-                        questionText.transform.localScale = origScale * Random.Range(0.95f, 1.05f);
+                        icon.localPosition = origPos + new Vector3(Random.Range(-jitter, jitter), Random.Range(-jitter, jitter), 0f);
                         elapsed += Time.deltaTime;
                         yield return null;
                     }
-                    questionText.transform.localPosition = origPos;
-                    questionText.transform.localScale = origScale;
+                    icon.localPosition = origPos;
                 }
             }
         }
@@ -290,10 +305,10 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         StopGlitchRoutine();
         isStepped = false;
 
-        if (questionText != null)
+        if (coverObject != null)
         {
-            questionText.transform.DOKill();
-            questionText.transform.localScale = Vector3.one;
+            coverObject.transform.DOKill();
+            coverObject.transform.localScale = Vector3.one * coverScale;
         }
 
         if (tileSpriteRenderer != null)
@@ -329,6 +344,12 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
             StopCoroutine(glitchRoutine);
             glitchRoutine = null;
         }
+    }
+
+    /// <summary>"?" 아이콘(커버 스프라이트). 숫자 텍스트는 항상 숨기므로 연출은 아이콘에 적용한다.</summary>
+    private Transform GetAnimatedIconTransform()
+    {
+        return coverObject != null ? coverObject.transform : null;
     }
 
     private bool IsInGameOverBlackout()

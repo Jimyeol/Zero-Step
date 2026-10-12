@@ -91,16 +91,18 @@ public class IgniterTile : MonoBehaviour
         if (hasTriggered || hiddenTiles == null) return 0;
         hasTriggered = true;
         if (GameManager.VerboseStage6DebugEnabled)
-            Debug.Log($"[Stage6 Igniter 실행] source={GameManager.DescribeTileForDebug(tile)} targetID={targetID} instant={instant} relay={relayInterval:F3} hiddenCount={hiddenTiles.Count}");
+            DevLog.Log($"[Stage6 Igniter 실행] source={GameManager.DescribeTileForDebug(tile)} targetID={targetID} instant={instant} relay={relayInterval:F3} hiddenCount={hiddenTiles.Count}");
         float delay = 0f;
         int scheduledCount = 0;
         foreach (var h in hiddenTiles)
         {
             if (h != null && !h.IsActivated)
             {
+                float actualDelay = instant ? 0f : delay;
+                Tile hiddenTile = h.GetComponent<Tile>();
                 if (GameManager.VerboseStage6DebugEnabled)
-                    Debug.Log($"[Stage6 Igniter 예약] source={GameManager.DescribeTileForDebug(tile)} target={GameManager.DescribeTileForDebug(h.GetComponent<Tile>())} delay={(instant ? 0f : delay):F3}");
-                h.ActivateWithDelay(instant ? 0f : delay, onHiddenLive);
+                    DevLog.Log($"[Stage6 Igniter 예약] source={GameManager.DescribeTileForDebug(tile)} target={GameManager.DescribeTileForDebug(hiddenTile)} delay={actualDelay:F3}");
+                h.ActivateWithDelay(actualDelay, onHiddenLive, tile);
                 scheduledCount++;
                 if (!instant)
                     delay += relayInterval;
@@ -122,6 +124,12 @@ public class IgniterTile : MonoBehaviour
         }
 
         useIgniterVisual = false;
+        float feedbackIntensity = FeedbackIntensity();
+        if (feedbackIntensity <= 0f)
+        {
+            RefreshVisualState();
+            return;
+        }
 
         if (consumeSequence != null && consumeSequence.IsActive())
             consumeSequence.Kill();
@@ -134,7 +142,7 @@ public class IgniterTile : MonoBehaviour
             baseColor.a);
 
         consumeSequence = DOTween.Sequence().SetUpdate(true);
-        consumeSequence.Append(transform.DOPunchScale(Vector3.one * consumePunchScale, consumePulseDuration, 4, 0.6f).SetEase(Ease.OutQuad));
+        consumeSequence.Append(transform.DOPunchScale(Vector3.one * consumePunchScale * feedbackIntensity, consumePulseDuration, 4, 0.6f).SetEase(Ease.OutQuad));
         if (spriteRenderer != null)
         {
             consumeSequence.Join(spriteRenderer.DOColor(flashColor, consumeFlashDuration).SetEase(Ease.OutQuad));
@@ -168,4 +176,25 @@ public class IgniterTile : MonoBehaviour
 
     public string TargetID => targetID;
     public bool HasTriggered => hasTriggered;
+    public bool UsesIgniterVisual => useIgniterVisual;
+
+    /// <summary>되돌리기: 발동 여부와 표시 상태를 연출 없이 복원한다.</summary>
+    public void RestoreForUndo(bool triggered, bool igniterVisual)
+    {
+        DOTween.Kill(transform);
+        if (spriteRenderer != null) DOTween.Kill(spriteRenderer);
+        if (consumeSequence != null && consumeSequence.IsActive())
+            consumeSequence.Kill();
+        consumeSequence = null;
+        if (spriteRenderer != null)
+            spriteRenderer.color = Color.white;
+        hasTriggered = triggered;
+        useIgniterVisual = igniterVisual;
+        RefreshVisualState();
+    }
+
+    private static float FeedbackIntensity()
+    {
+        return Mathf.Clamp01(GameplayFeedback.Intensity);
+    }
 }

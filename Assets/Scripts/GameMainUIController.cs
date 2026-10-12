@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
-using UnityEngine.Video;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -29,6 +28,7 @@ public class GameMainUIController : MonoBehaviour
     private const string SaveKeySkipNextRechargeUnix = "AssistSkipNextRechargeUnix";
     private const string SaveKeyCurrentHearts = "CurrentHearts";
     private const string SaveKeyCurrentHeartsMax = "CurrentHeartsMax";
+    private const string SaveKeyHeartWaitRefillUnix = "HeartWaitRefillUnix";
     private const string PrivacyUrl = "https://www.naver.com";
     private const string SupportEmailAddress = "crewoongcrewoong@gmail.com";
     private const string NeonPressBaseClass = "neon-press-button";
@@ -59,14 +59,19 @@ public class GameMainUIController : MonoBehaviour
     private const float StageTransitionInterstitialCooldownSeconds = 180f;
     private const int LegacyMaxHearts = 3;
     private const int MaxHearts = 5;
+    private const long HeartWaitRefillSeconds = 3L * 60L;
+    private static readonly float[] RewardedLoadRetryDelaysSeconds = { 5f, 15f, 45f };
     private const int MaxHintCharges = 3;
     private const int MaxSkipCharges = 1;
+    private const float SkipConfirmWindowSeconds = 2.5f;
     private const long HintRechargeSeconds = 15L * 60L;
     private const long SkipRechargeSeconds = 30L * 60L;
     private const float IdleHintBonusDelaySeconds = 40f;
     private const float IdleHintBonusDebugLogCooldownSeconds = 3f;
     private const int MaxIdleStageHintBonus = 1;
     private const float TopHudBasePaddingPx = 64f;
+    private const float BannerToButtonsMinimumGapDp = 16f;
+    private const float BannerRetryBaseDelaySeconds = 30f;
     private const float TopHudBackdropBaseTopPx = 26f;
     private const float CompactTopHudBasePaddingPx = 42f;
     private const float CompactTopHudBackdropBaseTopPx = 18f;
@@ -116,6 +121,7 @@ public class GameMainUIController : MonoBehaviour
     private const string TutorialTypeIgniter = "Igniter";
     private const string TutorialTypeBlindCurtain = "BlindCurtain";
     private const string TutorialTypeBlackout = "Blackout";
+    private const string TutorialTypeCharge = "Charge";
     private const string TutorialTypeBlackOutAlias = "BlackOut";
     private const string ShortCircuitTutorialDemoDirection = "Right";
     private const float TutorialHandFallbackSize = 100f;
@@ -136,8 +142,7 @@ public class GameMainUIController : MonoBehaviour
     private const string DefaultHintSfxResourcePath = "Sounds/hint";
     private const string DefaultSkipSfxResourcePath = "Sounds/skip";
     private const float UISfxVolumeMultiplier = 0.5f;
-    private const string DefaultSplashSpriteResourcePath = "Sprites/splash";
-    private const string DefaultSplashVideoResourcePath = "Sprites/splash_video";
+    private const string IntroSeenPreferenceKey = "ZeroStep.IntroSeen";
     private const float FinalCreditsSkipHoldSeconds = 2f;
     private const float FinalCreditsRollDurationSeconds = 28f;
     private const float FinalCreditsSkipBaseBottomPx = 42f;
@@ -263,16 +268,8 @@ public class GameMainUIController : MonoBehaviour
     [SerializeField] private AudioClip skipSfxClip;
     [SerializeField] [Range(0f, 1f)] private float uiButtonSfxVolume = 1f;
     [Header("스플래시")]
-    [SerializeField] private string splashSpriteResourcePath = DefaultSplashSpriteResourcePath;
-    [SerializeField] private string splashVideoResourcePath = DefaultSplashVideoResourcePath;
-    [SerializeField] [Range(0.5f, 8f)] private float splashMinimumDuration = 1.6f;
     [SerializeField] [Range(2f, 20f)] private float splashMaximumWait = 8f;
     [SerializeField] [Range(0.05f, 1f)] private float splashFadeOutDuration = 0.35f;
-    [SerializeField] [Range(0.05f, 2f)] private float splashVideoFadeOutDuration = 0.5f;
-    [SerializeField] [Range(0f, 0.08f)] private float splashPulseScale = 0.028f;
-    [SerializeField] [Range(0.1f, 4f)] private float splashPulseSpeed = 1.2f;
-    [SerializeField] [Range(0f, 30f)] private float splashFloatDistancePx = 10f;
-    [SerializeField] [Range(0.1f, 4f)] private float splashFloatSpeed = 0.8f;
 
     private Label stageTitleLabel;
     private Label stageNumberLabel;
@@ -303,6 +300,9 @@ public class GameMainUIController : MonoBehaviour
     private Label skipBadgeText;
     private Button resetButton;
     private Image resetIcon;
+    private Button undoButton;
+    private Image undoIcon;
+    private float nextUndoButtonRefreshTime;
     private Button blockAdsButton;
     private Image blockIcon;
     private VisualElement settingPopupOverlay;
@@ -321,6 +321,12 @@ public class GameMainUIController : MonoBehaviour
     private Image vibrationIcon;
     private Image helpIcon;
     private Image languageIcon;
+    private ScrollView settingScrollView;
+    private VisualElement effectLevelRow;
+    private Label effectLevelRowLabel;
+    private Button effectLevelFullButton;
+    private Button effectLevelReducedButton;
+    private Button effectLevelMinimalButton;
 
     private Button helpButton;
     private Button languageButton;
@@ -413,6 +419,16 @@ public class GameMainUIController : MonoBehaviour
     private Label heartDepletedMessageLabel;
     private Label heartRefillRewardHintLabel;
     private Button heartRefillAdButton;
+    private Button heartWaitRefillButton;
+    private float skipConfirmDeadline = -1f;
+    private int bannerLoadRetryCount;
+    private float nextBannerRetryTime = -1f;
+    private bool pendingBannerShowAfterSplash;
+    private long heartWaitRefillUnix;
+    private float nextHeartWaitButtonRefreshTime;
+    private bool rewardedAdLastLoadFailed;
+    private int rewardedAdLoadRetryCount;
+    private float nextRewardedAdRetryTime = -1f;
     private Label heartRefillStatusLabel;
     private VisualElement bottomBar;
     private VisualElement stageSnackbar;
@@ -519,21 +535,16 @@ public class GameMainUIController : MonoBehaviour
     private bool splashStageSkipRewardedReady;
     private bool splashInterstitialReady;
     private bool splashTimerStarted;
-    private bool splashVideoLoaded;
-    private bool splashVideoEnded;
-    private bool splashVideoFadeStarted;
     private bool endingBootstrapForcesSplashReady;
-    private float splashVideoFadeStartTime;
     private float stageTransitionInterstitialSessionStartRealtime;
     private float lastStageTransitionInterstitialShownRealtime;
     private int lastStageTransitionInterstitialShownStage;
     private bool hasShownStageTransitionInterstitialThisSession;
     private VisualElement splashOverlay;
-    private Image splashImage;
+    private NeonIntroElement splashIntro;
+    private bool splashSkipRequested;
     private Label splashLoadingLabel;
     private VisualElement splashLoadingProgressFill;
-    private VideoPlayer splashVideoPlayer;
-    private RenderTexture splashVideoRenderTexture;
     private HeartRefillMode currentHeartRefillMode = HeartRefillMode.RewardedAd;
     private int currentSessionPlayRewardMinutes;
     private Coroutine stageSnackbarRoutine;
@@ -582,6 +593,7 @@ public class GameMainUIController : MonoBehaviour
     private readonly Dictionary<VisualElement, int> heartAnimationVersion = new Dictionary<VisualElement, int>();
     private int heartPopupAnimationVersion;
     private int stageClearAnimationVersion;
+    private int gameplayFeedbackAnimationVersion;
 
     /// <summary>현재 스테이지 시작 시 전체 타일 카운트(합).</summary>
     private int initialTileCount;
@@ -641,6 +653,8 @@ public class GameMainUIController : MonoBehaviour
         skipBadgeText = root.Q<Label>("SkipAdBadgeText");
         resetButton = root.Q<Button>("ResetButton");
         resetIcon = root.Q<Image>("ResetIcon");
+        undoButton = root.Q<Button>("UndoButton");
+        undoIcon = root.Q<Image>("UndoIcon");
         blockAdsButton = root.Q<Button>("BlockAdsButton");
         blockIcon = root.Q<Image>("BlockIcon");
         settingPopupOverlay = root.Q<VisualElement>("SettingPopupOverlay");
@@ -665,6 +679,7 @@ public class GameMainUIController : MonoBehaviour
         vibrationIcon = root.Q<Image>("VibrationIcon");
         helpIcon = root.Q<Image>("HelpIcon");
         languageIcon = root.Q<Image>("LanguageIcon");
+        settingScrollView = root.Q<ScrollView>("SettingScrollView");
         helpButton = root.Q<Button>("HelpButton");
         languageButton = root.Q<Button>("LanguageButton");
         rateButton = root.Q<Button>("RateButton");
@@ -750,6 +765,7 @@ public class GameMainUIController : MonoBehaviour
         heartDepletedMessageLabel = root.Q<Label>("HeartDepletedMessage");
         heartRefillRewardHintLabel = root.Q<Label>("HeartRefillRewardHint");
         heartRefillAdButton = root.Q<Button>("HeartRefillAdButton");
+        heartWaitRefillButton = root.Q<Button>("HeartWaitRefillButton");
         heartRefillStatusLabel = root.Q<Label>("HeartRefillStatusLabel");
         bottomBar = root.Q<VisualElement>("BottomBar");
         stageSnackbar = root.Q<VisualElement>("StageSnackbar");
@@ -941,9 +957,11 @@ public class GameMainUIController : MonoBehaviour
         LoadHelpTutorialSchedule();
         LoadStageSnackbarSchedule();
         InitializeUIButtonSfx();
+        EnsureEffectLevelSettingsRow(root);
 
         RefreshSoundSwitchVisual();
         RefreshVibrationSwitchVisual();
+        RefreshEffectLevelSettingsVisual();
         ApplySoundSwitchToAudioListener();
 
         if (soundSwitchButton != null)
@@ -956,9 +974,9 @@ public class GameMainUIController : MonoBehaviour
         if (languageButton != null)
             languageButton.clicked += OpenLanguageSelectionPopup;
         if (rateButton != null)
-            rateButton.clicked += () => Debug.Log("평가하기 클릭");
+            rateButton.clicked += () => DevLog.Log("평가하기 클릭");
         if (removeAdsButton != null)
-            removeAdsButton.clicked += () => Debug.Log("광고 제거 클릭");
+            removeAdsButton.clicked += () => DevLog.Log("광고 제거 클릭");
         if (emailButton != null)
             emailButton.clicked += OpenSupportEmail;
         if (resetDataButton != null)
@@ -977,6 +995,8 @@ public class GameMainUIController : MonoBehaviour
             tutorialNextButton.clicked += ShowNextSettingsTutorial;
         if (heartRefillAdButton != null)
             heartRefillAdButton.clicked += OnHeartRefillAdButtonClicked;
+        if (heartWaitRefillButton != null)
+            heartWaitRefillButton.clicked += OnHeartWaitRefillButtonClicked;
         RegisterFinalCreditsCallbacks();
 
         // 하단 힌트/리셋/스킵/광고제거 버튼 아이콘 및 클릭 로그
@@ -1012,8 +1032,16 @@ public class GameMainUIController : MonoBehaviour
             skipButton.clicked += OnSkipClicked;
         if (resetButton != null)
             resetButton.clicked += OnResetClicked;
+        if (undoIcon != null)
+        {
+            Sprite sprite = Resources.Load<Sprite>("Sprites/undo");
+            if (sprite != null)
+                undoIcon.sprite = sprite;
+        }
+        if (undoButton != null)
+            undoButton.clicked += OnUndoClicked;
         if (blockAdsButton != null)
-            blockAdsButton.clicked += () => Debug.Log("광고 제거");
+            blockAdsButton.clicked += () => DevLog.Log("광고 제거");
 
         ApplyLocalizationForCurrentLanguage();
         SetupButtonClickAnimations();
@@ -1059,14 +1087,31 @@ public class GameMainUIController : MonoBehaviour
             pendingShowRewardedAd = false;
             ShowRewardedAdInternal();
         }
+        if (nextBannerRetryTime > 0f && Time.unscaledTime >= nextBannerRetryTime)
+        {
+            nextBannerRetryTime = -1f;
+            LoadBannerAd();
+        }
+        if (pendingBannerShowAfterSplash && !isSplashActive && bannerView != null)
+        {
+            pendingBannerShowAfterSplash = false;
+            bannerView.Show();
+        }
 #endif
         RefreshBottomLayout(force: false);
         UpdateFinalCreditsSkipHold();
         RefreshAssistEconomyIfNeeded();
+        RefreshUndoButtonState();
+        UpdateHeartRefillWaitState();
         UpdateIdleHintBonus();
         EnsureSplashOverlayAttached();
         UpdateSplashVisual();
         TryCloseSplashIfReady();
+    }
+
+    private void OnDisable()
+    {
+        ResetTransientStageClearVisuals();
     }
 
     private void OnDestroy()
@@ -1074,12 +1119,12 @@ public class GameMainUIController : MonoBehaviour
         StopStageSnackbarPlayback();
         StopTutorialAnimation();
         StopIdleHintBonusBounce();
+        ResetGameplayFeedbackPulseVisuals();
         StopFinalCreditsPlayback(resetVisuals: true);
         HideHintLoading();
         if (splashFadeRoutine != null)
             StopCoroutine(splashFadeRoutine);
         splashFadeRoutine = null;
-        CleanupSplashVideo();
         DestroyBannerAd();
         DestroyRewardedAd();
         DestroyStageSkipRewardedAd();
@@ -1087,7 +1132,7 @@ public class GameMainUIController : MonoBehaviour
         isSplashActive = false;
         isSplashClosing = false;
         splashOverlay = null;
-        splashImage = null;
+        splashIntro = null;
         splashLoadingLabel = null;
         splashLoadingProgressFill = null;
     }
@@ -1128,7 +1173,7 @@ public class GameMainUIController : MonoBehaviour
         if (uiButtonSfxClip == null && !uiButtonSfxMissingLogged)
         {
             uiButtonSfxMissingLogged = true;
-            Debug.LogWarning("[GameMainUIController] 기본 클릭 사운드를 찾을 수 없습니다: Assets/Sounds/click.wav 또는 Resources/Sounds/click.wav");
+            Debug.LogWarning("[GameMainUIController] 기본 클릭 사운드를 찾을 수 없습니다: Resources/Sounds/click.wav");
         }
     }
 
@@ -1154,10 +1199,14 @@ public class GameMainUIController : MonoBehaviour
         RegisterButtonClickAnimation(hintButton, sfxKind: UISfxKind.Hint);
         RegisterButtonClickAnimation(skipButton, sfxKind: UISfxKind.Skip);
         RegisterButtonClickAnimation(resetButton);
+        RegisterButtonClickAnimation(undoButton);
         RegisterButtonClickAnimation(blockAdsButton, useWarmPulse: true);
 
         RegisterButtonClickAnimation(soundSwitchButton);
         RegisterButtonClickAnimation(vibrationSwitchButton);
+        RegisterButtonClickAnimation(effectLevelFullButton);
+        RegisterButtonClickAnimation(effectLevelReducedButton);
+        RegisterButtonClickAnimation(effectLevelMinimalButton);
         RegisterButtonClickAnimation(helpButton);
         RegisterButtonClickAnimation(languageButton);
         RegisterButtonClickAnimation(rateButton);
@@ -1186,6 +1235,22 @@ public class GameMainUIController : MonoBehaviour
             button.AddToClassList(NeonPressWarmClass);
 
         button.clicked += () => PlayButtonClickAnimation(button, sfxKind);
+        // 손가락이 닿는 순간 바로 눌린 느낌을 준다(예전에는 손을 뗀 뒤에야 반응해 늦게 느껴졌다).
+        button.RegisterCallback<PointerDownEvent>(_ =>
+        {
+            if (!button.enabledInHierarchy)
+                return;
+            button.style.scale = new StyleScale(new Scale(new Vector3(0.92f, 0.92f, 1f)));
+        }, TrickleDown.TrickleDown);
+        button.RegisterCallback<PointerLeaveEvent>(_ => ResetPressedScaleIfIdle(button));
+        button.RegisterCallback<PointerCancelEvent>(_ => ResetPressedScaleIfIdle(button));
+    }
+
+    private void ResetPressedScaleIfIdle(VisualElement button)
+    {
+        if (button == null || button.ClassListContains(NeonPressActiveClass))
+            return;
+        button.style.scale = new StyleScale(new Scale(Vector3.one));
     }
 
     private void PlayButtonClickAnimation(VisualElement button, UISfxKind sfxKind)
@@ -1223,6 +1288,79 @@ public class GameMainUIController : MonoBehaviour
     private bool IsCurrentButtonAnimationVersion(VisualElement button, int expectedVersion)
     {
         return buttonPressAnimationVersion.TryGetValue(button, out int currentVersion) && currentVersion == expectedVersion;
+    }
+
+    private void EnsureEffectLevelSettingsRow(VisualElement root)
+    {
+        if (effectLevelRow != null)
+            return;
+
+        VisualElement parent = settingScrollView != null ? settingScrollView.contentContainer : null;
+        if (parent == null && root != null)
+            parent = root.Q<VisualElement>("SettingScrollView");
+        if (parent == null)
+            return;
+
+        effectLevelRow = new VisualElement { name = "EffectLevelRow" };
+        effectLevelRow.AddToClassList("settings-effect-row");
+
+        effectLevelRowLabel = new Label { name = "EffectLevelRowLabel" };
+        effectLevelRowLabel.AddToClassList("settings-effect-label");
+        effectLevelRow.Add(effectLevelRowLabel);
+
+        VisualElement buttonGroup = new VisualElement { name = "EffectLevelButtonGroup" };
+        buttonGroup.AddToClassList("settings-effect-button-group");
+        effectLevelRow.Add(buttonGroup);
+
+        effectLevelFullButton = CreateEffectLevelButton(GameplayFeedback.EffectLevel.Full);
+        effectLevelReducedButton = CreateEffectLevelButton(GameplayFeedback.EffectLevel.Reduced);
+        effectLevelMinimalButton = CreateEffectLevelButton(GameplayFeedback.EffectLevel.Minimal);
+        buttonGroup.Add(effectLevelFullButton);
+        buttonGroup.Add(effectLevelReducedButton);
+        buttonGroup.Add(effectLevelMinimalButton);
+
+        VisualElement vibrationRow = root != null ? root.Q<VisualElement>("VibrationRow") : null;
+        int insertIndex = vibrationRow != null ? parent.IndexOf(vibrationRow) + 1 : -1;
+        if (insertIndex > 0 && insertIndex <= parent.childCount)
+            parent.Insert(insertIndex, effectLevelRow);
+        else
+            parent.Add(effectLevelRow);
+    }
+
+    private Button CreateEffectLevelButton(GameplayFeedback.EffectLevel level)
+    {
+        Button button = new Button();
+        button.name = $"EffectLevel{level}Button";
+        button.AddToClassList("settings-effect-button");
+        button.clicked += () => ApplyEffectLevelSelection(level);
+        return button;
+    }
+
+    private void ApplyEffectLevelSelection(GameplayFeedback.EffectLevel level)
+    {
+        GameplayFeedback.Level = level;
+        ResetTransientStageClearVisuals();
+        RefreshEffectLevelSettingsVisual();
+    }
+
+    private void RefreshEffectLevelSettingsVisual()
+    {
+        if (effectLevelRowLabel != null)
+            effectLevelRowLabel.text = T("label_effect_level");
+
+        RefreshEffectLevelButton(effectLevelFullButton, GameplayFeedback.EffectLevel.Full, "effect_level_full");
+        RefreshEffectLevelButton(effectLevelReducedButton, GameplayFeedback.EffectLevel.Reduced, "effect_level_reduced");
+        RefreshEffectLevelButton(effectLevelMinimalButton, GameplayFeedback.EffectLevel.Minimal, "effect_level_minimal");
+    }
+
+    private void RefreshEffectLevelButton(Button button, GameplayFeedback.EffectLevel level, string localizationKey)
+    {
+        if (button == null)
+            return;
+
+        bool selected = GameplayFeedback.Level == level;
+        button.text = T(localizationKey);
+        button.EnableInClassList("settings-effect-button-selected", selected);
     }
 
     private void PlayUIButtonSfx(UISfxKind sfxKind = UISfxKind.Click)
@@ -1435,7 +1573,7 @@ public class GameMainUIController : MonoBehaviour
         }
 
         RefreshBottomLayout(force: true);
-        Debug.Log($"[GameMainUIController] Ads disabled for Development Build. reason={reason}");
+        DevLog.Log($"[GameMainUIController] Ads disabled for Development Build. reason={reason}");
     }
 
     private void OnHintClicked()
@@ -1454,11 +1592,11 @@ public class GameMainUIController : MonoBehaviour
         StopIdleHintBonusBounce();
         NotifyGameplayActivity();
         RefillAssistChargesFromElapsedTime();
-        Debug.Log($"[힌트 버튼] pressed stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} idleBonus={idleStageHintBonus}/{MaxIdleStageHintBonus} removeAds={IsRemoveAdsEntitled()} solving=True");
+        DevLog.Log($"[힌트 버튼] pressed stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} idleBonus={idleStageHintBonus}/{MaxIdleStageHintBonus} removeAds={IsRemoveAdsEntitled()} solving=True");
 
         gm.CheckHintPreviewAvailabilityWithLoading(hasAvailableHint =>
         {
-            Debug.Log($"[힌트 버튼] solved stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} idleBonus={idleStageHintBonus}/{MaxIdleStageHintBonus} removeAds={IsRemoveAdsEntitled()} hasPath={hasAvailableHint}");
+            DevLog.Log($"[힌트 버튼] solved stage={currentStageIndexForUI} charges={hintCharges}/{MaxHintCharges} idleBonus={idleStageHintBonus}/{MaxIdleStageHintBonus} removeAds={IsRemoveAdsEntitled()} hasPath={hasAvailableHint}");
             if (gm == null || !hasAvailableHint)
                 return;
 
@@ -1537,11 +1675,26 @@ public class GameMainUIController : MonoBehaviour
         var gm = FindFirstObjectByType<GameManager>();
         if (gm == null)
         {
-            Debug.Log("스테이지 스킵됨 (GameManager 없음)");
+            DevLog.Log("스테이지 스킵됨 (GameManager 없음)");
             return;
         }
 
         NotifyGameplayActivity();
+        if (gm.IsOnFinalStage)
+        {
+            ShowGameplaySnackbar("snackbar_skip_final_stage");
+            return;
+        }
+
+        // 스킵은 되돌릴 수 없으므로 짧은 시간 안에 한 번 더 눌러야 실행한다.
+        if (Time.unscaledTime > skipConfirmDeadline)
+        {
+            skipConfirmDeadline = Time.unscaledTime + SkipConfirmWindowSeconds;
+            ShowGameplaySnackbar("snackbar_skip_confirm", SkipConfirmWindowSeconds);
+            return;
+        }
+        skipConfirmDeadline = -1f;
+
         RefillAssistChargesFromElapsedTime();
         if (skipCharges > 0)
         {
@@ -2242,6 +2395,59 @@ public class GameMainUIController : MonoBehaviour
     }
 
     /// <summary>리셋 버튼 클릭: 현재 스테이지를 초기 상태로 복원.</summary>
+    /// <summary>튜토리얼을 읽는 동안에는 배너를 숨겨 첫 경험에 광고가 끼어들지 않게 한다.</summary>
+    private void SetBannerHiddenForOverlay(bool hidden)
+    {
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        if (bannerView == null)
+            return;
+        if (hidden)
+        {
+            bannerView.Hide();
+        }
+        else if (!isSplashActive)
+        {
+            bannerView.Show();
+        }
+#endif
+    }
+
+    /// <summary>클리어 순간 별점(★)과 한붓 보너스를 짧게 보여준다.</summary>
+    public void ShowStageClearResult(int stars, bool oneStroke, bool improved)
+    {
+        int clamped = Mathf.Clamp(stars, 1, 3);
+        string starText = new string('★', clamped) + new string('☆', 3 - clamped);
+        string key = oneStroke ? "snackbar_stage_stars_one_stroke" : "snackbar_stage_stars";
+        ShowGameplaySnackbar(key, 1.4f, ("stars", starText));
+    }
+
+    private void OnUndoClicked()
+    {
+        FirebaseBootstrap.LogEvent("ui_button_click", new Dictionary<string, object>
+        {
+            { "button_name", "undo" }
+        });
+
+        NotifyGameplayActivity();
+        var gm = FindFirstObjectByType<GameManager>();
+        if (gm == null || !gm.TryUndoLastMove())
+            ShowGameplaySnackbar("snackbar_undo_unavailable");
+    }
+
+    private void RefreshUndoButtonState()
+    {
+        if (undoButton == null || Time.unscaledTime < nextUndoButtonRefreshTime)
+            return;
+
+        nextUndoButtonRefreshTime = Time.unscaledTime + 0.1f;
+        var gm = cachedGameManagerForUndo != null ? cachedGameManagerForUndo : (cachedGameManagerForUndo = FindFirstObjectByType<GameManager>());
+        bool canUndo = gm != null && gm.CanUndo;
+        if (undoButton.enabledSelf != canUndo)
+            undoButton.SetEnabled(canUndo);
+    }
+
+    private GameManager cachedGameManagerForUndo;
+
     private void OnResetClicked()
     {
         FirebaseBootstrap.LogEvent("ui_button_click", new Dictionary<string, object>
@@ -2253,7 +2459,7 @@ public class GameMainUIController : MonoBehaviour
         if (gm != null)
             gm.ResetCurrentStage();
         else
-            Debug.Log("스테이지 리셋됨 (GameManager 없음)");
+            DevLog.Log("스테이지 리셋됨 (GameManager 없음)");
     }
 
     private void LoadAssistEconomyState()
@@ -2398,12 +2604,12 @@ public class GameMainUIController : MonoBehaviour
                 if (gm.WasLastHintSolverBudgetExhausted)
                 {
                     lastGameplayActivityTime = Time.unscaledTime;
-                    Debug.Log($"[방치 힌트 보너스 재검사 대기] stage={currentStageIndexForUI} solver={gm.LastHintSolverStatus} retryAfter={Mathf.RoundToInt(GetIdleHintBonusDelaySeconds())}s");
+                    DevLog.Log($"[방치 힌트 보너스 재검사 대기] stage={currentStageIndexForUI} solver={gm.LastHintSolverStatus} retryAfter={Mathf.RoundToInt(GetIdleHintBonusDelaySeconds())}s");
                     return;
                 }
 
                 idleHintBonusSuppressedUntilActivity = true;
-                Debug.Log($"[방치 힌트 보너스 없음] stage={currentStageIndexForUI} solver={gm.LastHintSolverStatus}");
+                DevLog.Log($"[방치 힌트 보너스 없음] stage={currentStageIndexForUI} solver={gm.LastHintSolverStatus}");
                 return;
             }
 
@@ -2439,7 +2645,7 @@ public class GameMainUIController : MonoBehaviour
         string gameState = gm == null
             ? "gm=null"
             : $"gmCanCheck={gm.CanCheckIdleHintBonus} {gm.IdleHintBonusBlockState} solver={gm.LastHintSolverStatus}";
-        Debug.Log($"[방치 힌트 보너스 대기] stage={currentStageIndexForUI} reason={reason} idle={idleSeconds:F1}/{requiredSeconds:F1} {gameState}");
+        DevLog.Log($"[방치 힌트 보너스 대기] stage={currentStageIndexForUI} reason={reason} idle={idleSeconds:F1}/{requiredSeconds:F1} {gameState}");
     }
 
     private void GrantIdleStageHintBonus()
@@ -2454,7 +2660,7 @@ public class GameMainUIController : MonoBehaviour
             { "stage_index", currentStageIndexForUI },
             { "idle_seconds", Mathf.RoundToInt(GetIdleHintBonusDelaySeconds()) }
         });
-        Debug.Log($"[방치 힌트 보너스 지급] stage={currentStageIndexForUI} bonus={idleStageHintBonus}");
+        DevLog.Log($"[방치 힌트 보너스 지급] stage={currentStageIndexForUI} bonus={idleStageHintBonus}");
         RefreshAssistButtons();
         ShowGameplaySnackbar("snackbar_idle_hint_bonus_granted");
         PlayIdleHintBonusBounce();
@@ -2638,7 +2844,7 @@ public class GameMainUIController : MonoBehaviour
         if (hintButton != null && assistType == "hint")
             hintButton.SetEnabled(!isHintLoadingVisible);
         if (skipButton != null && assistType == "skip")
-            skipButton.SetEnabled(true);
+            skipButton.SetEnabled(!FinalEndingProgressStore.IsFinalStageIndex(currentStageIndexForUI));
     }
 
     private bool IsRemoveAdsEntitled()
@@ -2677,6 +2883,7 @@ public class GameMainUIController : MonoBehaviour
         if (settingPopupOverlay != null)
         {
             settingPopupOverlay.style.display = DisplayStyle.Flex;
+            AnimatePopupIn(settingPopupOverlay.Q<VisualElement>("SettingPopupPanel"));
             isSettingPopupOpen = true;
             FirebaseBootstrap.LogEvent("settings_popup_open");
             FirebaseBootstrap.LogBreadcrumb("settings_popup_open");
@@ -2695,6 +2902,29 @@ public class GameMainUIController : MonoBehaviour
             FirebaseBootstrap.LogEvent("settings_popup_close");
         }
     }
+
+    /// <summary>다른 팝업과 같은 0.14초 페이드·스케일로 열리게 한다(설정 팝업만 즉시 열리던 불일치 해소).</summary>
+    private void AnimatePopupIn(VisualElement panel)
+    {
+        if (panel == null)
+            return;
+
+        int version = ++popupInAnimationVersion;
+        panel.style.transitionProperty = new List<StylePropertyName> { new StylePropertyName("opacity"), new StylePropertyName("scale") };
+        panel.style.transitionDuration = new List<TimeValue> { new TimeValue(0.14f, TimeUnit.Second), new TimeValue(0.14f, TimeUnit.Second) };
+        panel.style.transitionTimingFunction = new List<EasingFunction> { new EasingFunction(EasingMode.EaseOut), new EasingFunction(EasingMode.EaseOut) };
+        panel.style.opacity = 0f;
+        panel.style.scale = new StyleScale(new Scale(new Vector3(0.94f, 0.94f, 1f)));
+        panel.schedule.Execute(() =>
+        {
+            if (version != popupInAnimationVersion)
+                return;
+            panel.style.opacity = 1f;
+            panel.style.scale = new StyleScale(new Scale(Vector3.one));
+        }).StartingIn(16);
+    }
+
+    private int popupInAnimationVersion;
 
     /// <summary>설정 팝업이 열려 있으면 게임 입력 차단에 사용.</summary>
     public bool IsSettingPopupOpen => isSettingPopupOpen;
@@ -2729,11 +2959,7 @@ public class GameMainUIController : MonoBehaviour
         splashHeartRewardedReady = true;
         splashStageSkipRewardedReady = true;
         splashInterstitialReady = true;
-        if (splashVideoLoaded)
-        {
-            splashVideoEnded = true;
-            StartSplashVideoFadeOut();
-        }
+        splashSkipRequested = true;
     }
 
     private void InitializeSplashState()
@@ -2743,11 +2969,8 @@ public class GameMainUIController : MonoBehaviour
         isSplashActive = true;
         isSplashClosing = false;
         splashStageReady = false;
-        splashVideoLoaded = false;
-        splashVideoEnded = false;
-        splashVideoFadeStarted = false;
+        splashSkipRequested = false;
         endingBootstrapForcesSplashReady = false;
-        splashVideoFadeStartTime = 0f;
 
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         splashBannerReady = false;
@@ -2799,93 +3022,36 @@ public class GameMainUIController : MonoBehaviour
         splashOverlay.style.top = 0f;
         splashOverlay.style.right = 0f;
         splashOverlay.style.bottom = 0f;
-        splashOverlay.style.justifyContent = Justify.Center;
-        splashOverlay.style.alignItems = Align.Center;
         splashOverlay.style.backgroundColor = new StyleColor(new Color(0.01f, 0.02f, 0.04f, 1f));
         splashOverlay.style.opacity = 1f;
 
-        VisualElement logoWrap = new VisualElement();
-        logoWrap.style.position = Position.Absolute;
-        logoWrap.style.left = 0f;
-        logoWrap.style.top = 0f;
-        logoWrap.style.right = 0f;
-        logoWrap.style.bottom = 0f;
-        logoWrap.style.width = Length.Percent(100f);
-        logoWrap.style.height = Length.Percent(100f);
-        logoWrap.style.alignItems = Align.Center;
-        logoWrap.style.justifyContent = Justify.Center;
-        logoWrap.style.flexDirection = FlexDirection.Column;
-
-        splashImage = new Image();
-        splashImage.style.width = Length.Percent(100f);
-        splashImage.style.height = Length.Percent(100f);
-        splashImage.scaleMode = ScaleMode.ScaleAndCrop;
-        logoWrap.Add(splashImage);
-
-        string safePath = string.IsNullOrWhiteSpace(splashSpriteResourcePath)
-            ? DefaultSplashSpriteResourcePath
-            : splashSpriteResourcePath;
-        Texture splashTexture = TryLoadSplashTexture(safePath);
-        if (splashTexture != null)
-            splashImage.image = splashTexture;
-
-        bool videoLoadedNow = TrySetupSplashVideo();
-        if (endingBootstrapForcesSplashReady && videoLoadedNow)
+        // 영상 대신 코드로 그리는 네온 인트로(약 1.9초). 두 번째 실행부터는 탭하면 바로 넘어간다.
+        splashIntro = new NeonIntroElement();
+        splashOverlay.Add(splashIntro);
+        splashOverlay.RegisterCallback<PointerDownEvent>(_ =>
         {
-            splashVideoEnded = true;
-            StartSplashVideoFadeOut();
-        }
-        if (splashTexture == null && !videoLoadedNow)
-        {
-            logoWrap.Remove(splashImage);
-            splashImage = null;
-            Label fallbackLabel = new Label("ZERO STEP");
-            fallbackLabel.style.fontSize = 92f;
-            fallbackLabel.style.color = new StyleColor(Color.white);
-            fallbackLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            logoWrap.Add(fallbackLabel);
-            Debug.LogWarning($"[GameMainUIController] 스플래시 이미지 리소스를 찾을 수 없습니다: Resources/{safePath}.png");
-        }
+            if (PlayerPrefs.GetInt(IntroSeenPreferenceKey, 0) == 1)
+                splashSkipRequested = true;
+        });
 
-        VisualElement loadingWrap = new VisualElement();
+        // 스테이지 준비가 인트로보다 늦어질 때만 보이는 작은 로딩 표시
+        VisualElement loadingWrap = new VisualElement { pickingMode = PickingMode.Ignore };
         loadingWrap.style.position = Position.Absolute;
         loadingWrap.style.left = 0f;
         loadingWrap.style.right = 0f;
-        loadingWrap.style.bottom = 80f;
+        loadingWrap.style.bottom = 64f;
         loadingWrap.style.alignItems = Align.Center;
-        loadingWrap.style.justifyContent = Justify.Center;
-        loadingWrap.style.flexDirection = FlexDirection.Column;
-
-        splashLoadingLabel = new Label("Loading");
-        splashLoadingLabel.style.fontSize = 28f;
-        splashLoadingLabel.style.color = new StyleColor(new Color(0.82f, 0.92f, 1f, 1f));
+        splashLoadingLabel = new Label("Loading") { pickingMode = PickingMode.Ignore };
+        splashLoadingLabel.style.fontSize = 26f;
+        splashLoadingLabel.style.color = new StyleColor(new Color(0.82f, 0.92f, 1f, 0.8f));
         splashLoadingLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        splashLoadingLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
         splashLoadingLabel.style.letterSpacing = 0.8f;
+        splashLoadingLabel.style.opacity = 0f;
         loadingWrap.Add(splashLoadingLabel);
+        splashLoadingProgressFill = null;
 
-        VisualElement progressTrack = new VisualElement();
-        progressTrack.style.width = 340f;
-        progressTrack.style.height = 10f;
-        progressTrack.style.marginTop = 16f;
-        progressTrack.style.backgroundColor = new StyleColor(new Color(0.2f, 0.28f, 0.36f, 0.65f));
-        progressTrack.style.borderTopLeftRadius = 999f;
-        progressTrack.style.borderTopRightRadius = 999f;
-        progressTrack.style.borderBottomLeftRadius = 999f;
-        progressTrack.style.borderBottomRightRadius = 999f;
-        progressTrack.style.overflow = Overflow.Hidden;
-
-        splashLoadingProgressFill = new VisualElement();
-        splashLoadingProgressFill.style.width = Length.Percent(0f);
-        splashLoadingProgressFill.style.height = Length.Percent(100f);
-        splashLoadingProgressFill.style.backgroundColor = new StyleColor(new Color(0.46f, 0.82f, 1f, 0.95f));
-        progressTrack.Add(splashLoadingProgressFill);
-        loadingWrap.Add(progressTrack);
-
-        splashOverlay.Add(logoWrap);
         splashOverlay.Add(loadingWrap);
         root.Add(splashOverlay);
-        Debug.Log($"[Splash] Overlay attached. root={root.name}, imageLoaded={(splashTexture != null ? 1 : 0)}, videoLoaded={(videoLoadedNow ? 1 : 0)}, resourcePath={safePath}");
         if (!splashTimerStarted)
         {
             splashStartTime = Time.unscaledTime;
@@ -2893,195 +3059,30 @@ public class GameMainUIController : MonoBehaviour
         }
     }
 
-    private Texture TryLoadSplashTexture(string resourcePath)
-    {
-        if (string.IsNullOrWhiteSpace(resourcePath))
-            return null;
-
-        Sprite singleSprite = Resources.Load<Sprite>(resourcePath);
-        if (singleSprite != null)
-            return singleSprite.texture;
-
-        Sprite[] slicedSprites = Resources.LoadAll<Sprite>(resourcePath);
-        if (slicedSprites != null && slicedSprites.Length > 0 && slicedSprites[0] != null)
-            return slicedSprites[0].texture;
-
-        return Resources.Load<Texture2D>(resourcePath);
-    }
-
-    private bool TrySetupSplashVideo()
-    {
-        if (splashImage == null)
-            return false;
-
-        string safeVideoPath = string.IsNullOrWhiteSpace(splashVideoResourcePath)
-            ? DefaultSplashVideoResourcePath
-            : splashVideoResourcePath;
-        VideoClip clip = Resources.Load<VideoClip>(safeVideoPath);
-        if (clip == null)
-        {
-            splashVideoLoaded = false;
-            splashVideoEnded = false;
-            splashVideoFadeStarted = false;
-            return false;
-        }
-
-        if (splashVideoPlayer == null)
-            splashVideoPlayer = GetComponent<VideoPlayer>();
-        if (splashVideoPlayer == null)
-            splashVideoPlayer = gameObject.AddComponent<VideoPlayer>();
-        if (splashVideoPlayer.isPlaying)
-            splashVideoPlayer.Stop();
-
-        ReleaseSplashVideoRenderTexture();
-        int textureWidth = Mathf.Max(64, (int)(clip.width > 0 ? clip.width : 1080u));
-        int textureHeight = Mathf.Max(64, (int)(clip.height > 0 ? clip.height : 1920u));
-        splashVideoRenderTexture = new RenderTexture(textureWidth, textureHeight, 0, RenderTextureFormat.ARGB32);
-        splashVideoRenderTexture.Create();
-
-        splashVideoPlayer.errorReceived -= HandleSplashVideoError;
-        splashVideoPlayer.loopPointReached -= HandleSplashVideoLoopPointReached;
-        splashVideoPlayer.prepareCompleted -= HandleSplashVideoPrepared;
-
-        splashVideoPlayer.playOnAwake = false;
-        splashVideoPlayer.source = VideoSource.VideoClip;
-        splashVideoPlayer.clip = clip;
-        splashVideoPlayer.isLooping = false;
-        splashVideoPlayer.skipOnDrop = true;
-        splashVideoPlayer.waitForFirstFrame = true;
-        splashVideoPlayer.audioOutputMode = VideoAudioOutputMode.None;
-        splashVideoPlayer.renderMode = VideoRenderMode.RenderTexture;
-        splashVideoPlayer.targetTexture = splashVideoRenderTexture;
-
-        splashVideoPlayer.errorReceived += HandleSplashVideoError;
-        splashVideoPlayer.loopPointReached += HandleSplashVideoLoopPointReached;
-        splashVideoPlayer.prepareCompleted += HandleSplashVideoPrepared;
-
-        splashImage.image = splashVideoRenderTexture;
-        splashImage.scaleMode = ScaleMode.ScaleAndCrop;
-        splashImage.style.opacity = 1f;
-        splashImage.style.display = DisplayStyle.Flex;
-
-        splashVideoLoaded = true;
-        splashVideoEnded = false;
-        splashVideoFadeStarted = false;
-        splashVideoFadeStartTime = 0f;
-        splashVideoPlayer.Prepare();
-        return true;
-    }
-
-    private void HandleSplashVideoPrepared(VideoPlayer source)
-    {
-        if (!isSplashActive || source == null)
-            return;
-        source.Play();
-    }
-
-    private void HandleSplashVideoLoopPointReached(VideoPlayer source)
-    {
-        splashVideoEnded = true;
-    }
-
-    private void HandleSplashVideoError(VideoPlayer source, string message)
-    {
-        Debug.LogWarning($"[GameMainUIController] Splash video playback failed: {message}");
-        splashVideoEnded = true;
-        StartSplashVideoFadeOut();
-    }
-
-    private void StartSplashVideoFadeOut()
-    {
-        if (!splashVideoLoaded || splashVideoFadeStarted || splashImage == null)
-            return;
-
-        splashVideoFadeStarted = true;
-        splashVideoFadeStartTime = Time.unscaledTime;
-    }
-
-    private void CleanupSplashVideo()
-    {
-        if (splashVideoPlayer != null)
-        {
-            splashVideoPlayer.errorReceived -= HandleSplashVideoError;
-            splashVideoPlayer.loopPointReached -= HandleSplashVideoLoopPointReached;
-            splashVideoPlayer.prepareCompleted -= HandleSplashVideoPrepared;
-            if (splashVideoPlayer.isPlaying)
-                splashVideoPlayer.Stop();
-            splashVideoPlayer.targetTexture = null;
-            splashVideoPlayer.clip = null;
-        }
-
-        ReleaseSplashVideoRenderTexture();
-        splashVideoLoaded = false;
-        splashVideoEnded = false;
-        splashVideoFadeStarted = false;
-    }
-
-    private void ReleaseSplashVideoRenderTexture()
-    {
-        if (splashVideoRenderTexture == null)
-            return;
-
-        if (splashVideoRenderTexture.IsCreated())
-            splashVideoRenderTexture.Release();
-        Destroy(splashVideoRenderTexture);
-        splashVideoRenderTexture = null;
-    }
-
     private void UpdateSplashVisual()
     {
-        if (!isSplashActive || isSplashClosing || splashOverlay == null)
+        if (!isSplashActive || splashOverlay == null)
             return;
 
         float elapsed = Time.unscaledTime - splashStartTime;
-        if (splashImage != null && !splashVideoLoaded)
-        {
-            float pulse = 1f + splashPulseScale * Mathf.Sin(elapsed * splashPulseSpeed * Mathf.PI * 2f);
-            float yOffset = splashFloatDistancePx * Mathf.Sin(elapsed * splashFloatSpeed * Mathf.PI * 2f);
-            splashImage.style.scale = new StyleScale(new Scale(new Vector3(pulse, pulse, 1f)));
-            splashImage.style.translate = new StyleTranslate(new Translate(
-                new Length(0f, LengthUnit.Pixel),
-                new Length(yOffset, LengthUnit.Pixel),
-                0f));
-        }
-
-        if (splashVideoFadeStarted && splashImage != null)
-        {
-            float fadeDuration = Mathf.Max(0.05f, splashVideoFadeOutDuration);
-            float fadeT = Mathf.Clamp01((Time.unscaledTime - splashVideoFadeStartTime) / fadeDuration);
-            splashImage.style.opacity = 1f - fadeT;
-            if (fadeT >= 1f)
-                splashImage.style.display = DisplayStyle.None;
-        }
+        splashIntro?.SetTime(elapsed);
 
         if (splashLoadingLabel != null)
         {
-            int dotCount = Mathf.FloorToInt((Time.unscaledTime * 2.4f) % 4f);
-            splashLoadingLabel.text = $"Loading{new string('.', dotCount)}";
+            bool waitingForStage = !splashStageReady && elapsed > NeonIntroElement.ContentDuration + 0.3f;
+            splashLoadingLabel.style.opacity = waitingForStage ? 0.8f : 0f;
+            if (waitingForStage)
+            {
+                int dotCount = Mathf.FloorToInt((Time.unscaledTime * 2.4f) % 4f);
+                splashLoadingLabel.text = $"Loading{new string('.', dotCount)}";
+            }
         }
-
-        if (splashLoadingProgressFill != null)
-            splashLoadingProgressFill.style.width = Length.Percent(GetSplashReadinessProgress01() * 100f);
-    }
-
-    private float GetSplashReadinessProgress01()
-    {
-        int readyCount = 0;
-        if (splashStageReady) readyCount++;
-        if (splashBannerReady) readyCount++;
-        if (splashHeartRewardedReady) readyCount++;
-        if (splashStageSkipRewardedReady) readyCount++;
-        if (splashInterstitialReady) readyCount++;
-        return readyCount / 5f;
     }
 
     private bool IsSplashReady()
     {
-        return splashStageReady &&
-               splashBannerReady &&
-               splashHeartRewardedReady &&
-               splashStageSkipRewardedReady &&
-               splashInterstitialReady;
+        // 광고 준비는 기다리지 않는다. 광고는 백그라운드에서 계속 로드된다.
+        return splashStageReady;
     }
 
     private void TryCloseSplashIfReady()
@@ -3093,19 +3094,15 @@ public class GameMainUIController : MonoBehaviour
 
         float elapsed = Time.unscaledTime - splashStartTime;
         bool isReady = IsSplashReady();
-        bool minDurationPassed = elapsed >= Mathf.Max(0.1f, splashMinimumDuration);
-        bool readyToClose = splashVideoLoaded
-            ? (isReady && splashVideoEnded)
-            : (isReady && minDurationPassed);
-        bool timeout = elapsed >= Mathf.Max(splashMinimumDuration, splashMaximumWait);
-        if (!isReady && splashVideoLoaded && splashVideoEnded)
-            StartSplashVideoFadeOut();
+        bool introDone = splashSkipRequested || elapsed >= NeonIntroElement.ContentDuration;
+        bool timeout = elapsed >= Mathf.Max(NeonIntroElement.ContentDuration, splashMaximumWait);
 
-        if (readyToClose || timeout)
+        if ((isReady && introDone) || timeout)
         {
             if (timeout && !isReady)
-                Debug.LogWarning("[GameMainUIController] Splash timeout reached before full preload; continue to gameplay.");
+                Debug.LogWarning("[GameMainUIController] Splash timeout reached before stage bootstrap; continue to gameplay.");
 
+            PlayerPrefs.SetInt(IntroSeenPreferenceKey, 1);
             isSplashClosing = true;
             splashFadeRoutine = StartCoroutine(CloseSplashRoutine());
         }
@@ -3129,7 +3126,7 @@ public class GameMainUIController : MonoBehaviour
             splashOverlay.RemoveFromHierarchy();
 
         splashOverlay = null;
-        splashImage = null;
+        splashIntro = null;
         splashLoadingLabel = null;
         splashLoadingProgressFill = null;
         splashFadeRoutine = null;
@@ -3137,7 +3134,6 @@ public class GameMainUIController : MonoBehaviour
         isSplashClosing = false;
         splashTimerStarted = false;
         endingBootstrapForcesSplashReady = false;
-        CleanupSplashVideo();
     }
 
     public void ResetHeartsForNewStage()
@@ -3179,6 +3175,7 @@ public class GameMainUIController : MonoBehaviour
 
         int nextHeartCount = Mathf.Max(0, currentHearts - 1);
         SetHeartCount(nextHeartCount, animated: true);
+        ShowFirstHeartLossTipIfNeeded(nextHeartCount);
         var eventData = new Dictionary<string, object>
         {
             { "reason", consumeReason },
@@ -3199,9 +3196,25 @@ public class GameMainUIController : MonoBehaviour
         return true;
     }
 
+    private const string HeartTipShownPreferenceKey = "ZeroStep.HeartTipShown";
+
+    /// <summary>처음 하트를 잃었을 때 한 번만 하트 규칙(실패에만 차감, 리셋·되돌리기는 무료)을 알려준다.</summary>
+    private void ShowFirstHeartLossTipIfNeeded(int remainingHearts)
+    {
+        if (remainingHearts <= 0 || PlayerPrefs.GetInt(HeartTipShownPreferenceKey, 0) == 1)
+            return;
+
+        PlayerPrefs.SetInt(HeartTipShownPreferenceKey, 1);
+        // 실패 원인 안내(약 2.2초)가 먼저 보이도록 뒤이어 띄운다.
+        rootElementForSchedule?.schedule.Execute(() => ShowGameplaySnackbar("snackbar_heart_first_loss", 3.6f)).StartingIn(2400);
+    }
+
+    private VisualElement rootElementForSchedule => uiDocument != null ? uiDocument.rootVisualElement : null;
+
     private void PrepareHeartRefillOffer(string offerContext)
     {
         isWaitingForHeartRefill = true;
+        EnsureHeartWaitRefillTimerStarted();
         GameManager gm = FindFirstObjectByType<GameManager>();
         if (gm != null && gm.TryPeekSessionFreeHeartRefill(out int thresholdMinutes))
         {
@@ -3382,6 +3395,7 @@ public class GameMainUIController : MonoBehaviour
         }
 
         UpdateHeartRefillButtonState();
+        RefreshHeartWaitRefillButton();
     }
 
     private void HideHeartDepletedPopup()
@@ -3432,12 +3446,109 @@ public class GameMainUIController : MonoBehaviour
         heartRefillAdButton.SetEnabled(canShow);
         if (canShow)
             SetHeartRefillStatus(T("heart_status_reward_ready"));
+        else if (Application.internetReachability == NetworkReachability.NotReachable)
+            SetHeartRefillStatus(T("heart_status_offline"));
+        else if (rewardedAdLastLoadFailed && !isRewardedAdLoading)
+            SetHeartRefillStatus(T("heart_status_load_failed_retrying"));
         else
             SetHeartRefillStatus(T("heart_status_loading_ad"));
 #else
         heartRefillAdButton.SetEnabled(true);
         SetHeartRefillStatus(T("heart_status_editor"));
 #endif
+    }
+
+    private void EnsureHeartWaitRefillTimerStarted()
+    {
+        if (heartWaitRefillUnix <= 0L)
+            heartWaitRefillUnix = LoadSettingLong(SaveKeyHeartWaitRefillUnix, 0L);
+        if (heartWaitRefillUnix > 0L)
+            return;
+
+        heartWaitRefillUnix = GetUnixNowSeconds() + HeartWaitRefillSeconds;
+        SaveSettingLong(SaveKeyHeartWaitRefillUnix, heartWaitRefillUnix);
+    }
+
+    private void ClearHeartWaitRefillTimer()
+    {
+        heartWaitRefillUnix = 0L;
+        SaveSettingLong(SaveKeyHeartWaitRefillUnix, 0L);
+    }
+
+    private long GetHeartWaitRefillRemainingSeconds()
+    {
+        if (heartWaitRefillUnix <= 0L)
+            return HeartWaitRefillSeconds;
+        long remaining = heartWaitRefillUnix - GetUnixNowSeconds();
+        // 기기 시계를 되돌린 경우 대기 시간이 무한히 늘어나지 않도록 상한을 둔다.
+        if (remaining > HeartWaitRefillSeconds)
+        {
+            heartWaitRefillUnix = GetUnixNowSeconds() + HeartWaitRefillSeconds;
+            SaveSettingLong(SaveKeyHeartWaitRefillUnix, heartWaitRefillUnix);
+            remaining = HeartWaitRefillSeconds;
+        }
+        return Math.Max(0L, remaining);
+    }
+
+    private void UpdateHeartRefillWaitState()
+    {
+        if (!isWaitingForHeartRefill)
+            return;
+
+        if (Time.unscaledTime >= nextHeartWaitButtonRefreshTime)
+        {
+            nextHeartWaitButtonRefreshTime = Time.unscaledTime + 0.25f;
+            RefreshHeartWaitRefillButton();
+        }
+
+#if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+        if (currentHeartRefillMode == HeartRefillMode.RewardedAd &&
+            nextRewardedAdRetryTime > 0f &&
+            Time.unscaledTime >= nextRewardedAdRetryTime &&
+            !isRewardedAdLoading &&
+            (rewardedAd == null || !rewardedAd.CanShowAd()) &&
+            !ShouldDisableAdsForDevelopmentBuild())
+        {
+            nextRewardedAdRetryTime = -1f;
+            LoadRewardedAd();
+            UpdateHeartRefillButtonState();
+        }
+#endif
+    }
+
+    private void RefreshHeartWaitRefillButton()
+    {
+        if (heartWaitRefillButton == null)
+            return;
+
+        bool showWaitOption = currentHeartRefillMode == HeartRefillMode.RewardedAd;
+        heartWaitRefillButton.style.display = showWaitOption ? DisplayStyle.Flex : DisplayStyle.None;
+        if (!showWaitOption)
+            return;
+
+        long remaining = GetHeartWaitRefillRemainingSeconds();
+        bool ready = remaining <= 0L;
+        heartWaitRefillButton.SetEnabled(ready);
+        heartWaitRefillButton.text = ready
+            ? T("heart_wait_button_ready")
+            : T("heart_wait_button_waiting", ("time", FormatAssistTimer(remaining)));
+    }
+
+    private void ScheduleRewardedAdRetry()
+    {
+        rewardedAdLastLoadFailed = true;
+        int index = Mathf.Clamp(rewardedAdLoadRetryCount, 0, RewardedLoadRetryDelaysSeconds.Length - 1);
+        nextRewardedAdRetryTime = Time.unscaledTime + RewardedLoadRetryDelaysSeconds[index];
+        rewardedAdLoadRetryCount++;
+    }
+
+    private void OnHeartWaitRefillButtonClicked()
+    {
+        if (!isWaitingForHeartRefill || GetHeartWaitRefillRemainingSeconds() > 0L)
+            return;
+
+        heartWaitRefillButton?.SetEnabled(false);
+        CompleteHeartRefill("wait_timer");
     }
 
     private void OnHeartRefillAdButtonClicked()
@@ -3503,6 +3614,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void CompleteHeartRefill(string source, int sessionRewardMinutes = 0)
     {
+        ClearHeartWaitRefillTimer();
         SetHeartCount(MaxHearts, animated: true);
         isWaitingForHeartRefill = false;
         HideHeartDepletedPopup();
@@ -4047,6 +4159,7 @@ public class GameMainUIController : MonoBehaviour
             MarkTutorialSeenInSettings(entry.id);
 
         isTutorialPopupOpen = true;
+        SetBannerHiddenForOverlay(true);
         activeTutorialOpenedFromSettings = openedFromSettings;
 
         if (tutorialOverlay != null)
@@ -4150,6 +4263,7 @@ public class GameMainUIController : MonoBehaviour
 
         StopTutorialAnimation();
         isTutorialPopupOpen = false;
+        SetBannerHiddenForOverlay(false);
         activeTutorialOpenedFromSettings = false;
         RefreshTutorialNavigation();
 
@@ -4221,6 +4335,11 @@ public class GameMainUIController : MonoBehaviour
             tutorialAnimationVersion++;
             tutorialAnimationRoutine = StartCoroutine(PlayBlackoutTutorialAnimationLoop(tutorialAnimationVersion));
         }
+        else if (string.Equals(tutorialType, TutorialTypeCharge, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayFourPhaseTutorialLoop(tutorialAnimationVersion, ApplyChargeTutorialState, new[] { 3, 4, 5, 1 }));
+        }
         else
         {
             tutorialAnimationVersion++;
@@ -4249,6 +4368,8 @@ public class GameMainUIController : MonoBehaviour
             return TutorialTypeIgniter;
         if (string.Equals(tutorialType, TutorialTypeBlindCurtain, StringComparison.OrdinalIgnoreCase))
             return TutorialTypeBlindCurtain;
+        if (string.Equals(tutorialType, TutorialTypeCharge, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypeCharge;
         if (string.Equals(tutorialType, TutorialTypeBasicPath, StringComparison.OrdinalIgnoreCase))
             return TutorialTypeBasicPath;
 
@@ -4263,7 +4384,8 @@ public class GameMainUIController : MonoBehaviour
             string.Equals(normalized, TutorialTypeTwinLink, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, TutorialTypeIgniter, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, TutorialTypeBlindCurtain, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, TutorialTypeBlackout, StringComparison.OrdinalIgnoreCase);
+            string.Equals(normalized, TutorialTypeBlackout, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, TutorialTypeCharge, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsBasicTutorialEntry(HelpTutorialEntryData entry)
@@ -4769,6 +4891,55 @@ public class GameMainUIController : MonoBehaviour
         SetSpecialHint(T(hintKey));
     }
 
+    // ===== 충전 튜토리얼 =====
+
+    private IEnumerator PlayFourPhaseTutorialLoop(int animationVersion, Action<int> applyState, int[] handCells)
+    {
+        WaitForSecondsRealtime stepWait = new WaitForSecondsRealtime(0.8f);
+        WaitForSecondsRealtime cycleWait = new WaitForSecondsRealtime(1.1f);
+        while (isTutorialPopupOpen && animationVersion == tutorialAnimationVersion)
+        {
+            for (int phase = 0; phase < 4; phase++)
+            {
+                if (!IsTutorialAnimationActive(animationVersion))
+                    yield break;
+                applyState(phase);
+                SetSpecialTutorialHandToCell(handCells[Mathf.Min(phase, handCells.Length - 1)], instant: phase == 0);
+                yield return phase == 3 ? cycleWait : stepWait;
+            }
+        }
+
+        tutorialAnimationRoutine = null;
+    }
+
+    /// <summary>충전: 4에서 5로 나가면 들어가는 5를 뺀 이웃(1)이 +1 된다.</summary>
+    private void ApplyChargeTutorialState(int phase)
+    {
+        ResetSpecialTutorialBoard();
+
+        SetSpecialCell(3, phase >= 1 ? "0" : "1", null, string.Empty, active: true);
+        SetSpecialCell(4, phase >= 2 ? "0" : "1", null, string.Empty, active: true, pulse: phase == 1, badge: "+");
+        SetSpecialCell(5, "1", null, string.Empty, active: true, pulse: phase == 2);
+        SetSpecialCell(1, phase >= 2 ? "2" : "1", null, string.Empty, active: true, pulse: phase == 2);
+
+        Color trail = new Color(0.75f, 0.9f, 1f, 0.82f);
+        Color charge = new Color(0.5f, 1f, 0.66f, 0.9f);
+        if (phase >= 1)
+            ShowSpecialLineBetween(tutorialSpecialTrailA, 3, 4, trail, pulse: phase == 1);
+        if (phase >= 2)
+        {
+            ShowSpecialLineBetween(tutorialSpecialTrailB, 4, 5, trail, pulse: phase == 2);
+            ShowSpecialLineBetween(tutorialSpecialTrailC, 4, 1, charge, pulse: phase == 2);
+            ShowSpecialPulseAtCell(tutorialSpecialRevealPulseA, 1, charge, phase == 2);
+        }
+
+        string hintKey = phase == 0 ? "tutorial_charge_step_intro" :
+            phase == 1 ? "tutorial_charge_step_enter" :
+            phase == 2 ? "tutorial_charge_step_charge" :
+            "tutorial_charge_step_return";
+        SetSpecialHint(T(hintKey));
+    }
+
     private void ApplyBlackoutTutorialState(int phase)
     {
         ResetSpecialTutorialBoard();
@@ -5170,6 +5341,8 @@ public class GameMainUIController : MonoBehaviour
                 return new SpecialTutorialPreset(normalized, "tutorial-special-cell-blind", null, "tutorial_blind_curtain_step_intro", 4);
             case TutorialTypeBlackout:
                 return new SpecialTutorialPreset(normalized, "tutorial-special-cell-blackout", null, "tutorial_blackout_step_intro", 4);
+            case TutorialTypeCharge:
+                return new SpecialTutorialPreset(normalized, string.Empty, null, "tutorial_charge_step_intro", 3);
             default:
                 return null;
         }
@@ -5202,6 +5375,9 @@ public class GameMainUIController : MonoBehaviour
                 break;
             case TutorialTypeBlackout:
                 ApplyBlackoutTutorialState(0);
+                break;
+            case TutorialTypeCharge:
+                ApplyChargeTutorialState(0);
                 break;
         }
 
@@ -5761,6 +5937,7 @@ public class GameMainUIController : MonoBehaviour
             vibrationRowLabel.text = T("label_vibration");
         if (helpMenuLabel != null)
             helpMenuLabel.text = T("menu_help");
+        RefreshEffectLevelSettingsVisual();
 
         if (rateButton != null)
             rateButton.text = T("button_rate");
@@ -6054,7 +6231,7 @@ public class GameMainUIController : MonoBehaviour
         {
             { "enabled", isSoundOn ? 1L : 0L }
         });
-        Debug.Log(isSoundOn ? "소리 ON" : "소리 OFF");
+        DevLog.Log(isSoundOn ? "소리 ON" : "소리 OFF");
     }
 
     private void ToggleVibrationSwitch()
@@ -6067,7 +6244,7 @@ public class GameMainUIController : MonoBehaviour
         {
             { "enabled", isVibrationOn ? 1L : 0L }
         });
-        Debug.Log(isVibrationOn ? "진동 ON" : "진동 OFF");
+        DevLog.Log(isVibrationOn ? "진동 ON" : "진동 OFF");
     }
 
     private void RefreshSoundSwitchVisual()
@@ -6173,7 +6350,7 @@ public class GameMainUIController : MonoBehaviour
         if (gm.LoadStageImmediateForDebug(targetStage))
         {
             HideDebugStageJumpPopup();
-            Debug.Log($"[Debug Stage Jump] stage={targetStage}");
+            DevLog.Log($"[Debug Stage Jump] stage={targetStage}");
             return;
         }
 
@@ -6227,11 +6404,13 @@ public class GameMainUIController : MonoBehaviour
 
         FinalEndingProgressStore.ClearEndingProgress();
         AchievementProgressStore.ClearProgress();
+        StageStarsStore.Clear();
         GameManager.ClearSavedStageProgress();
 
         isSoundOn = true;
         isVibrationOn = true;
         IsVibrationEnabled = true;
+        GameplayFeedback.Level = GameplayFeedback.EffectLevel.Full;
         selectedLanguageCode = GameLocalization.LanguageAuto;
         activeLanguageCode = GameLocalization.ResolveSystemLanguageCode();
         RefreshSoundSwitchVisual();
@@ -6575,12 +6754,15 @@ public class GameMainUIController : MonoBehaviour
                 splashHeartRewardedReady = true;
                 string errorMessage = loadError != null ? loadError.GetMessage() : "unknown";
                 Debug.LogWarning($"[GameMainUIController] Rewarded ad load failed: {errorMessage}");
-                SetHeartRefillStatus(T("heart_status_load_failed"));
+                ScheduleRewardedAdRetry();
                 UpdateHeartRefillButtonState();
                 return;
             }
 
             splashHeartRewardedReady = true;
+            rewardedAdLastLoadFailed = false;
+            rewardedAdLoadRetryCount = 0;
+            nextRewardedAdRetryTime = -1f;
             DestroyRewardedAd();
             rewardedAd = ad;
             rewardEarnedThisShow = false;
@@ -6588,7 +6770,7 @@ public class GameMainUIController : MonoBehaviour
             rewardedAd.OnAdFullScreenContentClosed += HandleRewardedAdFullScreenClosed;
             rewardedAd.OnAdFullScreenContentFailed += HandleRewardedAdFullScreenFailed;
 
-            Debug.Log($"[GameMainUIController] Rewarded ad loaded. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
+            DevLog.Log($"[GameMainUIController] Rewarded ad loaded. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
             UpdateHeartRefillButtonState();
         });
     }
@@ -6636,7 +6818,7 @@ public class GameMainUIController : MonoBehaviour
             stageSkipRewardedAd.OnAdFullScreenContentClosed += HandleStageSkipRewardedAdFullScreenClosed;
             stageSkipRewardedAd.OnAdFullScreenContentFailed += HandleStageSkipRewardedAdFullScreenFailed;
 
-            Debug.Log($"[GameMainUIController] Stage skip rewarded ad loaded. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
+            DevLog.Log($"[GameMainUIController] Stage skip rewarded ad loaded. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
         });
     }
 
@@ -6691,7 +6873,7 @@ public class GameMainUIController : MonoBehaviour
             stageTransitionInterstitialAd.OnAdFullScreenContentClosed += HandleStageTransitionInterstitialClosed;
             stageTransitionInterstitialAd.OnAdFullScreenContentFailed += HandleStageTransitionInterstitialFailed;
 
-            Debug.Log($"[GameMainUIController] Stage transition interstitial loaded. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
+            DevLog.Log($"[GameMainUIController] Stage transition interstitial loaded. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
         });
     }
 
@@ -6737,6 +6919,7 @@ public class GameMainUIController : MonoBehaviour
         {
             FirebaseBootstrap.LogEvent($"{assistType}_reward_ad_not_ready");
             LoadStageSkipRewardedAd();
+            ShowAssistAdUnavailableSnackbar(assistType);
             return;
         }
 
@@ -6753,6 +6936,16 @@ public class GameMainUIController : MonoBehaviour
                 { "reward_amount", rewardAmount }
             });
         });
+    }
+
+    private void ShowAssistAdUnavailableSnackbar(string assistType)
+    {
+        long nextRechargeUnix = assistType == "hint" ? hintNextRechargeUnix : skipNextRechargeUnix;
+        string time = FormatAssistTimer(GetRemainingRechargeSeconds(nextRechargeUnix));
+        string key = Application.internetReachability == NetworkReachability.NotReachable
+            ? "snackbar_assist_ad_offline"
+            : "snackbar_assist_ad_unavailable";
+        ShowGameplaySnackbar(key, ("time", time));
     }
 
     private bool TryShowStageTransitionInterstitial(int completedStageIndex, Action onCompleted)
@@ -6913,7 +7106,7 @@ public class GameMainUIController : MonoBehaviour
         bannerView.OnBannerAdLoadFailed += HandleBannerAdLoadFailed;
         bannerView.LoadAd(new AdRequest());
 
-        Debug.Log($"[GameMainUIController] Banner ad load requested. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
+        DevLog.Log($"[GameMainUIController] Banner ad load requested. unitId={adUnitId}, testMode={(isDebugBuildCached ? 1 : 0)}");
     }
 
     private string ResolveBannerAdUnitId()
@@ -6966,8 +7159,21 @@ public class GameMainUIController : MonoBehaviour
     private void HandleBannerAdLoaded()
     {
         splashBannerReady = true;
+        bannerLoadRetryCount = 0;
+        nextBannerRetryTime = -1f;
         if (bannerView != null)
-            bannerView.Show();
+        {
+            // 앱 콘텐츠가 없는 스플래시 위에는 배너를 띄우지 않는다.
+            if (isSplashActive)
+            {
+                bannerView.Hide();
+                pendingBannerShowAfterSplash = true;
+            }
+            else
+            {
+                bannerView.Show();
+            }
+        }
 
         if (bannerView != null)
         {
@@ -6995,6 +7201,8 @@ public class GameMainUIController : MonoBehaviour
         reservedBannerHeightPx = 0f;
         RefreshBottomLayout(force: true);
         SetBannerPlaceholderText(T("banner_load_failed"));
+        nextBannerRetryTime = Time.unscaledTime + BannerRetryBaseDelaySeconds * Mathf.Min(4, 1 + bannerLoadRetryCount);
+        bannerLoadRetryCount++;
     }
 #endif
 
@@ -7016,6 +7224,12 @@ public class GameMainUIController : MonoBehaviour
     {
         if (bannerAdPlaceholder == null)
             return;
+        // 광고 로딩/실패 문구는 개발 빌드에서만 보여준다. 플레이어에게는 빈 영역으로 둔다.
+        if (!isDebugBuildCached)
+        {
+            bannerAdPlaceholder.style.display = DisplayStyle.None;
+            return;
+        }
         bannerAdPlaceholder.style.display = DisplayStyle.Flex;
         bannerAdPlaceholder.text = text;
     }
@@ -7044,6 +7258,33 @@ public class GameMainUIController : MonoBehaviour
             return ConvertDpToPixels(estimatedSize.Height);
 #endif
         return 80f;
+    }
+
+    /// <summary>화면 픽셀 1px이 UI Toolkit 패널 단위로 몇인지 반환한다.</summary>
+    private float GetScreenToPanelScale()
+    {
+        VisualElement root = uiDocument != null ? uiDocument.rootVisualElement : null;
+        if (root != null && root.panel != null)
+        {
+            Vector2 origin = RuntimePanelUtils.ScreenToPanel(root.panel, Vector2.zero);
+            Vector2 probe = RuntimePanelUtils.ScreenToPanel(root.panel, new Vector2(100f, 0f));
+            float scale = (probe.x - origin.x) / 100f;
+            if (scale > 0.0001f && !float.IsNaN(scale) && !float.IsInfinity(scale))
+                return scale;
+        }
+
+        PanelSettings panelSettings = uiDocument != null ? uiDocument.panelSettings : null;
+        if (panelSettings != null && panelSettings.scaleMode == PanelScaleMode.ScaleWithScreenSize && Screen.width > 0 && Screen.height > 0)
+        {
+            Vector2Int reference = panelSettings.referenceResolution;
+            float logWidth = Mathf.Log(Screen.width / Mathf.Max(1f, reference.x), 2f);
+            float logHeight = Mathf.Log(Screen.height / Mathf.Max(1f, reference.y), 2f);
+            float pixelsPerUnit = Mathf.Pow(2f, Mathf.Lerp(logWidth, logHeight, panelSettings.match));
+            if (pixelsPerUnit > 0.0001f)
+                return 1f / pixelsPerUnit;
+        }
+
+        return 1f;
     }
 
     private static float ConvertDpToPixels(float dp)
@@ -7085,21 +7326,35 @@ public class GameMainUIController : MonoBehaviour
         cachedScreenHeight = Screen.height;
         cachedSafeArea = currentSafeArea;
 
-        float safeBottomPx = Mathf.Max(0f, currentSafeArea.yMin);
-        float safeTopPx = Mathf.Max(0f, Screen.height - currentSafeArea.yMax);
-        float safeLeftPx = Mathf.Max(0f, currentSafeArea.xMin);
-        float safeRightPx = Mathf.Max(0f, Screen.width - currentSafeArea.xMax);
-        float bannerReservedBottomPx = Mathf.Max(0f, reservedBannerHeightPx);
+        // safe area와 배너 높이는 화면 픽셀 단위이고, style 값은 UI Toolkit 패널 단위다.
+        // 패널은 가로 1080 기준으로 스케일되므로 반드시 변환해서 넣어야 기기 해상도와 무관하게 간격이 유지된다.
+        float screenToPanel = GetScreenToPanelScale();
+        float safeBottomScreenPx = Mathf.Max(0f, currentSafeArea.yMin);
+        float bannerScreenPx = Mathf.Max(0f, reservedBannerHeightPx);
+        float safeBottomPx = safeBottomScreenPx * screenToPanel;
+        float safeTopPx = Mathf.Max(0f, Screen.height - currentSafeArea.yMax) * screenToPanel;
+        float safeLeftPx = Mathf.Max(0f, currentSafeArea.xMin) * screenToPanel;
+        float safeRightPx = Mathf.Max(0f, Screen.width - currentSafeArea.xMax) * screenToPanel;
+        float bannerReservedBottomPx = bannerScreenPx * screenToPanel;
         float previousNoBannerReservePx = responsiveBottomBarNoBannerReservePx >= 0f
             ? responsiveBottomBarNoBannerReservePx
             : bottomBarNoBannerReservePx;
-        float initialNoBannerReservedBottomPx = bannerReservedBottomPx > 0.5f ? 0f : Mathf.Max(0f, previousNoBannerReservePx);
-        float initialContentReservedBottomPx = Mathf.Max(bannerReservedBottomPx, initialNoBannerReservedBottomPx);
-        ApplyResponsiveLayoutMode(currentSafeArea, initialContentReservedBottomPx);
+        // 프로필 판정은 화면 픽셀 기준 임계값을 쓰므로 화면 픽셀로 전달한다.
+        float initialContentReservedBottomScreenPx = bannerScreenPx > 0.5f
+            ? bannerScreenPx
+            : Mathf.Max(0f, previousNoBannerReservePx) / Mathf.Max(0.0001f, screenToPanel);
+        ApplyResponsiveLayoutMode(currentSafeArea, initialContentReservedBottomScreenPx);
 
         float noBannerReservedBottomPx = bannerReservedBottomPx > 0.5f ? 0f : Mathf.Max(0f, responsiveBottomBarNoBannerReservePx);
         float contentReservedBottomPx = Mathf.Max(bannerReservedBottomPx, noBannerReservedBottomPx);
         float totalReservedBottomPx = safeBottomPx + contentReservedBottomPx;
+        float bottomBarSpacingPx = Mathf.Max(0f, responsiveBottomBarExtraSpacingPx);
+        if (bannerReservedBottomPx > 0.5f)
+        {
+            // 배너 오클릭을 막기 위해 배너와 하단 버튼 사이 최소 간격을 dp 기준으로 보장한다.
+            float minimumGapPx = ConvertDpToPixels(BannerToButtonsMinimumGapDp) * screenToPanel;
+            bottomBarSpacingPx = Mathf.Max(bottomBarSpacingPx, minimumGapPx);
+        }
 
         if (topBar != null)
             topBar.style.paddingTop = responsiveTopHudBasePaddingPx + safeTopPx;
@@ -7115,7 +7370,7 @@ public class GameMainUIController : MonoBehaviour
         if (bottomBar != null)
         {
             bottomBar.style.marginBottom = 0f;
-            bottomBar.style.bottom = totalReservedBottomPx + Mathf.Max(0f, responsiveBottomBarExtraSpacingPx);
+            bottomBar.style.bottom = totalReservedBottomPx + bottomBarSpacingPx;
         }
 
         if (stageSnackbar != null)
@@ -7363,7 +7618,7 @@ public class GameMainUIController : MonoBehaviour
 
         Rect safe = Screen.safeArea;
         float aspect = safe.height > 1f ? safe.width / safe.height : 0f;
-        Debug.Log($"[GameMainUIController] ResponsiveLayout profile={activeResponsiveLayoutProfile} viewport={Screen.width}x{Screen.height} safe=({safe.x:F0},{safe.y:F0},{safe.width:F0},{safe.height:F0}) aspect={aspect:F3} top={topGameplayMarginNormalized:F3} bottom={bottomGameplayMarginNormalized:F3} center={centerBand:F3}");
+        DevLog.Log($"[GameMainUIController] ResponsiveLayout profile={activeResponsiveLayoutProfile} viewport={Screen.width}x{Screen.height} safe=({safe.x:F0},{safe.y:F0},{safe.width:F0},{safe.height:F0}) aspect={aspect:F3} top={topGameplayMarginNormalized:F3} bottom={bottomGameplayMarginNormalized:F3} center={centerBand:F3}");
         lastLoggedResponsiveLayoutProfile = activeResponsiveLayoutProfile;
         lastLoggedTopGameplayMarginNormalized = topGameplayMarginNormalized;
         lastLoggedBottomGameplayMarginNormalized = bottomGameplayMarginNormalized;
@@ -7392,12 +7647,12 @@ public class GameMainUIController : MonoBehaviour
 
     private void AutoAssignUISoundClipsInEditor()
     {
-        AssignClipIfMissing(ref clickSfxClip, "Assets/Sounds/click.wav");
-        AssignClipIfMissing(ref cancelSfxClip, "Assets/Sounds/cancel.wav");
-        AssignClipIfMissing(ref confirmSfxClip, "Assets/Sounds/confirm.wav");
-        AssignClipIfMissing(ref snackbarSfxClip, "Assets/Sounds/snackbar.wav");
-        AssignClipIfMissing(ref hintSfxClip, "Assets/Sounds/hint.wav");
-        AssignClipIfMissing(ref skipSfxClip, "Assets/Sounds/skip.wav");
+        AssignClipIfMissing(ref clickSfxClip, "Assets/Resources/Sounds/click.wav");
+        AssignClipIfMissing(ref cancelSfxClip, "Assets/Resources/Sounds/cancel.wav");
+        AssignClipIfMissing(ref confirmSfxClip, "Assets/Resources/Sounds/confirm.wav");
+        AssignClipIfMissing(ref snackbarSfxClip, "Assets/Resources/Sounds/snackbar.wav");
+        AssignClipIfMissing(ref hintSfxClip, "Assets/Resources/Sounds/hint.wav");
+        AssignClipIfMissing(ref skipSfxClip, "Assets/Resources/Sounds/skip.wav");
     }
 
     private static void AssignClipIfMissing(ref AudioClip target, string assetPath)
@@ -7412,13 +7667,15 @@ public class GameMainUIController : MonoBehaviour
     {
         stageClearAnimationVersion++;
         int version = stageClearAnimationVersion;
-        PlayStageClearGlowForElement(stageContainer, version, 1.05f, 0.92f);
-        PlayStageClearGlowForElement(gameProgressBar, version, 1.08f, 1f);
+        float intensity = GameplayFeedback.Intensity;
+        PlayStageClearGlowForElement(stageContainer, version, 1f + 0.05f * intensity, 0.92f);
+        PlayStageClearGlowForElement(gameProgressBar, version, 1f + 0.08f * intensity, 1f);
     }
 
     public void ResetTransientStageClearVisuals()
     {
         stageClearAnimationVersion++;
+        ResetGameplayFeedbackPulseVisuals();
         ResetStageClearElement(stageContainer);
         ResetStageClearElement(gameProgressBar);
     }
@@ -7428,6 +7685,7 @@ public class GameMainUIController : MonoBehaviour
         if (element == null)
             return;
 
+        float intensity = GameplayFeedback.Intensity;
         element.style.opacity = 1f;
         element.style.scale = new StyleScale(new Scale(Vector3.one));
         element.schedule.Execute(() =>
@@ -7435,14 +7693,16 @@ public class GameMainUIController : MonoBehaviour
             if (version != stageClearAnimationVersion)
                 return;
             element.style.opacity = lowOpacity;
-            element.style.scale = new StyleScale(new Scale(new Vector3(peakScale, peakScale, 1f)));
+            if (intensity > 0f)
+                element.style.scale = new StyleScale(new Scale(new Vector3(peakScale, peakScale, 1f)));
         }).StartingIn(20);
         element.schedule.Execute(() =>
         {
             if (version != stageClearAnimationVersion)
                 return;
             element.style.opacity = 1f;
-            element.style.scale = new StyleScale(new Scale(new Vector3(0.98f, 0.98f, 1f)));
+            if (intensity > 0f)
+                element.style.scale = new StyleScale(new Scale(new Vector3(0.98f, 0.98f, 1f)));
         }).StartingIn(160);
         element.schedule.Execute(() =>
         {
@@ -7450,6 +7710,93 @@ public class GameMainUIController : MonoBehaviour
                 return;
             element.style.scale = new StyleScale(new Scale(Vector3.one));
         }).StartingIn(320);
+    }
+
+    public void PlayGameplayFeedbackPulse(float strength, bool nearCompletion = false)
+    {
+        float intensity = GameplayFeedback.Intensity;
+        if (intensity <= 0f)
+            return;
+
+        gameplayFeedbackAnimationVersion++;
+        int version = gameplayFeedbackAnimationVersion;
+        float normalizedStrength = Mathf.Clamp01(strength) * intensity;
+        float peakScale = 1f + Mathf.Lerp(0.018f, 0.05f, normalizedStrength);
+        float glowOpacity = nearCompletion ? 0.82f : 0.58f;
+        Color glowColor = nearCompletion
+            ? new Color32(0xFF, 0xF0, 0x77, 0x66)
+            : new Color32(0x5B, 0xF6, 0xFF, 0x58);
+        Color fillColor = nearCompletion
+            ? new Color32(0xFF, 0xE6, 0x5D, 0xFF)
+            : new Color32(0x54, 0xF5, 0xFF, 0xFF);
+
+        VisualElement stageGlow = stageContainer != null ? stageContainer.Q<VisualElement>(className: "top-stage-panel-glow") : null;
+        VisualElement progressGlow = topBar != null ? topBar.Q<VisualElement>(className: "top-progress-glow") : null;
+        VisualElement progressFill = gameProgressBar != null ? gameProgressBar.Q(className: ProgressBar.progressUssClassName) : null;
+
+        PlayGameplayFeedbackPulseForElement(stageGlow, version, peakScale, glowOpacity, glowColor, allowScale: true, restoreProgressFillColor: false);
+        PlayGameplayFeedbackPulseForElement(progressGlow, version, peakScale + 0.015f, glowOpacity, glowColor, allowScale: true, restoreProgressFillColor: false);
+        PlayGameplayFeedbackPulseForElement(progressFill, version, 1f, 1f, fillColor, allowScale: false, restoreProgressFillColor: true);
+    }
+
+    private void PlayGameplayFeedbackPulseForElement(
+        VisualElement element,
+        int version,
+        float peakScale,
+        float peakOpacity,
+        Color peakColor,
+        bool allowScale,
+        bool restoreProgressFillColor)
+    {
+        if (element == null)
+            return;
+
+        element.style.opacity = 1f;
+        if (allowScale)
+            element.style.scale = new StyleScale(new Scale(Vector3.one));
+
+        element.schedule.Execute(() =>
+        {
+            if (version != gameplayFeedbackAnimationVersion)
+                return;
+            element.style.opacity = peakOpacity;
+            element.style.backgroundColor = new StyleColor(peakColor);
+            if (allowScale)
+                element.style.scale = new StyleScale(new Scale(new Vector3(peakScale, peakScale, 1f)));
+        }).StartingIn(16);
+
+        element.schedule.Execute(() =>
+        {
+            if (version != gameplayFeedbackAnimationVersion)
+                return;
+            element.style.opacity = 1f;
+            if (allowScale)
+                element.style.scale = new StyleScale(new Scale(Vector3.one));
+            element.style.backgroundColor = restoreProgressFillColor
+                ? new StyleColor(new Color32(0x00, 0xEF, 0xE6, 0xFF))
+                : new StyleColor(StyleKeyword.Null);
+        }).StartingIn(190);
+    }
+
+    private void ResetGameplayFeedbackPulseVisuals()
+    {
+        gameplayFeedbackAnimationVersion++;
+        ResetGameplayFeedbackPulseElement(stageContainer != null ? stageContainer.Q<VisualElement>(className: "top-stage-panel-glow") : null, resetScale: true);
+        ResetGameplayFeedbackPulseElement(topBar != null ? topBar.Q<VisualElement>(className: "top-progress-glow") : null, resetScale: true);
+        ResetGameplayFeedbackPulseElement(gameProgressBar != null ? gameProgressBar.Q(className: ProgressBar.progressUssClassName) : null, resetScale: false, restoreProgressFillColor: true);
+    }
+
+    private static void ResetGameplayFeedbackPulseElement(VisualElement element, bool resetScale, bool restoreProgressFillColor = false)
+    {
+        if (element == null)
+            return;
+
+        element.style.opacity = 1f;
+        element.style.backgroundColor = restoreProgressFillColor
+            ? new StyleColor(new Color32(0x00, 0xEF, 0xE6, 0xFF))
+            : new StyleColor(StyleKeyword.Null);
+        if (resetScale)
+            element.style.scale = new StyleScale(new Scale(Vector3.one));
     }
 
     private static void ResetStageClearElement(VisualElement element)
@@ -7474,12 +7821,55 @@ public class GameMainUIController : MonoBehaviour
             stageTitleLabel.text = T("stage_title");
 
         if (stageNumberLabel != null)
-            stageNumberLabel.text = stageIndex.ToString("D2");
+        {
+            string nextText = stageIndex.ToString("D2");
+            bool advanced = stageNumberLabel.text != nextText && stageIndex > lastShownStageNumber && lastShownStageNumber > 0;
+            stageNumberLabel.text = nextText;
+            if (advanced)
+                PlayStageNumberRoll();
+            lastShownStageNumber = stageIndex;
+        }
 
         initialTileCount = Mathf.Max(1, totalCount);
         UpdateProgress(remainingCount);
         TryShowScheduledTutorialForStage(currentStageIndexForUI);
         TryShowScheduledSnackbarForStage(currentStageIndexForUI);
+    }
+
+    private int lastShownStageNumber;
+    private int stageNumberRollVersion;
+
+    /// <summary>다음 스테이지로 넘어갈 때 번호가 아래에서 올라오며 바뀌는 짧은 연출(0.25초).</summary>
+    private void PlayStageNumberRoll()
+    {
+        if (stageNumberLabel == null)
+            return;
+
+        int version = ++stageNumberRollVersion;
+        float intensity = GameplayFeedback.Intensity;
+        if (intensity <= 0f)
+            return;
+
+        float startTime = Time.unscaledTime;
+        const float duration = 0.25f;
+        stageNumberLabel.style.opacity = 0f;
+        stageNumberLabel.style.translate = new Translate(0f, 22f * intensity);
+        stageNumberLabel.schedule.Execute(() =>
+        {
+            if (version != stageNumberRollVersion || stageNumberLabel == null)
+                return;
+            float t = Mathf.Clamp01((Time.unscaledTime - startTime) / duration);
+            float eased = 1f - (1f - t) * (1f - t) * (1f - t);
+            stageNumberLabel.style.opacity = eased;
+            stageNumberLabel.style.translate = new Translate(0f, Mathf.Lerp(22f * intensity, 0f, eased));
+        }).Every(16).Until(() => version != stageNumberRollVersion || Time.unscaledTime - startTime >= duration + 0.05f);
+        stageNumberLabel.schedule.Execute(() =>
+        {
+            if (version != stageNumberRollVersion || stageNumberLabel == null)
+                return;
+            stageNumberLabel.style.opacity = 1f;
+            stageNumberLabel.style.translate = new Translate(0f, 0f);
+        }).StartingIn(Mathf.RoundToInt((duration + 0.06f) * 1000f));
     }
 
     /// <summary>남은 타일 카운트 기준으로 ProgressBar 갱신.</summary>

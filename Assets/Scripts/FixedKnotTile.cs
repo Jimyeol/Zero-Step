@@ -28,8 +28,6 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
     [SerializeField] private float readyPulseDuration = 0.65f;
     [Tooltip("잠금 해제 burst 시간(초)")]
     [SerializeField] private float unlockBurstDuration = 0.24f;
-    [Tooltip("count 감소 시 빠르게 한 바퀴 회전하는 시간(초)")]
-    [SerializeField] private float countSpinDuration = 0.18f;
 
     private Tile tile;
     private SpriteRenderer tileSpriteRenderer;
@@ -479,6 +477,16 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
         accentRenderer.color = WithAlpha(color, minAlpha);
         accentRenderer.transform.localScale = Vector3.one * baseScale;
 
+        // 효과 강도에 따라 맥동 폭을 줄이고, Minimal에서는 정지 상태로 둔다.
+        float intensity = GameplayFeedback.Intensity;
+        if (intensity <= 0f)
+        {
+            accentRenderer.color = WithAlpha(color, (minAlpha + maxAlpha) * 0.5f);
+            return;
+        }
+        maxAlpha = Mathf.Lerp(minAlpha, maxAlpha, intensity);
+        targetScale = Mathf.Lerp(baseScale, targetScale, intensity);
+
         statePulseSequence = DOTween.Sequence().SetUpdate(true).SetLoops(-1, LoopType.Yoyo);
         statePulseSequence.Join(accentRenderer.DOFade(maxAlpha, duration).SetEase(Ease.InOutSine));
         statePulseSequence.Join(accentRenderer.transform.DOScale(Vector3.one * targetScale, duration).SetEase(Ease.InOutSine));
@@ -634,33 +642,38 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
         ApplyNormalUnlockedVisual(true);
     }
 
+    /// <summary>
+    /// 순서 카운트다운이 줄 때: 타일 전체를 360° 돌리던 연출 대신 숫자만 짧게 튀게 한다.
+    /// (잠긴 FixedKnot이 많을 때 매 이동마다 보드가 요란하게 도는 문제 해결, 효과 강도 설정 반영)
+    /// </summary>
     private void PlayCountDecrementSpin()
     {
-        if (IsInGameOverBlackout())
+        if (IsInGameOverBlackout() || orderText == null)
             return;
-
-        CacheBaseLocalRotation();
 
         if (countSpinTween != null && countSpinTween.IsActive())
             countSpinTween.Kill();
-        if (tileSpriteRenderer == null)
+        ResetSpinRotation();
+
+        float intensity = GameplayFeedback.Intensity;
+        if (intensity <= 0f)
             return;
 
-        ResetSpinRotation();
-        countSpinTween = transform
-            .DOLocalRotate(new Vector3(0f, 0f, -360f), countSpinDuration, RotateMode.FastBeyond360)
-            .SetRelative(true)
-            .SetEase(Ease.OutCubic)
+        Vector3 restScale = Vector3.one * orderTextScale;
+        orderText.transform.localScale = restScale;
+        countSpinTween = orderText.transform
+            .DOPunchScale(restScale * 0.12f * intensity, 0.14f, 1, 0f)
             .SetUpdate(true)
-            .OnUpdate(CounterRotateOrderText)
             .OnKill(() =>
             {
-                ResetSpinRotation();
+                if (orderText != null)
+                    orderText.transform.localScale = restScale;
                 countSpinTween = null;
             })
             .OnComplete(() =>
             {
-                ResetSpinRotation();
+                if (orderText != null)
+                    orderText.transform.localScale = restScale;
                 countSpinTween = null;
             });
     }
@@ -812,6 +825,52 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
     }
 
     /// <summary>게임오버 리셋 시 잠금 타일과 순서 숫자를 다시 표시.</summary>
+    public struct UndoState
+    {
+        public bool SteppedCorrectly;
+        public bool Unlocked;
+        public int DisplayRemaining;
+    }
+
+    public UndoState CaptureUndoState()
+    {
+        return new UndoState
+        {
+            SteppedCorrectly = hasBeenSteppedCorrectly,
+            Unlocked = hasUnlockedToNormalTile,
+            DisplayRemaining = displayRemaining
+        };
+    }
+
+    /// <summary>되돌리기: 순서 상태를 복원하고 그 상태에 맞는 모습으로 즉시 다시 그린다.</summary>
+    public void RestoreUndoState(UndoState state)
+    {
+        StopVisualTweens(true);
+        if (positionShakeTween != null && positionShakeTween.IsActive())
+            positionShakeTween.Kill();
+        if (countSpinTween != null && countSpinTween.IsActive())
+            countSpinTween.Kill();
+        CacheBaseLocalRotation();
+        ResetSpinRotation();
+
+        hasBeenSteppedCorrectly = state.SteppedCorrectly;
+        hasUnlockedToNormalTile = state.Unlocked;
+        displayRemaining = state.DisplayRemaining;
+        hasDisplayRemainingInitialized = true;
+
+        if (!hasUnlockedToNormalTile)
+        {
+            if (orderText != null)
+            {
+                orderText.gameObject.SetActive(true);
+                orderText.text = Mathf.Max(0, displayRemaining).ToString();
+            }
+            HideTileNumberText();
+        }
+
+        ApplyVisualForCurrentState(true);
+    }
+
     public void ResetGearVisibility()
     {
         hasBeenSteppedCorrectly = false;

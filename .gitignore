@@ -115,3 +115,9 @@ InitTestScene*.unity*
 /ZeroStep_BackUpThisFolder_ButDontShipItWithYourGame/
 /ZeroStep_BurstDebugInformation_DoNotShip/
 .omx/
+/Builds/
+
+# IDE / tool caches
+.vscode/
+*.slnx
+__pycache__/

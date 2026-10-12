@@ -111,6 +111,8 @@ public class ProceduralGridBackground : MonoBehaviour
     private readonly Vector2[] gridUvBuffer = new Vector2[4];
     private Vector2 gridScrollDirection = Vector2.right;
     private Vector2 gridScrollOffset;
+    private float feedbackEnergy;
+    private float feedbackBlackoutTime;
     private Vector2 currentGridTiling = Vector2.one;
     private int lastGridFlowDirectionIndex = -1;
     private float runtimeReferenceOrthographicSize = -1f;
@@ -616,6 +618,16 @@ public class ProceduralGridBackground : MonoBehaviour
         return DefaultAspect;
     }
 
+    public void SetFeedbackEnergy(float energy) => feedbackEnergy = Mathf.Clamp01(energy);
+
+    public void PulseFeedbackBlackout() => feedbackBlackoutTime = 0.24f;
+
+    public void ResetFeedbackMotion()
+    {
+        feedbackEnergy = 0f;
+        feedbackBlackoutTime = 0f;
+    }
+
     private void AdvanceGridMotion()
     {
         if (!gridMotionEnabled || gridMaterial == null || gridScrollSpeed <= 0f)
@@ -624,7 +636,17 @@ public class ProceduralGridBackground : MonoBehaviour
         if (gridScrollDirection.sqrMagnitude <= MetricEpsilon)
             gridScrollDirection = Vector2.right;
 
-        gridScrollOffset += gridScrollDirection.normalized * gridScrollSpeed * Time.deltaTime;
+        // 효과 강도: Minimal이면 배경을 멈추고(매 프레임 UV 갱신도 생략), Reduced면 절반 속도로 흐른다.
+        float effectIntensity = GameplayFeedback.Intensity;
+        if (effectIntensity <= 0f)
+            return;
+        float flow = (1f + feedbackEnergy * 1.8f) * Mathf.Lerp(0.5f, 1f, (effectIntensity - 0.45f) / 0.55f);
+        if (feedbackBlackoutTime > 0f)
+        {
+            feedbackBlackoutTime = Mathf.Max(0f, feedbackBlackoutTime - Time.deltaTime);
+            flow = feedbackBlackoutTime > 0.12f ? 0f : -0.65f;
+        }
+        gridScrollOffset += gridScrollDirection.normalized * gridScrollSpeed * flow * Time.deltaTime;
         gridScrollOffset.x = Mathf.Repeat(gridScrollOffset.x, 1f);
         gridScrollOffset.y = Mathf.Repeat(gridScrollOffset.y, 1f);
         ApplyGridMeshUvs();

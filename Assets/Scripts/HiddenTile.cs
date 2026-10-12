@@ -63,22 +63,26 @@ public class HiddenTile : MonoBehaviour
             numberText.gameObject.SetActive(false);
         transform.localScale = Vector3.one;
         if (GameManager.VerboseStage6DebugEnabled)
-            Debug.Log($"[Stage6 Hidden 리셋] tile={GameManager.DescribeTileForDebug(tile)} collider={IsColliderEnabled} sprite={(spriteRenderer != null && spriteRenderer.enabled)} activated={isActivated}");
+            DevLog.Log($"[Stage6 Hidden 리셋] tile={GameManager.DescribeTileForDebug(tile)} collider={IsColliderEnabled} sprite={(spriteRenderer != null && spriteRenderer.enabled)} activated={isActivated}");
     }
 
     /// <summary>
     /// Igniter가 트리거 시 호출. delay 후 릴레이 점등 연출.
     /// </summary>
-    public void ActivateWithDelay(float delay, System.Action<HiddenTile> onLive = null)
+    public void ActivateWithDelay(float delay, System.Action<HiddenTile> onLive = null, Tile feedbackSource = null)
     {
         if (isActivated) return;
         isActivated = true;
+        // 규칙상으로는 Igniter를 밟는 순간 바로 들어갈 수 있다. 등장 연출(릴레이 점등)만 순서대로 늦게 보여주고,
+        // 콜라이더는 즉시 켜서 빠르게 드래그해도 아직 안 보이는 칸에서 조용히 막히지 않게 한다.
+        if (boxCollider2D != null)
+            boxCollider2D.enabled = true;
         if (GameManager.VerboseStage6DebugEnabled)
-            Debug.Log($"[Stage6 Hidden 예약] tile={GameManager.DescribeTileForDebug(tile)} delay={delay:F3} colliderBefore={IsColliderEnabled}");
-        StartCoroutine(ActivateAfterDelayRoutine(delay, onLive));
+            DevLog.Log($"[Stage6 Hidden 예약] tile={GameManager.DescribeTileForDebug(tile)} delay={delay:F3} colliderBefore={IsColliderEnabled}");
+        StartCoroutine(ActivateAfterDelayRoutine(delay, onLive, feedbackSource));
     }
 
-    private IEnumerator ActivateAfterDelayRoutine(float delay, System.Action<HiddenTile> onLive)
+    private IEnumerator ActivateAfterDelayRoutine(float delay, System.Action<HiddenTile> onLive, Tile feedbackSource)
     {
         if (delay > 0f)
             yield return new WaitForSeconds(delay);
@@ -102,8 +106,10 @@ public class HiddenTile : MonoBehaviour
             StartCoroutine(FadeInNumberTextRoutine());
         }
         if (GameManager.VerboseStage6DebugEnabled)
-            Debug.Log($"[Stage6 Hidden 활성화] tile={GameManager.DescribeTileForDebug(tile)} delay={delay:F3} collider={IsColliderEnabled} sprite={(spriteRenderer != null && spriteRenderer.enabled)} activated={isActivated}");
+            DevLog.Log($"[Stage6 Hidden 활성화] tile={GameManager.DescribeTileForDebug(tile)} delay={delay:F3} collider={IsColliderEnabled} sprite={(spriteRenderer != null && spriteRenderer.enabled)} activated={isActivated}");
         onLive?.Invoke(this);
+        GameplayFeedback.Instance?.RevealLink(feedbackSource, tile, 0f);
+        GameplayFeedback.Instance?.HiddenRevealed(tile);
     }
 
     private void CacheTargetVisualState()
@@ -138,6 +144,32 @@ public class HiddenTile : MonoBehaviour
         }
         c.a = 1f;
         numberText.color = c;
+    }
+
+    /// <summary>되돌리기: 등장 연출 없이 이미 드러난 상태로 즉시 맞춘다.</summary>
+    public void SetLiveImmediateForUndo()
+    {
+        StopAllCoroutines();
+        DOTween.Kill(transform);
+        if (spriteRenderer != null) DOTween.Kill(spriteRenderer);
+        if (numberText != null) DOTween.Kill(numberText.transform);
+        isActivated = true;
+        CacheTargetVisualState();
+        bool active = tile != null && tile.IsActive;
+        if (boxCollider2D != null)
+            boxCollider2D.enabled = active;
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.enabled = active;
+            spriteRenderer.color = new Color(targetColor.r, targetColor.g, targetColor.b, Mathf.Max(0.0001f, targetColor.a));
+        }
+        if (numberText != null)
+        {
+            numberText.gameObject.SetActive(active);
+            Color c = targetNumberColor;
+            c.a = 1f;
+            numberText.color = c;
+        }
     }
 
     public bool IsActivated => isActivated;
