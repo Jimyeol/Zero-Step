@@ -4061,6 +4061,9 @@ public class GameManager : MonoBehaviour
     /// <summary>남은 타일 카운트 기준으로 상단 UI ProgressBar 갱신.</summary>
     private void RefreshMainUIProgress()
     {
+        // 피버 중에는 진행 막대가 남은 시간을 보여준다.
+        if (feverActive)
+            return;
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
         if (mainUI == null || initialTileCountForUI <= 0)
@@ -6270,6 +6273,7 @@ public class GameManager : MonoBehaviour
             feverEndTime += Time.unscaledDeltaTime;
             return;
         }
+        mainUI?.SetFeverTimeFraction((feverEndTime - Time.unscaledTime) / FeverDurationSeconds);
         int seconds = FeverSecondsLeft;
         if (seconds != feverLastShownSeconds)
         {

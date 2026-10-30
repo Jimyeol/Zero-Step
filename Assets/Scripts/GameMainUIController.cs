@@ -2534,8 +2534,8 @@ public class GameMainUIController : MonoBehaviour
     }
 
     // ===== 피버 보드 HUD =====
-    // 10스테이지마다 오는 보너스 판: 상단 STAGE 자리에 "FEVER"와 남은 초, 하트 아래에 터뜨린 칸 수를 보여준다.
-    private Label feverCounterLabel;
+    // 10스테이지마다 오는 보너스 판. 새 요소를 끼우면 상단 배치가 밀려 하트·보드와 겹치므로 기존 자리를 빌려 쓴다:
+    // STAGE 제목 → "FEVER 12"(남은 초), 큰 숫자 → 터뜨린 칸 수, 진행 막대 → 남은 시간(줄어듦).
     private int feverCounterBumpVersion;
 
     public void BeginFeverHud()
@@ -2543,6 +2543,9 @@ public class GameMainUIController : MonoBehaviour
         DismissClearCard();
         if (stageTitleLabel != null)
             stageTitleLabel.text = T("fever_title");
+        if (stageNumberLabel != null)
+            stageNumberLabel.text = "00";
+        SetFeverTimeFraction(1f);
         if (uiDocument == null)
             return;
         VisualElement root = uiDocument.rootVisualElement;
@@ -2552,60 +2555,63 @@ public class GameMainUIController : MonoBehaviour
         Vector2 center = new Vector2(layout.width * 0.5f, layout.height * 0.42f);
         root.Add(new ClayComboPopup(center, T("fever_banner"), ClayComboPopup.PerfectTier));
         root.Add(new ClayScreenFlash(0.32f));
-
-        feverCounterLabel?.RemoveFromHierarchy();
-        feverCounterLabel = new Label("0") { pickingMode = PickingMode.Ignore };
-        feverCounterLabel.AddToClassList("clay-intro-text");
-        feverCounterLabel.AddToClassList("clay-keep");
-        feverCounterLabel.style.position = Position.Absolute;
-        feverCounterLabel.style.left = 0f;
-        feverCounterLabel.style.right = 0f;
-        feverCounterLabel.style.top = Length.Percent(9f);
-        feverCounterLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        feverCounterLabel.style.fontSize = 64f;
-        feverCounterLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        feverCounterLabel.style.color = VisualTheme.Accent;
-        feverCounterLabel.style.transitionProperty = new List<StylePropertyName> { new StylePropertyName("scale") };
-        feverCounterLabel.style.transitionDuration = new List<TimeValue> { new TimeValue(0.12f) };
-        root.Add(feverCounterLabel);
     }
 
     public void SetupFeverBoard(int totalCount, int remainingCount)
     {
         ResetTransientStageClearVisuals();
-        initialTileCount = Mathf.Max(1, totalCount);
-        UpdateProgress(remainingCount);
+    }
+
+    /// <summary>진행 막대를 남은 시간 비율(1→0)로 바로 채운다(애니메이션 없이 매 프레임).</summary>
+    public void SetFeverTimeFraction(float fraction)
+    {
+        if (gameProgressBar == null)
+            return;
+        if (progressAnimRoutine != null)
+        {
+            StopCoroutine(progressAnimRoutine);
+            progressAnimRoutine = null;
+        }
+        gameProgressBar.lowValue = 0f;
+        gameProgressBar.highValue = 1000f;
+        gameProgressBar.title = string.Empty;
+        displayedProgressValue = Mathf.Clamp01(fraction) * 1000f;
+        gameProgressBar.value = displayedProgressValue;
     }
 
     public void UpdateFeverHud(int secondsLeft, int pops, bool bump)
     {
-        if (stageNumberLabel != null)
+        if (stageTitleLabel != null)
         {
-            string text = Mathf.Max(0, secondsLeft).ToString("D2");
-            if (stageNumberLabel.text != text)
-                stageNumberLabel.text = text;
-            stageNumberLabel.style.color = secondsLeft <= 5 ? VisualTheme.Accent : StyleKeyword.Null;
+            stageTitleLabel.text = T("fever_title") + " " + Mathf.Max(0, secondsLeft);
+            stageTitleLabel.style.color = secondsLeft <= 5 ? VisualTheme.Accent : StyleKeyword.Null;
         }
-        if (feverCounterLabel == null)
+        if (stageNumberLabel == null)
             return;
-        feverCounterLabel.text = pops + " POP";
+        stageNumberLabel.text = pops.ToString("D2");
         if (!bump)
             return;
         int version = ++feverCounterBumpVersion;
-        feverCounterLabel.style.scale = new Scale(new Vector3(1.3f, 1.3f, 1f));
-        feverCounterLabel.schedule.Execute(() =>
+        stageNumberLabel.style.scale = new Scale(new Vector3(1.25f, 1.25f, 1f));
+        stageNumberLabel.schedule.Execute(() =>
         {
-            if (version == feverCounterBumpVersion && feverCounterLabel != null)
-                feverCounterLabel.style.scale = new Scale(Vector3.one);
+            if (version == feverCounterBumpVersion && stageNumberLabel != null)
+                stageNumberLabel.style.scale = new Scale(Vector3.one);
         }).StartingIn(90);
+    }
+
+    private void ResetFeverHudStyle()
+    {
+        feverCounterBumpVersion++;
+        if (stageTitleLabel != null)
+            stageTitleLabel.style.color = StyleKeyword.Null;
+        if (stageNumberLabel != null)
+            stageNumberLabel.style.scale = new Scale(Vector3.one);
     }
 
     public void ShowFeverResult(int pops, int rewardHints)
     {
-        if (stageNumberLabel != null)
-            stageNumberLabel.style.color = StyleKeyword.Null;
-        feverCounterLabel?.RemoveFromHierarchy();
-        feverCounterLabel = null;
+        ResetFeverHudStyle();
         GrantBonusHints(rewardHints);
         if (uiDocument == null)
             return;
@@ -2618,10 +2624,7 @@ public class GameMainUIController : MonoBehaviour
 
     public void CancelFeverHud()
     {
-        if (stageNumberLabel != null)
-            stageNumberLabel.style.color = StyleKeyword.Null;
-        feverCounterLabel?.RemoveFromHierarchy();
-        feverCounterLabel = null;
+        ResetFeverHudStyle();
         if (stageTitleLabel != null)
             stageTitleLabel.text = T("stage_title");
     }
@@ -2645,13 +2648,20 @@ public class GameMainUIController : MonoBehaviour
         RefreshAssistButtons();
     }
 
-    /// <summary>넓은 글자가 화면 밖으로 잘리지 않게 가로 위치를 안쪽으로 당긴다(margin은 화면 폭 비율).</summary>
-    private static Vector2 ClampPopupX(VisualElement root, Vector2 point, float margin)
+    /// <summary>넓은 글자가 화면 밖으로 잘리지 않게 가로 위치를 안쪽으로 당기고, 상단 바 아래로 내린다(margin은 화면 폭 비율).</summary>
+    private Vector2 ClampPopupX(VisualElement root, Vector2 point, float margin)
     {
         float width = root.layout.width;
         if (width <= 1f || float.IsNaN(width))
             return point;
         point.x = Mathf.Clamp(point.x, width * margin, width * (1f - margin));
+        // 떠오르는 글자가 상단 하트·숫자 줄을 덮지 않게, 상단 바 아래에서 시작하도록 내린다(글자 높이 + 떠오르는 거리).
+        if (topBar != null && topBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(topBar.worldBound);
+            if (!float.IsNaN(bar.yMax) && bar.height > 1f)
+                point.y = Mathf.Max(point.y, bar.yMax + 150f);
+        }
         return point;
     }
 
