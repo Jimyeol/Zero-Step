@@ -526,6 +526,31 @@ public sealed class GameplayFeedback : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 한 획 안에서 칸이 연달아 터질 때(combo ≥ 2): 조각을 더 크게 튀기고, 이정표(5·10·15…)에서는 화면 흔들림·진동·색종이를 더한다.
+    /// </summary>
+    public void ComboPop(Tile tile, int combo)
+    {
+        if (tile == null || combo < 2 || !VisualTheme.IsSoftClay)
+            return;
+        Vector3 center = tile.transform.position;
+        float power = Mathf.Min(1f + combo * 0.08f, 1.8f);
+        ClayJuice.Instance?.Pop(center, VisualTheme.Accent, tileSize, power * 0.6f);
+        bool milestone = ClayComboPopup.IsMilestone(combo);
+        if (milestone)
+        {
+            Ring(center, Coral, 1.3f, 0.3f);
+            ClayJuice.Instance?.Confetti(center, tileSize * 0.7f);
+            StartCameraImpulse(0.18f, combo >= 10 ? 0.04f : 0.028f);
+            Vibrate(combo >= 10 ? 0.9f : 0.6f, 0.05f);
+        }
+        else
+        {
+            Vibrate(Mathf.Min(0.2f + combo * 0.04f, 0.5f), 0.05f);
+        }
+        ui?.ShowComboPopup(center, targetCamera, combo);
+    }
+
     public void Progress(int remaining, int initial, Tile reference)
     {
         if (nearCompletion || remaining <= 0 || initial < 5 || remaining > initial * 0.2f) return;

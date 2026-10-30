@@ -2483,15 +2483,9 @@ public class GameMainUIController : MonoBehaviour
         if (heartIndices.Count == 0)
             return;
 
-        // 카메라와 UI가 같은 화면 전체를 덮으므로 뷰포트 비율로 옮긴다(렌더 텍스처로 찍을 때도 맞는다).
-        Rect panelRect = root.panel.visualTree.layout;
         var sources = new List<Vector2>(worldSources.Count);
         for (int i = 0; i < worldSources.Count; i++)
-        {
-            Vector3 viewport = worldCamera.WorldToViewportPoint(worldSources[i]);
-            Vector2 panelPoint = new Vector2(panelRect.x + viewport.x * panelRect.width, panelRect.y + (1f - viewport.y) * panelRect.height);
-            sources.Add(root.WorldToLocal(panelPoint));
-        }
+            sources.Add(WorldToRootLocal(root, worldSources[i], worldCamera));
 
         // 저장 값은 바로 가득 채우고, 화면의 하트는 별이 닿을 때 하나씩 채운다.
         currentHearts = MaxHearts;
@@ -2507,6 +2501,53 @@ public class GameMainUIController : MonoBehaviour
                 PopHeartFilled(GetHeartImageByIndex(heartIndex));
         }, () => card != null && card.panel != null ? card.CardRectIn(root) : Rect.zero);
         root.Add(activeStarFlight);
+    }
+
+    /// <summary>
+    /// 월드 좌표를 UI 루트 좌표로 옮긴다. 카메라와 UI가 같은 화면 전체를 덮으므로 뷰포트 비율로 옮긴다(렌더 텍스처로 찍을 때도 맞는다).
+    /// </summary>
+    private static Vector2 WorldToRootLocal(VisualElement root, Vector3 world, Camera worldCamera)
+    {
+        Rect panelRect = root.panel.visualTree.layout;
+        Vector3 viewport = worldCamera.WorldToViewportPoint(world);
+        Vector2 panelPoint = new Vector2(panelRect.x + viewport.x * panelRect.width, panelRect.y + (1f - viewport.y) * panelRect.height);
+        return root.WorldToLocal(panelPoint);
+    }
+
+    /// <summary>점토 테마 콤보: 터진 칸 위에 "x3"이 튀어오르고, 이정표(5·10·15·20…)에서는 화면이 살짝 번쩍인다.</summary>
+    public void ShowComboPopup(Vector3 world, Camera worldCamera, int combo)
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null || worldCamera == null || combo < 2)
+            return;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return;
+        bool milestone = ClayComboPopup.IsMilestone(combo);
+        root.Add(new ClayComboPopup(ClampPopupX(root, WorldToRootLocal(root, world, worldCamera), milestone ? 0.3f : 0.1f), ClayComboPopup.TextFor(combo), combo));
+        if (milestone)
+            root.Add(new ClayScreenFlash(combo >= 10 ? 0.26f : 0.18f));
+    }
+
+    /// <summary>넓은 글자가 화면 밖으로 잘리지 않게 가로 위치를 안쪽으로 당긴다(margin은 화면 폭 비율).</summary>
+    private static Vector2 ClampPopupX(VisualElement root, Vector2 point, float margin)
+    {
+        float width = root.layout.width;
+        if (width <= 1f || float.IsNaN(width))
+            return point;
+        point.x = Mathf.Clamp(point.x, width * margin, width * (1f - margin));
+        return point;
+    }
+
+    /// <summary>점토 테마: 한 획으로 깼을 때 마지막 칸 위에 큼직한 "PERFECT!".</summary>
+    public void ShowPerfectPopup(Vector3 world, Camera worldCamera)
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null || worldCamera == null)
+            return;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return;
+        root.Add(new ClayComboPopup(ClampPopupX(root, WorldToRootLocal(root, world, worldCamera), 0.3f), "PERFECT!", ClayComboPopup.PerfectTier));
+        root.Add(new ClayScreenFlash(0.3f));
     }
 
     private void PopHeartFilled(Image heartImage)

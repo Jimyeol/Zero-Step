@@ -1134,6 +1134,7 @@ public class GameManager : MonoBehaviour
         lastSelectedMelodySignature = selectedMelodySignature ?? GetMelodySignature(activeMelody);
         activeMelodyIndex = 0;
         ClearPendingBlockNoteQueue();
+        ResetStrokeCombo();
     }
 
     private static string GetMelodySignature(string[] melody)
@@ -1150,6 +1151,26 @@ public class GameManager : MonoBehaviour
                 if (tiles[row, col] != null && tiles[row, col].IsActive)
                     count++;
         return count;
+    }
+
+    // 콤보: 한 획(누르고 뗄 때까지, 뗀 직후 마지막 칸 소비 포함) 안에서 0이 되어 터진 칸 수.
+    // 터질 때마다 멜로디를 반음씩 올려(최대 완전5도) 긴 한붓일수록 점점 신나게 들리게 한다.
+    private int strokeComboPops;
+    private const int ComboMaxSemitones = 7;
+
+    private void RegisterComboPop(Tile tile)
+    {
+        strokeComboPops++;
+        if (blockNoteAudioSource != null)
+            blockNoteAudioSource.pitch = Mathf.Pow(2f, Mathf.Min(strokeComboPops - 1, ComboMaxSemitones) / 12f);
+        gameplayFeedback?.ComboPop(tile, strokeComboPops);
+    }
+
+    private void ResetStrokeCombo()
+    {
+        strokeComboPops = 0;
+        if (blockNoteAudioSource != null)
+            blockNoteAudioSource.pitch = 1f;
     }
 
     private void QueueNextMelodyBlockNote()
@@ -1307,6 +1328,8 @@ public class GameManager : MonoBehaviour
         if (before > tile.CurrentNumber)
         {
             gameplayFeedback?.TileDecreased(tile, before);
+            if (tile.CurrentNumber == 0)
+                RegisterComboPop(tile);
             var fixedKnot = tile.GetComponent<FixedKnotTile>();
             if (fixedKnot != null)
                 fixedKnot.OnCountDecreased();
@@ -1340,6 +1363,7 @@ public class GameManager : MonoBehaviour
                 DevLog.Log($"[Stage6 드래그 시작] screen=({screenPoint.x:F1},{screenPoint.y:F1}) world=({pointerWorld.x:F3},{pointerWorld.y:F3}) hit={DescribeTileForDebug(hit)} currentStart={DescribeTileForDebug(currentStartTile)}");
             }
             currentStartTile.ClearScaleOverride();
+            ResetStrokeCombo();
             isDragging = true;
             currentPath.Clear();
             currentPath.Add(hit);
@@ -4090,6 +4114,8 @@ public class GameManager : MonoBehaviour
         PlayStageClearVisuals(referenceTile);
         gameplayFeedback?.Cleared(referenceTile);
         PlayClearStarsToHearts(referenceTile);
+        if (lastClearWasOneStroke && referenceTile != null)
+            mainUI?.ShowPerfectPopup(referenceTile.transform.position, mainCamera != null ? mainCamera : Camera.main);
         TrackStageCleared(clearType);
         if (FinalEndingProgressStore.IsFinalStageIndex(currentStageIndex))
         {
@@ -4103,6 +4129,7 @@ public class GameManager : MonoBehaviour
     }
 
     private const int ClearStarSourceCount = 10;
+    private bool lastClearWasOneStroke;
 
     /// <summary>점토 테마: 부서진 칸들 중 몇 곳(마지막 칸 포함)에서 별이 상단 하트로 날아가 하트를 다시 채운다.</summary>
     private void PlayClearStarsToHearts(Tile referenceTile)
@@ -4143,6 +4170,7 @@ public class GameManager : MonoBehaviour
         // 클리어가 드래그 도중에 일어나면 그 드래그도 한 획으로 센다.
         int strokes = attemptStrokeCount + (isDragging && currentPath.Count > 1 ? 1 : 0);
         bool oneStroke = strokes == 1 && !attemptUsedUndo;
+        lastClearWasOneStroke = oneStroke;
         int stars = 1 + (stageHintUsed ? 0 : 1) + (!stageHintUsed && !stageRetried ? 1 : 0);
         bool improved = StageStarsStore.Record(currentStageIndex, stars, oneStroke);
         if (mainUI == null)
@@ -7394,6 +7422,7 @@ public class GameManager : MonoBehaviour
         ClearMoveRuleSnackbarState();
         BeginFollowingHintPreview();
         currentStartTile.ClearScaleOverride();
+        ResetStrokeCombo();
         isDragging = true;
         currentPath.Clear();
         currentPath.Add(currentStartTile);
