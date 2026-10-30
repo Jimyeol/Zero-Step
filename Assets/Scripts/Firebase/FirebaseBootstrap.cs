@@ -34,6 +34,7 @@ public sealed class FirebaseBootstrap : MonoBehaviour
     public const string RcWeeklyStageEnabled = "weekly_stage_enabled";
     public const string RcInfiniteModeEnabled = "infinite_mode_enabled";
     public const string RcLeaderboardEnabled = "leaderboard_enabled";
+    public const string RcFeverBoardEnabled = "fever_board_enabled";
 
     private static FirebaseBootstrap instance;
     private static bool isInitializing;
@@ -474,6 +475,7 @@ public sealed class FirebaseBootstrap : MonoBehaviour
             { RcWeeklyStageEnabled, false },
             { RcInfiniteModeEnabled, false },
             { RcLeaderboardEnabled, false },
+            { RcFeverBoardEnabled, true },
             { "remote_config_min_fetch_interval_seconds", DefaultRemoteConfigFetchIntervalSeconds }
         };
     }

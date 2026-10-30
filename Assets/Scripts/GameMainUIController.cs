@@ -1710,6 +1710,11 @@ public class GameMainUIController : MonoBehaviour
         }
 
         NotifyGameplayActivity();
+        if (gm.IsFeverActive)
+        {
+            ShowFeverSkipBlocked();
+            return;
+        }
         if (gm.IsOnFinalStage)
         {
             ShowGameplaySnackbar("snackbar_skip_final_stage");
@@ -2523,9 +2528,121 @@ public class GameMainUIController : MonoBehaviour
         if (root?.panel == null)
             return;
         bool milestone = ClayComboPopup.IsMilestone(combo);
-        root.Add(new ClayComboPopup(ClampPopupX(root, WorldToRootLocal(root, world, worldCamera), milestone ? 0.3f : 0.1f), ClayComboPopup.TextFor(combo), combo));
+        root.Add(new ClayComboPopup(ClampPopupX(root, WorldToRootLocal(root, world, worldCamera), milestone ? 0.34f : 0.1f), ClayComboPopup.TextFor(combo), combo));
         if (milestone)
             root.Add(new ClayScreenFlash(combo >= 10 ? 0.26f : 0.18f));
+    }
+
+    // ===== 피버 보드 HUD =====
+    // 10스테이지마다 오는 보너스 판: 상단 STAGE 자리에 "FEVER"와 남은 초, 하트 아래에 터뜨린 칸 수를 보여준다.
+    private Label feverCounterLabel;
+    private int feverCounterBumpVersion;
+
+    public void BeginFeverHud()
+    {
+        DismissClearCard();
+        if (stageTitleLabel != null)
+            stageTitleLabel.text = T("fever_title");
+        if (uiDocument == null)
+            return;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return;
+        Rect layout = root.layout;
+        Vector2 center = new Vector2(layout.width * 0.5f, layout.height * 0.42f);
+        root.Add(new ClayComboPopup(center, T("fever_banner"), ClayComboPopup.PerfectTier));
+        root.Add(new ClayScreenFlash(0.32f));
+
+        feverCounterLabel?.RemoveFromHierarchy();
+        feverCounterLabel = new Label("0") { pickingMode = PickingMode.Ignore };
+        feverCounterLabel.AddToClassList("clay-intro-text");
+        feverCounterLabel.AddToClassList("clay-keep");
+        feverCounterLabel.style.position = Position.Absolute;
+        feverCounterLabel.style.left = 0f;
+        feverCounterLabel.style.right = 0f;
+        feverCounterLabel.style.top = Length.Percent(9f);
+        feverCounterLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+        feverCounterLabel.style.fontSize = 64f;
+        feverCounterLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        feverCounterLabel.style.color = VisualTheme.Accent;
+        feverCounterLabel.style.transitionProperty = new List<StylePropertyName> { new StylePropertyName("scale") };
+        feverCounterLabel.style.transitionDuration = new List<TimeValue> { new TimeValue(0.12f) };
+        root.Add(feverCounterLabel);
+    }
+
+    public void SetupFeverBoard(int totalCount, int remainingCount)
+    {
+        ResetTransientStageClearVisuals();
+        initialTileCount = Mathf.Max(1, totalCount);
+        UpdateProgress(remainingCount);
+    }
+
+    public void UpdateFeverHud(int secondsLeft, int pops, bool bump)
+    {
+        if (stageNumberLabel != null)
+        {
+            string text = Mathf.Max(0, secondsLeft).ToString("D2");
+            if (stageNumberLabel.text != text)
+                stageNumberLabel.text = text;
+            stageNumberLabel.style.color = secondsLeft <= 5 ? VisualTheme.Accent : StyleKeyword.Null;
+        }
+        if (feverCounterLabel == null)
+            return;
+        feverCounterLabel.text = pops + " POP";
+        if (!bump)
+            return;
+        int version = ++feverCounterBumpVersion;
+        feverCounterLabel.style.scale = new Scale(new Vector3(1.3f, 1.3f, 1f));
+        feverCounterLabel.schedule.Execute(() =>
+        {
+            if (version == feverCounterBumpVersion && feverCounterLabel != null)
+                feverCounterLabel.style.scale = new Scale(Vector3.one);
+        }).StartingIn(90);
+    }
+
+    public void ShowFeverResult(int pops, int rewardHints)
+    {
+        if (stageNumberLabel != null)
+            stageNumberLabel.style.color = StyleKeyword.Null;
+        feverCounterLabel?.RemoveFromHierarchy();
+        feverCounterLabel = null;
+        GrantBonusHints(rewardHints);
+        if (uiDocument == null)
+            return;
+        DismissClearCard();
+        int stars = pops >= 45 ? 3 : pops >= 25 ? 2 : 1;
+        string subtitle = T("fever_result_sub", ("pops", pops.ToString()), ("hints", rewardHints.ToString()));
+        activeClearCard = new ClayClearCard(T("fever_result_title"), subtitle, T("clear_card_tap"), stars);
+        uiDocument.rootVisualElement.Add(activeClearCard);
+    }
+
+    public void CancelFeverHud()
+    {
+        if (stageNumberLabel != null)
+            stageNumberLabel.style.color = StyleKeyword.Null;
+        feverCounterLabel?.RemoveFromHierarchy();
+        feverCounterLabel = null;
+        if (stageTitleLabel != null)
+            stageTitleLabel.text = T("stage_title");
+    }
+
+    public void ShowFeverSkipBlocked() => ShowGameplaySnackbar("fever_skip_blocked");
+
+    /// <summary>보상 힌트: 충전 칸을 채우고(최대치까지), 넘치는 만큼은 이번 판 무료 힌트로 준다.</summary>
+    private void GrantBonusHints(int amount)
+    {
+        if (amount <= 0)
+            return;
+        RefillAssistChargesFromElapsedTime();
+        int room = Mathf.Max(0, MaxHintCharges - hintCharges);
+        int toCharges = Mathf.Min(room, amount);
+        hintCharges += toCharges;
+        if (hintCharges >= MaxHintCharges)
+            hintNextRechargeUnix = 0L;
+        idleStageHintBonus = Mathf.Min(MaxIdleStageHintBonus, idleStageHintBonus + (amount - toCharges));
+        FirebaseBootstrap.LogEvent("fever_hint_reward", new Dictionary<string, object> { { "amount", amount } });
+        SaveAssistEconomyState();
+        RefreshAssistButtons();
     }
 
     /// <summary>넓은 글자가 화면 밖으로 잘리지 않게 가로 위치를 안쪽으로 당긴다(margin은 화면 폭 비율).</summary>

@@ -221,6 +221,35 @@ public class VisualCaptureTests
             }
         }
 
+        // ZEROSTEP_CAPTURE_FEVER=1: 피버 보드 시작·진행·결과 화면
+        if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_FEVER") == "1")
+        {
+            while (gm.AutomationGameOverPlaying)
+                yield return null;
+            gm.AutomationStartFever(10, 7f);
+            yield return WaitRealtime(0.35f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "fever_start");
+            yield return WaitRealtime(0.8f);
+            List<Vector2Int> feverMoves = gm.AutomationFeverSolution;
+            gm.AutomationBeginDrag();
+            for (int i = 0; feverMoves != null && i < feverMoves.Count && !gm.AutomationStageCleared; i++)
+            {
+                gm.AutomationStep(feverMoves[i].x, feverMoves[i].y);
+                yield return WaitRealtime(0.07f);
+                if (i == feverMoves.Count / 2)
+                    CaptureBoth(cam, worldRt, uiRt, outDir, "fever_mid");
+            }
+            yield return WaitRealtime(0.6f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "fever_next");
+            float feverWait = Time.realtimeSinceStartup;
+            while (gm.AutomationFeverActive && !gm.AutomationStageCleared && Time.realtimeSinceStartup - feverWait < 12f)
+                yield return null;
+            yield return WaitRealtime(0.5f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "fever_result");
+            yield return WaitRealtime(2.5f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "fever_after");
+        }
+
         if (cam != null)
             cam.targetTexture = null;
         yield return new ExitPlayMode();

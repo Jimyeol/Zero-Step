@@ -720,6 +720,7 @@ public class GameManager : MonoBehaviour
     /// <summary>데이터 초기화 직후 호출: 1스테이지로 즉시 복귀하고 진행도를 1로 저장.</summary>
     public void ResetProgressAndRestartToFirstStage()
     {
+        CancelFever();
         if (isGameOverSequencePlaying)
             return;
 
@@ -835,6 +836,7 @@ public class GameManager : MonoBehaviour
 
         ProcessPendingBlockNoteQueue();
         UpdateSessionHeartRefillProgress(overlayOpen);
+        UpdateFeverTimer(overlayOpen);
         if (stageCleared || isGameOverSequencePlaying)
             return;
 
@@ -1161,6 +1163,11 @@ public class GameManager : MonoBehaviour
     private void RegisterComboPop(Tile tile)
     {
         strokeComboPops++;
+        if (feverActive)
+        {
+            feverPops++;
+            mainUI?.UpdateFeverHud(FeverSecondsLeft, feverPops, true);
+        }
         if (blockNoteAudioSource != null)
             blockNoteAudioSource.pitch = Mathf.Pow(2f, Mathf.Min(strokeComboPops - 1, ComboMaxSemitones) / 12f);
         gameplayFeedback?.ComboPop(tile, strokeComboPops);
@@ -2275,7 +2282,7 @@ public class GameManager : MonoBehaviour
 
     private bool TryBuildHintFromStoredSolution(HintSearchState initialState, int targetMoveCount)
     {
-        List<Vector2Int> solution = StageManager.LoadSolutionMoves(currentStageIndex);
+        List<Vector2Int> solution = feverActive ? feverSolution : StageManager.LoadSolutionMoves(currentStageIndex);
         int done = attemptMoves.Count;
         if (solution == null || done >= solution.Count || isDragging)
             return false;
@@ -4105,6 +4112,15 @@ public class GameManager : MonoBehaviour
             return;
 
         stageCleared = true;
+        if (feverActive)
+        {
+            ResetActiveDragState("fever_clear");
+            ClearHintPreview();
+            PlayClearSfx();
+            gameplayFeedback?.Cleared(referenceTile);
+            OnFeverBoardFinished(true);
+            return;
+        }
         RecordStageStars();
         ResetActiveDragState("stage_clear");
         DevLog.Log("Clear");
@@ -5455,6 +5471,17 @@ public class GameManager : MonoBehaviour
     {
         if (isGameOverSequencePlaying)
             return false;
+        if (feverActive)
+        {
+            // 피버는 실패가 없다: 막히면 하트를 쓰지 않고 바로 새 판을 준다.
+            ClearHintPreview();
+            currentPath.Clear();
+            isDragging = false;
+            gameplayFeedback?.Failed(failFocusTile != null ? failFocusTile : currentStartTile);
+            PlayFailSfx();
+            OnFeverBoardFinished(false);
+            return true;
+        }
 
         DevLog.Log("Game Over");
         TrackStageFailed(reason);
@@ -6095,15 +6122,207 @@ public class GameManager : MonoBehaviour
                 if (this == null)
                     return;
 
-                if (TryAdvanceToNextStage())
-                    HandleStageStarted("auto_next_stage");
+                AdvanceAfterStageClear(completedStageIndex);
             });
         }
         else
         {
-            if (TryAdvanceToNextStage())
-                HandleStageStarted("auto_next_stage");
+            AdvanceAfterStageClear(completedStageIndex);
         }
+    }
+
+    private void AdvanceAfterStageClear(int completedStageIndex)
+    {
+        if (ShouldStartFeverAfter(completedStageIndex))
+        {
+            StartFever(completedStageIndex);
+            return;
+        }
+        if (TryAdvanceToNextStage())
+            HandleStageStarted("auto_next_stage");
+    }
+
+    // ===== 피버 보드 =====
+    // 10스테이지마다 20초짜리 보너스 판이 온다. 즉석 생성 보드(BoardGenerator)라 항상 풀리고, 막혀도 하트 없이 새 판이 나온다.
+    // 진행도는 시작할 때 다음 스테이지로 미리 저장해 두므로 피버 중에 앱을 꺼도 다음 판부터 이어진다. 별·업적·스테이지 통계에는 들어가지 않는다.
+    private const int FeverEveryStages = 10;
+    private const float FeverDurationSeconds = 20f;
+    private const float FeverBannerSeconds = 0.9f;
+    private const float FeverNextBoardDelay = 0.35f;
+    private const float FeverResultSeconds = 2.2f;
+    private bool feverActive;
+    private bool feverEnding;
+    private float feverEndTime;
+    private int feverPops;
+    private int feverBoards;
+    private int feverSeed;
+    private int feverLastShownSeconds = -1;
+    private List<Vector2Int> feverSolution;
+
+    public bool IsFeverActive => feverActive;
+    private int FeverSecondsLeft => Mathf.Max(0, Mathf.CeilToInt(feverEndTime - Time.unscaledTime));
+
+    private bool ShouldStartFeverAfter(int completedStageIndex)
+    {
+        return VisualTheme.IsSoftClay
+            && completedStageIndex >= FeverEveryStages
+            && completedStageIndex % FeverEveryStages == 0
+            && !FinalEndingProgressStore.IsFinalStageIndex(completedStageIndex)
+            && StageManager.LoadStage(completedStageIndex + 1) != null
+            && FirebaseBootstrap.GetRemoteBool(FirebaseBootstrap.RcFeverBoardEnabled, true);
+    }
+
+    private void StartFever(int completedStageIndex)
+    {
+        currentStageIndex = completedStageIndex + 1;
+        SaveStageProgress();
+        feverActive = true;
+        feverEnding = false;
+        feverPops = 0;
+        feverBoards = 0;
+        feverSeed = unchecked(completedStageIndex * 7349 + DateTime.Now.DayOfYear * 131);
+        feverEndTime = Time.unscaledTime + FeverBannerSeconds + FeverDurationSeconds;
+        feverLastShownSeconds = -1;
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        mainUI?.BeginFeverHud();
+        FirebaseBootstrap.LogEvent("fever_start", new Dictionary<string, object> { { "after_stage", completedStageIndex } });
+        LoadNextFeverBoard();
+    }
+
+    private void LoadNextFeverBoard()
+    {
+        BoardGenerator.Result result = BoardGenerator.Generate(BoardGenerator.Settings.Fever, feverSeed + feverBoards * 31);
+        feverBoards++;
+        if (result == null)
+        {
+            EndFever();
+            return;
+        }
+        feverSolution = result.solution;
+        StageData data = result.stage;
+
+        ResetActiveDragState("fever_board");
+        totalStepsCommitted = 0;
+        ClearTiles();
+        CreateGridFromStageData(data);
+        SetCurrentStartTileFromStageData(data);
+        SetupSpotlight(data);
+        AdjustCameraToFitGrid();
+        stageCleared = false;
+        isGameOverSequencePlaying = false;
+
+        int total = GetTotalRemainingCount();
+        initialTileCountForUI = Mathf.Max(1, total);
+        mainUI?.SetupFeverBoard(initialTileCountForUI, total);
+        mainUI?.UpdateFeverHud(FeverSecondsLeft, feverPops, false);
+        SetupMelodyForCurrentStage();
+        PlayNewStageSfx();
+        IncrementBoardVersion("fever_board");
+
+        ResetUndoHistory();
+        attemptMoves.Clear();
+        attemptStrokeCount = 0;
+        attemptUsedUndo = false;
+        gameplayFeedback?.BeginStage(Mathf.Min(tileWidth, tileHeight));
+        PlayStageStartVisuals();
+    }
+
+    private void OnFeverBoardFinished(bool cleared)
+    {
+        if (!feverActive || feverEnding)
+            return;
+        // 다음 판으로 넘어가는 동안 입력을 막는다.
+        isGameOverSequencePlaying = true;
+        StartCoroutine(FeverNextBoardRoutine(cleared ? FeverNextBoardDelay : FeverNextBoardDelay * 1.6f));
+    }
+
+    private IEnumerator FeverNextBoardRoutine(float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        if (!feverActive || feverEnding)
+            yield break;
+        if (Time.unscaledTime >= feverEndTime - 0.5f)
+            EndFever();
+        else
+            LoadNextFeverBoard();
+    }
+
+    /// <summary>스킵·디버그 이동·초기화처럼 다른 경로로 스테이지가 바뀔 때 피버를 조용히 끝낸다(보상 없음).</summary>
+    private void CancelFever()
+    {
+        if (!feverActive)
+            return;
+        feverActive = false;
+        feverEnding = false;
+        feverSolution = null;
+        isGameOverSequencePlaying = false;
+        mainUI?.CancelFeverHud();
+    }
+
+    private void UpdateFeverTimer(bool overlayOpen)
+    {
+        if (!feverActive || feverEnding)
+            return;
+        // 설정 창 등을 여는 동안은 시간이 흐르지 않는다.
+        if (overlayOpen)
+        {
+            feverEndTime += Time.unscaledDeltaTime;
+            return;
+        }
+        int seconds = FeverSecondsLeft;
+        if (seconds != feverLastShownSeconds)
+        {
+            feverLastShownSeconds = seconds;
+            mainUI?.UpdateFeverHud(seconds, feverPops, false);
+        }
+        if (Time.unscaledTime >= feverEndTime)
+            EndFever();
+    }
+
+    private void EndFever()
+    {
+        if (!feverActive || feverEnding)
+            return;
+        feverEnding = true;
+        stageCleared = true;
+        ResetActiveDragState("fever_end");
+        ClearHintPreview();
+        int rewardHints = feverPops >= 25 ? 2 : 1;
+        mainUI?.ShowFeverResult(feverPops, rewardHints);
+        PlayClearSfx();
+        FirebaseBootstrap.LogEvent("fever_end", new Dictionary<string, object>
+        {
+            { "pops", feverPops },
+            { "boards", feverBoards },
+            { "reward_hints", rewardHints }
+        });
+        StartCoroutine(FinishFeverRoutine());
+    }
+
+    private IEnumerator FinishFeverRoutine()
+    {
+        float start = Time.unscaledTime;
+        while (Time.unscaledTime - start < FeverResultSeconds)
+        {
+            yield return null;
+            if (Time.unscaledTime - start >= 0.5f && IsPointerDown())
+                break;
+        }
+        if (!feverActive || !feverEnding)
+            yield break;
+        feverActive = false;
+        feverEnding = false;
+        feverSolution = null;
+        isGameOverSequencePlaying = false;
+        StageData data = StageManager.LoadStage(currentStageIndex);
+        if (data == null)
+        {
+            currentStageIndex = 1;
+            data = StageManager.LoadStage(1);
+        }
+        ApplyLoadedStageData(data, "fever_end");
+        HandleStageStarted("after_fever");
     }
 
     private IEnumerator LoadFinalEndingAfterDelay(FinalEndingSnapshot snapshot)
@@ -6133,6 +6352,7 @@ public class GameManager : MonoBehaviour
 
     private void PrepareForStageTransition()
     {
+        CancelFever();
         StopBlackoutQuestionFlip();
         ResetBoardFailureTracking();
         StopBoardTransientVisuals();
@@ -7405,6 +7625,17 @@ public class GameManager : MonoBehaviour
     public bool AutomationGameOverPlaying => isGameOverSequencePlaying;
     public bool AutomationIsDragging => isDragging;
     public bool AutomationHasPendingMutations => pendingBoardMutationCount > 0;
+    public bool AutomationFeverActive => feverActive;
+    public int AutomationFeverBoards => feverBoards;
+    public int AutomationFeverPops => feverPops;
+    public List<Vector2Int> AutomationFeverSolution => feverSolution;
+
+    /// <summary>테스트용: completedStageIndex를 깬 직후처럼 피버를 시작한다. durationSeconds로 피버 길이를 바꿀 수 있다.</summary>
+    public void AutomationStartFever(int completedStageIndex, float durationSeconds = FeverDurationSeconds)
+    {
+        StartFever(completedStageIndex);
+        feverEndTime = Time.unscaledTime + FeverBannerSeconds + durationSeconds;
+    }
     public int AutomationTotalRemaining => GetTotalRemainingCount();
     public Vector2Int AutomationCurrentCell => currentStartTile != null ? new Vector2Int(currentStartTile.X, currentStartTile.Y) : new Vector2Int(-1, -1);
 

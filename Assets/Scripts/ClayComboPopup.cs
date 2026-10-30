@@ -31,7 +31,7 @@ public sealed class ClayComboPopup : VisualElement
         if (combo >= 20)
             return "x" + combo + " ZERO HERO!";
         if (combo >= 15)
-            return "x" + combo + " INCREDIBLE!";
+            return "x" + combo + " WOW!";
         if (combo >= 10)
             return "x" + combo + " AMAZING!";
         return "x" + combo + " GREAT!";
@@ -51,9 +51,10 @@ public sealed class ClayComboPopup : VisualElement
 
         bool perfect = combo >= PerfectTier;
         bool milestone = perfect || IsMilestone(combo);
-        float size = perfect ? 96f : Mathf.Min(54f + combo * 4f, 92f);
+        // 이정표 알약은 글자가 길어 크기를 조금 눌러 화면 안에 들어오게 한다.
+        float size = perfect ? 88f : milestone ? 68f : Mathf.Min(54f + combo * 4f, 92f);
         rise = perfect ? 90f : 70f;
-        tilt = perfect ? 0f : ((combo * 37) % 17 - 8);
+        tilt = milestone ? 0f : ((combo * 37) % 17 - 8);
 
         label = new Label(text) { pickingMode = PickingMode.Ignore };
         label.AddToClassList("clay-intro-text");
