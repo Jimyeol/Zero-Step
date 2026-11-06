@@ -509,6 +509,12 @@ public class GameManager : MonoBehaviour
 
     private void HandleStageStarted(string entryType)
     {
+        // 피버·연구소의 즉석 보드는 스테이지 통계·도전 목표·초반 가이드와 무관하다(리셋했을 때 이 경로로 들어온다).
+        if (feverActive || labActive)
+        {
+            HandleGeneratedBoardRestarted();
+            return;
+        }
         ResetUndoHistory();
         attemptMoves.Clear();
         bool isRestart = entryType == "auto_restart_after_fail" || entryType == "manual_reset";
@@ -727,6 +733,7 @@ public class GameManager : MonoBehaviour
     public void ResetProgressAndRestartToFirstStage()
     {
         CancelFever();
+        CancelLab();
         if (isGameOverSequencePlaying)
             return;
 
@@ -1469,6 +1476,7 @@ public class GameManager : MonoBehaviour
             gameplayFeedback?.DragReleased(currentPath.Count > 0 ? currentPath[currentPath.Count - 1] : currentStartTile);
             gameplayFeedback?.ReleasePath();
             ClearMoveRuleSnackbarState();
+            bool movedThisStroke = isDragging && currentPath.Count > 1;
             isDragging = false;
             ResetTrail();
             CommitPathAndSetCurrentPosition();
@@ -1477,6 +1485,8 @@ public class GameManager : MonoBehaviour
             CheckStageClear();
             if (!stageCleared && CheckAndHandleBoardFailure(currentStartTile))
             { /* 실패 판정이면 GameOver 연출은 CheckAndHandleBoardFailure 내부에서 시작 */ }
+            else
+                CheckLabOneStrokeLifted(movedThisStroke);
         }
 
         if (isDragging)
@@ -2289,7 +2299,7 @@ public class GameManager : MonoBehaviour
 
     private bool TryBuildHintFromStoredSolution(HintSearchState initialState, int targetMoveCount)
     {
-        List<Vector2Int> solution = feverActive ? feverSolution : StageManager.LoadSolutionMoves(currentStageIndex);
+        List<Vector2Int> solution = feverActive ? feverSolution : labActive ? labBoard?.solution : StageManager.LoadSolutionMoves(currentStageIndex);
         int done = attemptMoves.Count;
         if (solution == null || done >= solution.Count || isDragging)
             return false;
@@ -4123,6 +4133,15 @@ public class GameManager : MonoBehaviour
 
         stageCleared = true;
         mainUI?.HideStageChallengeChip();
+        if (labActive)
+        {
+            ResetActiveDragState("lab_clear");
+            ClearHintPreview();
+            PlayClearSfx();
+            gameplayFeedback?.Cleared(referenceTile);
+            OnLabBoardCleared(referenceTile);
+            return;
+        }
         if (feverActive)
         {
             ResetActiveDragState("fever_clear");
@@ -5524,6 +5543,17 @@ public class GameManager : MonoBehaviour
     {
         if (isGameOverSequencePlaying)
             return false;
+        if (labActive)
+        {
+            // 연구소는 하트를 쓰지 않는다: 같은 판을 다시 준다.
+            ClearHintPreview();
+            currentPath.Clear();
+            isDragging = false;
+            gameplayFeedback?.Failed(failFocusTile != null ? failFocusTile : currentStartTile);
+            PlayFailSfx();
+            OnLabBoardFailed(reason);
+            return true;
+        }
         if (feverActive)
         {
             // 피버는 실패가 없다: 막히면 하트를 쓰지 않고 바로 새 판을 준다.
@@ -5911,6 +5941,12 @@ public class GameManager : MonoBehaviour
         undoHistory.RemoveRange(targetIndex + 1, undoHistory.Count - targetIndex - 1);
         ApplyUndoSnapshot(snapshot);
         lastUndoSnapshotStepCount = snapshot.StepCount;
+        // 연구소 기억 변주: 되돌려도 가려진 숫자는 다시 보이지 않는다.
+        if (labActive && labMemoryHidden)
+        {
+            blackoutQuestionFlipPlayed = true;
+            SetAllTilesDisplayAsQuestion(true);
+        }
 
         FirebaseBootstrap.LogEvent("stage_undo", new Dictionary<string, object>
         {
@@ -5994,8 +6030,12 @@ public class GameManager : MonoBehaviour
     public void ResetCurrentStage()
     {
         if (isGameOverSequencePlaying || tiles == null) return;
-        bool consumedRetryHeart = ConsumeHeartForManualRetryIfNeeded();
-        TrackStageReset(consumedRetryHeart ? "manual_reset_retry_penalty" : "manual_reset");
+        // 피버·연구소의 즉석 보드 리셋은 하트·스테이지 통계와 무관하다.
+        if (!feverActive && !labActive)
+        {
+            bool consumedRetryHeart = ConsumeHeartForManualRetryIfNeeded();
+            TrackStageReset(consumedRetryHeart ? "manual_reset_retry_penalty" : "manual_reset");
+        }
         isGameOverSequencePlaying = true;
         StartCoroutine(ResetCurrentStageRoutine());
     }
@@ -6255,9 +6295,15 @@ public class GameManager : MonoBehaviour
             return;
         }
         feverSolution = result.solution;
-        StageData data = result.stage;
+        LoadGeneratedBoard(result.stage, "fever_board");
+        mainUI?.SetupFeverBoard(initialTileCountForUI, initialTileCountForUI);
+        mainUI?.UpdateFeverHud(FeverSecondsLeft, feverPops, false);
+    }
 
-        ResetActiveDragState("fever_board");
+    /// <summary>즉석 생성 보드(피버·연구소)를 화면에 올린다. 스테이지 번호·저장·별·통계는 건드리지 않는다.</summary>
+    private void LoadGeneratedBoard(StageData data, string reason)
+    {
+        ResetActiveDragState(reason);
         totalStepsCommitted = 0;
         ClearTiles();
         CreateGridFromStageData(data);
@@ -6267,13 +6313,10 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
         isGameOverSequencePlaying = false;
 
-        int total = GetTotalRemainingCount();
-        initialTileCountForUI = Mathf.Max(1, total);
-        mainUI?.SetupFeverBoard(initialTileCountForUI, total);
-        mainUI?.UpdateFeverHud(FeverSecondsLeft, feverPops, false);
+        initialTileCountForUI = Mathf.Max(1, GetTotalRemainingCount());
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
-        IncrementBoardVersion("fever_board");
+        IncrementBoardVersion(reason);
 
         ResetUndoHistory();
         attemptMoves.Clear();
@@ -6281,6 +6324,221 @@ public class GameManager : MonoBehaviour
         attemptUsedUndo = false;
         gameplayFeedback?.BeginStage(Mathf.Min(tileWidth, tileHeight));
         PlayStageStartVisuals();
+    }
+
+    /// <summary>즉석 보드에서 리셋 버튼을 눌러 처음 상태로 돌아왔을 때.</summary>
+    private void HandleGeneratedBoardRestarted()
+    {
+        ResetUndoHistory();
+        attemptMoves.Clear();
+        attemptStrokeCount = 0;
+        attemptUsedUndo = false;
+        gameplayFeedback?.BeginStage(Mathf.Min(tileWidth, tileHeight));
+        if (labActive)
+            ArmLabMemoryHide();
+    }
+
+    // ===== 연구소(Lab) =====
+    // 지도에서 들어가는 끝없는 즉석 보드. 판마다 변주가 하나씩 붙는다(기본 / 한붓 / 무거운 판 / 기억).
+    // 하트를 쓰지 않고, 막히면 같은 판을 다시 준다(연속 기록만 0으로). 스킵 버튼은 다음 판으로 넘긴다.
+    // 보드는 날짜와 순번으로 정해져 그날은 모두가 같은 순서의 판을 받는다.
+    public enum LabVariant { Normal, OneStroke, Heavy, Memory }
+    private const float LabNextBoardDelay = 0.75f;
+    private const float LabRetryDelay = 0.7f;
+    private const float LabMemoryRevealSeconds = 2.6f;
+    private const string LabDayKey = "ZeroStep.LabDay";
+    private const string LabIndexKey = "ZeroStep.LabIndex";
+    private const string LabBestKey = "ZeroStep.LabBest";
+    private bool labActive;
+    private int labBoardIndex;
+    private int labStreak;
+    private LabVariant labVariant;
+    private BoardGenerator.Result labBoard;
+    private Coroutine labMemoryRoutine;
+    private bool labMemoryHidden;
+
+    public bool IsLabActive => labActive;
+    public static int LabBestStreak => PlayerPrefs.GetInt(LabBestKey, 0);
+
+    private static int LabDayNumber() => (int)(DateTime.Now.Date - new DateTime(2026, 1, 1)).TotalDays;
+
+    public bool StartLab()
+    {
+        if (!CanOpenStageMap || labActive || !VisualTheme.IsSoftClay)
+            return false;
+        PrepareForStageTransition();
+        int day = LabDayNumber();
+        if (PlayerPrefs.GetInt(LabDayKey, int.MinValue) != day)
+        {
+            PlayerPrefs.SetInt(LabDayKey, day);
+            PlayerPrefs.SetInt(LabIndexKey, 0);
+        }
+        labBoardIndex = Mathf.Max(0, PlayerPrefs.GetInt(LabIndexKey, 0));
+        labStreak = 0;
+        labActive = true;
+        if (earlyStageGuideRoutine != null)
+        {
+            StopCoroutine(earlyStageGuideRoutine);
+            earlyStageGuideRoutine = null;
+        }
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        FirebaseBootstrap.LogEvent("lab_start", new Dictionary<string, object> { { "board_index", labBoardIndex } });
+        LoadLabBoard(newBoard: true);
+        return true;
+    }
+
+    private static LabVariant LabVariantFor(int boardIndex)
+    {
+        // 첫 판은 기본, 그 뒤로는 한붓 → 무거운 판 → 기억 → 기본 순으로 돈다.
+        return (LabVariant)(((boardIndex % 4) + 4) % 4);
+    }
+
+    private void LoadLabBoard(bool newBoard)
+    {
+        if (newBoard || labBoard == null)
+        {
+            labVariant = LabVariantFor(labBoardIndex);
+            BoardGenerator.Settings settings;
+            if (labVariant == LabVariant.Heavy)
+                settings = BoardGenerator.Settings.Heavy;
+            else if (labBoardIndex < 4 || (labVariant == LabVariant.Memory && labBoardIndex < 12))
+                settings = BoardGenerator.Settings.Small;
+            else if (labBoardIndex < 12 || labVariant == LabVariant.Memory)
+                settings = BoardGenerator.Settings.Medium;
+            else
+                settings = BoardGenerator.Settings.Large;
+            labBoard = BoardGenerator.Generate(settings, unchecked(LabDayNumber() * 1009 + labBoardIndex * 37 + 11));
+        }
+        if (labBoard == null)
+        {
+            ExitLabToStage();
+            return;
+        }
+
+        LoadGeneratedBoard(labBoard.stage, "lab_board");
+        mainUI?.SetupLabBoard(initialTileCountForUI, labStreak, labVariant, newBoard);
+        ArmLabMemoryHide();
+    }
+
+    /// <summary>기억 변주: 숫자를 잠깐 보여준 뒤 전부 "?"로 가린다.</summary>
+    private void ArmLabMemoryHide()
+    {
+        if (labMemoryRoutine != null)
+        {
+            StopCoroutine(labMemoryRoutine);
+            labMemoryRoutine = null;
+        }
+        labMemoryHidden = false;
+        if (labActive && labVariant == LabVariant.Memory)
+            labMemoryRoutine = StartCoroutine(LabMemoryHideRoutine(tiles));
+    }
+
+    private IEnumerator LabMemoryHideRoutine(Tile[,] board)
+    {
+        yield return new WaitForSecondsRealtime(LabMemoryRevealSeconds);
+        labMemoryRoutine = null;
+        if (!labActive || labVariant != LabVariant.Memory || tiles != board || stageCleared)
+            yield break;
+        labMemoryHidden = true;
+        TriggerBlackoutQuestionFlip();
+    }
+
+    private void OnLabBoardCleared(Tile referenceTile)
+    {
+        labStreak++;
+        labBoardIndex++;
+        PlayerPrefs.SetInt(LabIndexKey, labBoardIndex);
+        bool best = labStreak > LabBestStreak;
+        if (best)
+            PlayerPrefs.SetInt(LabBestKey, labStreak);
+        mainUI?.ShowLabBoardResult(labStreak, best);
+        FirebaseBootstrap.LogEvent("lab_board_clear", new Dictionary<string, object>
+        {
+            { "board_index", labBoardIndex - 1 },
+            { "variant", labVariant.ToString() },
+            { "streak", labStreak }
+        });
+        isGameOverSequencePlaying = true;
+        StartCoroutine(LabNextBoardRoutine(LabNextBoardDelay, newBoard: true));
+    }
+
+    private void OnLabBoardFailed(string reason)
+    {
+        labStreak = 0;
+        mainUI?.ShowLabRetry(reason == LabFailReasonLifted);
+        FirebaseBootstrap.LogEvent("lab_board_fail", new Dictionary<string, object>
+        {
+            { "board_index", labBoardIndex },
+            { "variant", labVariant.ToString() },
+            { "reason", reason }
+        });
+        isGameOverSequencePlaying = true;
+        StartCoroutine(LabNextBoardRoutine(LabRetryDelay, newBoard: false));
+    }
+
+    private const string LabFailReasonLifted = "lifted";
+
+    private IEnumerator LabNextBoardRoutine(float delay, bool newBoard)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        if (!labActive)
+            yield break;
+        LoadLabBoard(newBoard);
+    }
+
+    /// <summary>스킵 버튼: 이 판을 포기하고 다음 판으로(연속 기록은 0).</summary>
+    public bool LabSkipBoard()
+    {
+        if (!labActive || isGameOverSequencePlaying || stageCleared)
+            return false;
+        labStreak = 0;
+        labBoardIndex++;
+        PlayerPrefs.SetInt(LabIndexKey, labBoardIndex);
+        ResetActiveDragState("lab_skip");
+        ClearHintPreview();
+        LoadLabBoard(newBoard: true);
+        return true;
+    }
+
+    /// <summary>한붓 변주: 다 깨기 전에 손을 떼면 실패.</summary>
+    private bool CheckLabOneStrokeLifted(bool movedThisStroke)
+    {
+        if (!labActive || labVariant != LabVariant.OneStroke || stageCleared || isGameOverSequencePlaying || !movedThisStroke)
+            return false;
+        gameplayFeedback?.Failed(currentStartTile);
+        PlayFailSfx();
+        OnLabBoardFailed(LabFailReasonLifted);
+        return true;
+    }
+
+    private void CancelLab()
+    {
+        if (!labActive)
+            return;
+        labActive = false;
+        labBoard = null;
+        labMemoryHidden = false;
+        if (labMemoryRoutine != null)
+        {
+            StopCoroutine(labMemoryRoutine);
+            labMemoryRoutine = null;
+        }
+        isGameOverSequencePlaying = false;
+        mainUI?.EndLabHud();
+    }
+
+    /// <summary>연구소를 나와 하던 스테이지로 돌아간다.</summary>
+    public void ExitLabToStage()
+    {
+        if (!labActive)
+            return;
+        PrepareForStageTransition();
+        StageData data = StageManager.LoadStage(currentStageIndex) ?? StageManager.LoadStage(1);
+        if (data == null)
+            return;
+        ApplyLoadedStageData(data, "lab_exit", resetHeartsForNewStage: false);
+        HandleStageStarted("lab_exit");
     }
 
     private void OnFeverBoardFinished(bool cleared)
@@ -6409,6 +6667,7 @@ public class GameManager : MonoBehaviour
     private void PrepareForStageTransition()
     {
         CancelFever();
+        CancelLab();
         StopBlackoutQuestionFlip();
         ResetBoardFailureTracking();
         StopBoardTransientVisuals();
@@ -6778,6 +7037,7 @@ public class GameManager : MonoBehaviour
     {
         if (!CanOpenStageMap || !IsStageUnlocked(stageIndex))
             return false;
+        bool fromLab = labActive;
         StageData data = StageManager.LoadStage(stageIndex);
         if (data == null)
             return false;
@@ -6788,6 +7048,7 @@ public class GameManager : MonoBehaviour
         ApplyLoadedStageData(data, "map_select", resetHeartsForNewStage: false);
         FirebaseBootstrap.LogEvent("stage_map_select", new Dictionary<string, object>
         {
+            { "from_lab", fromLab ? 1 : 0 },
             { "from_stage_index", previousStageIndex },
             { "to_stage_index", currentStageIndex },
             { "frontier", StageFrontier }
@@ -7786,6 +8047,11 @@ public class GameManager : MonoBehaviour
     /// <summary>테스트용: 진행 위치(frontier)를 직접 정한다.</summary>
     public void AutomationSetFrontier(int stageIndex) => stageFrontier = Mathf.Clamp(stageIndex, 1, FinalEndingProgressStore.FinalStageIndex);
     public bool AutomationFeverActive => feverActive;
+    public List<Vector2Int> AutomationLabSolution => labBoard?.solution;
+    public LabVariant AutomationLabVariant => labVariant;
+    public int AutomationLabStreak => labStreak;
+    public int AutomationLabBoardIndex => labBoardIndex;
+    public bool AutomationLabMemoryHidden => labMemoryHidden;
     public int AutomationFeverBoards => feverBoards;
     public int AutomationFeverPops => feverPops;
     public List<Vector2Int> AutomationFeverSolution => feverSolution;
@@ -7847,13 +8113,14 @@ public class GameManager : MonoBehaviour
         gameplayFeedback?.DragReleased(currentPath.Count > 0 ? currentPath[currentPath.Count - 1] : currentStartTile);
         gameplayFeedback?.ReleasePath();
         ClearMoveRuleSnackbarState();
+        bool movedThisStroke = isDragging && currentPath.Count > 1;
         isDragging = false;
         ResetTrail();
         CommitPathAndSetCurrentPosition();
         CheckVictoryCondition(currentStartTile);
         CheckStageClear();
-        if (!stageCleared)
-            CheckAndHandleBoardFailure(currentStartTile);
+        if (!stageCleared && !CheckAndHandleBoardFailure(currentStartTile))
+            CheckLabOneStrokeLifted(movedThisStroke);
     }
 
     public bool AutomationHintAvailableNow()

@@ -596,6 +596,8 @@ public class Tile : MonoBehaviour
         if (displayAsQuestion == showAsQuestion) return;
         displayAsQuestion = showAsQuestion;
         UpdateNumberDisplay();
+        if (VisualTheme.IsSoftClay && currentNumber > 0)
+            ApplyClayColors();
     }
 
     /// <summary>BlackoutTile 등에서 물음표 텍스트 참조용.</summary>
@@ -691,9 +693,13 @@ public class Tile : MonoBehaviour
     }
 
     /// <summary>점토 테마: 타일은 남은 횟수 색(발광 없음), 숫자는 진한 잉크색.</summary>
+    /// <summary>숫자가 "?"로 가려진 상태인지(깜깜·가림 타일, 깜깜 발동 뒤 전체 가림, 연구소 기억 변주).</summary>
+    public bool IsNumberHidden => displayAsQuestion || GetComponent<BlackoutTile>() != null || GetComponent<BlindCurtainTile>() != null;
+
     private void ApplyClayColors()
     {
-        Color clay = VisualTheme.ClayColorForCount(currentNumber);
+        // 점토 색은 숫자마다 다르므로, 숫자를 가릴 때는 색도 중립색으로 바꿔야 숫자가 새지 않는다.
+        Color clay = IsNumberHidden && currentNumber > 0 ? VisualTheme.ClayHiddenColor : VisualTheme.ClayColorForCount(currentNumber);
         if (spriteRenderer != null)
             spriteRenderer.color = clay;
         if (tileImage != null && tileImage != spriteRenderer)

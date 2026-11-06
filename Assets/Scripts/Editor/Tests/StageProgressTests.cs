@@ -91,6 +91,109 @@ public class StageProgressTests
         Assert.IsEmpty(failures, string.Join("\n", failures));
     }
 
+    [UnityTest, Timeout(600000)]
+    public IEnumerator LabVariantsStreakAndExit()
+    {
+        if (!EditorApplication.isPlaying)
+        {
+            EditorSceneManager.OpenScene(ScenePath);
+            yield return new EnterPlayMode();
+        }
+        var gm = Object.FindFirstObjectByType<GameManager>();
+        var ui = Object.FindFirstObjectByType<GameMainUIController>();
+        Assert.IsNotNull(gm);
+        yield return Wait(2f);
+        var failures = new List<string>();
+        PlayerPrefs.DeleteKey("ZeroStep.LabDay");
+        PlayerPrefs.DeleteKey("ZeroStep.LabBest");
+        yield return Settle(gm, ui);
+        int stageBefore = gm.CurrentStageIndex;
+        int frontierBefore = gm.StageFrontier;
+
+        Check(failures, gm.StartLab() && gm.IsLabActive, "lab did not start");
+        yield return Settle(gm, ui);
+
+        // 0번 판: 기본 → 클리어하면 연속 1, 다음 판으로.
+        Check(failures, gm.AutomationLabVariant == GameManager.LabVariant.Normal, $"board 0 variant {gm.AutomationLabVariant}");
+        yield return PlayLabBoard(gm, failures);
+        yield return WaitForLabBoard(gm, 1);
+        Check(failures, gm.AutomationLabBoardIndex == 1 && gm.AutomationLabStreak == 1, $"after board 0: index {gm.AutomationLabBoardIndex} streak {gm.AutomationLabStreak}");
+
+        // 1번 판: 한붓 → 두 칸 가다 손을 떼면 실패(같은 판 다시, 연속 0). 다시 한 획으로 깨면 통과.
+        Check(failures, gm.AutomationLabVariant == GameManager.LabVariant.OneStroke, $"board 1 variant {gm.AutomationLabVariant}");
+        List<Vector2Int> moves = gm.AutomationLabSolution;
+        gm.AutomationBeginDrag();
+        gm.AutomationStep(moves[0].x, moves[0].y);
+        gm.AutomationStep(moves[1].x, moves[1].y);
+        gm.AutomationEndDrag();
+        Check(failures, gm.AutomationLabStreak == 0 && gm.AutomationGameOverPlaying, "lifting in one-stroke variant did not fail");
+        yield return Wait(1.2f);
+        Check(failures, gm.AutomationLabBoardIndex == 1 && !gm.AutomationGameOverPlaying, $"one-stroke retry: index {gm.AutomationLabBoardIndex}");
+        yield return PlayLabBoard(gm, failures);
+        yield return WaitForLabBoard(gm, 2);
+        Check(failures, gm.AutomationLabStreak == 1, $"after one-stroke board: streak {gm.AutomationLabStreak}");
+
+        // 2번 판: 무거운 판.
+        Check(failures, gm.AutomationLabVariant == GameManager.LabVariant.Heavy, $"board 2 variant {gm.AutomationLabVariant}");
+        yield return PlayLabBoard(gm, failures);
+        yield return WaitForLabBoard(gm, 3);
+
+        // 3번 판: 기억 → 잠시 뒤 숫자가 가려진다. 가려진 채로 정답을 따라가면 클리어.
+        Check(failures, gm.AutomationLabVariant == GameManager.LabVariant.Memory, $"board 3 variant {gm.AutomationLabVariant}");
+        Check(failures, !gm.AutomationLabMemoryHidden, "memory numbers hidden too early");
+        yield return Wait(3.4f);
+        Check(failures, gm.AutomationLabMemoryHidden, "memory numbers were not hidden");
+        yield return PlayLabBoard(gm, failures);
+        yield return WaitForLabBoard(gm, 4);
+        Check(failures, gm.AutomationLabStreak == 3 && GameManager.LabBestStreak == 3, $"streak {gm.AutomationLabStreak} best {GameManager.LabBestStreak}");
+
+        // 스킵 = 다음 판, 연속 0.
+        Check(failures, gm.LabSkipBoard(), "lab skip refused");
+        yield return Settle(gm, ui);
+        Check(failures, gm.AutomationLabBoardIndex == 5 && gm.AutomationLabStreak == 0, $"after skip: index {gm.AutomationLabBoardIndex} streak {gm.AutomationLabStreak}");
+
+        // 지도에서 하던 판을 고르면 연구소를 나온다. 스테이지 진행도는 그대로.
+        Check(failures, gm.LoadStageFromMap(stageBefore), "leaving the lab through the map failed");
+        yield return Settle(gm, ui);
+        Check(failures, !gm.IsLabActive && gm.CurrentStageIndex == stageBefore && gm.StageFrontier == frontierBefore,
+            $"after lab: lab={gm.IsLabActive} current {gm.CurrentStageIndex} frontier {gm.StageFrontier}");
+
+        yield return new ExitPlayMode();
+        Assert.IsEmpty(failures, string.Join("\n", failures));
+    }
+
+    private static IEnumerator PlayLabBoard(GameManager gm, List<string> failures)
+    {
+        List<Vector2Int> moves = gm.AutomationLabSolution;
+        if (moves == null)
+        {
+            failures.Add("lab board has no solution");
+            yield break;
+        }
+        int index = gm.AutomationLabBoardIndex;
+        gm.AutomationBeginDrag();
+        for (int i = 0; i < moves.Count && !gm.AutomationStageCleared; i++)
+        {
+            if (!gm.AutomationStep(moves[i].x, moves[i].y) && !gm.AutomationStageCleared)
+            {
+                failures.Add($"lab board {index}: step {i} refused");
+                yield break;
+            }
+            float quiet = Time.realtimeSinceStartup;
+            while (gm.AutomationHasPendingMutations && Time.realtimeSinceStartup - quiet < 1f)
+                yield return null;
+        }
+        if (!gm.AutomationStageCleared)
+            failures.Add($"lab board {index}: not cleared");
+    }
+
+    private static IEnumerator WaitForLabBoard(GameManager gm, int boardIndex)
+    {
+        float start = Time.realtimeSinceStartup;
+        while ((gm.AutomationLabBoardIndex != boardIndex || gm.AutomationStageCleared || gm.AutomationGameOverPlaying) && Time.realtimeSinceStartup - start < 5f)
+            yield return null;
+    }
+
     private static void Check(List<string> failures, bool condition, string message)
     {
         if (!condition)

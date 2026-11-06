@@ -64,6 +64,9 @@ public static class VisualTheme
         new Color32(0x2F, 0x6B, 0x4F, 0xFF),
     };
 
+    /// <summary>숫자가 "?"로 가려진 타일의 색(어떤 숫자 색과도 다른 중립 회갈색).</summary>
+    public static readonly Color ClayHiddenColor = new Color32(0xCF, 0xC8, 0xBC, 0xFF);
+
     public static Color LinkGroupColor(int linkId)
     {
         int index = ((linkId % LinkGroupColors.Length) + LinkGroupColors.Length) % LinkGroupColors.Length;

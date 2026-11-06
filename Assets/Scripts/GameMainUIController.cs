@@ -1722,6 +1722,19 @@ public class GameMainUIController : MonoBehaviour
             ShowFeverSkipBlocked();
             return;
         }
+        if (gm.IsLabActive)
+        {
+            // 연구소에서는 스킵이 "다음 판"이다(충전·광고 없음). 연속 기록이 끊기므로 한 번 더 눌러야 넘어간다.
+            if (Time.unscaledTime > skipConfirmDeadline)
+            {
+                skipConfirmDeadline = Time.unscaledTime + SkipConfirmWindowSeconds;
+                ShowGameplaySnackbar("snackbar_skip_confirm", SkipConfirmWindowSeconds);
+                return;
+            }
+            skipConfirmDeadline = -1f;
+            gm.LabSkipBoard();
+            return;
+        }
         if (gm.IsOnFinalStage)
         {
             ShowGameplaySnackbar("snackbar_skip_final_stage");
@@ -2583,6 +2596,76 @@ public class GameMainUIController : MonoBehaviour
         pendingChallengeChip = null;
         activeChallengeChip?.RemoveFromHierarchy();
         activeChallengeChip = null;
+    }
+
+    // ===== 연구소 HUD =====
+    // 상단 STAGE 자리를 빌린다: 제목 → "LAB", 큰 숫자 → 연속 성공 수. 판이 시작될 때 변주 이름을 칩으로 알린다.
+    public void SetupLabBoard(int totalCount, int streak, GameManager.LabVariant variant, bool announce)
+    {
+        ResetTransientStageClearVisuals();
+        DismissClearCard();
+        if (stageTitleLabel != null)
+            stageTitleLabel.text = T("lab_title");
+        if (stageNumberLabel != null)
+            stageNumberLabel.text = Mathf.Max(0, streak).ToString("D2");
+        initialTileCount = Mathf.Max(1, totalCount);
+        UpdateProgress(totalCount);
+        if (announce)
+            ShowCenterChip(T(LabVariantKey(variant)), 2.4f);
+    }
+
+    private static string LabVariantKey(GameManager.LabVariant variant)
+    {
+        switch (variant)
+        {
+            case GameManager.LabVariant.OneStroke: return "lab_variant_one_stroke";
+            case GameManager.LabVariant.Heavy: return "lab_variant_heavy";
+            case GameManager.LabVariant.Memory: return "lab_variant_memory";
+            default: return "lab_variant_normal";
+        }
+    }
+
+    public void ShowLabBoardResult(int streak, bool best)
+    {
+        if (stageNumberLabel != null)
+            stageNumberLabel.text = Mathf.Max(0, streak).ToString("D2");
+        ShowCenterChip(T(best && streak >= 2 ? "lab_best" : "lab_streak", ("n", streak.ToString())), 0.9f, true);
+    }
+
+    public void ShowLabRetry(bool lifted)
+    {
+        if (stageNumberLabel != null)
+            stageNumberLabel.text = "00";
+        ShowCenterChip(T(lifted ? "lab_retry_lifted" : "lab_retry"), 1.0f);
+    }
+
+    public void EndLabHud()
+    {
+        activeChallengeChip?.RemoveFromHierarchy();
+        activeChallengeChip = null;
+        if (stageTitleLabel != null)
+            stageTitleLabel.text = T("stage_title");
+    }
+
+    /// <summary>상단 바 바로 아래에 한 줄 안내 칩을 띄운다(도전 목표 칩과 같은 자리, 하나만 보인다).</summary>
+    private void ShowCenterChip(string text, float holdSeconds, bool showStar = false)
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null)
+            return;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return;
+        pendingChallengeChip = null;
+        activeChallengeChip?.RemoveFromHierarchy();
+        float top = root.layout.height * 0.14f;
+        if (topBar != null && topBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(topBar.worldBound);
+            if (!float.IsNaN(bar.yMax) && bar.height > 1f)
+                top = bar.yMax + 14f;
+        }
+        activeChallengeChip = new ClayToastChip(new Vector2(root.layout.width * 0.5f, top), text, showStar, holdSeconds);
+        root.Add(activeChallengeChip);
     }
 
     // ===== 피버 보드 HUD =====
@@ -6831,7 +6914,8 @@ public class GameMainUIController : MonoBehaviour
             complete = T("map_complete"),
             continuePlay = T("map_continue"),
             latest = T("map_latest"),
-            lab = T("map_lab")
+            lab = T("map_lab"),
+            backToStage = T("map_back_to_stage")
         };
         Action onDebug = null;
         if (isDebugBuildCached)
@@ -6859,8 +6943,16 @@ public class GameMainUIController : MonoBehaviour
                 PlayUIButtonSfx();
                 CloseStageMap();
             },
-            null,
-            onDebug);
+            gm.IsLabActive ? (Action)null : () =>
+            {
+                PlayUIButtonSfx();
+                CloseStageMap();
+                GameManager manager = FindFirstObjectByType<GameManager>();
+                if (manager != null)
+                    manager.StartLab();
+            },
+            onDebug,
+            gm.IsLabActive);
         root.Add(activeStageMap);
         isStageMapOpen = true;
         FirebaseBootstrap.LogEvent("stage_map_open", new Dictionary<string, object>

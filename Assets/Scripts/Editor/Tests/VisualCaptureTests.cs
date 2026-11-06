@@ -247,6 +247,32 @@ public class VisualCaptureTests
             yield return WaitRealtime(0.3f);
         }
 
+        // ZEROSTEP_CAPTURE_LAB=1: 연구소(변주 칩, 무거운 판, 기억 변주에서 숫자가 가려진 모습, 연구소에서 연 지도)
+        if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_LAB") == "1")
+        {
+            while (gm.AutomationGameOverPlaying)
+                yield return null;
+            PlayerPrefs.DeleteKey("ZeroStep.LabDay");
+            gm.StartLab();
+            yield return WaitRealtime(0.9f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_start");
+            gm.LabSkipBoard();
+            gm.LabSkipBoard();
+            yield return WaitRealtime(0.9f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_heavy");
+            gm.LabSkipBoard();
+            yield return WaitRealtime(1.0f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_memory_shown");
+            yield return WaitRealtime(3.2f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_memory_hidden");
+            ui.OpenStageMap();
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_map");
+            ui.CloseStageMap();
+            gm.ExitLabToStage();
+            yield return WaitRealtime(0.8f);
+        }
+
         // ZEROSTEP_CAPTURE_FEVER=1: 피버 보드 시작·진행·결과 화면
         if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_FEVER") == "1")
         {

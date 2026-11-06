@@ -501,7 +501,8 @@ public sealed class GameplayFeedback : MonoBehaviour
         if (tile == null || previousCount <= tile.CurrentNumber) return;
         if (VisualTheme.IsSoftClay)
         {
-            Color clay = VisualTheme.ClayColorForCount(previousCount);
+            // 숫자가 가려진 타일은 조각 색으로도 숫자가 드러나지 않게 한다.
+            Color clay = tile.IsNumberHidden ? VisualTheme.ClayHiddenColor : VisualTheme.ClayColorForCount(previousCount);
             if (tile.CurrentNumber == 0)
             {
                 ClayJuice.Instance?.Pop(tile.transform.position, clay, tileSize);

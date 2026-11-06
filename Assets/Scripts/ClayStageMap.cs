@@ -29,6 +29,7 @@ public sealed class ClayStageMap : VisualElement
         public string continuePlay; // "이어하기"
         public string latest;       // "최신 판으로"
         public string lab;          // "연구소"
+        public string backToStage;  // "{n}판으로 돌아가기" (연구소에 있을 때)
     }
 
     private readonly Texts texts;
@@ -39,6 +40,8 @@ public sealed class ClayStageMap : VisualElement
     private readonly Action<int> onSelectStage;
     private readonly Action onClose;
     private readonly float cellSize;
+    /// <summary>연구소에서 연 지도: 판을 고르면(지금 판 포함) 연구소를 나와 그 판으로 간다.</summary>
+    private readonly bool inLab;
 
     private readonly Label chapterLabel;
     private readonly Label rangeLabel;
@@ -52,8 +55,9 @@ public sealed class ClayStageMap : VisualElement
     public ClayStageMap(
         Texts texts, Rect panel, float topInset, float bottomInset,
         int currentStage, int frontier, int finalStage,
-        Func<int, bool> isUnlocked, Action<int> onSelectStage, Action onClose, Action onLab, Action onDebug)
+        Func<int, bool> isUnlocked, Action<int> onSelectStage, Action onClose, Action onLab, Action onDebug, bool inLab = false)
     {
+        this.inLab = inLab;
         this.texts = texts;
         this.finalStage = Mathf.Max(1, finalStage);
         this.currentStage = currentStage;
@@ -152,14 +156,16 @@ public sealed class ClayStageMap : VisualElement
         footer.style.marginTop = 28f;
         if (onLab != null)
             footer.Add(PillButton(texts.lab, false, gridWidth * 0.36f, () => onLab()));
-        bool atFrontier = currentStage == frontier;
-        string primaryText = atFrontier ? texts.continuePlay : texts.latest + " · " + frontier.ToString("D2");
+        bool atFrontier = currentStage == frontier && !inLab;
+        string primaryText = inLab
+            ? (texts.backToStage ?? "{n}").Replace("{n}", currentStage.ToString())
+            : atFrontier ? texts.continuePlay : texts.latest + " · " + frontier.ToString("D2");
         footer.Add(PillButton(primaryText, true, onLab != null ? gridWidth * 0.6f : gridWidth, () =>
         {
             if (atFrontier)
                 Close();
             else
-                this.onSelectStage?.Invoke(frontier);
+                this.onSelectStage?.Invoke(inLab ? currentStage : frontier);
         }));
         Add(footer);
 
@@ -274,7 +280,7 @@ public sealed class ClayStageMap : VisualElement
                 cell.RegisterCallback<ClickEvent>(evt =>
                 {
                     evt.StopPropagation();
-                    if (target == currentStage)
+                    if (target == currentStage && !this.inLab)
                         Close();
                     else
                         onSelectStage?.Invoke(target);
