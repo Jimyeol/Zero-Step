@@ -818,6 +818,7 @@ public class GameManager : MonoBehaviour
     }
 
     private ClayStartMarker clayStartMarker;
+    private ClayZero clayZero;
 
     private void LateUpdate()
     {
@@ -838,6 +839,12 @@ public class GameManager : MonoBehaviour
             clayStartMarker = ClayStartMarker.Create(transform);
         bool idle = !isDragging && !stageCleared && !isGameOverSequencePlaying;
         clayStartMarker.SetTarget(idle ? currentStartTile : null);
+
+        // 마스코트는 지금 있는 칸(드래그 중이면 길의 머리)에 앉는다. 클리어 직후에는 마지막 칸에서 환호하도록 그대로 둔다.
+        if (clayZero == null)
+            clayZero = ClayZero.Create(transform);
+        if (!stageCleared)
+            clayZero.SetTarget(head);
     }
 
     private void Update()
@@ -4133,6 +4140,11 @@ public class GameManager : MonoBehaviour
 
         stageCleared = true;
         mainUI?.HideStageChallengeChip();
+        if (clayZero != null)
+        {
+            clayZero.SetTarget(referenceTile);
+            clayZero.Cheer();
+        }
         if (labActive)
         {
             ResetActiveDragState("lab_clear");
@@ -5550,6 +5562,7 @@ public class GameManager : MonoBehaviour
             currentPath.Clear();
             isDragging = false;
             gameplayFeedback?.Failed(failFocusTile != null ? failFocusTile : currentStartTile);
+            clayZero?.Shake();
             PlayFailSfx();
             OnLabBoardFailed(reason);
             return true;
@@ -5561,6 +5574,7 @@ public class GameManager : MonoBehaviour
             currentPath.Clear();
             isDragging = false;
             gameplayFeedback?.Failed(failFocusTile != null ? failFocusTile : currentStartTile);
+            clayZero?.Shake();
             PlayFailSfx();
             OnFeverBoardFinished(false);
             return true;
@@ -5593,6 +5607,7 @@ public class GameManager : MonoBehaviour
         ResetBoardFailureTracking();
         StopBoardTransientVisuals();
         gameplayFeedback?.Failed(gameOverFocusTile != null ? gameOverFocusTile : currentStartTile);
+        clayZero?.Shake();
         ClearHintPreview();
         totalStepsCommitted = 0;
         blackoutQuestionFlipPlayed = false;
@@ -6507,6 +6522,7 @@ public class GameManager : MonoBehaviour
         if (!labActive || labVariant != LabVariant.OneStroke || stageCleared || isGameOverSequencePlaying || !movedThisStroke)
             return false;
         gameplayFeedback?.Failed(currentStartTile);
+        clayZero?.Shake();
         PlayFailSfx();
         OnLabBoardFailed(LabFailReasonLifted);
         return true;

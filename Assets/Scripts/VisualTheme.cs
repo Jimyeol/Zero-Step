@@ -53,6 +53,12 @@ public static class VisualTheme
     /// <summary>점토 타일 윗면 둘레에 맞춘 흰 외곽선(색을 입혀 시작점·짝꿍 그룹 표시에 쓴다).</summary>
     public static Sprite RingSprite => ringSprite != null ? ringSprite : (ringSprite = Resources.Load<Sprite>(SpriteFolder + "clay_ring"));
 
+    private static Sprite zeroBodySprite;
+    private static Sprite zeroFaceSprite;
+    /// <summary>마스코트 "제로"의 몸통(회색조, 색을 입혀 쓴다)과 얼굴.</summary>
+    public static Sprite ZeroBodySprite => zeroBodySprite != null ? zeroBodySprite : (zeroBodySprite = Resources.Load<Sprite>(SpriteFolder + "zero_body"));
+    public static Sprite ZeroFaceSprite => zeroFaceSprite != null ? zeroFaceSprite : (zeroFaceSprite = Resources.Load<Sprite>(SpriteFolder + "zero_face"));
+
     /// <summary>짝꿍(TwinLink) 그룹 색: 타일 점토색·시작점 테라코타와 겹치지 않는 진한 색(청록, 자두, 황토, 남색, 올리브, 숲초록).</summary>
     private static readonly Color[] LinkGroupColors =
     {
@@ -110,9 +116,9 @@ public static class VisualTheme
         go.transform.SetParent(tile, false);
         SpriteRenderer tileRenderer = tile.GetComponent<SpriteRenderer>();
         Vector2 tileSize = tileRenderer != null && tileRenderer.sprite != null ? (Vector2)tileRenderer.sprite.bounds.size : new Vector2(5.12f, 5.12f);
-        go.transform.localPosition = new Vector3(-tileSize.x * 0.215f, -tileSize.y * 0.15f, -0.01f);
+        go.transform.localPosition = new Vector3(-tileSize.x * 0.25f, -tileSize.y * 0.185f, -0.01f);
         Sprite sprite = StarSprite;
-        float iconWorld = tileSize.x * 0.27f;
+        float iconWorld = tileSize.x * 0.22f;
         go.transform.localScale = Vector3.one * (iconWorld / Mathf.Max(0.0001f, sprite.bounds.size.x));
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = sprite;
