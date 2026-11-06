@@ -161,6 +161,7 @@ public class GameManager : MonoBehaviour
 
     /// <summary>Easy Save 3 진행도 저장 키. 앱 재실행 시 이 스테이지부터 시작.</summary>
     private const string SaveKeyStage = "StageProgress";
+    private const string SaveKeyFrontier = "StageFrontier";
     private const string StageClearTypeAllTilesZero = "all_tiles_zero";
     private const string StageClearTypeLastTileRule = "last_tile_rule";
     private const string StageFailReasonNoLegalMove = "deadlock_no_legal_move";
@@ -474,6 +475,7 @@ public class GameManager : MonoBehaviour
 
         // 저장된 진행도가 있으면 해당 스테이지부터, 없으면 startStageIndex부터
         currentStageIndex = endingState == FinalEndingState.CompletedReplayable ? 1 : LoadSavedStageIndex();
+        stageFrontier = LoadSavedFrontier(endingState == FinalEndingState.CompletedReplayable ? FinalEndingProgressStore.FinalStageIndex : currentStageIndex);
         hasLoadedStageProgress = true;
         totalStepsCommitted = 0;
         StageData data = StageManager.LoadStage(currentStageIndex);
@@ -707,6 +709,9 @@ public class GameManager : MonoBehaviour
         int previousStageIndex = currentStageIndex;
         PrepareForStageTransition();
         currentStageIndex = stageIndex;
+        // 디버그 이동은 진행 위치도 함께 옮긴다(이동한 판 다음부터 이어서 진행되도록).
+        if (stageIndex > StageFrontier)
+            stageFrontier = stageIndex;
         ApplyLoadedStageData(data, "debug_stage_jump");
 
         FirebaseBootstrap.LogEvent("stage_debug_jump", new Dictionary<string, object>
@@ -741,6 +746,7 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
         totalStepsCommitted = 0;
         currentStageIndex = 1;
+        stageFrontier = 1;
 
         StageData data = StageManager.LoadStage(1);
         UpdateVerboseStage6DebugState(data);
@@ -6211,7 +6217,9 @@ public class GameManager : MonoBehaviour
 
     private bool ShouldStartFeverAfter(int completedStageIndex)
     {
+        // 처음 깬 판에서만 온다(지도에서 10번째 판을 되풀이해 힌트를 모으는 걸 막는다).
         return VisualTheme.IsSoftClay
+            && lastClearWasFirstClear
             && completedStageIndex >= FeverEveryStages
             && completedStageIndex % FeverEveryStages == 0
             && !FinalEndingProgressStore.IsFinalStageIndex(completedStageIndex)
@@ -6221,7 +6229,7 @@ public class GameManager : MonoBehaviour
 
     private void StartFever(int completedStageIndex)
     {
-        currentStageIndex = completedStageIndex + 1;
+        currentStageIndex = AdvanceProgressAfter(completedStageIndex);
         SaveStageProgress();
         feverActive = true;
         feverEnding = false;
@@ -6587,13 +6595,14 @@ public class GameManager : MonoBehaviour
         if (IsOnFinalStage)
             return false;
 
-        currentStageIndex++;
+        currentStageIndex = AdvanceProgressAfter(currentStageIndex);
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data == null)
         {
             // 데이터 누락 시 안전장치. 최종 스테이지 이후로는 위에서 막는다.
             Debug.LogError($"[GameManager] Missing stage data for stage {currentStageIndex}. Falling back to stage 1.");
             currentStageIndex = 1;
+            stageFrontier = 1;
             data = StageManager.LoadStage(1);
             if (data == null)
             {
@@ -6655,6 +6664,8 @@ public class GameManager : MonoBehaviour
         try
         {
             ES3.Save(SaveKeyStage, currentStageIndex);
+            if (stageFrontier >= 1)
+                ES3.Save(SaveKeyFrontier, stageFrontier);
         }
         catch (Exception e)
         {
@@ -6670,6 +6681,8 @@ public class GameManager : MonoBehaviour
         {
             if (ES3.KeyExists(SaveKeyStage))
                 ES3.DeleteKey(SaveKeyStage);
+            if (ES3.KeyExists(SaveKeyFrontier))
+                ES3.DeleteKey(SaveKeyFrontier);
         }
         catch (Exception e)
         {
@@ -6685,6 +6698,103 @@ public class GameManager : MonoBehaviour
     private bool hasLoadedStageProgress;
 
     private static bool IsValidStageIndex(int index) => index >= 1 && index <= FinalEndingProgressStore.FinalStageIndex;
+
+    // ===== 진행 위치(frontier)와 지금 하는 판(currentStageIndex) =====
+    // frontier = 아직 깨지(또는 스킵하지) 않은 가장 앞 스테이지. 지도에서는 frontier부터 세 판까지 골라 할 수 있어(갈래 길)
+    // 한 판에 막혀도 다른 판을 먼저 할 수 있다. 이미 지나온 판은 언제든 다시 할 수 있다.
+    private const int StageUnlockWindow = 3;
+    private int stageFrontier;
+
+    public int CurrentStageIndex => currentStageIndex;
+    public int StageFrontier => Mathf.Max(1, stageFrontier);
+    /// <summary>지도를 열어 다른 판으로 옮겨도 되는 상태인지(클리어 연출·실패 연출·피버·연구소 전환 중에는 안 됨).</summary>
+    public bool CanOpenStageMap => !stageCleared && !isGameOverSequencePlaying && !feverActive && tiles != null;
+
+    public bool IsStageUnlocked(int stageIndex)
+    {
+        if (!IsValidStageIndex(stageIndex))
+            return false;
+        int frontier = StageFrontier;
+        if (stageIndex <= frontier)
+            return true;
+        // 마지막 스테이지(엔딩)는 건너뛰어 열 수 없다.
+        if (FinalEndingProgressStore.IsFinalStageIndex(stageIndex))
+            return false;
+        return stageIndex < frontier + StageUnlockWindow;
+    }
+
+    private int LoadSavedFrontier(int fallback)
+    {
+        int frontier = fallback;
+        try
+        {
+            if (ES3.KeyExists(SaveKeyFrontier))
+            {
+                int saved = ES3.Load<int>(SaveKeyFrontier);
+                if (IsValidStageIndex(saved))
+                    frontier = saved;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameManager] 진행 위치 로드 실패: {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, "LoadSavedFrontier failed");
+        }
+        // 예전 저장(진행 위치 없음)이나 어긋난 값: 지금 하는 판이 열려 있도록 맞춘다.
+        if (currentStageIndex >= frontier + StageUnlockWindow)
+            frontier = currentStageIndex;
+        return Mathf.Clamp(frontier, 1, FinalEndingProgressStore.FinalStageIndex);
+    }
+
+    /// <summary>stageIndex를 깨거나 스킵한 뒤: 그 판이 frontier였으면 다음 안 깬 판까지 frontier를 민다.</summary>
+    private void AdvanceFrontierPast(int stageIndex)
+    {
+        if (stageIndex != StageFrontier)
+            return;
+        int final = FinalEndingProgressStore.FinalStageIndex;
+        int next = Mathf.Min(final, stageIndex + 1);
+        while (next < final && StageStarsStore.GetStars(next) > 0)
+            next++;
+        stageFrontier = next;
+    }
+
+    /// <summary>
+    /// stageIndex를 깨거나 스킵한 뒤 진행 위치를 갱신하고 다음에 할 판을 돌려준다.
+    /// 맨 앞 판(frontier)을 끝냈으면 새 frontier(이미 깬 판은 건너뜀), 지나온 판을 다시 한 거면 바로 다음 판,
+    /// 앞질러 한 판이면 다음 판이 열려 있을 때만 그 판이고 아니면 frontier로 돌아온다.
+    /// </summary>
+    private int AdvanceProgressAfter(int stageIndex)
+    {
+        bool wasFrontier = stageIndex == StageFrontier;
+        AdvanceFrontierPast(stageIndex);
+        if (wasFrontier)
+            return StageFrontier;
+        int next = stageIndex + 1;
+        return IsStageUnlocked(next) ? next : StageFrontier;
+    }
+
+    /// <summary>지도에서 고른 판으로 옮긴다. 하트는 그대로 둔다(판을 바꿔 하트를 채우는 걸 막기 위해).</summary>
+    public bool LoadStageFromMap(int stageIndex)
+    {
+        if (!CanOpenStageMap || !IsStageUnlocked(stageIndex))
+            return false;
+        StageData data = StageManager.LoadStage(stageIndex);
+        if (data == null)
+            return false;
+
+        int previousStageIndex = currentStageIndex;
+        PrepareForStageTransition();
+        currentStageIndex = stageIndex;
+        ApplyLoadedStageData(data, "map_select", resetHeartsForNewStage: false);
+        FirebaseBootstrap.LogEvent("stage_map_select", new Dictionary<string, object>
+        {
+            { "from_stage_index", previousStageIndex },
+            { "to_stage_index", currentStageIndex },
+            { "frontier", StageFrontier }
+        });
+        HandleStageStarted("map_select");
+        return true;
+    }
 
     /// <summary>진행도 값이 망가졌을 때(0 등) 업적 기록에 남은 현재 스테이지로 되살린다.</summary>
     private static int RecoverStageIndexFromAchievementRecord()
@@ -7673,6 +7783,8 @@ public class GameManager : MonoBehaviour
     public bool AutomationGameOverPlaying => isGameOverSequencePlaying;
     public bool AutomationIsDragging => isDragging;
     public bool AutomationHasPendingMutations => pendingBoardMutationCount > 0;
+    /// <summary>테스트용: 진행 위치(frontier)를 직접 정한다.</summary>
+    public void AutomationSetFrontier(int stageIndex) => stageFrontier = Mathf.Clamp(stageIndex, 1, FinalEndingProgressStore.FinalStageIndex);
     public bool AutomationFeverActive => feverActive;
     public int AutomationFeverBoards => feverBoards;
     public int AutomationFeverPops => feverPops;

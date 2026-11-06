@@ -928,7 +928,13 @@ public class GameMainUIController : MonoBehaviour
         if (stageContainer != null)
         {
             stageContainer.EnableInClassList("top-stage-panel-debug-jump", isDebugBuildCached);
-            if (isDebugBuildCached)
+            // 점토 테마: STAGE를 누르면 챕터 지도가 열린다(디버그 이동은 지도 안의 DBG 버튼). 네온 테마는 예전처럼 디버그 빌드에서만 이동 창.
+            if (VisualTheme.IsSoftClay)
+            {
+                stageContainer.RegisterCallback<ClickEvent>(OnStageContainerClickedForMap);
+                AddStageMapHintIcon();
+            }
+            else if (isDebugBuildCached)
                 stageContainer.RegisterCallback<ClickEvent>(OnDebugStageContainerClicked);
         }
 
@@ -3270,6 +3276,7 @@ public class GameMainUIController : MonoBehaviour
     public bool IsSplashActive => isSplashActive;
     public bool IsEndingOverlayOpen => isEndingOverlayOpen;
     public bool IsModalOverlayOpen =>
+        isStageMapOpen ||
         isSettingPopupOpen ||
         isDebugStageJumpPopupOpen ||
         isLanguageSelectionPopupOpen ||
@@ -6741,6 +6748,137 @@ public class GameMainUIController : MonoBehaviour
     {
         AudioListener.volume = isSoundOn ? 1f : 0f;
     }
+
+    // ===== 챕터 지도 =====
+    private ClayStageMap activeStageMap;
+    private bool isStageMapOpen;
+
+    /// <summary>STAGE 글자 오른쪽 위에 작은 격자 아이콘을 달아 "누르면 지도가 열린다"는 걸 알린다(배치에는 영향 없음).</summary>
+    private void AddStageMapHintIcon()
+    {
+        if (stageContainer == null || stageContainer.Q<VisualElement>("StageMapHintIcon") != null)
+            return;
+        var icon = new VisualElement { name = "StageMapHintIcon", pickingMode = PickingMode.Ignore };
+        icon.style.position = Position.Absolute;
+        icon.style.width = 26f;
+        icon.style.height = 26f;
+        icon.style.right = -38f;
+        icon.style.top = 2f;
+        icon.generateVisualContent += ctx =>
+        {
+            Rect r = ctx.visualElement.contentRect;
+            if (r.width <= 1f)
+                return;
+            Painter2D painter = ctx.painter2D;
+            painter.fillColor = VisualTheme.InkSoft;
+            float cell = r.width * 0.42f;
+            float step = r.width - cell;
+            for (int k = 0; k < 4; k++)
+            {
+                float x = (k % 2) * step;
+                float y = (k / 2) * step;
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(x, y));
+                painter.LineTo(new Vector2(x + cell, y));
+                painter.LineTo(new Vector2(x + cell, y + cell));
+                painter.LineTo(new Vector2(x, y + cell));
+                painter.ClosePath();
+                painter.Fill();
+            }
+        };
+        stageContainer.Add(icon);
+    }
+
+    private void OnStageContainerClickedForMap(ClickEvent evt)
+    {
+        evt?.StopPropagation();
+        OpenStageMap();
+    }
+
+    public bool OpenStageMap()
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null || IsModalOverlayOpen)
+            return false;
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm == null || !gm.CanOpenStageMap)
+            return false;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return false;
+
+        PlayUIButtonSfx();
+        NotifyGameplayActivity();
+        HideStageChallengeChip();
+        Rect panel = root.layout;
+        float topInset = 0f;
+        float bottomInset = 0f;
+        if (topBar != null && topBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(topBar.worldBound);
+            if (!float.IsNaN(bar.y))
+                topInset = Mathf.Max(0f, bar.y);
+        }
+        if (bottomBar != null && bottomBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(bottomBar.worldBound);
+            if (!float.IsNaN(bar.yMax) && bar.height > 1f)
+                bottomInset = Mathf.Max(0f, panel.height - bar.yMax);
+        }
+
+        var texts = new ClayStageMap.Texts
+        {
+            chapter = T("map_chapter"),
+            complete = T("map_complete"),
+            continuePlay = T("map_continue"),
+            latest = T("map_latest"),
+            lab = T("map_lab")
+        };
+        Action onDebug = null;
+        if (isDebugBuildCached)
+        {
+            onDebug = () =>
+            {
+                CloseStageMap();
+                ShowDebugStageJumpPopup();
+            };
+        }
+        activeStageMap = new ClayStageMap(
+            texts, panel, topInset, bottomInset,
+            gm.CurrentStageIndex, gm.StageFrontier, FinalEndingProgressStore.FinalStageIndex,
+            gm.IsStageUnlocked,
+            stage =>
+            {
+                PlayUIButtonSfx();
+                CloseStageMap();
+                GameManager manager = FindFirstObjectByType<GameManager>();
+                if (manager != null)
+                    manager.LoadStageFromMap(stage);
+            },
+            () =>
+            {
+                PlayUIButtonSfx();
+                CloseStageMap();
+            },
+            null,
+            onDebug);
+        root.Add(activeStageMap);
+        isStageMapOpen = true;
+        FirebaseBootstrap.LogEvent("stage_map_open", new Dictionary<string, object>
+        {
+            { "stage_index", gm.CurrentStageIndex },
+            { "frontier", gm.StageFrontier }
+        });
+        return true;
+    }
+
+    public void CloseStageMap()
+    {
+        activeStageMap?.RemoveFromHierarchy();
+        activeStageMap = null;
+        isStageMapOpen = false;
+    }
+
+    public bool IsStageMapOpen => isStageMapOpen;
 
     private void OnDebugStageContainerClicked(ClickEvent evt)
     {

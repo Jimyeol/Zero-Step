@@ -221,6 +221,32 @@ public class VisualCaptureTests
             }
         }
 
+        // ZEROSTEP_CAPTURE_MAP=1: 챕터 지도(일부 판을 깬 상태로 꾸며서 찍는다. 별 기록은 테스트 뒤 러너가 되돌린다)
+        if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_MAP") == "1")
+        {
+            while (gm.AutomationGameOverPlaying)
+                yield return null;
+            gm.LoadStageImmediateForDebug(54);
+            yield return WaitRealtime(1.0f);
+            CloseTutorialIfOpen(ui);
+            var random = new System.Random(7);
+            for (int s2 = 1; s2 <= 53; s2++)
+                StageStarsStore.Record(s2, 1 + random.Next(3), false);
+            StageStarsStore.Record(55, 3, true);
+            yield return WaitRealtime(0.3f);
+            Debug.Log($"[CaptureMap] open={ui.OpenStageMap()} frontier={gm.StageFrontier} current={gm.CurrentStageIndex}");
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "map_current");
+            ui.CloseStageMap();
+            gm.LoadStageFromMap(40);
+            yield return WaitRealtime(0.8f);
+            ui.OpenStageMap();
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "map_complete");
+            ui.CloseStageMap();
+            yield return WaitRealtime(0.3f);
+        }
+
         // ZEROSTEP_CAPTURE_FEVER=1: 피버 보드 시작·진행·결과 화면
         if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_FEVER") == "1")
         {
