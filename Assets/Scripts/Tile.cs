@@ -276,16 +276,32 @@ public class Tile : MonoBehaviour
         transform.localScale = baseScale * scaleOverride;
     }
 
+    // 힌트 선(정렬 순서 400 근처)보다 숫자를 위에 그릴 때 더하는 값.
+    private const int NumberAboveHintSortingLift = 420;
+    private int currentSortingOffset;
+    private bool numberAboveHint;
+
+    /// <summary>힌트 선이 이 칸을 지나갈 때 숫자가 선에 가려지지 않게 숫자만 선 위로 올린다(끝나면 false).</summary>
+    public void SetNumberAboveHint(bool above)
+    {
+        if (numberAboveHint == above)
+            return;
+        numberAboveHint = above;
+        if (numberTextRenderer != null)
+            numberTextRenderer.sortingOrder = baseNumberTextSortingOrder + currentSortingOffset + (above ? NumberAboveHintSortingLift : 0);
+    }
+
     private void ApplyStartMarkerSorting(bool bringToFront)
     {
         int offset = bringToFront ? StartMarkerSortingOrderOffset : 0;
+        currentSortingOffset = offset;
         if (spriteRenderer != null)
             spriteRenderer.sortingOrder = baseSpriteSortingOrder + offset;
         if (tileImage != null && tileImage != spriteRenderer)
             tileImage.sortingOrder = baseTileImageSortingOrder + offset;
         ApplyLinkedRendererSorting(offset);
         if (numberTextRenderer != null)
-            numberTextRenderer.sortingOrder = baseNumberTextSortingOrder + offset;
+            numberTextRenderer.sortingOrder = baseNumberTextSortingOrder + offset + (numberAboveHint ? NumberAboveHintSortingLift : 0);
         if (startLabelRenderer != null)
             startLabelRenderer.sortingOrder = baseStartLabelSortingOrder + offset;
     }

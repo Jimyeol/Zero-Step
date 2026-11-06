@@ -3119,8 +3119,9 @@ public class GameManager : MonoBehaviour
         int segmentCount = path.Count - 1;
         EnsureHintPreviewPool(segmentCount);
         float width = Mathf.Max(0.05f, Mathf.Min(tileWidth, tileHeight) * Mathf.Max(0.01f, hintPreviewLineWidthScale));
+        // 점토 테마: 숫자가 선 위에 그려지므로 굵을 필요가 없다. 띠가 아니라 "선"으로 보이게 조금 가늘게.
         if (VisualTheme.IsSoftClay)
-            width *= 1.3f;
+            width *= 0.85f;
         Color baseColor = GetHintPreviewColor(hintPreviewMaxAlpha * HintBaseAlphaMultiplier, false);
 
         activeHintPreviewPoints.Clear();
@@ -3137,16 +3138,6 @@ public class GameManager : MonoBehaviour
         EnsureHintSegmentArrowPool(segmentCount);
         float tileSizeForOffset = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
         var edgeVisits = new Dictionary<long, int>();
-        if (VisualTheme.IsSoftClay)
-        {
-            RenderClayHintChevrons(path, segmentCount, baseColor);
-            activeHintPreviewLineCount = segmentCount;
-            ConfigureHintPreviewFlowLine(width);
-            if (hintPreviewRoutine != null)
-                StopCoroutine(hintPreviewRoutine);
-            hintPreviewRoutine = StartCoroutine(HintPreviewLifetimeRoutine());
-            return;
-        }
         for (int i = 0; i < hintPreviewLines.Length; i++)
         {
             LineRenderer line = hintPreviewLines[i];
@@ -3181,110 +3172,41 @@ public class GameManager : MonoBehaviour
         }
 
         activeHintPreviewLineCount = segmentCount;
+        LiftHintPathNumbers(path);
         ConfigureHintPreviewFlowLine(width);
         if (hintPreviewRoutine != null)
             StopCoroutine(hintPreviewRoutine);
         hintPreviewRoutine = StartCoroutine(HintPreviewLifetimeRoutine());
     }
 
-    // ===== 점토 테마 힌트: 칸과 칸 사이 틈마다 꺾쇠(›) 하나 =====
-    // 선을 칸 중심끼리 이으면 숫자를 가리고, 짧은 선+화살촉은 뭉쳐 보인다. 그래서 이동 한 번마다 틈에 꺾쇠 하나만 그리고,
-    // 밝고 큰 꺾쇠가 순서대로 틈을 지나가며 방향과 순서를 알려준다. 같은 틈을 여러 번 지나면 꺾쇠를 옆으로 나란히 놓는다.
-    private const float HintClayChevronLength = 0.17f;     // 타일 크기 대비: 꼭짓점~뒤 끝
-    private const float HintClayChevronHalfWidth = 0.13f;
-    private const float HintClayChevronStroke = 0.07f;
-    private const float HintClayChevronSpacing = 0.3f;     // 같은 틈에 나란히 놓을 때 간격
-    private const float HintClayFlowScale = 1.35f;         // 지나가는 밝은 꺾쇠의 크기 배율
-    private readonly List<Vector3> hintClayCenters = new List<Vector3>(HintPreviewMaxMoves);
-    private readonly List<Vector3> hintClayDirections = new List<Vector3>(HintPreviewMaxMoves);
+    // ===== 점토 테마 힌트: 칸 가운데를 잇는 선을 숫자 "아래"에 그린다 =====
+    // 선은 다른 타일·시작 표시보다 위에 그려야 보이는데, 그러면 숫자를 덮는다. 그래서 힌트가 보이는 동안
+    // 경로에 있는 칸의 숫자만 선보다 위로 올린다(선은 쭉 이어지고 숫자는 그대로 읽힌다).
+    private readonly List<Tile> hintLiftedNumberTiles = new List<Tile>(HintPreviewMaxMoves + 1);
 
-    private void RenderClayHintChevrons(List<Tile> path, int segmentCount, Color color)
+    private void LiftHintPathNumbers(List<Tile> path)
     {
-        float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
-        // 틈마다 지나는 횟수를 먼저 세어, 여러 번 지나는 틈은 꺾쇠를 가운데 기준으로 고르게 벌린다.
-        var edgeTotals = new Dictionary<long, int>();
-        for (int i = 0; i < segmentCount; i++)
+        RestoreHintPathNumbers();
+        if (!VisualTheme.IsSoftClay || path == null)
+            return;
+        for (int i = 0; i < path.Count; i++)
         {
-            long key = HintEdgeKey(path[i], path[i + 1]);
-            edgeTotals.TryGetValue(key, out int total);
-            edgeTotals[key] = total + 1;
-        }
-
-        var edgeSeen = new Dictionary<long, int>();
-        hintClayCenters.Clear();
-        hintClayDirections.Clear();
-        for (int i = 0; i < hintPreviewLines.Length; i++)
-        {
-            // 점토 테마에서는 몸통 선을 쓰지 않는다.
-            if (hintPreviewLines[i] != null)
-                hintPreviewLines[i].enabled = false;
-            bool active = i < segmentCount;
-            SetHintSegmentArrowEnabled(i, false);
-            if (!active)
+            Tile tile = path[i];
+            if (tile == null || hintLiftedNumberTiles.Contains(tile))
                 continue;
-
-            Vector3 a = activeHintPreviewPoints[i];
-            Vector3 b = activeHintPreviewPoints[i + 1];
-            Vector3 dir = (b - a).normalized;
-            long key = HintEdgeKey(path[i], path[i + 1]);
-            edgeSeen.TryGetValue(key, out int seen);
-            edgeSeen[key] = seen + 1;
-            int total = edgeTotals[key];
-            // 옆으로 벌리는 방향은 진행 방향과 무관하게 틈마다 고정한다(오갈 때 같은 자리에 겹치지 않도록).
-            bool forward = path[i].Y < path[i + 1].Y || (path[i].Y == path[i + 1].Y && path[i].X < path[i + 1].X);
-            Vector3 canonical = forward ? dir : -dir;
-            Vector3 lateral = new Vector3(-canonical.y, canonical.x, 0f);
-            float offset = (seen - (total - 1) * 0.5f) * tileSize * HintClayChevronSpacing;
-            Vector3 center = (a + b) * 0.5f + lateral * offset;
-            hintClayCenters.Add(center);
-            hintClayDirections.Add(dir);
-
-            LineRenderer chevron = i * 2 < hintSegmentArrowLines.Length ? hintSegmentArrowLines[i * 2] : null;
-            SetClayChevron(chevron, center, dir, tileSize, 1f, color);
+            tile.SetNumberAboveHint(true);
+            hintLiftedNumberTiles.Add(tile);
         }
     }
 
-    /// <summary>꺾쇠 하나(세 점짜리 선: 뒤 끝 → 꼭짓점 → 뒤 끝)를 center에 dir 방향으로 놓는다.</summary>
-    private static void SetClayChevron(LineRenderer line, Vector3 center, Vector3 dir, float tileSize, float scale, Color color)
+    private void RestoreHintPathNumbers()
     {
-        if (line == null)
-            return;
-        Vector3 side = new Vector3(-dir.y, dir.x, 0f);
-        float length = tileSize * HintClayChevronLength * scale;
-        float halfWidth = tileSize * HintClayChevronHalfWidth * scale;
-        Vector3 tip = center + dir * length * 0.5f;
-        Vector3 back = center - dir * length * 0.5f;
-        line.enabled = true;
-        line.numCornerVertices = 5;
-        line.positionCount = 3;
-        line.SetPosition(0, back + side * halfWidth);
-        line.SetPosition(1, tip);
-        line.SetPosition(2, back - side * halfWidth);
-        line.widthMultiplier = tileSize * HintClayChevronStroke * scale;
-        line.startColor = color;
-        line.endColor = color;
-    }
-
-    /// <summary>밝은 꺾쇠가 순서대로 틈을 지나간다(틈 안에서 진행 방향으로 살짝 움직인다).</summary>
-    private void UpdateClayHintFlow(int segmentIndex, float t, Color flowColor)
-    {
-        if (hintPreviewFlowLine != null)
-            hintPreviewFlowLine.enabled = false;
-        if (hintPreviewArrowRightLine != null)
-            hintPreviewArrowRightLine.enabled = false;
-        if (segmentIndex < 0 || segmentIndex >= hintClayCenters.Count)
+        for (int i = 0; i < hintLiftedNumberTiles.Count; i++)
         {
-            if (hintPreviewArrowLeftLine != null)
-                hintPreviewArrowLeftLine.enabled = false;
-            return;
+            if (hintLiftedNumberTiles[i] != null)
+                hintLiftedNumberTiles[i].SetNumberAboveHint(false);
         }
-        float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
-        Vector3 dir = hintClayDirections[segmentIndex];
-        Vector3 center = hintClayCenters[segmentIndex] + dir * tileSize * Mathf.Lerp(-0.1f, 0.1f, t);
-        center.z -= 0.01f;
-        // 틈에 들어설 때 커졌다가 나갈 때 줄어든다.
-        float pop = Mathf.Sin(Mathf.Clamp01(t) * Mathf.PI);
-        SetClayChevron(hintPreviewArrowLeftLine, center, dir, tileSize, Mathf.Lerp(1f, HintClayFlowScale, pop), flowColor);
+        hintLiftedNumberTiles.Clear();
     }
 
     private void EnsureHintPreviewPool(int requiredSegmentCount = HintPreviewMaxMoves)
@@ -3452,19 +3374,6 @@ public class GameManager : MonoBehaviour
     private void SetHintPreviewAlpha(float alpha)
     {
         Color baseColor = GetHintPreviewColor(Mathf.Clamp01(alpha * HintBaseAlphaMultiplier), false);
-        if (VisualTheme.IsSoftClay && hintSegmentArrowLines != null)
-        {
-            // 점토 테마: 몸통 선 대신 틈마다 놓인 꺾쇠의 진하기를 바꾼다.
-            for (int i = 0; i < activeHintPreviewLineCount && i * 2 < hintSegmentArrowLines.Length; i++)
-            {
-                LineRenderer chevron = hintSegmentArrowLines[i * 2];
-                if (chevron == null || !chevron.enabled)
-                    continue;
-                chevron.startColor = baseColor;
-                chevron.endColor = baseColor;
-            }
-            return;
-        }
         if (hintPreviewLines == null)
             return;
 
@@ -3492,13 +3401,6 @@ public class GameManager : MonoBehaviour
         float segmentProgress = firstSegment + sweepProgress * remainingSegments;
         int segmentIndex = Mathf.Clamp(Mathf.FloorToInt(segmentProgress), firstSegment, activeHintPreviewLineCount - 1);
         float t = Mathf.Clamp01(segmentProgress - segmentIndex);
-
-        if (VisualTheme.IsSoftClay)
-        {
-            float pulse = 0.85f + 0.15f * GameplayFeedback.Intensity * Mathf.Sin(Time.time * 18f);
-            UpdateClayHintFlow(segmentIndex, t, GetHintPreviewColor(hintPreviewMaxAlpha * Mathf.Clamp01(fade) * pulse, true));
-            return;
-        }
 
         Vector3 start = activeHintPreviewPoints[segmentIndex];
         Vector3 end = activeHintPreviewPoints[segmentIndex + 1];
@@ -3642,10 +3544,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // 점토 테마 힌트: 진한 테라코타(바탕 선은 조금 더 진하게) + 종이색 헤일로.
-    private static readonly Color HintClayLineColor = new Color32(0xB8, 0x4E, 0x2C, 0xFF);
-    private static readonly Color HintClayFlowColor = new Color32(0xE0, 0x6A, 0x3E, 0xFF);
-    private float HintBaseAlphaMultiplier => VisualTheme.IsSoftClay ? 0.9f : hintPreviewBaseAlphaMultiplier;
+    // 점토 테마 힌트: 숫자가 선 위에 그려지므로 바탕 선은 잉크색 숫자가 잘 읽히는 밝은 테라코타, 흐르는 선은 진한 테라코타. 종이색 헤일로.
+    private static readonly Color HintClayLineColor = new Color32(0xE8, 0x9A, 0x7B, 0xFF);
+    private static readonly Color HintClayFlowColor = new Color32(0xD2, 0x55, 0x2B, 0xFF);
+    // 점토 테마의 바탕 선은 불투명하게: 구간이 만나는 곳에서 겹쳐 진해지는 얼룩이 생기지 않는다.
+    private float HintBaseAlphaMultiplier => VisualTheme.IsSoftClay ? 1.05f : hintPreviewBaseAlphaMultiplier;
 
     private Color GetHintPreviewColor(float alpha, bool flow)
     {
@@ -3666,6 +3569,7 @@ public class GameManager : MonoBehaviour
         activeHintPreviewPoints.Clear();
         activeHintPreviewTiles.Clear();
         hintPreviewFollowIndex = 0;
+        RestoreHintPathNumbers();
         if (hintSegmentArrowLines != null)
         {
             for (int i = 0; i < hintSegmentArrowLines.Length; i++)
