@@ -679,12 +679,14 @@ public class GameManager : MonoBehaviour
         LoadNextStageImmediate();
     }
 
-    public bool IsOnFinalStage => FinalEndingProgressStore.IsFinalStageIndex(currentStageIndex);
+    public bool IsOnFinalStage => !labActive && FinalEndingProgressStore.IsFinalStageIndex(currentStageIndex);
 
     public bool LoadNextStageImmediate()
     {
         if (isGameOverSequencePlaying)
             return false;
+        if (labActive)
+            return LabSkipBoard();
         // 최종 스테이지는 스킵으로 넘길 수 없다. 엔딩은 정상 클리어 경로에서만 열린다.
         if (IsOnFinalStage)
             return false;
@@ -4244,7 +4246,11 @@ public class GameManager : MonoBehaviour
             ResetActiveDragState("lab_clear");
             ClearHintPreview();
             PlayClearSfx();
+            PlayStageClearHaptic();
+            PlayStageClearVisuals(referenceTile);
             gameplayFeedback?.Cleared(referenceTile);
+            // 판을 깨면 메인처럼 별이 날아가 하트가 다시 찬다.
+            PlayClearStarsToHearts(referenceTile);
             OnLabBoardCleared(referenceTile);
             return;
         }
@@ -5649,18 +5655,6 @@ public class GameManager : MonoBehaviour
     {
         if (isGameOverSequencePlaying)
             return false;
-        if (labActive)
-        {
-            // 연구소는 하트를 쓰지 않는다: 같은 판을 다시 준다.
-            ClearHintPreview();
-            currentPath.Clear();
-            isDragging = false;
-            gameplayFeedback?.Failed(failFocusTile != null ? failFocusTile : currentStartTile);
-            clayZero?.Shake();
-            PlayFailSfx();
-            OnLabBoardFailed(reason);
-            return true;
-        }
         if (feverActive)
         {
             // 피버는 실패가 없다: 막히면 하트를 쓰지 않고 바로 새 판을 준다.
@@ -5675,7 +5669,16 @@ public class GameManager : MonoBehaviour
         }
 
         DevLog.Log("Game Over");
-        TrackStageFailed(reason);
+        // 무한 연구소의 실패는 하트·연출은 메인과 같지만 스테이지 통계·업적에는 넣지 않는다.
+        if (labActive)
+            FirebaseBootstrap.LogEvent("lab_board_fail", new Dictionary<string, object>
+            {
+                { "lab_stage", labStage },
+                { "variant", labVariant.ToString() },
+                { "reason", reason }
+            });
+        else
+            TrackStageFailed(reason);
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
@@ -5796,7 +5799,15 @@ public class GameManager : MonoBehaviour
             linkSystem.CreateLinksForCrossBlastOnly(tiles, stageWidth, stageHeight);
 
         // 게임오버 후 리셋이 끝나면 진행도/스테이지 UI도 초기 상태로 복원
-        RefreshMainUIForStage();
+        if (labActive)
+        {
+            initialTileCountForUI = Mathf.Max(1, GetTotalRemainingCount());
+            mainUI?.SetupLabBoard(initialTileCountForUI, labStage, labVariant, false);
+        }
+        else
+        {
+            RefreshMainUIForStage();
+        }
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         IncrementBoardVersion("auto_restart_after_fail");
@@ -6447,43 +6458,47 @@ public class GameManager : MonoBehaviour
             ArmLabMemoryHide();
     }
 
-    // ===== 연구소(Lab) =====
-    // 지도에서 들어가는 끝없는 즉석 보드. 판마다 변주가 하나씩 붙는다(기본 / 한붓 / 무거운 판 / 기억).
-    // 하트를 쓰지 않고, 막히면 같은 판을 다시 준다(연속 기록만 0으로). 스킵 버튼은 다음 판으로 넘긴다.
-    // 보드는 날짜와 순번으로 정해져 그날은 모두가 같은 순서의 판을 받는다.
+    // ===== 무한 연구소(Lab) =====
+    // 1000판 엔딩을 본 뒤에 열리는 끝없는 모드. 판은 번호(LAB 1, 2, 3…)로 이어지고 번호는 저장된다.
+    // 판은 번호로 정해져 즉석에서 만들어진다(BoardGenerator: 같은 번호면 누구나 같은 판, 항상 풀림).
+    // 크기는 판마다 무작위(작은 35% / 중간 45% / 큰 20%)라 난이도가 뒤죽박죽이고, 5판에 한 번쯤 변주가 붙는다.
+    // 하트·힌트·스킵·전면 광고는 메인 스테이지와 같은 규칙이다. 스테이지 번호·별·업적·통계는 건드리지 않는다.
     public enum LabVariant { Normal, OneStroke, Heavy, Memory }
-    private const float LabNextBoardDelay = 0.75f;
-    private const float LabRetryDelay = 0.7f;
+    private const float LabNextBoardDelay = 0.9f;
     private const float LabMemoryRevealSeconds = 2.6f;
-    private const string LabDayKey = "ZeroStep.LabDay";
-    private const string LabIndexKey = "ZeroStep.LabIndex";
-    private const string LabBestKey = "ZeroStep.LabBest";
+    private const string LabStageKey = "ZeroStep.LabStage";
+    private const string LabFailReasonLifted = "lab_one_stroke_lifted";
     private bool labActive;
-    private int labBoardIndex;
-    private int labStreak;
+    private int labStage = 1;
     private LabVariant labVariant;
     private BoardGenerator.Result labBoard;
     private Coroutine labMemoryRoutine;
     private bool labMemoryHidden;
+    private static bool? labUnlockOverride;
 
     public bool IsLabActive => labActive;
-    public static int LabBestStreak => PlayerPrefs.GetInt(LabBestKey, 0);
+    /// <summary>저장된 무한 연구소 판 번호(1부터).</summary>
+    public static int SavedLabStage => Mathf.Max(1, PlayerPrefs.GetInt(LabStageKey, 1));
 
-    private static int LabDayNumber() => (int)(DateTime.Now.Date - new DateTime(2026, 1, 1)).TotalDays;
+    /// <summary>무한 연구소는 1000판 엔딩을 본 뒤에 열린다. 디버그 빌드에서는 테스트할 수 있게 항상 열려 있다.</summary>
+    public static bool IsLabUnlocked
+    {
+        get
+        {
+            if (labUnlockOverride.HasValue)
+                return labUnlockOverride.Value;
+            return Debug.isDebugBuild || HasSeenFinalEnding;
+        }
+    }
+
+    public static bool HasSeenFinalEnding => FinalEndingProgressStore.LoadEndingState() == FinalEndingState.CompletedReplayable;
 
     public bool StartLab()
     {
-        if (!CanOpenStageMap || labActive || !VisualTheme.IsSoftClay)
+        if (!CanOpenStageMap || labActive || !VisualTheme.IsSoftClay || !IsLabUnlocked)
             return false;
         PrepareForStageTransition();
-        int day = LabDayNumber();
-        if (PlayerPrefs.GetInt(LabDayKey, int.MinValue) != day)
-        {
-            PlayerPrefs.SetInt(LabDayKey, day);
-            PlayerPrefs.SetInt(LabIndexKey, 0);
-        }
-        labBoardIndex = Mathf.Max(0, PlayerPrefs.GetInt(LabIndexKey, 0));
-        labStreak = 0;
+        labStage = SavedLabStage;
         labActive = true;
         if (earlyStageGuideRoutine != null)
         {
@@ -6492,32 +6507,36 @@ public class GameManager : MonoBehaviour
         }
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
-        FirebaseBootstrap.LogEvent("lab_start", new Dictionary<string, object> { { "board_index", labBoardIndex } });
+        FirebaseBootstrap.LogEvent("lab_start", new Dictionary<string, object> { { "lab_stage", labStage } });
         LoadLabBoard(newBoard: true);
         return true;
     }
 
-    private static LabVariant LabVariantFor(int boardIndex)
+    /// <summary>판 번호로 변주와 보드 크기를 정한다(같은 번호면 항상 같은 결과).</summary>
+    public static void ResolveLabBoardKind(int stage, out LabVariant variant, out BoardGenerator.Settings settings)
     {
-        // 첫 판은 기본, 그 뒤로는 한붓 → 무거운 판 → 기억 → 기본 순으로 돈다.
-        return (LabVariant)(((boardIndex % 4) + 4) % 4);
+        var random = new System.Random(unchecked(stage * 92821 + 17));
+        int sizeRoll = random.Next(100);
+        // 첫 판은 기본 판. 그 뒤로는 5판에 한 번쯤 변주.
+        bool hasVariant = stage > 1 && random.Next(5) == 0;
+        variant = hasVariant ? (LabVariant)(1 + random.Next(3)) : LabVariant.Normal;
+
+        if (variant == LabVariant.Heavy)
+            settings = BoardGenerator.Settings.Heavy;
+        else if (variant == LabVariant.Memory || sizeRoll < 35)
+            settings = BoardGenerator.Settings.Small;   // 기억 변주는 외울 수 있게 작은 판에서만
+        else if (sizeRoll < 80 || variant == LabVariant.OneStroke)
+            settings = BoardGenerator.Settings.Medium;  // 한붓 변주는 큰 판을 피한다
+        else
+            settings = BoardGenerator.Settings.Large;
     }
 
     private void LoadLabBoard(bool newBoard)
     {
         if (newBoard || labBoard == null)
         {
-            labVariant = LabVariantFor(labBoardIndex);
-            BoardGenerator.Settings settings;
-            if (labVariant == LabVariant.Heavy)
-                settings = BoardGenerator.Settings.Heavy;
-            else if (labBoardIndex < 4 || (labVariant == LabVariant.Memory && labBoardIndex < 12))
-                settings = BoardGenerator.Settings.Small;
-            else if (labBoardIndex < 12 || labVariant == LabVariant.Memory)
-                settings = BoardGenerator.Settings.Medium;
-            else
-                settings = BoardGenerator.Settings.Large;
-            labBoard = BoardGenerator.Generate(settings, unchecked(LabDayNumber() * 1009 + labBoardIndex * 37 + 11));
+            ResolveLabBoardKind(labStage, out labVariant, out BoardGenerator.Settings settings);
+            labBoard = BoardGenerator.Generate(settings, unchecked(labStage * 7919 + 101));
         }
         if (labBoard == null)
         {
@@ -6526,7 +6545,7 @@ public class GameManager : MonoBehaviour
         }
 
         LoadGeneratedBoard(labBoard.stage, "lab_board");
-        mainUI?.SetupLabBoard(initialTileCountForUI, labStreak, labVariant, newBoard);
+        mainUI?.SetupLabBoard(initialTileCountForUI, labStage, labVariant, newBoard);
         ArmLabMemoryHide();
     }
 
@@ -6547,7 +6566,7 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSecondsRealtime(LabMemoryRevealSeconds);
         labMemoryRoutine = null;
-        if (!labActive || labVariant != LabVariant.Memory || tiles != board || stageCleared)
+        if (!labActive || labVariant != LabVariant.Memory || tiles != board || stageCleared || isGameOverSequencePlaying)
             yield break;
         labMemoryHidden = true;
         TriggerBlackoutQuestionFlip();
@@ -6555,71 +6574,68 @@ public class GameManager : MonoBehaviour
 
     private void OnLabBoardCleared(Tile referenceTile)
     {
-        labStreak++;
-        labBoardIndex++;
-        PlayerPrefs.SetInt(LabIndexKey, labBoardIndex);
-        bool best = labStreak > LabBestStreak;
-        if (best)
-            PlayerPrefs.SetInt(LabBestKey, labStreak);
-        mainUI?.ShowLabBoardResult(labStreak, best);
+        int clearedStage = labStage;
+        labStage++;
+        PlayerPrefs.SetInt(LabStageKey, labStage);
+        mainUI?.ShowLabBoardResult(clearedStage);
         FirebaseBootstrap.LogEvent("lab_board_clear", new Dictionary<string, object>
         {
-            { "board_index", labBoardIndex - 1 },
-            { "variant", labVariant.ToString() },
-            { "streak", labStreak }
+            { "lab_stage", clearedStage },
+            { "variant", labVariant.ToString() }
         });
-        isGameOverSequencePlaying = true;
-        StartCoroutine(LabNextBoardRoutine(LabNextBoardDelay, newBoard: true));
+        StartCoroutine(LabNextBoardRoutine(clearedStage));
     }
 
-    private void OnLabBoardFailed(string reason)
+    private IEnumerator LabNextBoardRoutine(int clearedStage)
     {
-        labStreak = 0;
-        mainUI?.ShowLabRetry(reason == LabFailReasonLifted);
-        FirebaseBootstrap.LogEvent("lab_board_fail", new Dictionary<string, object>
+        // 클리어 연출을 기다리되, 잠시 뒤부터는 화면을 탭하면 바로 넘어간다(메인 스테이지와 같다).
+        float elapsed = 0f;
+        while (elapsed < LabNextBoardDelay)
         {
-            { "board_index", labBoardIndex },
-            { "variant", labVariant.ToString() },
-            { "reason", reason }
-        });
-        isGameOverSequencePlaying = true;
-        StartCoroutine(LabNextBoardRoutine(LabRetryDelay, newBoard: false));
-    }
-
-    private const string LabFailReasonLifted = "lifted";
-
-    private IEnumerator LabNextBoardRoutine(float delay, bool newBoard)
-    {
-        yield return new WaitForSecondsRealtime(delay);
+            yield return null;
+            elapsed += Time.unscaledDeltaTime;
+            if (elapsed >= StageClearTapToAdvanceAfterSeconds && IsPointerDown())
+                break;
+        }
         if (!labActive)
             yield break;
-        LoadLabBoard(newBoard);
+
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI == null)
+        {
+            LoadLabBoard(newBoard: true);
+            yield break;
+        }
+        // 전면 광고 규칙은 메인과 같다. 판 번호는 1000판 뒤에 이어 붙여 간격 계산이 맞게 한다.
+        mainUI.ShowStageTransitionInterstitialIfNeeded(FinalEndingProgressStore.FinalStageIndex + clearedStage, () =>
+        {
+            if (this != null && labActive)
+                LoadLabBoard(newBoard: true);
+        });
     }
 
-    /// <summary>스킵 버튼: 이 판을 포기하고 다음 판으로(연속 기록은 0).</summary>
+    /// <summary>스킵(충전분·광고는 UI가 처리한 뒤 불린다): 이 판을 넘기고 다음 판으로.</summary>
     public bool LabSkipBoard()
     {
         if (!labActive || isGameOverSequencePlaying || stageCleared)
             return false;
-        labStreak = 0;
-        labBoardIndex++;
-        PlayerPrefs.SetInt(LabIndexKey, labBoardIndex);
+        FirebaseBootstrap.LogEvent("lab_board_skip", new Dictionary<string, object> { { "lab_stage", labStage } });
+        labStage++;
+        PlayerPrefs.SetInt(LabStageKey, labStage);
         ResetActiveDragState("lab_skip");
         ClearHintPreview();
         LoadLabBoard(newBoard: true);
         return true;
     }
 
-    /// <summary>한붓 변주: 다 깨기 전에 손을 떼면 실패.</summary>
+    /// <summary>한붓 변주: 다 깨기 전에 손을 떼면 실패(메인과 같은 실패 처리: 하트 1개).</summary>
     private bool CheckLabOneStrokeLifted(bool movedThisStroke)
     {
         if (!labActive || labVariant != LabVariant.OneStroke || stageCleared || isGameOverSequencePlaying || !movedThisStroke)
             return false;
-        gameplayFeedback?.Failed(currentStartTile);
-        clayZero?.Shake();
-        PlayFailSfx();
-        OnLabBoardFailed(LabFailReasonLifted);
-        return true;
+        mainUI?.ShowLabRetry(true);
+        return BeginGameOverSequence(LabFailReasonLifted, currentStartTile);
     }
 
     private void CancelLab()
@@ -6634,7 +6650,6 @@ public class GameManager : MonoBehaviour
             StopCoroutine(labMemoryRoutine);
             labMemoryRoutine = null;
         }
-        isGameOverSequencePlaying = false;
         mainUI?.EndLabHud();
     }
 
@@ -8159,9 +8174,10 @@ public class GameManager : MonoBehaviour
     public bool AutomationFeverActive => feverActive;
     public List<Vector2Int> AutomationLabSolution => labBoard?.solution;
     public LabVariant AutomationLabVariant => labVariant;
-    public int AutomationLabStreak => labStreak;
-    public int AutomationLabBoardIndex => labBoardIndex;
+    public int AutomationLabStage => labStage;
     public bool AutomationLabMemoryHidden => labMemoryHidden;
+    /// <summary>테스트용: 무한 연구소 잠금 여부를 강제한다(null이면 실제 조건).</summary>
+    public static void AutomationSetLabUnlocked(bool? unlocked) => labUnlockOverride = unlocked;
     public int AutomationFeverBoards => feverBoards;
     public int AutomationFeverPops => feverPops;
     public List<Vector2Int> AutomationFeverSolution => feverSolution;

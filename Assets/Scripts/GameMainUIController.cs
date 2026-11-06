@@ -1097,6 +1097,7 @@ public class GameMainUIController : MonoBehaviour
     {
         UpdateClayUiRemap();
         UpdatePendingChallengeChip();
+        UpdatePendingHomeScreen();
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         if (pendingBannerLoadFromInitialize)
         {
@@ -1722,19 +1723,7 @@ public class GameMainUIController : MonoBehaviour
             ShowFeverSkipBlocked();
             return;
         }
-        if (gm.IsLabActive)
-        {
-            // 연구소에서는 스킵이 "다음 판"이다(충전·광고 없음). 연속 기록이 끊기므로 한 번 더 눌러야 넘어간다.
-            if (Time.unscaledTime > skipConfirmDeadline)
-            {
-                skipConfirmDeadline = Time.unscaledTime + SkipConfirmWindowSeconds;
-                ShowGameplaySnackbar("snackbar_skip_confirm", SkipConfirmWindowSeconds);
-                return;
-            }
-            skipConfirmDeadline = -1f;
-            gm.LabSkipBoard();
-            return;
-        }
+        // 무한 연구소의 스킵은 메인과 같은 규칙이다(충전분 → 광고). 넘기는 처리는 GameManager.LoadNextStageImmediate가 한다.
         if (gm.IsOnFinalStage)
         {
             ShowGameplaySnackbar("snackbar_skip_final_stage");
@@ -2284,6 +2273,9 @@ public class GameMainUIController : MonoBehaviour
         HideFinalCreditsOverlay();
         GameManager gm = finalEndingGameManager != null ? finalEndingGameManager : FindFirstObjectByType<GameManager>();
         gm?.ReturnToFirstStageFromFinalEnding();
+        // 엔딩을 보고 돌아오면 무한 연구소가 열렸다는 걸 홈 화면으로 알린다.
+        pendingHomeScreen = true;
+        pendingHomeScreenIsNewUnlock = true;
     }
 
     private void OnFinalCreditsReplayClicked()
@@ -2598,19 +2590,19 @@ public class GameMainUIController : MonoBehaviour
         activeChallengeChip = null;
     }
 
-    // ===== 연구소 HUD =====
-    // 상단 STAGE 자리를 빌린다: 제목 → "LAB", 큰 숫자 → 연속 성공 수. 판이 시작될 때 변주 이름을 칩으로 알린다.
-    public void SetupLabBoard(int totalCount, int streak, GameManager.LabVariant variant, bool announce)
+    // ===== 무한 연구소 HUD =====
+    // 상단 STAGE 자리를 빌린다: 제목 → "LAB", 큰 숫자 → 판 번호. 변주가 붙은 판만 시작할 때 칩으로 알린다.
+    public void SetupLabBoard(int totalCount, int labStage, GameManager.LabVariant variant, bool announce)
     {
         ResetTransientStageClearVisuals();
         DismissClearCard();
         if (stageTitleLabel != null)
             stageTitleLabel.text = T("lab_title");
         if (stageNumberLabel != null)
-            stageNumberLabel.text = Mathf.Max(0, streak).ToString("D2");
+            stageNumberLabel.text = Mathf.Max(1, labStage).ToString("D2");
         initialTileCount = Mathf.Max(1, totalCount);
         UpdateProgress(totalCount);
-        if (announce)
+        if (announce && variant != GameManager.LabVariant.Normal)
             ShowCenterChip(T(LabVariantKey(variant)), 2.4f);
     }
 
@@ -2625,18 +2617,93 @@ public class GameMainUIController : MonoBehaviour
         }
     }
 
-    public void ShowLabBoardResult(int streak, bool best)
+    public void ShowLabBoardResult(int clearedLabStage)
     {
-        if (stageNumberLabel != null)
-            stageNumberLabel.text = Mathf.Max(0, streak).ToString("D2");
-        ShowCenterChip(T(best && streak >= 2 ? "lab_best" : "lab_streak", ("n", streak.ToString())), 0.9f, true);
+        ShowCenterChip(T("lab_clear", ("n", clearedLabStage.ToString())), 0.9f, true);
     }
 
+    /// <summary>한붓 변주에서 손을 떼어 실패했을 때 이유를 알려 준다.</summary>
     public void ShowLabRetry(bool lifted)
     {
-        if (stageNumberLabel != null)
-            stageNumberLabel.text = "00";
-        ShowCenterChip(T(lifted ? "lab_retry_lifted" : "lab_retry"), 1.0f);
+        if (lifted)
+            ShowCenterChip(T("lab_retry_lifted"), 1.2f);
+    }
+
+    // ===== 시작 홈 화면 =====
+    // 1000판 엔딩을 본 유저에게만 인트로 뒤에 뜬다. 아직 다 깨지 못했으면 홈 화면 없이 바로 게임이 시작된다.
+    private ClayHomeScreen activeHomeScreen;
+    private bool isHomeScreenOpen;
+    private bool homeScreenChecked;
+    private bool pendingHomeScreen;
+    private bool pendingHomeScreenIsNewUnlock;
+
+    public bool IsHomeScreenOpen => isHomeScreenOpen;
+
+    private void UpdatePendingHomeScreen()
+    {
+        if (!VisualTheme.IsSoftClay || isSplashActive)
+            return;
+        if (!homeScreenChecked)
+        {
+            homeScreenChecked = true;
+            pendingHomeScreen = pendingHomeScreen || GameManager.HasSeenFinalEnding;
+        }
+        if (!pendingHomeScreen || IsModalOverlayOpen)
+            return;
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm == null || !gm.CanOpenStageMap || gm.IsLabActive)
+            return;
+        ShowHomeScreen(pendingHomeScreenIsNewUnlock);
+    }
+
+    public bool ShowHomeScreen(bool newUnlock)
+    {
+        pendingHomeScreen = false;
+        pendingHomeScreenIsNewUnlock = false;
+        if (!VisualTheme.IsSoftClay || uiDocument == null || isHomeScreenOpen)
+            return false;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return false;
+        HideStageChallengeChip();
+        var texts = new ClayHomeScreen.Texts
+        {
+            title = T("home_title"),
+            subtitle = T(newUnlock ? "home_subtitle_new" : "home_subtitle"),
+            labButton = T("home_lab_button"),
+            labProgress = T("lab_title") + " " + GameManager.SavedLabStage,
+            stageButton = T("home_stage_button")
+        };
+        activeHomeScreen = new ClayHomeScreen(texts, root.layout,
+            () =>
+            {
+                PlayUIButtonSfx();
+                CloseHomeScreen();
+                GameManager manager = FindFirstObjectByType<GameManager>();
+                if (manager != null)
+                    manager.StartLab();
+            },
+            () =>
+            {
+                PlayUIButtonSfx();
+                CloseHomeScreen();
+            });
+        root.Add(activeHomeScreen);
+        isHomeScreenOpen = true;
+        FirebaseBootstrap.LogEvent("home_screen_open", new Dictionary<string, object>
+        {
+            { "new_unlock", newUnlock ? 1 : 0 },
+            { "lab_stage", GameManager.SavedLabStage }
+        });
+        return true;
+    }
+
+    public void CloseHomeScreen()
+    {
+        activeHomeScreen?.RemoveFromHierarchy();
+        activeHomeScreen = null;
+        isHomeScreenOpen = false;
+        NotifyGameplayActivity();
     }
 
     public void EndLabHud()
@@ -3001,7 +3068,7 @@ public class GameMainUIController : MonoBehaviour
             return;
         }
 
-        if (isStageMapOpen || isSplashActive || isSettingPopupOpen || isDebugStageJumpPopupOpen || isLanguageSelectionPopupOpen || isTutorialPopupOpen || isWaitingForHeartRefill || isHintLoadingVisible)
+        if (isStageMapOpen || isHomeScreenOpen || isSplashActive || isSettingPopupOpen || isDebugStageJumpPopupOpen || isLanguageSelectionPopupOpen || isTutorialPopupOpen || isWaitingForHeartRefill || isHintLoadingVisible)
         {
             LogIdleHintBonusBlocked(GetIdleHintBonusModalBlockReason(), idleSeconds, idleHintBonusDelaySeconds, null);
             return;
@@ -3367,6 +3434,7 @@ public class GameMainUIController : MonoBehaviour
     public bool IsEndingOverlayOpen => isEndingOverlayOpen;
     public bool IsModalOverlayOpen =>
         isStageMapOpen ||
+        isHomeScreenOpen ||
         isSettingPopupOpen ||
         isDebugStageJumpPopupOpen ||
         isLanguageSelectionPopupOpen ||
@@ -6950,7 +7018,7 @@ public class GameMainUIController : MonoBehaviour
                 PlayUIButtonSfx();
                 CloseStageMap();
             },
-            gm.IsLabActive ? (Action)null : () =>
+            gm.IsLabActive || !GameManager.IsLabUnlocked ? (Action)null : () =>
             {
                 PlayUIButtonSfx();
                 CloseStageMap();

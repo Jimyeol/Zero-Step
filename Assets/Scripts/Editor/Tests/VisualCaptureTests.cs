@@ -252,20 +252,32 @@ public class VisualCaptureTests
             yield return WaitRealtime(0.3f);
         }
 
-        // ZEROSTEP_CAPTURE_LAB=1: 연구소(변주 칩, 무거운 판, 기억 변주에서 숫자가 가려진 모습, 연구소에서 연 지도)
+        // ZEROSTEP_CAPTURE_LAB=1: 시작 홈 화면, 무한 연구소(기본 판·변주 칩·기억 변주에서 숫자가 가려진 모습), 연구소에서 연 지도
         if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_LAB") == "1")
         {
             while (gm.AutomationGameOverPlaying)
                 yield return null;
-            PlayerPrefs.DeleteKey("ZeroStep.LabDay");
+            GameManager.AutomationSetLabUnlocked(true);
+            ui.ShowHomeScreen(true);
+            yield return WaitRealtime(0.5f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "home");
+            ui.CloseHomeScreen();
+
+            PlayerPrefs.SetInt("ZeroStep.LabStage", 1);
             gm.StartLab();
             yield return WaitRealtime(0.9f);
             CaptureBoth(cam, worldRt, uiRt, outDir, "lab_start");
-            gm.LabSkipBoard();
-            gm.LabSkipBoard();
-            yield return WaitRealtime(0.9f);
-            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_heavy");
-            gm.LabSkipBoard();
+            int memoryStage = 0;
+            for (int n = 2; n < 400 && memoryStage == 0; n++)
+            {
+                GameManager.ResolveLabBoardKind(n, out GameManager.LabVariant variant, out _);
+                if (variant == GameManager.LabVariant.Memory)
+                    memoryStage = n;
+            }
+            gm.LoadStageFromMap(gm.CurrentStageIndex);
+            yield return WaitRealtime(0.6f);
+            PlayerPrefs.SetInt("ZeroStep.LabStage", memoryStage);
+            gm.StartLab();
             yield return WaitRealtime(1.0f);
             CaptureBoth(cam, worldRt, uiRt, outDir, "lab_memory_shown");
             yield return WaitRealtime(3.2f);
@@ -276,6 +288,13 @@ public class VisualCaptureTests
             ui.CloseStageMap();
             gm.ExitLabToStage();
             yield return WaitRealtime(0.8f);
+            // 엔딩 전(잠김) 상태의 지도: 무한 연구소 버튼이 없어야 한다.
+            GameManager.AutomationSetLabUnlocked(false);
+            ui.OpenStageMap();
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "map_locked_lab");
+            ui.CloseStageMap();
+            GameManager.AutomationSetLabUnlocked(null);
         }
 
         // ZEROSTEP_CAPTURE_FEVER=1: 피버 보드 시작·진행·결과 화면
