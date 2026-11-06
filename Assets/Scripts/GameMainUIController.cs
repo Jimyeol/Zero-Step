@@ -3001,7 +3001,7 @@ public class GameMainUIController : MonoBehaviour
             return;
         }
 
-        if (isSplashActive || isSettingPopupOpen || isDebugStageJumpPopupOpen || isLanguageSelectionPopupOpen || isTutorialPopupOpen || isWaitingForHeartRefill || isHintLoadingVisible)
+        if (isStageMapOpen || isSplashActive || isSettingPopupOpen || isDebugStageJumpPopupOpen || isLanguageSelectionPopupOpen || isTutorialPopupOpen || isWaitingForHeartRefill || isHintLoadingVisible)
         {
             LogIdleHintBonusBlocked(GetIdleHintBonusModalBlockReason(), idleSeconds, idleHintBonusDelaySeconds, null);
             return;
@@ -3011,6 +3011,13 @@ public class GameMainUIController : MonoBehaviour
         if (gm == null)
         {
             LogIdleHintBonusBlocked("game_manager_missing", idleSeconds, idleHintBonusDelaySeconds, null);
+            return;
+        }
+
+        // 방치 힌트 보너스는 스테이지에서만 준다. 연구소·피버는 하트도 쓰지 않는 자유 플레이라 알림(효과음)만 거슬린다.
+        if (gm.IsLabActive || gm.IsFeverActive)
+        {
+            lastGameplayActivityTime = Time.unscaledTime;
             return;
         }
 
@@ -6968,6 +6975,8 @@ public class GameMainUIController : MonoBehaviour
         activeStageMap?.RemoveFromHierarchy();
         activeStageMap = null;
         isStageMapOpen = false;
+        // 지도를 보던 시간은 "멈춰 있던 시간"으로 치지 않는다(닫자마자 방치 힌트가 울리지 않게).
+        NotifyGameplayActivity();
     }
 
     public bool IsStageMapOpen => isStageMapOpen;

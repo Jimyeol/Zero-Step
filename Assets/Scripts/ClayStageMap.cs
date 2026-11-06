@@ -87,7 +87,9 @@ public sealed class ClayStageMap : VisualElement
         float availableHeight = panel.height - Mathf.Max(40f, topInset + 24f) - Mathf.Max(40f, bottomInset + 24f) - headerHeight - footerHeight - 40f;
         float byWidth = (panel.width - 140f - Gap * (Columns - 1)) / Columns;
         float byHeight = (availableHeight - Gap * (Rows - 1)) / Rows;
-        cellSize = Mathf.Clamp(Mathf.Min(byWidth, byHeight), 90f, 230f);
+        // 칸 크기는 정수로 내리고 칸은 좌표로 직접 놓는다. 줄바꿈(flex-wrap)에 맡기면 화면 배율에 따라
+        // 소수점 반올림으로 네 번째 칸이 다음 줄로 밀려 3칸씩 어긋나게 보인다.
+        cellSize = Mathf.Floor(Mathf.Clamp(Mathf.Min(byWidth, byHeight), 90f, 230f));
         float gridWidth = cellSize * Columns + Gap * (Columns - 1);
 
         // 윗줄: 모은 별 합계 · 닫기
@@ -144,8 +146,8 @@ public sealed class ClayStageMap : VisualElement
 
         grid = new VisualElement { pickingMode = PickingMode.Ignore };
         grid.style.width = gridWidth;
-        grid.style.flexDirection = FlexDirection.Row;
-        grid.style.flexWrap = Wrap.Wrap;
+        grid.style.height = cellSize * Rows + Gap * (Rows - 1);
+        grid.style.flexShrink = 0f;
         grid.style.marginTop = 12f;
         Add(grid);
 
@@ -195,10 +197,11 @@ public sealed class ClayStageMap : VisualElement
             int row = i / Columns;
             int column = i % Columns;
             var cell = new VisualElement();
+            cell.style.position = Position.Absolute;
+            cell.style.left = column * (cellSize + Gap);
+            cell.style.top = row * (cellSize + Gap);
             cell.style.width = cellSize;
             cell.style.height = cellSize;
-            cell.style.marginRight = column == Columns - 1 ? 0f : Gap;
-            cell.style.marginBottom = row == Rows - 1 ? 0f : Gap;
             float radius = cellSize * 0.2f;
             cell.style.borderTopLeftRadius = radius;
             cell.style.borderTopRightRadius = radius;
@@ -207,11 +210,7 @@ public sealed class ClayStageMap : VisualElement
             cell.style.alignItems = Align.Center;
             cell.style.justifyContent = Justify.Center;
             if (stage > last)
-            {
-                cell.style.visibility = Visibility.Hidden;
-                grid.Add(cell);
                 continue;
-            }
 
             int stageStars = StageStarsStore.GetStars(stage);
             bool isCleared = stageStars > 0;

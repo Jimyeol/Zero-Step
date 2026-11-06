@@ -89,7 +89,8 @@ public sealed class ClayZero : MonoBehaviour
         float tileWidth = tileSprite != null ? tileSprite.bounds.size.x * Mathf.Abs(tileScale.x) : 1f;
         float tileHeight = tileSprite != null ? tileSprite.bounds.size.y * Mathf.Abs(tileScale.y) : 1f;
         float size = tileWidth * SizeRatio;
-        Vector3 anchor = target.transform.position + new Vector3(0f, tileHeight * 0.4f + size * 0.2f, -0.06f);
+        // 칸 윗변에 걸터앉는다. 위 칸의 숫자에 닿지 않도록 자기 칸 쪽으로 조금 내려 앉힌다(자기 숫자는 가리지 않는 높이).
+        Vector3 anchor = target.transform.position + new Vector3(0f, tileHeight * 0.36f + size * 0.18f, -0.06f);
 
         if (!placed)
         {
