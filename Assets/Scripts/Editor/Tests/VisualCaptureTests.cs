@@ -155,7 +155,12 @@ public class VisualCaptureTests
                 gm.ShowHintPreview();
                 yield return WaitRealtime(0.5f);
                 CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_hint");
-                yield return WaitRealtime(0.4f);
+                // 제로가 힌트 경로를 걸어가는 중간·끝 모습
+                yield return WaitRealtime(0.75f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_hint2");
+                yield return WaitRealtime(0.7f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_hint3");
+                yield return WaitRealtime(0.2f);
             }
 
             // ZEROSTEP_CAPTURE_PLAY=1: 정답을 실제로 그리면서 드래그 중·타일이 터지는 순간·클리어 화면을 찍는다.

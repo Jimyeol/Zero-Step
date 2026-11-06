@@ -843,9 +843,11 @@ public class GameManager : MonoBehaviour
         // 마스코트는 지금 있는 칸(드래그 중이면 길의 머리)에 앉는다. 클리어 직후에는 마지막 칸에서 환호하도록 그대로 둔다.
         if (clayZero == null)
             clayZero = ClayZero.Create(transform);
-        // 힌트 꺾쇠가 칸 위쪽 틈에도 그려지므로, 힌트가 보이는 동안은 잠깐 비켜 준다.
+        // 힌트가 보이는 동안에는 제로가 힌트 경로를 걸어서 보여준다(UpdateClayHintWalk). 끝나면 지금 칸으로 돌아온다.
+        if (activeHintPreviewLineCount <= 0)
+            clayZero.ClearGuide();
         if (!stageCleared)
-            clayZero.SetTarget(activeHintPreviewLineCount > 0 ? null : head);
+            clayZero.SetTarget(head);
     }
 
     private void Update()
@@ -3138,6 +3140,8 @@ public class GameManager : MonoBehaviour
         EnsureHintSegmentArrowPool(segmentCount);
         float tileSizeForOffset = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
         var edgeVisits = new Dictionary<long, int>();
+        hintSegmentStarts.Clear();
+        hintSegmentEnds.Clear();
         for (int i = 0; i < hintPreviewLines.Length; i++)
         {
             LineRenderer line = hintPreviewLines[i];
@@ -3169,9 +3173,13 @@ public class GameManager : MonoBehaviour
             line.startColor = baseColor;
             line.endColor = baseColor;
             PlaceHintSegmentArrow(i, a, b, baseColor, width);
+            hintSegmentStarts.Add(a);
+            hintSegmentEnds.Add(b);
         }
 
         activeHintPreviewLineCount = segmentCount;
+        hintWalkProgress = 0f;
+        hintWalkPauseTimer = 0f;
         LiftHintPathNumbers(path);
         ConfigureHintPreviewFlowLine(width);
         if (hintPreviewRoutine != null)
@@ -3196,6 +3204,88 @@ public class GameManager : MonoBehaviour
                 continue;
             tile.SetNumberAboveHint(true);
             hintLiftedNumberTiles.Add(tile);
+        }
+    }
+
+    // ===== 점토 테마 힌트: 제로가 먼저 걸어서 보여준다 =====
+    // 선 전체를 한꺼번에 보여주면 외워서 옮겨야 하고, 오가는 경로는 순서가 헷갈린다. 그래서 마스코트가 지금 위치에서
+    // 다음 몇 수(HintClayWindowMoves)를 한 칸씩 천천히 걸어가고, 지나간 자리에만 선이 그려진다. 끝까지 가면 잠깐 멈췄다가
+    // 처음부터 되풀이한다. 플레이어가 따라오면 지나온 선은 지워지고 그다음 수가 이어서 나온다.
+    private const int HintClayWindowMoves = 4;
+    private const float HintClayStepSeconds = 0.42f;
+    private const float HintClayLoopPauseSeconds = 0.7f;
+    private readonly List<Vector3> hintSegmentStarts = new List<Vector3>(HintPreviewMaxMoves);
+    private readonly List<Vector3> hintSegmentEnds = new List<Vector3>(HintPreviewMaxMoves);
+    private float hintWalkProgress;
+    private float hintWalkPauseTimer;
+
+    private void UpdateClayHintWalk(float deltaTime)
+    {
+        int count = Mathf.Min(activeHintPreviewLineCount, hintSegmentStarts.Count);
+        if (count <= 0 || hintPreviewLines == null || activeHintPreviewTiles.Count <= count)
+            return;
+
+        int first = Mathf.Clamp(hintPreviewFollowIndex, 0, count - 1);
+        int last = Mathf.Min(count, first + HintClayWindowMoves);
+        // 플레이어가 걷는 제로를 앞질렀으면 플레이어 위치에서 다시 시작한다.
+        if (hintWalkProgress < first)
+        {
+            hintWalkProgress = first;
+            hintWalkPauseTimer = 0f;
+        }
+
+        bool animate = GameplayFeedback.Intensity > 0f;
+        if (!animate)
+        {
+            // 효과 최소 설정: 움직임 없이 이번에 보여줄 구간을 한 번에 그린다.
+            hintWalkProgress = last;
+        }
+        else if (hintWalkPauseTimer > 0f)
+        {
+            hintWalkPauseTimer -= deltaTime;
+            if (hintWalkPauseTimer <= 0f)
+                hintWalkProgress = first;
+        }
+        else
+        {
+            hintWalkProgress += deltaTime / HintClayStepSeconds;
+            if (hintWalkProgress >= last)
+            {
+                hintWalkProgress = last;
+                hintWalkPauseTimer = HintClayLoopPauseSeconds;
+            }
+        }
+
+        Color baseColor = GetHintPreviewColor(hintPreviewMaxAlpha * HintBaseAlphaMultiplier, false);
+        for (int i = 0; i < count && i < hintPreviewLines.Length; i++)
+        {
+            LineRenderer line = hintPreviewLines[i];
+            if (line == null)
+                continue;
+            float drawn = i >= first && i < last ? Mathf.Clamp01(hintWalkProgress - i) : 0f;
+            bool visible = drawn > 0.001f;
+            line.enabled = visible;
+            // 화살촉은 그 칸까지 다 걸어간 뒤에 나타난다.
+            SetHintSegmentArrowEnabled(i, visible && drawn >= 0.999f);
+            if (!visible)
+                continue;
+            line.SetPosition(0, hintSegmentStarts[i]);
+            line.SetPosition(1, Vector3.Lerp(hintSegmentStarts[i], hintSegmentEnds[i], drawn));
+            line.startColor = baseColor;
+            line.endColor = baseColor;
+        }
+        if (hintPreviewFlowLine != null)
+            hintPreviewFlowLine.enabled = false;
+        if (hintPreviewArrowLeftLine != null)
+            hintPreviewArrowLeftLine.enabled = false;
+        if (hintPreviewArrowRightLine != null)
+            hintPreviewArrowRightLine.enabled = false;
+
+        if (clayZero != null && animate)
+        {
+            int segment = Mathf.Clamp(Mathf.FloorToInt(hintWalkProgress), first, last - 1);
+            float t = Mathf.Clamp01(hintWalkProgress - segment);
+            clayZero.SetGuide(activeHintPreviewTiles[segment], activeHintPreviewTiles[segment + 1], t);
         }
     }
 
@@ -3364,6 +3454,12 @@ public class GameManager : MonoBehaviour
         while (true)
         {
             elapsed += Time.deltaTime;
+            if (VisualTheme.IsSoftClay)
+            {
+                UpdateClayHintWalk(Time.unscaledDeltaTime);
+                yield return null;
+                continue;
+            }
             float pulse = 0.9f + 0.1f * GameplayFeedback.Intensity * Mathf.Sin((elapsed / pulseDuration) * Mathf.PI * 2f);
             SetHintPreviewAlpha(hintPreviewMaxAlpha * pulse);
             UpdateHintPreviewFlow(elapsed, 1f);

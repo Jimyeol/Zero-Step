@@ -11,6 +11,7 @@ public sealed class ClayZero : MonoBehaviour
     private const float HopDuration = 0.15f;
     private const float FadeDuration = 0.14f;
     private const int SortingAboveTile = 6;
+    private const int GuideSortingOrder = 640;
 
     private SpriteRenderer body;
     private SpriteRenderer face;
@@ -63,6 +64,78 @@ public sealed class ClayZero : MonoBehaviour
         hopStart = placed && alpha > 0.5f ? Time.unscaledTime : -10f;
     }
 
+    private Tile guideFrom;
+    private Tile guideTo;
+    private float guideT;
+    private bool guideActive;
+
+    /// <summary>힌트 안내: from 칸에서 to 칸으로 t(0~1)만큼 걸어간 자리에 있게 한다. 매 프레임 불러 준다.</summary>
+    public void SetGuide(Tile from, Tile to, float t)
+    {
+        guideFrom = from;
+        guideTo = to;
+        guideT = Mathf.Clamp01(t);
+        guideActive = from != null && to != null;
+    }
+
+    /// <summary>힌트 안내를 끝내고 원래 앉던 칸으로 돌아간다.</summary>
+    public void ClearGuide()
+    {
+        if (!guideActive)
+            return;
+        guideActive = false;
+        guideFrom = null;
+        guideTo = null;
+        hopFrom = position;
+        hopStart = placed && alpha > 0.5f ? Time.unscaledTime : -10f;
+    }
+
+    /// <summary>칸 윗변에 걸터앉는 자리와 캐릭터 크기. 칸의 평소 크기 기준이다.</summary>
+    private static bool TryGetPerch(Tile tile, out Vector3 anchor, out float size, out float tileWidth, out float tileHeight, out SpriteRenderer tileRenderer)
+    {
+        anchor = default;
+        size = tileWidth = tileHeight = 1f;
+        tileRenderer = tile != null ? tile.GetComponent<SpriteRenderer>() : null;
+        if (tileRenderer == null)
+            return false;
+        Vector3 tileScale = tile.transform.lossyScale;
+        Sprite tileSprite = tileRenderer.sprite;
+        tileWidth = tileSprite != null ? tileSprite.bounds.size.x * Mathf.Abs(tileScale.x) : 1f;
+        tileHeight = tileSprite != null ? tileSprite.bounds.size.y * Mathf.Abs(tileScale.y) : 1f;
+        size = tileWidth * SizeRatio;
+        anchor = tile.transform.position + new Vector3(0f, tileHeight * 0.36f + size * 0.18f, -0.06f);
+        return true;
+    }
+
+    /// <summary>힌트 안내 중: 두 칸의 앉는 자리 사이를 폴짝 넘어간다. 멀리 떨어진 자리로는 빠르게 미끄러져 간다.</summary>
+    private bool UpdateGuide(float now)
+    {
+        if (!TryGetPerch(guideFrom, out Vector3 from, out float size, out float tileWidth, out float tileHeight, out _)
+            || !TryGetPerch(guideTo, out Vector3 to, out _, out _, out _, out SpriteRenderer toRenderer)
+            || GameplayFeedback.Intensity <= 0f)
+            return false;
+
+        alpha = Mathf.MoveTowards(alpha, 1f, Time.unscaledDeltaTime / FadeDuration);
+        float eased = guideT * guideT * (3f - 2f * guideT);
+        Vector3 desired = Vector3.Lerp(from, to, eased);
+        float arc = Mathf.Sin(guideT * Mathf.PI);
+        desired.y += arc * tileHeight * 0.3f;
+        if (!placed)
+        {
+            placed = true;
+            position = desired;
+        }
+        // 되풀이할 때 끝에서 처음으로 돌아가는 구간은 순간이동 대신 빠르게 이동한다.
+        position = Vector3.MoveTowards(position, desired, tileWidth * 16f * Time.unscaledDeltaTime);
+        float stretch = arc * 0.16f;
+        float spriteWidth = body.sprite != null ? Mathf.Max(0.0001f, body.sprite.bounds.size.x) : 1f;
+        // 안내 중에는 힌트 선과 (선 위로 올린) 숫자보다도 위에 그린다. 칸을 넘어갈 때 숫자가 얼굴 위로 비치지 않게.
+        Apply(alpha, position, size / spriteWidth * (1f - stretch), size / spriteWidth * (1f + stretch), 0f, 1f, GuideSortingOrder);
+        body.sortingLayerID = toRenderer.sortingLayerID;
+        face.sortingLayerID = toRenderer.sortingLayerID;
+        return true;
+    }
+
     /// <summary>판을 깼을 때: 두 번 뛰어오르며 한 바퀴 돈다.</summary>
     public void Cheer() => cheerStart = Time.unscaledTime;
 
@@ -72,6 +145,8 @@ public sealed class ClayZero : MonoBehaviour
     private void LateUpdate()
     {
         float now = Time.unscaledTime;
+        if (guideActive && UpdateGuide(now))
+            return;
         SpriteRenderer tileRenderer = target != null ? target.GetComponent<SpriteRenderer>() : null;
         bool show = target != null && tileRenderer != null && tileRenderer.enabled && target.gameObject.activeInHierarchy && GameplayFeedback.Intensity > 0f;
         alpha = Mathf.MoveTowards(alpha, show ? 1f : 0f, Time.unscaledDeltaTime / FadeDuration);
