@@ -526,6 +526,7 @@ public class GameManager : MonoBehaviour
         RandomizeBackgroundGridFlow();
         if (ShouldPlayStageStartVisual(entryType))
             PlayStageStartVisuals();
+        SetupStageChallenge(announce: entryType != "auto_restart_after_fail");
         TrackStageStarted(entryType);
         SchedulePostStageStartedFailureCheck();
         ScheduleEarlyStageGuide();
@@ -4115,6 +4116,7 @@ public class GameManager : MonoBehaviour
             return;
 
         stageCleared = true;
+        mainUI?.HideStageChallengeChip();
         if (feverActive)
         {
             ResetActiveDragState("fever_clear");
@@ -4124,7 +4126,7 @@ public class GameManager : MonoBehaviour
             OnFeverBoardFinished(true);
             return;
         }
-        RecordStageStars();
+        RecordStageStars(referenceTile);
         ResetActiveDragState("stage_clear");
         DevLog.Log("Clear");
         ClearHintPreview();
@@ -4184,23 +4186,65 @@ public class GameManager : MonoBehaviour
         mainUI.PlayClearStarsToHearts(sources, cam);
     }
 
-    private void RecordStageStars()
+    // 별: 1 = 클리어, 2 = 힌트 없이, 3 = 이 판의 도전 목표(StageChallenge) 달성.
+    private void RecordStageStars(Tile finalTile)
     {
         // 클리어가 드래그 도중에 일어나면 그 드래그도 한 획으로 센다.
         int strokes = attemptStrokeCount + (isDragging && currentPath.Count > 1 ? 1 : 0);
         bool oneStroke = strokes == 1 && !attemptUsedUndo;
         lastClearWasOneStroke = oneStroke;
-        int stars = 1 + (stageHintUsed ? 0 : 1) + (!stageHintUsed && !stageRetried ? 1 : 0);
+        StageChallengeKind challenge = StageChallenge.KindFor(currentStageIndex);
+        bool challengeMet = IsStageChallengeMet(challenge, oneStroke, finalTile);
+        int stars = 1 + (stageHintUsed ? 0 : 1) + (challengeMet ? 1 : 0);
+        lastClearWasFirstClear = StageStarsStore.GetStars(currentStageIndex) == 0;
         bool improved = StageStarsStore.Record(currentStageIndex, stars, oneStroke);
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
-        mainUI?.ShowStageClearResult(stars, oneStroke, improved);
+        mainUI?.ShowStageClearResult(stars, oneStroke, improved, challenge, challengeMet);
         FirebaseBootstrap.LogEvent("stage_stars", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
             { "stars", stars },
-            { "one_stroke", oneStroke ? 1 : 0 }
+            { "one_stroke", oneStroke ? 1 : 0 },
+            { "challenge", challenge.ToString() },
+            { "challenge_met", challengeMet ? 1 : 0 }
         });
+    }
+
+    private bool lastClearWasFirstClear;
+
+    private bool IsStageChallengeMet(StageChallengeKind challenge, bool oneStroke, Tile finalTile)
+    {
+        switch (challenge)
+        {
+            case StageChallengeKind.OneStroke:
+                return oneStroke;
+            case StageChallengeKind.EndOnMarked:
+                return finalTile != null
+                    && StageChallenge.TryGetEndCell(currentStageIndex, out Vector2Int cell)
+                    && finalTile.X == cell.x && finalTile.Y == cell.y;
+            default:
+                return !stageRetried && !attemptUsedUndo;
+        }
+    }
+
+    /// <summary>스테이지 시작 때: 도전 목표를 잠깐 알려주고, "별 칸에서 끝내기"면 그 칸에 별을 붙인다.</summary>
+    private void SetupStageChallenge(bool announce)
+    {
+        if (!VisualTheme.IsSoftClay)
+            return;
+        StageChallengeKind challenge = StageChallenge.KindFor(currentStageIndex);
+        if (challenge == StageChallengeKind.EndOnMarked && StageChallenge.TryGetEndCell(currentStageIndex, out Vector2Int cell))
+        {
+            Tile target = GetTileAtGrid(cell.x, cell.y);
+            if (target != null)
+                VisualTheme.AttachGoalStar(target.transform);
+        }
+        if (!announce)
+            return;
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        mainUI?.ShowStageChallengeChip(challenge);
     }
 
     /// <summary>FixedKnot 화면 갱신. totalStepsCommitted + currentPath 기준 Count 전달.</summary>

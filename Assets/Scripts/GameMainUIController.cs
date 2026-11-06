@@ -1090,6 +1090,7 @@ public class GameMainUIController : MonoBehaviour
     private void Update()
     {
         UpdateClayUiRemap();
+        UpdatePendingChallengeChip();
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         if (pendingBannerLoadFromInitialize)
         {
@@ -2533,6 +2534,51 @@ public class GameMainUIController : MonoBehaviour
             root.Add(new ClayScreenFlash(combo >= 10 ? 0.26f : 0.18f));
     }
 
+    private ClayToastChip activeChallengeChip;
+
+    /// <summary>점토 테마: 스테이지를 시작할 때 이 판의 도전 목표(세 번째 별 조건)를 상단 바 바로 아래에 잠깐 보여준다.</summary>
+    public void ShowStageChallengeChip(StageChallengeKind kind)
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null)
+            return;
+        // 인트로·튜토리얼·설정 창이 떠 있으면 닫힌 뒤에 보여준다(UpdateClayUiRemap에서 확인).
+        if (IsModalOverlayOpen)
+        {
+            pendingChallengeChip = kind;
+            return;
+        }
+        pendingChallengeChip = null;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return;
+        activeChallengeChip?.RemoveFromHierarchy();
+        float top = root.layout.height * 0.14f;
+        if (topBar != null && topBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(topBar.worldBound);
+            if (!float.IsNaN(bar.yMax) && bar.height > 1f)
+                top = bar.yMax + 14f;
+        }
+        string text = T("challenge_label") + " · " + T(StageChallenge.LocalizationKey(kind));
+        activeChallengeChip = new ClayToastChip(new Vector2(root.layout.width * 0.5f, top), text, true, 2.2f, activeClearCard != null ? 0.45f : 0.1f);
+        root.Add(activeChallengeChip);
+    }
+
+    private StageChallengeKind? pendingChallengeChip;
+
+    private void UpdatePendingChallengeChip()
+    {
+        if (pendingChallengeChip.HasValue && !IsModalOverlayOpen)
+            ShowStageChallengeChip(pendingChallengeChip.Value);
+    }
+
+    public void HideStageChallengeChip()
+    {
+        pendingChallengeChip = null;
+        activeChallengeChip?.RemoveFromHierarchy();
+        activeChallengeChip = null;
+    }
+
     // ===== 피버 보드 HUD =====
     // 10스테이지마다 오는 보너스 판. 새 요소를 끼우면 상단 배치가 밀려 하트·보드와 겹치므로 기존 자리를 빌려 쓴다:
     // STAGE 제목 → "FEVER 12"(남은 초), 큰 숫자 → 터뜨린 칸 수, 진행 막대 → 남은 시간(줄어듦).
@@ -2693,14 +2739,15 @@ public class GameMainUIController : MonoBehaviour
         }).StartingIn(120);
     }
 
-    public void ShowStageClearResult(int stars, bool oneStroke, bool improved)
+    public void ShowStageClearResult(int stars, bool oneStroke, bool improved, StageChallengeKind challenge, bool challengeMet)
     {
         if (VisualTheme.IsSoftClay && uiDocument != null)
         {
-            // 점토 테마: 한 줄 스낵바 대신 가운데 클리어 카드(별이 하나씩 펑 채워짐).
+            // 점토 테마: 한 줄 스낵바 대신 가운데 클리어 카드(별이 하나씩 펑 채워짐). 아래 줄에 이 판의 도전 목표와 달성 여부.
             DismissClearCard();
-            string subtitle = oneStroke ? T("clear_card_one_stroke") : (improved ? T("clear_card_best") : string.Empty);
-            activeClearCard = new ClayClearCard(T("clear_card_title"), subtitle, T("clear_card_tap"), Mathf.Clamp(stars, 1, 3));
+            string goal = T(StageChallenge.LocalizationKey(challenge));
+            string subtitle = challengeMet ? T("challenge_done") + " · " + goal : T("challenge_label") + " · " + goal;
+            activeClearCard = new ClayClearCard(T("clear_card_title"), subtitle, T("clear_card_tap"), Mathf.Clamp(stars, 1, 3), !challengeMet);
             uiDocument.rootVisualElement.Add(activeClearCard);
             return;
         }
