@@ -2534,7 +2534,10 @@ public class GameMainUIController : MonoBehaviour
             // 연출 도중 하트를 잃었다면(드문 경우) 그 칸은 채우지 않는다.
             int heartIndex = heartIndices[index];
             if (heartIndex < currentHearts)
+            {
                 PopHeartFilled(GetHeartImageByIndex(heartIndex));
+                PlayHeartPopSfx(heartIndex);
+            }
         }, () => card != null && card.panel != null ? card.CardRectIn(root) : Rect.zero);
         root.Add(activeStarFlight);
     }
@@ -2896,6 +2899,24 @@ public class GameMainUIController : MonoBehaviour
             return;
         root.Add(new ClayComboPopup(ClampPopupX(root, WorldToRootLocal(root, world, worldCamera), 0.3f), "PERFECT!", ClayComboPopup.PerfectTier));
         root.Add(new ClayScreenFlash(0.3f));
+    }
+
+    // 별이 하트에 닿을 때: 하트마다 한 음씩 올라가는 짧은 소리(도-레-미-솔-높은 도).
+    private AudioClip[] heartPopClips;
+
+    private void PlayHeartPopSfx(int heartIndex)
+    {
+        if (uiButtonSfxAudioSource == null)
+            return;
+        if (heartPopClips == null)
+        {
+            heartPopClips = new AudioClip[MaxHearts];
+            for (int i = 0; i < MaxHearts; i++)
+                heartPopClips[i] = Resources.Load<AudioClip>("Sounds/sfx_heart_pop_" + (i + 1));
+        }
+        AudioClip clip = heartPopClips[Mathf.Clamp(heartIndex, 0, MaxHearts - 1)];
+        if (clip != null)
+            uiButtonSfxAudioSource.PlayOneShot(clip, GetUISfxVolume() * 0.8f);
     }
 
     private void PopHeartFilled(Image heartImage)

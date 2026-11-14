@@ -347,6 +347,14 @@ public class GameManager : MonoBehaviour
 
     private AudioSource blockNoteAudioSource;
     private AudioSource eventAudioSource;
+    private AudioSource comboOctaveAudioSource;
+    private AudioSource failAudioSource;
+    private AudioClip comboMilestoneClip;
+    private AudioClip perfectClip;
+    private AudioClip moveDeniedClip;
+    private float lastClearSfxTime = -10f;
+    private float lastMoveDeniedSfxTime = -10f;
+    private Coroutine failSfxFadeRoutine;
     private readonly Queue<AudioClip> pendingBlockNoteQueue = new Queue<AudioClip>();
     private readonly Queue<int> pendingSessionFreeHeartRefillMinutes = new Queue<int>();
     private readonly Dictionary<string, AudioClip> blockNoteClipMap = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
@@ -940,6 +948,15 @@ public class GameManager : MonoBehaviour
     {
         EnsureAudioSource(ref blockNoteAudioSource, "BlockNoteAudioSource");
         EnsureAudioSource(ref eventAudioSource, "EventSfxAudioSource");
+        EnsureAudioSource(ref comboOctaveAudioSource, "ComboOctaveAudioSource");
+        EnsureAudioSource(ref failAudioSource, "FailSfxAudioSource");
+        // 콤보 장식음: 같은 음을 한 옥타브 위(재생 속도 2배)로 작게 겹친다.
+        comboOctaveAudioSource.pitch = 2f;
+        comboOctaveAudioSource.playOnAwake = false;
+        failAudioSource.playOnAwake = false;
+        comboMilestoneClip = Resources.Load<AudioClip>("Sounds/sfx_combo_milestone");
+        perfectClip = Resources.Load<AudioClip>("Sounds/sfx_perfect");
+        moveDeniedClip = Resources.Load<AudioClip>("Sounds/sfx_move_denied");
         ResolveRuntimeAudioClips();
         BuildBlockNoteClipMap();
         BuildMelodyPoolsIfNeeded();
@@ -1183,9 +1200,10 @@ public class GameManager : MonoBehaviour
     }
 
     // 콤보: 한 획(누르고 뗄 때까지, 뗀 직후 마지막 칸 소비 포함) 안에서 0이 되어 터진 칸 수.
-    // 터질 때마다 멜로디를 반음씩 올려(최대 완전5도) 긴 한붓일수록 점점 신나게 들리게 한다.
+    // 멜로디는 그대로 두고(음높이를 바꾸면 멜로디가 어긋난다), 콤보 3부터 같은 음을 한 옥타브 위로 작게 겹쳐
+    // 길게 이을수록 점점 화려하게 들리게 한다. 5·10·15… 이정표에서는 짧은 상승 아르페지오.
     private int strokeComboPops;
-    private const int ComboMaxSemitones = 7;
+    private const int ComboOctaveFrom = 3;
 
     private void RegisterComboPop(Tile tile)
     {
@@ -1195,16 +1213,14 @@ public class GameManager : MonoBehaviour
             feverPops++;
             mainUI?.UpdateFeverHud(FeverSecondsLeft, feverPops, true);
         }
-        if (blockNoteAudioSource != null)
-            blockNoteAudioSource.pitch = Mathf.Pow(2f, Mathf.Min(strokeComboPops - 1, ComboMaxSemitones) / 12f);
+        if (ClayComboPopup.IsMilestone(strokeComboPops))
+            PlayEventSfx(comboMilestoneClip, 0.75f);
         gameplayFeedback?.ComboPop(tile, strokeComboPops);
     }
 
     private void ResetStrokeCombo()
     {
         strokeComboPops = 0;
-        if (blockNoteAudioSource != null)
-            blockNoteAudioSource.pitch = 1f;
     }
 
     private void QueueNextMelodyBlockNote()
@@ -1232,6 +1248,11 @@ public class GameManager : MonoBehaviour
             if (clip == null)
                 continue;
             blockNoteAudioSource.PlayOneShot(clip, blockNoteVolume);
+            if (strokeComboPops >= ComboOctaveFrom && comboOctaveAudioSource != null)
+            {
+                float layer = Mathf.Min(0.12f + 0.04f * (strokeComboPops - ComboOctaveFrom), 0.4f);
+                comboOctaveAudioSource.PlayOneShot(clip, blockNoteVolume * layer);
+            }
             nextQueuedBlockNoteTime = Time.unscaledTime + Mathf.Max(0.01f, blockNoteInterval);
             return;
         }
@@ -1257,17 +1278,75 @@ public class GameManager : MonoBehaviour
         eventAudioSource.PlayOneShot(clip, Mathf.Clamp01(eventSfxVolume * volumeMultiplier));
     }
 
-    private void PlayFailSfx() => PlayEventSfx(failClip);
+    // 실패음은 원래 1.5초라 여러 번 실패하면 피곤하다. 앞부분만 들려주고 0.45~0.65초에 걸쳐 줄인다.
+    private const float FailSfxHoldSeconds = 0.45f;
+    private const float FailSfxFadeSeconds = 0.2f;
+
+    private void PlayFailSfx()
+    {
+        if (failClip == null)
+            return;
+        if (failAudioSource == null)
+        {
+            PlayEventSfx(failClip);
+            return;
+        }
+        if (failSfxFadeRoutine != null)
+            StopCoroutine(failSfxFadeRoutine);
+        failAudioSource.Stop();
+        failAudioSource.clip = failClip;
+        failAudioSource.volume = eventSfxVolume;
+        failAudioSource.Play();
+        failSfxFadeRoutine = StartCoroutine(FadeOutFailSfx());
+    }
+
+    private IEnumerator FadeOutFailSfx()
+    {
+        yield return new WaitForSecondsRealtime(FailSfxHoldSeconds);
+        float start = failAudioSource.volume;
+        float t = 0f;
+        while (t < FailSfxFadeSeconds && failAudioSource != null && failAudioSource.isPlaying)
+        {
+            t += Time.unscaledDeltaTime;
+            failAudioSource.volume = Mathf.Lerp(start, 0f, t / FailSfxFadeSeconds);
+            yield return null;
+        }
+        if (failAudioSource != null)
+            failAudioSource.Stop();
+        failSfxFadeRoutine = null;
+    }
+
+    private IEnumerator PlayDelayedEventSfx(AudioClip clip, float delay, float volumeMultiplier)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        PlayEventSfx(clip, volumeMultiplier);
+    }
+
+    /// <summary>막힌 이동: 낮고 짧은 소리. 연달아 막혀도 0.3초에 한 번만.</summary>
+    private void PlayMoveDeniedSfx()
+    {
+        if (Time.unscaledTime - lastMoveDeniedSfxTime < 0.3f)
+            return;
+        lastMoveDeniedSfxTime = Time.unscaledTime;
+        PlayEventSfx(moveDeniedClip, 0.7f);
+    }
     private void PlayBombSfx() => PlayEventSfx(bombClip, bombSfxVolumeMultiplier);
     private void PlayNewStageSfx()
     {
+        // 클리어 소리(2초)가 아직 울리는 중이면 새 판 소리를 겹치지 않는다.
+        if (Time.unscaledTime - lastClearSfxTime < 1.9f)
+            return;
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
         if (mainUI != null && mainUI.IsSplashActive)
             return;
         PlayEventSfx(newStageClip);
     }
-    private void PlayClearSfx() => PlayEventSfx(clearClip);
+    private void PlayClearSfx()
+    {
+        lastClearSfxTime = Time.unscaledTime;
+        PlayEventSfx(clearClip);
+    }
     private void PlayStageClearHaptic()
     {
         if (!GameMainUIController.IsVibrationEnabled)
@@ -1588,6 +1667,7 @@ public class GameManager : MonoBehaviour
         if (blockReason == LegalMoveBlockReason.ShortCircuitBlocked && shortCircuitHit != null && last != null && shortCircuitHit.IsBlockedEntryFrom(last.X, last.Y))
         {
             gameplayFeedback?.MoveDenied(hit);
+            PlayMoveDeniedSfx();
             ShowMoveRuleSnackbar(
                 $"short_circuit_entry:{hit.X}:{hit.Y}:{shortCircuitHit.DirectionLocalizationKey}",
                 "snackbar_short_circuit_blocked_entry",
@@ -1601,6 +1681,7 @@ public class GameManager : MonoBehaviour
         if (blockReason == LegalMoveBlockReason.ShortCircuitBlocked && shortCircuitLast != null && hit != null && !shortCircuitLast.IsExitCell(hit.X, hit.Y))
         {
             gameplayFeedback?.MoveDenied(last);
+            PlayMoveDeniedSfx();
             ShowMoveRuleSnackbar(
                 $"short_circuit:{last.X}:{last.Y}:{shortCircuitLast.DirectionLocalizationKey}",
                 "snackbar_short_circuit_only_direction",
@@ -4274,7 +4355,10 @@ public class GameManager : MonoBehaviour
         gameplayFeedback?.Cleared(referenceTile);
         PlayClearStarsToHearts(referenceTile);
         if (lastClearWasOneStroke && referenceTile != null)
+        {
             mainUI?.ShowPerfectPopup(referenceTile.transform.position, mainCamera != null ? mainCamera : Camera.main);
+            StartCoroutine(PlayDelayedEventSfx(perfectClip, 0.28f, 0.8f));
+        }
         TrackStageCleared(clearType);
         if (FinalEndingProgressStore.IsFinalStageIndex(currentStageIndex))
         {
