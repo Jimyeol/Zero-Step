@@ -1,9 +1,9 @@
 {
   "stageID": 624,
-  "width": 5,
-  "height": 3,
+  "width": 7,
+  "height": 8,
   "startPoint": {
-    "x": 0,
+    "x": 6,
     "y": 2
   },
   "config": {
@@ -16,23 +16,19 @@
     {
       "x": 0,
       "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
       "count": 2,
-      "type": "FixedKnot",
-      "targetOrder": 11,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 0,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -44,37 +40,31 @@
     {
       "x": 4,
       "y": 0,
-      "count": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 6,
       "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Charge"
     },
     {
@@ -84,21 +74,102 @@
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 6,
       "y": 2,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 429,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 4,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 429,
+      "color": "#f59e0b"
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 7,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 3,
-      "y": 2,
+      "y": 7,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
+      "type": "Normal"
     },
     {
       "x": 4,
-      "y": 2,
+      "y": 7,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 7,
       "count": 1,
       "type": "Normal"
     }

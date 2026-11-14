@@ -14,6 +14,37 @@ public class StageData
     /// <summary>스테이지별 모드·옵션 (Spotlight 등). 없으면 null.</summary>
     public StageConfig config;
     public CellData[] cells;
+    /// <summary>포탈 판의 2페이즈 보드. 포탈 판이 아니면 비어 있다(JsonUtility는 null 대신 빈 객체를 만든다).</summary>
+    public StagePhaseData phase2;
+
+    /// <summary>포탈 판(1페이즈 끝의 포탈로 들어가면 2페이즈 보드가 나온다)인지.</summary>
+    public bool HasPhase2 => phase2 != null && phase2.cells != null && phase2.cells.Length > 0 && phase2.startPoint != null;
+
+    /// <summary>2페이즈 보드를 일반 스테이지 데이터처럼 쓸 수 있게 만든다. 포탈 판이 아니면 null.</summary>
+    public StageData CreatePhase2Stage()
+    {
+        if (!HasPhase2)
+            return null;
+        return new StageData
+        {
+            stageID = stageID,
+            width = phase2.width,
+            height = phase2.height,
+            startPoint = phase2.startPoint,
+            config = config,
+            cells = phase2.cells
+        };
+    }
+}
+
+/// <summary>포탈 판의 2페이즈 보드(JSON "phase2": 가로·세로·시작 칸·칸 목록).</summary>
+[Serializable]
+public class StagePhaseData
+{
+    public int width;
+    public int height;
+    public StartPointData startPoint;
+    public CellData[] cells;
 }
 
 /// <summary>

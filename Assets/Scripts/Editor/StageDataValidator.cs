@@ -21,7 +21,7 @@ public sealed class StageDataValidator : IPreprocessBuildWithReport
 
     private static readonly HashSet<string> KnownTypes = new HashSet<string>(StringComparer.Ordinal)
     {
-        "Normal", "CrossBlast", "ShortCircuit", "FixedKnot", "TwinLink", "Hidden", "Igniter", "BlindCurtain", "Blackout", "Charge"
+        "Normal", "CrossBlast", "ShortCircuit", "FixedKnot", "TwinLink", "Hidden", "Igniter", "BlindCurtain", "Blackout", "Charge", "Portal"
     };
 
     public int callbackOrder => 0;
@@ -68,7 +68,8 @@ public sealed class StageDataValidator : IPreprocessBuildWithReport
     public static Result Validate()
     {
         var result = new Result();
-        Dictionary<int, string> solutionLines = LoadSolutionLines();
+        Dictionary<int, string> solutionLines = LoadSolutionLines(phase2: false);
+        Dictionary<int, string> phase2SolutionLines = LoadSolutionLines(phase2: true);
         if (solutionLines == null)
             result.Errors.Add($"{SolutionsPath} 없음 (힌트 즉시 표시·재생 검증에 필요)");
 
@@ -98,6 +99,7 @@ public sealed class StageDataValidator : IPreprocessBuildWithReport
             ValidateStage(n, data, result);
             if (solutionLines != null)
                 ValidateSolution(n, data, solutionLines, result);
+            ValidatePortal(n, data, phase2SolutionLines, result);
         }
 
         if (File.Exists($"{StagesFolder}/stage_{FinalStageIndex + 1}.json"))
@@ -105,9 +107,46 @@ public sealed class StageDataValidator : IPreprocessBuildWithReport
         return result;
     }
 
-    private static void ValidateStage(int n, StageData d, Result r)
+    /// <summary>포탈 판: 1페이즈는 기본 칸 + 포탈 1개(숫자 1, 시작 칸 아님), 2페이즈는 포탈 없는 보드와 "N:2" 정답.</summary>
+    private static void ValidatePortal(int n, StageData d, Dictionary<int, string> phase2Lines, Result r)
     {
-        string p = $"stage {n}: ";
+        int portals = 0;
+        foreach (CellData c in d.cells)
+        {
+            if (c == null || c.count <= 0 || c.type != "Portal")
+                continue;
+            portals++;
+            if (c.count != 1)
+                r.Errors.Add($"stage {n}: 포탈 ({c.x},{c.y}) 숫자는 1이어야 함");
+            if (d.startPoint != null && c.x == d.startPoint.x && c.y == d.startPoint.y)
+                r.Errors.Add($"stage {n}: 포탈이 시작 칸");
+        }
+        if (!d.HasPhase2)
+        {
+            if (portals > 0)
+                r.Errors.Add($"stage {n}: 포탈이 있는데 phase2 보드가 없음");
+            return;
+        }
+        if (portals != 1)
+            r.Errors.Add($"stage {n}: 포탈 판은 1페이즈에 포탈이 정확히 1개 ({portals}개)");
+        foreach (CellData c in d.cells)
+        {
+            string type = c == null || string.IsNullOrEmpty(c.type) ? "Normal" : c.type;
+            if (c != null && c.count > 0 && type != "Normal" && type != "Portal")
+                r.Errors.Add($"stage {n}: 포탈 판 1페이즈에는 기본 칸만 ({type})");
+        }
+        StageData phase2 = d.CreatePhase2Stage();
+        foreach (CellData c in phase2.cells)
+            if (c != null && c.count > 0 && c.type == "Portal")
+                r.Errors.Add($"stage {n}: 2페이즈에 포탈");
+        ValidateStage(n, phase2, r, "phase 2 ");
+        if (phase2Lines != null)
+            ValidateSolution(n, phase2, phase2Lines, r);
+    }
+
+    private static void ValidateStage(int n, StageData d, Result r, string phaseLabel = "")
+    {
+        string p = $"stage {n}: {phaseLabel}";
         if (d == null || d.cells == null || d.startPoint == null)
         {
             r.Errors.Add(p + "cells/startPoint 없음");
@@ -244,7 +283,8 @@ public sealed class StageDataValidator : IPreprocessBuildWithReport
         }
     }
 
-    private static Dictionary<int, string> LoadSolutionLines()
+    /// <summary>solutions.txt의 "N|..." 줄(phase2면 포탈 판 2페이즈의 "N:2|..." 줄).</summary>
+    private static Dictionary<int, string> LoadSolutionLines(bool phase2)
     {
         if (!File.Exists(SolutionsPath))
             return null;
@@ -253,7 +293,15 @@ public sealed class StageDataValidator : IPreprocessBuildWithReport
         {
             string line = raw.Trim();
             int bar = line.IndexOf('|');
-            if (bar > 0 && int.TryParse(line.Substring(0, bar), out int n))
+            if (bar <= 0)
+                continue;
+            string key = line.Substring(0, bar);
+            bool isPhase2 = key.EndsWith(":2", StringComparison.Ordinal);
+            if (isPhase2 != phase2)
+                continue;
+            if (isPhase2)
+                key = key.Substring(0, key.Length - 2);
+            if (int.TryParse(key, out int n))
                 result[n] = line.Substring(bar + 1);
         }
         return result;

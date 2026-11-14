@@ -1,10 +1,10 @@
 {
   "stageID": 823,
-  "width": 5,
+  "width": 7,
   "height": 4,
   "startPoint": {
-    "x": 2,
-    "y": 3
+    "x": 0,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -16,58 +16,88 @@
     {
       "x": 0,
       "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 4,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 1,
+      "y": 0,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 1,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
       "count": 1,
       "type": "BlindCurtain"
     },
     {
-      "x": 3,
+      "x": 4,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
       "y": 1,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 4,
       "y": 1,
-      "count": 4,
-      "type": "TwinLink",
-      "linkID": 818,
-      "color": "#22d3ee"
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 2,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#00FBFF"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 4,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -75,30 +105,28 @@
       "y": 2,
       "count": 1,
       "type": "ShortCircuit",
-      "direction": "Left"
+      "direction": "Up"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 2,
-      "type": "Charge"
-    },
-    {
-      "x": 3,
-      "y": 2,
       "count": 1,
-      "type": "Normal"
+      "type": "Blackout"
     },
     {
       "x": 4,
       "y": 2,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 818,
-      "color": "#22d3ee"
+      "count": 2,
+      "type": "BlindCurtain"
     },
     {
       "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
       "y": 3,
       "count": 2,
       "type": "Normal"
@@ -111,6 +139,12 @@
     },
     {
       "x": 4,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
       "y": 3,
       "count": 1,
       "type": "Normal"

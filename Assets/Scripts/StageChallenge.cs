@@ -20,12 +20,21 @@ public static class StageChallenge
 {
     public static StageChallengeKind KindFor(int stageIndex)
     {
+        // 포탈 판은 두 판을 이어서 풀기 때문에 한 획·별 칸 목표가 맞지 않는다: 실패·되돌리기 없이 깨기로 고정.
+        if (IsPortalStage(stageIndex))
+            return StageChallengeKind.Flawless;
         int slot = ((stageIndex % 3) + 3) % 3;
         if (slot == 2)
             return StageChallengeKind.OneStroke;
         if (slot == 0 && TryGetEndCell(stageIndex, out _))
             return StageChallengeKind.EndOnMarked;
         return StageChallengeKind.Flawless;
+    }
+
+    public static bool IsPortalStage(int stageIndex)
+    {
+        StageData data = StageManager.LoadStage(stageIndex);
+        return data != null && data.HasPhase2;
     }
 
     /// <summary>정답의 마지막 칸. 정답이 없으면 false.</summary>

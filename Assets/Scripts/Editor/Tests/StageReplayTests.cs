@@ -17,6 +17,7 @@ using Debug = UnityEngine.Debug;
 ///   Unity -batchmode -projectPath . -runTests -testPlatform EditMode -testFilter StageReplayTests
 ///   환경 변수 ZEROSTEP_SOLUTIONS(해답 파일), ZEROSTEP_REPORT(결과 CSV), ZEROSTEP_STAGES("1-1000"), ZEROSTEP_HINT_CHECK(1/0)
 /// 해답 파일 한 줄 형식: N|x,y;x,y;...|x,y;...  ('|'로 나뉜 각 구간 = 손가락을 떼지 않는 한 번의 드래그)
+/// 포탈 판은 2페이즈 줄 N:2|... 이 더 있고, 1페이즈 정답은 포탈로 끝난다.
 /// </summary>
 public class StageReplayTests
 {
@@ -39,7 +40,8 @@ public class StageReplayTests
         // 플레이 모드 진입 시 도메인이 다시 로드되므로 설정은 진입 후에 읽는다.
         string solutionsPath = Environment.GetEnvironmentVariable("ZEROSTEP_SOLUTIONS");
         Assert.IsTrue(File.Exists(solutionsPath), $"solutions file not found: {solutionsPath}");
-        Dictionary<int, List<List<Vector2Int>>> solutions = LoadSolutions(solutionsPath);
+        Dictionary<int, List<List<Vector2Int>>> solutions = LoadSolutions(solutionsPath, phase2: false);
+        Dictionary<int, List<List<Vector2Int>>> phase2Solutions = LoadSolutions(solutionsPath, phase2: true);
         ParseRange(Environment.GetEnvironmentVariable("ZEROSTEP_STAGES"), out int first, out int last);
         bool hintCheck = Environment.GetEnvironmentVariable("ZEROSTEP_HINT_CHECK") != "0";
         string reportPath = Environment.GetEnvironmentVariable("ZEROSTEP_REPORT");
@@ -97,62 +99,108 @@ public class StageReplayTests
 
             string detail = "";
             bool ok = true;
-            for (int s = 0; s < strokes.Count && ok; s++)
+            // 포탈 판은 1페이즈 정답(포탈로 끝남) 다음에 2페이즈 정답("N:2")을 이어서 재생한다.
+            var phases = new List<List<List<Vector2Int>>> { strokes };
+            if (phase2Solutions.TryGetValue(stage, out List<List<Vector2Int>> phase2Strokes))
+                phases.Add(phase2Strokes);
+            for (int ph = 0; ph < phases.Count && ok; ph++)
             {
-                List<Vector2Int> stroke = strokes[s];
-                if (stroke.Count == 0)
-                    continue;
-                if (gm.AutomationCurrentCell != stroke[0])
+                bool lastPhase = ph == phases.Count - 1;
+                if (ph > 0)
                 {
-                    detail = $"stroke{s}_start_mismatch:{gm.AutomationCurrentCell.x},{gm.AutomationCurrentCell.y}";
-                    ok = false;
-                    break;
-                }
-                if (!gm.AutomationBeginDrag())
-                {
-                    detail = $"stroke{s}_begin_refused";
-                    ok = false;
-                    break;
-                }
-
-                for (int i = 1; i < stroke.Count; i++)
-                {
-                    Vector2Int cell = stroke[i];
-                    bool stepped = gm.AutomationStep(cell.x, cell.y);
-                    float retryStart = Time.realtimeSinceStartup;
-                    while (!stepped && !gm.AutomationStageCleared && !gm.AutomationGameOverPlaying &&
-                           Time.realtimeSinceStartup - retryStart < StepRetrySeconds)
-                    {
+                    // 포탈 전환(빨려 들어가는 연출)이 끝나고 다음 페이즈 보드가 올라올 때까지 기다린다.
+                    float portalWait = Time.realtimeSinceStartup;
+                    while ((gm.AutomationPortalTransitioning || gm.AutomationPortalPhase != ph + 1) && Time.realtimeSinceStartup - portalWait < 5f)
                         yield return null;
-                        stepped = gm.AutomationStep(cell.x, cell.y);
-                    }
-                    if (gm.AutomationStageCleared)
+                    if (gm.AutomationPortalPhase != ph + 1)
                     {
-                        if (i != stroke.Count - 1 || s != strokes.Count - 1)
-                            detail = $"cleared_early_at_move{i}";
-                        break;
-                    }
-                    if (gm.AutomationGameOverPlaying)
-                    {
-                        detail = $"game_over_at_stroke{s}_move{i}";
-                        ok = false;
-                        break;
-                    }
-                    if (!stepped)
-                    {
-                        detail = $"step_refused_at_stroke{s}_move{i}:{cell.x},{cell.y}";
+                        detail = $"phase{ph + 1}_not_reached";
                         ok = false;
                         break;
                     }
                     yield return WaitForQuiet(gm);
-                    if (VerboseTrace)
-                        Debug.Log($"[StageReplayTrace] stage={stage} move={i} to={cell.x},{cell.y} remaining={gm.AutomationTotalRemaining}");
                 }
 
-                if (!ok || gm.AutomationStageCleared)
+                List<List<Vector2Int>> phaseStrokes = phases[ph];
+                string tag = phases.Count > 1 ? $"p{ph + 1}_" : "";
+                bool phaseDone = false;
+                for (int s = 0; s < phaseStrokes.Count && ok && !phaseDone; s++)
+                {
+                    List<Vector2Int> stroke = phaseStrokes[s];
+                    if (stroke.Count == 0)
+                        continue;
+                    if (gm.AutomationCurrentCell != stroke[0])
+                    {
+                        detail = $"{tag}stroke{s}_start_mismatch:{gm.AutomationCurrentCell.x},{gm.AutomationCurrentCell.y}";
+                        ok = false;
+                        break;
+                    }
+                    if (!gm.AutomationBeginDrag())
+                    {
+                        detail = $"{tag}stroke{s}_begin_refused";
+                        ok = false;
+                        break;
+                    }
+
+                    for (int i = 1; i < stroke.Count; i++)
+                    {
+                        Vector2Int cell = stroke[i];
+                        bool stepped = gm.AutomationStep(cell.x, cell.y);
+                        float retryStart = Time.realtimeSinceStartup;
+                        while (!stepped && !gm.AutomationStageCleared && !gm.AutomationGameOverPlaying && !gm.AutomationPortalTransitioning &&
+                               Time.realtimeSinceStartup - retryStart < StepRetrySeconds)
+                        {
+                            yield return null;
+                            stepped = gm.AutomationStep(cell.x, cell.y);
+                        }
+                        bool lastMoveOfPhase = i == stroke.Count - 1 && s == phaseStrokes.Count - 1;
+                        if (gm.AutomationStageCleared)
+                        {
+                            if (!lastMoveOfPhase || !lastPhase)
+                                detail = $"{tag}cleared_early_at_move{i}";
+                            phaseDone = true;
+                            break;
+                        }
+                        if (!lastPhase && (gm.AutomationPortalTransitioning || gm.AutomationPortalPhase == ph + 2))
+                        {
+                            if (!lastMoveOfPhase)
+                            {
+                                detail = $"{tag}portal_entered_early_at_move{i}";
+                                ok = false;
+                            }
+                            phaseDone = true;
+                            break;
+                        }
+                        if (gm.AutomationGameOverPlaying)
+                        {
+                            detail = $"{tag}game_over_at_stroke{s}_move{i}";
+                            ok = false;
+                            break;
+                        }
+                        if (!stepped)
+                        {
+                            detail = $"{tag}step_refused_at_stroke{s}_move{i}:{cell.x},{cell.y}";
+                            ok = false;
+                            break;
+                        }
+                        yield return WaitForQuiet(gm);
+                        if (VerboseTrace)
+                            Debug.Log($"[StageReplayTrace] stage={stage} phase={ph + 1} move={i} to={cell.x},{cell.y} remaining={gm.AutomationTotalRemaining}");
+                    }
+
+                    if (!ok || phaseDone)
+                        break;
+                    gm.AutomationEndDrag();
+                    yield return WaitForQuiet(gm);
+                }
+
+                if (ok && !lastPhase && !phaseDone)
+                {
+                    detail = $"{tag}portal_not_entered";
+                    ok = false;
+                }
+                if (gm.AutomationStageCleared)
                     break;
-                gm.AutomationEndDrag();
-                yield return WaitForQuiet(gm);
             }
 
             if (ok)
@@ -250,7 +298,8 @@ public class StageReplayTests
         last = parts.Length > 1 && int.TryParse(parts[1], out int l) ? l : first;
     }
 
-    private static Dictionary<int, List<List<Vector2Int>>> LoadSolutions(string path)
+    /// <summary>해답 파일을 읽는다. phase2면 포탈 판 2페이즈 줄("N:2|...")만, 아니면 "N|..." 줄만.</summary>
+    private static Dictionary<int, List<List<Vector2Int>>> LoadSolutions(string path, bool phase2)
     {
         var result = new Dictionary<int, List<List<Vector2Int>>>();
         foreach (string rawLine in File.ReadAllLines(path))
@@ -259,7 +308,13 @@ public class StageReplayTests
             if (line.Length == 0)
                 continue;
             string[] segments = line.Split('|');
-            if (!int.TryParse(segments[0], out int stage))
+            string key = segments[0];
+            bool isPhase2 = key.EndsWith(":2", StringComparison.Ordinal);
+            if (isPhase2 != phase2)
+                continue;
+            if (isPhase2)
+                key = key.Substring(0, key.Length - 2);
+            if (!int.TryParse(key, out int stage))
                 continue;
             var strokes = new List<List<Vector2Int>>();
             for (int i = 1; i < segments.Length; i++)

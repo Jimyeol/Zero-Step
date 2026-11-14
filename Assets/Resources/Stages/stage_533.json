@@ -1,10 +1,10 @@
 {
   "stageID": 533,
-  "width": 4,
-  "height": 7,
+  "width": 3,
+  "height": 3,
   "startPoint": {
-    "x": 1,
-    "y": 1
+    "x": 0,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -17,60 +17,46 @@
       "x": 0,
       "y": 0,
       "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 2,
       "type": "FixedKnot",
-      "targetOrder": 16,
+      "targetOrder": 4,
       "properties": {
         "isAbsolute": true
       }
     },
     {
-      "x": 1,
-      "y": 0,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G96"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G96"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 2,
       "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -78,38 +64,6 @@
       "y": 2,
       "count": 1,
       "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G96"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 6,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G96"
     }
   ]
 }

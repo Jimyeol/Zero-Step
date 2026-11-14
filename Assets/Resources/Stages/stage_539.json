@@ -3,8 +3,8 @@
   "width": 4,
   "height": 4,
   "startPoint": {
-    "x": 3,
-    "y": 2
+    "x": 0,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -16,41 +16,56 @@
     {
       "x": 0,
       "y": 0,
-      "count": 4,
-      "type": "Hidden",
-      "groupID": "G50"
+      "count": 1,
+      "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
+      "x": 1,
+      "y": 0,
       "count": 2,
-      "type": "CrossBlast",
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 4,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 16,
       "properties": {
-        "beamColor": "#34d399"
+        "isAbsolute": true
       }
     },
     {
       "x": 1,
       "y": 1,
       "count": 2,
-      "type": "Charge"
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
+      "count": 3,
+      "type": "CrossBlast",
+      "properties": {
+        "beamColor": "#22d3ee"
+      }
     },
     {
       "x": 0,
       "y": 2,
-      "count": 6,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
@@ -62,7 +77,7 @@
     {
       "x": 3,
       "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -72,21 +87,10 @@
       "type": "Normal"
     },
     {
-      "x": 1,
+      "x": 3,
       "y": 3,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G50"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 8,
-      "properties": {
-        "isAbsolute": true
-      }
+      "type": "Normal"
     }
   ]
 }

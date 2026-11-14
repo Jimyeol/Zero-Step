@@ -1,10 +1,10 @@
 {
   "stageID": 434,
-  "width": 4,
-  "height": 5,
+  "width": 3,
+  "height": 8,
   "startPoint": {
-    "x": 1,
-    "y": 2
+    "x": 2,
+    "y": 5
   },
   "config": {
     "mode": "Normal",
@@ -16,33 +16,38 @@
     {
       "x": 0,
       "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 1,
-      "type": "BlindCurtain"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 1,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Up"
+      "type": "Charge"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 1,
-      "type": "BlindCurtain"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 1,
@@ -53,44 +58,81 @@
     {
       "x": 2,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
       "count": 2,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 2,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 4,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 4,
-      "count": 4,
-      "type": "Normal"
+      "count": 3,
+      "type": "BlindCurtain"
     },
     {
       "x": 2,
       "y": 4,
       "count": 2,
-      "type": "Charge"
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "count": 1,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "count": 1,
+      "type": "ShortCircuit",
+      "direction": "Left"
     }
   ]
 }

@@ -1,10 +1,10 @@
 {
   "stageID": 389,
-  "width": 5,
-  "height": 7,
+  "width": 7,
+  "height": 2,
   "startPoint": {
-    "x": 4,
-    "y": 2
+    "x": 0,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -20,127 +20,66 @@
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 2,
       "y": 0,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 547,
-      "color": "#f59e0b"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 1,
-      "type": "CrossBlast",
+      "type": "FixedKnot",
+      "targetOrder": 13,
       "properties": {
-        "beamColor": "#00FBFF"
+        "isAbsolute": true
       }
     },
     {
-      "x": 4,
+      "x": 3,
       "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 4,
-      "type": "TwinLink",
-      "linkID": 547,
-      "color": "#f59e0b"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 5,
-      "type": "TwinLink",
-      "linkID": 547,
-      "color": "#f59e0b"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
       "count": 2,
-      "type": "Blackout"
-    },
-    {
-      "x": 4,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 5,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 6,
-      "count": 3,
       "type": "Normal"
     },
     {
       "x": 1,
-      "y": 6,
-      "count": 3,
+      "y": 1,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 6,
+      "y": 1,
       "count": 3,
-      "type": "BlindCurtain"
+      "type": "TwinLink",
+      "linkID": 880,
+      "color": "#22d3ee"
     },
     {
       "x": 3,
-      "y": 6,
-      "count": 3,
-      "type": "Normal"
+      "y": 1,
+      "count": 2,
+      "type": "TwinLink",
+      "linkID": 880,
+      "color": "#22d3ee"
     },
     {
       "x": 4,
-      "y": 6,
-      "count": 3,
-      "type": "BlindCurtain"
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

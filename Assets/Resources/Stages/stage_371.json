@@ -1,10 +1,10 @@
 {
   "stageID": 371,
   "width": 3,
-  "height": 6,
+  "height": 3,
   "startPoint": {
-    "x": 1,
-    "y": 5
+    "x": 2,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -16,94 +16,57 @@
     {
       "x": 0,
       "y": 0,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G24"
+      "count": 3,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G24"
-    },
-    {
-      "x": 2,
-      "y": 0,
       "count": 2,
-      "type": "FixedKnot",
-      "targetOrder": 12,
+      "type": "CrossBlast",
       "properties": {
-        "isAbsolute": true
+        "beamColor": "#38bdf8"
       }
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
+      "x": 2,
+      "y": 0,
+      "count": 3,
+      "type": "TwinLink",
+      "linkID": 227,
+      "color": "#22d3ee"
     },
     {
-      "x": 1,
+      "x": 0,
       "y": 1,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G24"
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
+      "count": 4,
+      "type": "TwinLink",
+      "linkID": 227,
+      "color": "#22d3ee"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 2,
-      "type": "Normal"
+      "count": 5,
+      "type": "TwinLink",
+      "linkID": 227,
+      "color": "#22d3ee"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G24"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 5,
-      "count": 1,
-      "type": "Normal"
+      "type": "FixedKnot",
+      "targetOrder": 9,
+      "properties": {
+        "isAbsolute": true
+      }
     }
   ]
 }

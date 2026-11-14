@@ -1,10 +1,10 @@
 {
   "stageID": 543,
-  "width": 6,
+  "width": 3,
   "height": 6,
   "startPoint": {
-    "x": 2,
-    "y": 4
+    "x": 1,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -16,38 +16,52 @@
     {
       "x": 0,
       "y": 0,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 0,
       "count": 2,
-      "type": "FixedKnot",
-      "targetOrder": 16,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G83"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 2,
+      "type": "CrossBlast",
       "properties": {
-        "isAbsolute": true
+        "beamColor": "#38bdf8"
       }
     },
     {
       "x": 1,
-      "y": 0,
-      "count": 4,
-      "type": "Hidden",
-      "groupID": "G75"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
       "y": 1,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G75"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
       "count": 1,
       "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 2,
+      "type": "FixedKnot",
+      "targetOrder": 4,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 2,
@@ -56,45 +70,53 @@
       "type": "Normal"
     },
     {
+      "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G83"
+    },
+    {
       "x": 2,
       "y": 3,
       "count": 1,
-      "type": "Normal"
+      "type": "ShortCircuit",
+      "direction": "Down"
     },
     {
-      "x": 2,
+      "x": 0,
       "y": 4,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 1,
       "y": 4,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
+      "y": 4,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G83"
+    },
+    {
+      "x": 1,
       "y": 5,
       "count": 1,
       "type": "Igniter",
-      "targetID": "G42"
+      "targetID": "G83"
     },
     {
-      "x": 3,
-      "y": 5,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G42"
-    },
-    {
-      "x": 4,
-      "y": 5,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
+      "x": 2,
       "y": 5,
       "count": 1,
       "type": "Normal"

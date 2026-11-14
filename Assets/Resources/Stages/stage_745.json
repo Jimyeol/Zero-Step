@@ -1,10 +1,10 @@
 {
   "stageID": 745,
-  "width": 3,
-  "height": 7,
+  "width": 4,
+  "height": 2,
   "startPoint": {
     "x": 2,
-    "y": 6
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -22,16 +22,20 @@
     {
       "x": 1,
       "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 0,
-      "count": 4,
-      "type": "TwinLink",
-      "linkID": 896,
-      "color": "#00FBFF"
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 0,
@@ -42,105 +46,88 @@
     {
       "x": 1,
       "y": 1,
-      "count": 2,
-      "type": "FixedKnot",
-      "targetOrder": 8,
-      "properties": {
-        "isAbsolute": true
-      }
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 4,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 4,
-      "type": "TwinLink",
-      "linkID": 896,
-      "color": "#00FBFF"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 4,
-      "type": "Igniter",
-      "targetID": "G83"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
-    },
-    {
-      "x": 0,
-      "y": 5,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 5,
+      "x": 3,
+      "y": 1,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
-    },
-    {
-      "x": 2,
-      "y": 5,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
-    },
-    {
-      "x": 0,
-      "y": 6,
-      "count": 1,
-      "type": "Blackout"
-    },
-    {
-      "x": 1,
-      "y": 6,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 6,
-      "count": 1,
-      "type": "Normal"
+      "type": "Portal"
     }
-  ]
+  ],
+  "phase2": {
+    "width": 3,
+    "height": 5,
+    "startPoint": {
+      "x": 1,
+      "y": 1
+    },
+    "cells": [
+      {
+        "x": 1,
+        "y": 0,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 2,
+        "y": 0,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 1,
+        "count": 2,
+        "type": "TwinLink",
+        "linkID": 393,
+        "color": "#34d399"
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "count": 3,
+        "type": "TwinLink",
+        "linkID": 393,
+        "color": "#34d399"
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "count": 2,
+        "type": "Charge"
+      },
+      {
+        "x": 2,
+        "y": 2,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 2,
+        "y": 3,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 2,
+        "y": 4,
+        "count": 1,
+        "type": "Normal"
+      }
+    ]
+  }
 }

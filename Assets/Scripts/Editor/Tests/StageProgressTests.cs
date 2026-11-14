@@ -267,6 +267,158 @@ public class StageProgressTests
         Assert.IsEmpty(failures, string.Join("\n", failures));
     }
 
+    /// <summary>
+    /// 포탈 판(451): 일찍 들어가면 막힘 / 마지막에 들어가면 2페이즈 등장(클리어 아님) / 되돌리기가 페이즈를 못 넘음 /
+    /// 2페이즈 힌트 / 2페이즈 실패 시 1페이즈로 / 두 페이즈를 다 풀면 클리어.
+    /// </summary>
+    [UnityTest, Timeout(600000)]
+    public IEnumerator PortalStagePhases()
+    {
+        if (!EditorApplication.isPlaying)
+        {
+            EditorSceneManager.OpenScene(ScenePath);
+            yield return new EnterPlayMode();
+        }
+        var gm = Object.FindFirstObjectByType<GameManager>();
+        var ui = Object.FindFirstObjectByType<GameMainUIController>();
+        Assert.IsNotNull(gm);
+        Assert.IsNotNull(ui);
+        yield return Wait(2f);
+        var failures = new List<string>();
+        const int stage = 451;
+        StageStarsStore.Clear();
+        gm.AutomationSetFrontier(1);
+        StageData data = StageManager.LoadStage(stage);
+        Assert.IsTrue(data != null && data.HasPhase2, "stage 451 is not a portal stage");
+        Check(failures, StageChallenge.KindFor(stage) == StageChallengeKind.Flawless, "portal stage challenge is not Flawless");
+        List<Vector2Int> phase1 = StageManager.LoadSolutionMoves(stage, 1);
+        List<Vector2Int> phase2 = StageManager.LoadSolutionMoves(stage, 2);
+        Assert.IsNotNull(phase1);
+        Assert.IsNotNull(phase2);
+        Vector2Int portal = phase1[phase1.Count - 1];
+        var start1 = new Vector2Int(data.startPoint.x, data.startPoint.y);
+        var start2 = new Vector2Int(data.phase2.startPoint.x, data.phase2.startPoint.y);
+
+        // 1) 다른 칸이 남아 있으면 포탈에 못 들어간다.
+        gm.LoadStageImmediateForDebug(stage);
+        yield return Settle(gm, ui);
+        Check(failures, gm.AutomationPortalPhase == 1, $"phase {gm.AutomationPortalPhase} at start");
+        bool early = false;
+        gm.AutomationBeginDrag();
+        Vector2Int at = start1;
+        // 포탈 옆 칸으로 먼저 간다.
+        var firstSteps = new List<Vector2Int>();
+        foreach (Vector2Int n in NeighborsOf(at))
+        {
+            if (Mathf.Abs(n.x - portal.x) + Mathf.Abs(n.y - portal.y) == 1)
+                firstSteps.Insert(0, n);
+            else
+                firstSteps.Add(n);
+        }
+        foreach (Vector2Int next in firstSteps)
+        {
+            if (gm.AutomationGetCount(next.x, next.y) <= 0 || next == portal)
+                continue;
+            if (!gm.AutomationStep(next.x, next.y))
+                continue;
+            at = next;
+            break;
+        }
+        if (Mathf.Abs(at.x - portal.x) + Mathf.Abs(at.y - portal.y) == 1)
+        {
+            early = gm.AutomationStep(portal.x, portal.y);
+            Check(failures, !early && gm.AutomationPortalPhase == 1 && !gm.AutomationPortalTransitioning, "entered the portal before clearing the other tiles");
+        }
+        else
+        {
+            failures.Add($"test setup: could not reach a tile next to the portal (at {at})");
+        }
+        gm.AutomationEndDrag();
+
+        // 2) 정답대로 마지막에 들어가면 클리어가 아니라 2페이즈가 나온다.
+        gm.LoadStageImmediateForDebug(stage);
+        yield return Settle(gm, ui);
+        yield return PlayMoves(gm, phase1, "phase 1", failures);
+        Check(failures, !gm.AutomationStageCleared, "portal entry cleared the stage");
+        float wait = Time.realtimeSinceStartup;
+        while ((gm.AutomationPortalTransitioning || gm.AutomationPortalPhase != 2) && Time.realtimeSinceStartup - wait < 4f)
+            yield return null;
+        yield return Wait(0.3f);
+        Check(failures, gm.AutomationPortalPhase == 2, $"phase 2 did not appear (phase {gm.AutomationPortalPhase})");
+        Check(failures, gm.CurrentStageIndex == stage, $"stage changed to {gm.CurrentStageIndex}");
+        Check(failures, gm.AutomationCurrentCell == start2, $"phase 2 start {gm.AutomationCurrentCell} (expected {start2})");
+        Check(failures, gm.AutomationHintAvailableNow(), "no hint in phase 2");
+
+        // 3) 되돌리기는 1페이즈로 넘어가지 못한다.
+        bool undone = gm.TryUndoLastMove();
+        Check(failures, !undone && gm.AutomationPortalPhase == 2, "undo went back across the portal");
+
+        // 4) 2페이즈에서 실패하면 1페이즈부터 다시 한다.
+        Check(failures, gm.AutomationForceGameOver(), "phase 2 game over did not start");
+        wait = Time.realtimeSinceStartup;
+        while (gm.AutomationGameOverPlaying && Time.realtimeSinceStartup - wait < 8f)
+            yield return null;
+        yield return Wait(0.3f);
+        Check(failures, gm.AutomationPortalPhase == 1, $"after a phase-2 fail the phase is {gm.AutomationPortalPhase}");
+        Check(failures, gm.AutomationCurrentCell == start1, $"after a phase-2 fail the start is {gm.AutomationCurrentCell} (expected {start1})");
+        Check(failures, gm.AutomationGetCount(portal.x, portal.y) == 1, "portal tile missing after the restart");
+
+        // 5) 두 페이즈를 다 풀면 스테이지 클리어.
+        yield return PlayMoves(gm, phase1, "phase 1 (again)", failures);
+        wait = Time.realtimeSinceStartup;
+        while ((gm.AutomationPortalTransitioning || gm.AutomationPortalPhase != 2) && Time.realtimeSinceStartup - wait < 4f)
+            yield return null;
+        yield return Wait(0.3f);
+        yield return PlayMoves(gm, phase2, "phase 2", failures);
+        wait = Time.realtimeSinceStartup;
+        while (!gm.AutomationStageCleared && Time.realtimeSinceStartup - wait < 3f)
+            yield return null;
+        Check(failures, gm.AutomationStageCleared, "stage not cleared after phase 2");
+        Check(failures, StageStarsStore.GetStars(stage) >= 1, $"stars {StageStarsStore.GetStars(stage)} after clearing the portal stage");
+        yield return WaitForStage(gm, stage + 1);
+
+        yield return new ExitPlayMode();
+        Assert.IsEmpty(failures, string.Join("\n", failures));
+    }
+
+    private static IEnumerable<Vector2Int> NeighborsOf(Vector2Int c)
+    {
+        yield return c + Vector2Int.up;
+        yield return c + Vector2Int.down;
+        yield return c + Vector2Int.left;
+        yield return c + Vector2Int.right;
+    }
+
+    /// <summary>한 번의 드래그로 moves를 따라간다(포탈 진입·클리어가 일어나면 거기서 멈춘다).</summary>
+    private static IEnumerator PlayMoves(GameManager gm, List<Vector2Int> moves, string label, List<string> failures)
+    {
+        if (!gm.AutomationBeginDrag())
+        {
+            failures.Add($"{label}: drag refused at {gm.AutomationCurrentCell}");
+            yield break;
+        }
+        for (int i = 0; i < moves.Count; i++)
+        {
+            // 포탈 진입·클리어 순간에는 드래그가 끝나므로 이동이 거부된 것처럼 보일 수 있다: 상태로 먼저 판단한다.
+            bool stepped = gm.AutomationStep(moves[i].x, moves[i].y);
+            if (!stepped && !gm.AutomationStageCleared && !gm.AutomationPortalTransitioning)
+            {
+                failures.Add($"{label}: step {i} to {moves[i]} refused");
+                yield break;
+            }
+            if (gm.AutomationStageCleared || gm.AutomationPortalTransitioning)
+            {
+                if (i != moves.Count - 1)
+                    failures.Add($"{label}: ended early at step {i}");
+                yield break;
+            }
+            float quiet = Time.realtimeSinceStartup;
+            while (gm.AutomationHasPendingMutations && Time.realtimeSinceStartup - quiet < 1f)
+                yield return null;
+        }
+        gm.AutomationEndDrag();
+    }
+
     /// <summary>연구소를 나갔다가 저장된 판 번호를 labStage로 바꿔 다시 들어간다.</summary>
     private static IEnumerator EnterLabAt(GameManager gm, GameMainUIController ui, int stageToReturnTo, int labStage, List<string> failures)
     {

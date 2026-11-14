@@ -637,6 +637,18 @@ public sealed class GameplayFeedback : MonoBehaviour
         lastMoveTime = Time.unscaledTime;
     }
 
+    /// <summary>포탈로 들어갔을 때: 보라색 고리 두 개와 짧은 진동(클리어 축하는 2페이즈를 깼을 때만).</summary>
+    public void PortalEntered(Tile tile)
+    {
+        dragging = false;
+        Vector3 center = tile != null ? tile.transform.position : Vector3.zero;
+        Ring(center, PortalTile.PortalColor, 1.5f, 0.36f);
+        Ring(center, PortalTile.PortalColor, 1.1f, 0.32f, 0.12f);
+        StartCameraImpulse(0.2f, 0.025f);
+        Vibrate(0.55f, 0f);
+        lastMoveTime = Time.unscaledTime;
+    }
+
     public void Failed(Tile tile)
     {
         dragging = false;

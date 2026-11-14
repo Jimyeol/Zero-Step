@@ -163,6 +163,50 @@ public class VisualCaptureTests
                 yield return WaitRealtime(0.2f);
             }
 
+            // ZEROSTEP_CAPTURE_PORTAL=1: 포탈 판이면 일찍 들어가려다 막히는 모습, 빨려 들어가는 중간, 2페이즈 등장을 찍는다.
+            StageData portalData = StageManager.LoadStage(stage);
+            if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_PORTAL") == "1" && portalData != null && portalData.HasPhase2)
+            {
+                typeof(GameManager).GetMethod("ClearHintPreview", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(gm, new object[] { true });
+                List<Vector2Int> p1 = StageManager.LoadSolutionMoves(stage, 1);
+                Vector2Int portalCell = p1[p1.Count - 1];
+                // 일찍 들어가기: 정답을 따라가다 포탈 옆에 처음 닿으면 포탈로 들어가 본다(남은 칸이 있으면 막힌다).
+                gm.AutomationBeginDrag();
+                for (int i = 0; i < p1.Count - 1; i++)
+                {
+                    gm.AutomationStep(p1[i].x, p1[i].y);
+                    yield return WaitRealtime(0.12f);
+                    if (Mathf.Abs(p1[i].x - portalCell.x) + Mathf.Abs(p1[i].y - portalCell.y) == 1 && i < p1.Count - 2)
+                    {
+                        gm.AutomationStep(portalCell.x, portalCell.y);
+                        yield return WaitRealtime(0.25f);
+                        CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_denied");
+                        break;
+                    }
+                }
+                gm.AutomationEndDrag();
+                gm.LoadStageImmediateForDebug(stage);
+                yield return WaitRealtime(1.2f);
+                gm.AutomationBeginDrag();
+                for (int i = 0; i < p1.Count; i++)
+                {
+                    gm.AutomationStep(p1[i].x, p1[i].y);
+                    yield return WaitRealtime(0.12f);
+                    if (i == p1.Count - 2)
+                        CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_open");
+                }
+                yield return WaitRealtime(0.15f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_suck1");
+                yield return WaitRealtime(0.25f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_suck2");
+                yield return WaitRealtime(0.45f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_phase2a");
+                yield return WaitRealtime(0.9f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_phase2");
+                Debug.Log($"[CapturePortal] stage={stage} phase={gm.AutomationPortalPhase}");
+                continue;
+            }
+
             // ZEROSTEP_CAPTURE_PLAY=1: 정답을 실제로 그리면서 드래그 중·타일이 터지는 순간·클리어 화면을 찍는다.
             if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_PLAY") == "1")
             {

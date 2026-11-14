@@ -3,7 +3,8 @@
 usage: python3 -I Tools/StagePipeline/check_project.py [--jobs N] [--quick] [--no-ablation]
 Builds a temporary validation folder from Assets/Resources/Stages (+ solutions.txt, Tutorials) and
 runs validate.py on it. mapping.csv in this folder holds the reference metrics of the shipped set;
-if you change stages, regenerate it (generator/report.py) or run with --quick.
+if you change stages, regenerate it (generator/emit.py or generator/upgrade_pack.py) or run with --quick.
+Portal stages have a second solutions line "N:2|..." for phase 2.
 """
 import json, os, shutil, subprocess, sys, tempfile
 
@@ -20,6 +21,9 @@ try:
             shutil.copyfile(os.path.join(STAGES, name), os.path.join(tmp, 'Stages', name))
     shutil.copytree(TUTORIALS, os.path.join(tmp, 'Tutorials'), ignore=shutil.ignore_patterns('*.meta', '*.md'))
     shutil.copyfile(os.path.join(HERE, 'mapping.csv'), os.path.join(tmp, 'mapping.csv'))
+    # breather / portal stage lists (content roles) used by several checks
+    if os.path.exists(os.path.join(HERE, 'roles.json')):
+        shutil.copyfile(os.path.join(HERE, 'roles.json'), os.path.join(tmp, 'roles.json'))
     solutions = {}
     with open(os.path.join(STAGES, 'solutions.txt'), encoding='utf-8') as f:
         for line in f:

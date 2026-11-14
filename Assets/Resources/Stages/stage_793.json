@@ -1,10 +1,10 @@
 {
   "stageID": 793,
-  "width": 4,
-  "height": 5,
+  "width": 5,
+  "height": 4,
   "startPoint": {
-    "x": 3,
-    "y": 4
+    "x": 4,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -14,6 +14,12 @@
   },
   "cells": [
     {
+      "x": 0,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
       "x": 1,
       "y": 0,
       "count": 1,
@@ -22,8 +28,8 @@
     {
       "x": 2,
       "y": 0,
-      "count": 2,
-      "type": "BlindCurtain"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 3,
@@ -32,17 +38,29 @@
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 1,
-      "count": 2,
+      "x": 4,
+      "y": 0,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 0,
       "y": 1,
-      "count": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
       "type": "FixedKnot",
-      "targetOrder": 3,
+      "targetOrder": 8,
       "properties": {
         "isAbsolute": true
       }
@@ -63,52 +81,17 @@
       "x": 3,
       "y": 2,
       "count": 2,
-      "type": "Blackout"
+      "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 3,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 893,
-      "color": "#38bdf8"
-    },
-    {
-      "x": 1,
-      "y": 3,
+      "x": 4,
+      "y": 2,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 893,
-      "color": "#38bdf8"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 4,
       "count": 1,
       "type": "Normal"
     }

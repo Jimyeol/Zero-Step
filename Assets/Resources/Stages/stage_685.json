@@ -1,10 +1,10 @@
 {
   "stageID": 685,
-  "width": 5,
-  "height": 4,
+  "width": 3,
+  "height": 3,
   "startPoint": {
-    "x": 4,
-    "y": 1
+    "x": 1,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -14,103 +14,128 @@
   },
   "cells": [
     {
-      "x": 0,
+      "x": 2,
       "y": 0,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 501,
-      "color": "#00FBFF"
+      "count": 1,
+      "type": "Portal"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 1,
-      "y": 0,
-      "count": 4,
-      "type": "BlindCurtain"
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 2,
-      "y": 0,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 4,
-      "type": "Blackout"
-    },
-    {
-      "x": 0,
       "y": 1,
       "count": 2,
-      "type": "TwinLink",
-      "linkID": 501,
-      "color": "#00FBFF"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Left"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 1,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
       "count": 2,
-      "type": "Charge"
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
       "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 3,
       "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 2,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 2,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 4,
-      "properties": {
-        "isAbsolute": true
-      }
     }
-  ]
+  ],
+  "phase2": {
+    "width": 2,
+    "height": 6,
+    "startPoint": {
+      "x": 1,
+      "y": 3
+    },
+    "cells": [
+      {
+        "x": 0,
+        "y": 0,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 1,
+        "count": 1,
+        "type": "Charge"
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 3,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 3,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 4,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 4,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 5,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 5,
+        "count": 2,
+        "type": "Normal"
+      }
+    ]
+  }
 }

@@ -1,10 +1,10 @@
 {
   "stageID": 928,
-  "width": 6,
+  "width": 3,
   "height": 4,
   "startPoint": {
-    "x": 3,
-    "y": 0
+    "x": 0,
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -14,28 +14,20 @@
   },
   "cells": [
     {
+      "x": 0,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
       "x": 1,
       "y": 0,
       "count": 1,
       "type": "ShortCircuit",
-      "direction": "Up"
+      "direction": "Left"
     },
     {
       "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "Blackout"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 4,
-      "type": "TwinLink",
-      "linkID": 243,
-      "color": "#34d399"
-    },
-    {
-      "x": 4,
       "y": 0,
       "count": 1,
       "type": "Normal"
@@ -43,12 +35,8 @@
     {
       "x": 0,
       "y": 1,
-      "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 4,
-      "properties": {
-        "isAbsolute": true
-      }
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 1,
@@ -63,43 +51,13 @@
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 1,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
+      "x": 0,
       "y": 2,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
       "y": 2,
       "count": 2,
       "type": "Normal"
@@ -107,39 +65,19 @@
     {
       "x": 0,
       "y": 3,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 243,
-      "color": "#34d399"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 3,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 2,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 5,
-      "y": 3,
-      "count": 1,
       "type": "Normal"
     }
   ]

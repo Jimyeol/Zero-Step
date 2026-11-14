@@ -1,10 +1,10 @@
 {
   "stageID": 693,
-  "width": 4,
-  "height": 5,
+  "width": 3,
+  "height": 3,
   "startPoint": {
-    "x": 0,
-    "y": 2
+    "x": 1,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -28,36 +28,25 @@
     {
       "x": 2,
       "y": 0,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G44"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 5,
-      "type": "TwinLink",
-      "linkID": 216,
-      "color": "#a78bfa"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 4,
-      "type": "TwinLink",
-      "linkID": 216,
-      "color": "#a78bfa"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -65,38 +54,19 @@
       "y": 2,
       "count": 1,
       "type": "ShortCircuit",
-      "direction": "Up"
+      "direction": "Down"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
       "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 3,
       "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G44"
     }
   ]
 }

@@ -117,6 +117,19 @@
       "description": "이 타일에서 나가면 십자방향 타일 숫자가 1 늘어납니다.",
       "instructionText": "1. 십자방향 숫자가 늘어나요\n   충전 타일에서 다른 타일로 이동하면 상하좌우 타일 숫자가 1씩 늘어납니다.\n2. 방금 간 타일과 0인 타일은 제외\n   이동한 다음 타일과 이미 0이 된 타일은 늘어나지 않습니다. 순서·켜기·숨은 타일도 영향을 받지 않습니다.",
       "closeButtonText": "확인"
+    },
+    {
+      "id": "tutorial_stage_451_portal",
+      "stageIndex": 451,
+      "tutorialType": "Portal",
+      "titleKey": "tutorial_portal_title",
+      "descriptionKey": "tutorial_portal_description",
+      "instructionTextKey": "tutorial_portal_instructions",
+      "closeButtonTextKey": "help_close_button",
+      "title": "포탈",
+      "description": "다른 칸을 모두 지운 뒤 마지막으로 포탈에 들어가면 2페이즈가 시작됩니다.",
+      "instructionText": "1. 포탈은 마지막 칸이에요\n   다른 칸을 전부 0으로 만든 뒤 마지막 이동으로만 들어갈 수 있어요.\n2. 두 번째 판이 나와요\n   포탈에 들어가면 새 판이 나타나요. 두 판을 모두 풀어야 스테이지 클리어예요.\n3. 실패하면 처음부터\n   두 번째 판에서 실패하면 첫 번째 판부터 다시 해요.",
+      "closeButtonText": "확인"
     }
   ]
 }

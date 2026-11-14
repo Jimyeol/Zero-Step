@@ -13,6 +13,10 @@ Derived from the verified analysis solver, semantics unchanged for old mechanics
 - Enter effects: Igniter triggers its group; FixedKnot marked entered. Missed-FixedKnot check, then win:
   entered tile count==1 and total==1 (or the TwinLink-group variant present in GameManager.cs).
 - Finger release only matters for TwinLink 'previous tile' exclusion (modelled as an extra action).
+- Portal (count 1): may only be entered as the final move, i.e. when the tile being left has count 1 and
+  every other tile (besides the Portal) is already 0. Entering it is the (phase) clear. A stage with a
+  Portal has a second board in `phase2` (same format, no Portal) that is solved independently from its own
+  startPoint; the stage is cleared when phase 2 is cleared. Boards with a Portal use only Normal tiles.
 """
 import json, sys, time
 
@@ -21,7 +25,12 @@ SC_DIR = {'UP': (0, 1), 'DOWN': (0, -1), 'RIGHT': (1, 0), 'LEFT': (-1, 0)}
 WALL_DIR = {'Up': (0, 1), 'Down': (0, -1), 'Left': (-1, 0), 'Right': (1, 0)}
 CHARGEABLE = {'Normal', 'ShortCircuit', 'CrossBlast', 'TwinLink', 'BlindCurtain', 'Blackout', 'Charge'}
 KNOWN = {'Normal', 'ShortCircuit', 'CrossBlast', 'FixedKnot', 'TwinLink', 'Igniter', 'Hidden',
-         'BlindCurtain', 'Blackout', 'Charge'}
+         'BlindCurtain', 'Blackout', 'Charge', 'Portal'}
+
+
+def portal_enterable(cnt_cur, total, cnt_portal):
+    """Portal rule shared by every model: only the final move may enter it."""
+    return cnt_cur == 1 and total == cnt_cur + cnt_portal
 
 
 class Limit(Exception):
@@ -109,6 +118,7 @@ class Stage:
         self.charge = [self.type[i] == 'Charge' for i in range(self.n)]
         self.chargeable = [self.type[i] in CHARGEABLE for i in range(self.n)]
         self.remote = [i for i in range(self.n) if self.type[i] in ('CrossBlast', 'TwinLink', 'Charge')]
+        self.portal = [self.type[i] == 'Portal' for i in range(self.n)]
 
     def initial(self):
         return (self.start, -1, bytes(self.count0), self.ign_bit[self.start], 0, 0)
@@ -127,6 +137,8 @@ class Stage:
             if self.sc_exit[cur] is not None and self.sc_exit[cur] != n:
                 continue
             if n in self.fk_bit and not (fks & self.fk_bit[n]) and step + 1 != self.fk_order[n]:
+                continue
+            if self.portal[n] and not portal_enterable(cnt[cur], sum(cnt), cnt[n]):
                 continue
             res.append(n)
         return res
@@ -412,6 +424,8 @@ def replay(s, path, release_flags=None):
             order = order if order > 0 else 1
             if step != order:
                 return {'ok': False, 'reason': f'step {k}: FixedKnot needs order {order}'}
+        if tc['type'] == 'Portal' and not portal_enterable(cnt[cur], sum(cnt.values()), cnt[nxt]):
+            return {'ok': False, 'reason': f'step {k}: Portal entered before the final move'}
         # leave effects
         cnt[cur] -= 1
         if cc['type'] == 'TwinLink':
@@ -462,6 +476,15 @@ def replay(s, path, release_flags=None):
 
 
 # ----------------------------------------------------------------------------------------------
+def phase2_stage(s):
+    """The phase-2 board of a Portal stage as a stand-alone stage dict (or None)."""
+    p2 = s.get('phase2')
+    if not p2:
+        return None
+    return {'stageID': s.get('stageID', 0), 'width': p2['width'], 'height': p2['height'],
+            'startPoint': p2['startPoint'], 'config': s.get('config'), 'cells': p2['cells']}
+
+
 def dump_stage(s, path):
     with open(path, 'w') as f:
         json.dump(s, f, indent=2, ensure_ascii=False)

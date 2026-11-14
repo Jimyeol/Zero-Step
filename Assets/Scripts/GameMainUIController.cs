@@ -125,6 +125,7 @@ public class GameMainUIController : MonoBehaviour
     private const string TutorialTypeBlindCurtain = "BlindCurtain";
     private const string TutorialTypeBlackout = "Blackout";
     private const string TutorialTypeCharge = "Charge";
+    private const string TutorialTypePortal = "Portal";
     private const string TutorialTypeBlackOutAlias = "BlackOut";
     private const string ShortCircuitTutorialDemoDirection = "Right";
     private const float TutorialHandFallbackSize = 100f;
@@ -3241,6 +3242,15 @@ public class GameMainUIController : MonoBehaviour
     }
 
     /// <summary>실패했을 때 남은 칸이 몇 개 안 되면 "거의 다 왔어요"를 알려 준다.</summary>
+    /// <summary>포탈 판에서 페이즈가 바뀌었을 때: 진행 바를 새 보드 기준으로 맞추고 "2페이즈" 칩을 띄운다.</summary>
+    public void SetupPortalPhase(int totalCount, int remainingCount, int phase)
+    {
+        initialTileCount = Mathf.Max(1, totalCount);
+        UpdateProgress(remainingCount);
+        if (phase >= 2)
+            ShowCenterChip(T("portal_phase_chip"), 1.4f);
+    }
+
     public void ShowNearMissChip(int remainingTiles)
     {
         ShowCenterChip(T("help_almost", ("n", remainingTiles.ToString())), 1.8f);
@@ -5007,6 +5017,11 @@ public class GameMainUIController : MonoBehaviour
             tutorialAnimationVersion++;
             tutorialAnimationRoutine = StartCoroutine(PlayFourPhaseTutorialLoop(tutorialAnimationVersion, ApplyChargeTutorialState, new[] { 3, 4, 5, 1 }));
         }
+        else if (string.Equals(tutorialType, TutorialTypePortal, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayFourPhaseTutorialLoop(tutorialAnimationVersion, ApplyPortalTutorialState, new[] { 3, 4, 5, 1 }));
+        }
         else
         {
             tutorialAnimationVersion++;
@@ -5037,6 +5052,8 @@ public class GameMainUIController : MonoBehaviour
             return TutorialTypeBlindCurtain;
         if (string.Equals(tutorialType, TutorialTypeCharge, StringComparison.OrdinalIgnoreCase))
             return TutorialTypeCharge;
+        if (string.Equals(tutorialType, TutorialTypePortal, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypePortal;
         if (string.Equals(tutorialType, TutorialTypeBasicPath, StringComparison.OrdinalIgnoreCase))
             return TutorialTypeBasicPath;
 
@@ -5052,7 +5069,8 @@ public class GameMainUIController : MonoBehaviour
             string.Equals(normalized, TutorialTypeIgniter, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, TutorialTypeBlindCurtain, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, TutorialTypeBlackout, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, TutorialTypeCharge, StringComparison.OrdinalIgnoreCase);
+            string.Equals(normalized, TutorialTypeCharge, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, TutorialTypePortal, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsBasicTutorialEntry(HelpTutorialEntryData entry)
@@ -5604,6 +5622,41 @@ public class GameMainUIController : MonoBehaviour
             phase == 1 ? "tutorial_charge_step_enter" :
             phase == 2 ? "tutorial_charge_step_charge" :
             "tutorial_charge_step_return";
+        SetSpecialHint(T(hintKey));
+    }
+
+    /// <summary>포탈: 1-1을 지운 뒤 마지막으로 포탈(◎)에 들어가면 새 판이 나온다.</summary>
+    private void ApplyPortalTutorialState(int phase)
+    {
+        ResetSpecialTutorialBoard();
+
+        Color trail = new Color(0.75f, 0.9f, 1f, 0.82f);
+        Color portal = PortalTile.PortalColor;
+        if (phase < 3)
+        {
+            SetSpecialCell(3, phase >= 1 ? "0" : "1", null, string.Empty, active: true);
+            SetSpecialCell(4, phase >= 2 ? "0" : "1", null, string.Empty, active: true, pulse: phase == 1);
+            SetSpecialCell(5, "1", null, string.Empty, active: phase >= 1, pulse: phase == 2, badge: "◎");
+            if (phase >= 1)
+                ShowSpecialLineBetween(tutorialSpecialTrailA, 3, 4, trail, pulse: phase == 1);
+            if (phase >= 2)
+            {
+                ShowSpecialLineBetween(tutorialSpecialTrailB, 4, 5, portal, pulse: true);
+                ShowSpecialPulseAtCell(tutorialSpecialRevealPulseA, 5, portal, true);
+            }
+        }
+        else
+        {
+            SetSpecialCell(0, "2", null, string.Empty, active: true, pulse: true);
+            SetSpecialCell(1, "1", null, string.Empty, active: true, pulse: true);
+            SetSpecialCell(2, "1", null, string.Empty, active: true, pulse: true);
+            SetSpecialCell(4, "1", null, string.Empty, active: true, pulse: true);
+        }
+
+        string hintKey = phase == 0 ? "tutorial_portal_step_intro" :
+            phase == 1 ? "tutorial_portal_step_clear" :
+            phase == 2 ? "tutorial_portal_step_enter" :
+            "tutorial_portal_step_phase2";
         SetSpecialHint(T(hintKey));
     }
 

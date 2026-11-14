@@ -17,7 +17,7 @@ using UnityEditor;
 /// <summary>
 /// 네온 퍼즐 게임 매니저: JSON 스테이지 로드, 그리드 생성(count==0 스킵), 드래그 경로, Line Renderer, Stage Clear 시 다음 스테이지.
 /// </summary>
-public class GameManager : MonoBehaviour
+public partial class GameManager : MonoBehaviour
 {
     private const float TallStageBottomGameplayBoostMaxNormalized = 0.04f;
     private const float TallStageAspectBoostStart = 1.15f;
@@ -410,7 +410,7 @@ public class GameManager : MonoBehaviour
     public LinkSystem GetLinkSystem() => linkSystem;
     /// <summary>Spotlight 모드: 현재 드래그 중인지.</summary>
     public bool IsDragging => isDragging;
-    public bool CanCheckIdleHintBonus => !stageCleared && !isGameOverSequencePlaying && !isDragging && tiles != null && currentStartTile != null && !isHintPreviewRequestRunning;
+    public bool CanCheckIdleHintBonus => !stageCleared && !isGameOverSequencePlaying && !portalTransitioning && !isDragging && tiles != null && currentStartTile != null && !isHintPreviewRequestRunning;
     public string IdleHintBonusBlockState => $"cleared={stageCleared} gameOver={isGameOverSequencePlaying} dragging={isDragging} hasTiles={tiles != null} hasStart={currentStartTile != null} hintRequest={isHintPreviewRequestRunning}";
     public string LastHintSolverStatus => cachedHintSolverStatus;
     public bool WasLastHintSolverBudgetExhausted => IsHintSolverBudgetExhaustedStatus();
@@ -836,6 +836,7 @@ public class GameManager : MonoBehaviour
         if (hintHaloPairs.Count > 0)
             SyncHintHalos();
         UpdateClayFocus();
+        UpdatePortalOpenState();
     }
 
     /// <summary>점토 테마: 지금 시작할 칸에 외곽선·물결 표시를 붙이고, 짝꿍 연결 표시용 현재 칸을 알린다.</summary>
@@ -844,11 +845,11 @@ public class GameManager : MonoBehaviour
         if (!VisualTheme.IsSoftClay)
             return;
         Tile head = isDragging && currentPath.Count > 0 ? currentPath[currentPath.Count - 1] : currentStartTile;
-        VisualTheme.FocusTile = stageCleared || isGameOverSequencePlaying ? null : head;
+        VisualTheme.FocusTile = stageCleared || isGameOverSequencePlaying || portalTransitioning ? null : head;
 
         if (clayStartMarker == null)
             clayStartMarker = ClayStartMarker.Create(transform);
-        bool idle = !isDragging && !stageCleared && !isGameOverSequencePlaying;
+        bool idle = !isDragging && !stageCleared && !isGameOverSequencePlaying && !portalTransitioning;
         clayStartMarker.SetTarget(idle ? currentStartTile : null);
 
         // 마스코트는 지금 있는 칸(드래그 중이면 길의 머리)에 앉는다. 클리어 직후에는 마지막 칸에서 환호하도록 그대로 둔다.
@@ -872,7 +873,7 @@ public class GameManager : MonoBehaviour
         ProcessPendingBlockNoteQueue();
         UpdateSessionHeartRefillProgress(overlayOpen);
         UpdateFeverTimer(overlayOpen);
-        if (stageCleared || isGameOverSequencePlaying)
+        if (stageCleared || isGameOverSequencePlaying || portalTransitioning)
             return;
 
         CaptureUndoSnapshotIfNeeded();
@@ -1703,6 +1704,14 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
+        if (blockReason == LegalMoveBlockReason.PortalNotLast && hit != null)
+        {
+            gameplayFeedback?.MoveDenied(hit);
+            PlayMoveDeniedSfx();
+            ShowMoveRuleSnackbar($"portal:{hit.X}:{hit.Y}", "snackbar_portal_last");
+            return false;
+        }
+
         if (ShouldLogVerboseStage6Debug())
             DevLog.Log($"[Stage6 이동 거부] reason={blockReason} last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
         return false;
@@ -2393,7 +2402,7 @@ public class GameManager : MonoBehaviour
 
     private bool TryBuildHintFromStoredSolution(HintSearchState initialState, int targetMoveCount)
     {
-        List<Vector2Int> solution = feverActive ? feverSolution : labActive ? labBoard?.solution : StageManager.LoadSolutionMoves(currentStageIndex);
+        List<Vector2Int> solution = feverActive ? feverSolution : labActive ? labBoard?.solution : StageManager.LoadSolutionMoves(currentStageIndex, portalPhase == 2 ? 2 : 1);
         int done = attemptMoves.Count;
         if (solution == null || done >= solution.Count || isDragging)
             return false;
@@ -3157,6 +3166,13 @@ public class GameManager : MonoBehaviour
         if (!ignoreFixedKnotOrder && fixedKnotHit != null && !fixedKnotHit.CanEnter(context.NextStepNumber))
         {
             blockReason = LegalMoveBlockReason.FixedKnotOrder;
+            return false;
+        }
+
+        // 포탈: 떠나는 칸이 1이고 포탈 말고는 그 칸만 남았을 때(=마지막 이동)만 들어갈 수 있다.
+        if (to.GetComponent<PortalTile>() != null && !CanEnterPortalKernel(from, to, getRemainingCount))
+        {
+            blockReason = LegalMoveBlockReason.PortalNotLast;
             return false;
         }
 
@@ -4287,6 +4303,9 @@ public class GameManager : MonoBehaviour
         {
             if (totalRemaining == 1)
             {
+                // 포탈 판 1페이즈: 포탈에 들어가면 클리어 대신 2페이즈 보드가 나온다.
+                if (portalPhase == 1 && currentTile.GetComponent<PortalTile>() != null)
+                    return TryBeginPortalTransition(currentTile);
                 DecreaseTileAndPlayBlockNote(currentTile);
                 RefreshMainUIProgress();
                 BeginStageClear(StageClearTypeLastTileRule, currentTile);
@@ -4413,7 +4432,7 @@ public class GameManager : MonoBehaviour
     {
         // 클리어가 드래그 도중에 일어나면 그 드래그도 한 획으로 센다.
         int strokes = attemptStrokeCount + (isDragging && currentPath.Count > 1 ? 1 : 0);
-        bool oneStroke = strokes == 1 && !attemptUsedUndo;
+        bool oneStroke = strokes == 1 && !attemptUsedUndo && (portalPhase != 2 || portalPhaseOneOneStroke);
         lastClearWasOneStroke = oneStroke;
         StageChallengeKind challenge = StageChallenge.KindFor(currentStageIndex);
         bool challengeMet = IsStageChallengeMet(challenge, oneStroke, finalTile);
@@ -4672,7 +4691,8 @@ public class GameManager : MonoBehaviour
         HiddenLocked,
         ShortCircuitBlocked,
         FixedKnotOrder,
-        TwinLinkPartner
+        TwinLinkPartner,
+        PortalNotLast
     }
 
     private struct BoardFailureAnalysisResult
@@ -4939,7 +4959,7 @@ public class GameManager : MonoBehaviour
 
     private bool CheckAndHandleBoardFailure(Tile clearReferenceTile = null)
     {
-        if (stageCleared || isGameOverSequencePlaying || tiles == null)
+        if (stageCleared || isGameOverSequencePlaying || portalTransitioning || tiles == null)
             return false;
         if (isDragging)
         {
@@ -5287,6 +5307,9 @@ public class GameManager : MonoBehaviour
             return false;
         }
         if (!IsAdjacent(from, to))
+            return false;
+        // 포탈은 마지막 칸이라 거기서 다른 칸으로 나갈 수 없다.
+        if (from.GetComponent<PortalTile>() != null)
             return false;
 
         var shortCircuitHit = to.GetComponent<ShortCircuitTile>();
@@ -5682,7 +5705,7 @@ public class GameManager : MonoBehaviour
 
     private bool CheckAndHandleMissedFixedKnot(int totalPathCount)
     {
-        if (stageCleared || isGameOverSequencePlaying || tiles == null)
+        if (stageCleared || isGameOverSequencePlaying || portalTransitioning || tiles == null)
             return false;
 
         // CrossBlast 감소는 연출 때문에 0.07초 늦게 적용된다. 그 감소로 순서 타일이 지워질 수 있으므로
@@ -5859,6 +5882,8 @@ public class GameManager : MonoBehaviour
         if (mainUI != null && mainUI.IsWaitingForHeartRefill)
             yield return new WaitUntil(() => mainUI == null || !mainUI.IsWaitingForHeartRefill);
 
+        // 포탈 판 2페이즈에서 실패·리셋하면 1페이즈 보드부터 다시 한다.
+        RestorePortalPhaseOneIfNeeded();
         for (int row = 0; row < stageHeight; row++)
         {
             for (int col = 0; col < stageWidth; col++)
@@ -6249,7 +6274,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void ResetCurrentStage()
     {
-        if (isGameOverSequencePlaying || tiles == null) return;
+        if (isGameOverSequencePlaying || portalTransitioning || tiles == null) return;
         // 피버·연구소의 즉석 보드 리셋은 하트·스테이지 통계와 무관하다.
         if (!feverActive && !labActive)
         {
@@ -6337,6 +6362,8 @@ public class GameManager : MonoBehaviour
         isDragging = false;
         SetNeonTrailEmitting(false);
 
+        // 포탈 판 2페이즈에서 실패·리셋하면 1페이즈 보드부터 다시 한다.
+        RestorePortalPhaseOneIfNeeded();
         for (int row = 0; row < stageHeight; row++)
         {
             for (int col = 0; col < stageWidth; col++)
@@ -6523,6 +6550,7 @@ public class GameManager : MonoBehaviour
     /// <summary>즉석 생성 보드(피버·연구소)를 화면에 올린다. 스테이지 번호·저장·별·통계는 건드리지 않는다.</summary>
     private void LoadGeneratedBoard(StageData data, string reason)
     {
+        SetupPortalForLoadedStage(null);
         ResetActiveDragState(reason);
         totalStepsCommitted = 0;
         ClearTiles();
@@ -7102,6 +7130,7 @@ public class GameManager : MonoBehaviour
     private void ApplyLoadedStageData(StageData data, string boardVersionReason, bool resetHeartsForNewStage = true)
     {
         UpdateVerboseStage6DebugState(data);
+        SetupPortalForLoadedStage(data);
 
         ResetActiveDragState(boardVersionReason);
         totalStepsCommitted = 0;
@@ -7937,6 +7966,8 @@ public class GameManager : MonoBehaviour
                 }
                 if (cell.type == "Charge")
                     tileObj.AddComponent<ChargeTile>();
+                if (cell.type == "Portal")
+                    activePortal = tileObj.AddComponent<PortalTile>();
                 tile.SetNumber(cell.count);
                 if (pendingFixedKnot != null)
                     pendingFixedKnot.Setup(pendingFixedKnotTargetOrder, pendingFixedKnotIsAbsolute);
@@ -8300,9 +8331,12 @@ public class GameManager : MonoBehaviour
         return tile != null ? tile.CurrentNumber : -1;
     }
 
+    public int AutomationPortalPhase => portalPhase;
+    public bool AutomationPortalTransitioning => portalTransitioning;
+
     public bool AutomationBeginDrag()
     {
-        if (stageCleared || isGameOverSequencePlaying || currentStartTile == null || !CanEnterTile(currentStartTile))
+        if (stageCleared || isGameOverSequencePlaying || portalTransitioning || currentStartTile == null || !CanEnterTile(currentStartTile))
             return false;
 
         ClearMoveRuleSnackbarState();

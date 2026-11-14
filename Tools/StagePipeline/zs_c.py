@@ -16,6 +16,9 @@ def build():
 
 def block(sid, s, limit=2_500_000, norelease=False, bo_deadline=None, plainwin=False):
     S = zs.Stage(s, bo_deadline=bo_deadline, norelease=norelease, plainwin=plainwin)
+    # The C solver does not model the Portal rule; Portal boards are tiny Normal-only boards solved with zs.analyze.
+    if any(S.portal):
+        raise ValueError(f'{sid}: Portal boards must be solved with zs.analyze, not the C solver')
     assert S.n <= 60 and len(S.fk) + len(S.dl) <= 16
     assert all(b < 256 for b in S.hidden_bit)
     out = [f'STAGE {sid} {S.n} {S.start} {(1 if norelease else 0) | (2 if plainwin else 0)} {limit}']

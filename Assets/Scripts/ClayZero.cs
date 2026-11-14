@@ -136,6 +136,53 @@ public sealed class ClayZero : MonoBehaviour
         return true;
     }
 
+    private Tile suckTile;
+    private float suckStart = -10f;
+    private Vector3 suckFrom;
+    private float popStart = -10f;
+
+    /// <summary>포탈로 들어갔을 때: 소용돌이를 그리며 포탈 가운데로 빨려 들어가 사라진다. EmergeAt 전까지 보이지 않는다.</summary>
+    public void SuckInto(Tile portal)
+    {
+        suckTile = portal;
+        suckStart = Time.unscaledTime;
+        suckFrom = position;
+        guideActive = false;
+    }
+
+    /// <summary>2페이즈 보드의 시작 칸에서 퐁 하고 다시 나타난다.</summary>
+    public void EmergeAt(Tile tile)
+    {
+        suckTile = null;
+        target = tile;
+        placed = false;
+        alpha = 0f;
+        popStart = Time.unscaledTime;
+    }
+
+    private bool UpdateSuck(float now)
+    {
+        if (suckTile == null)
+            return false;
+        float t = Mathf.Clamp01((now - suckStart) / PortalTile.SuckSeconds);
+        if (t >= 1f || !TryGetPerch(suckTile, out _, out float size, out _, out _, out SpriteRenderer tileRenderer))
+        {
+            Apply(0f, position, 1f, 1f, 0f, 1f, body.sortingOrder);
+            return true;
+        }
+        Vector3 center = suckTile.transform.position + new Vector3(0f, 0f, -0.06f);
+        Vector3 offset = suckFrom - center;
+        float turn = t * t * 540f * Mathf.Deg2Rad;
+        offset = new Vector3(offset.x * Mathf.Cos(turn) - offset.y * Mathf.Sin(turn), offset.x * Mathf.Sin(turn) + offset.y * Mathf.Cos(turn), offset.z);
+        position = center + offset * (1f - t * t);
+        float shrink = 1f - t;
+        float spriteWidth = body.sprite != null ? Mathf.Max(0.0001f, body.sprite.bounds.size.x) : 1f;
+        Apply(1f, position, size / spriteWidth * shrink, size / spriteWidth * shrink, t * 720f, 1f, tileRenderer.sortingOrder + SortingAboveTile);
+        body.sortingLayerID = tileRenderer.sortingLayerID;
+        face.sortingLayerID = tileRenderer.sortingLayerID;
+        return true;
+    }
+
     /// <summary>판을 깼을 때: 두 번 뛰어오르며 한 바퀴 돈다.</summary>
     public void Cheer() => cheerStart = Time.unscaledTime;
 
@@ -145,6 +192,8 @@ public sealed class ClayZero : MonoBehaviour
     private void LateUpdate()
     {
         float now = Time.unscaledTime;
+        if (UpdateSuck(now))
+            return;
         if (guideActive && UpdateGuide(now))
             return;
         SpriteRenderer tileRenderer = target != null ? target.GetComponent<SpriteRenderer>() : null;
@@ -219,6 +268,15 @@ public sealed class ClayZero : MonoBehaviour
         }
         float blink = (now - blinkStart) / 0.12f;
         float eye = blink >= 0f && blink < 1f ? Mathf.Abs(blink * 2f - 1f) * 0.85f + 0.15f : 1f;
+
+        // 포탈에서 나왔을 때: 0에서 살짝 넘치게 커졌다가 제 크기로.
+        float pop = (now - popStart) / 0.32f;
+        if (pop >= 0f && pop < 1f)
+        {
+            float back = 1f + 2.2f * Mathf.Pow(pop - 1f, 3f) + 1.2f * Mathf.Pow(pop - 1f, 2f);
+            squashX *= back;
+            squashY *= back;
+        }
 
         float spriteWidth = body.sprite != null ? Mathf.Max(0.0001f, body.sprite.bounds.size.x) : 1f;
         Apply(alpha, position, size / spriteWidth * squashX, size / spriteWidth * squashY, spin, eye, tileRenderer.sortingOrder + SortingAboveTile);
