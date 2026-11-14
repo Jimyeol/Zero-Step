@@ -71,8 +71,7 @@ public partial class GameManager
         portalTile.GetComponent<PortalTile>()?.PlaySuck();
         clayZero?.SuckInto(portalTile);
         gameplayFeedback?.PortalEntered(portalTile);
-        if (comboMilestoneClip != null)
-            PlayEventSfx(comboMilestoneClip, 0.9f);
+        PlayEventSfx(portalSuckClip, 0.85f);
         DevLog.Log($"[포탈] stage={currentStageIndex} 1페이즈 완료 → 2페이즈");
 
         yield return new WaitForSecondsRealtime(PortalTile.SuckSeconds + PortalEmergeDelay);
@@ -82,7 +81,7 @@ public partial class GameManager
 
         LoadPortalBoard(stageData.CreatePhase2Stage(), 2, "portal_phase2");
         PlayStageStartVisuals();
-        PlayNewStageSfx();
+        PlayEventSfx(portalEmergeClip, 0.85f);
         clayZero?.EmergeAt(currentStartTile);
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();

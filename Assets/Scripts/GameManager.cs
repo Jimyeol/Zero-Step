@@ -350,6 +350,15 @@ public partial class GameManager : MonoBehaviour
     private AudioSource comboOctaveAudioSource;
     private AudioSource failAudioSource;
     private AudioClip comboMilestoneClip;
+    // 특수 타일·피버·포탈 효과음(칸 소리와 같은 음계, Tools/DevScripts/make_sfx.py)
+    private AudioClip twinClip;
+    private AudioClip chargeClip;
+    private AudioClip revealClip;
+    private AudioClip fixedKnotClip;
+    private AudioClip blackoutClip;
+    private AudioClip feverStartClip;
+    private AudioClip portalSuckClip;
+    private AudioClip portalEmergeClip;
     private AudioClip perfectClip;
     private AudioClip moveDeniedClip;
     private float lastClearSfxTime = -10f;
@@ -958,6 +967,14 @@ public partial class GameManager : MonoBehaviour
         comboMilestoneClip = Resources.Load<AudioClip>("Sounds/sfx_combo_milestone");
         perfectClip = Resources.Load<AudioClip>("Sounds/sfx_perfect");
         moveDeniedClip = Resources.Load<AudioClip>("Sounds/sfx_move_denied");
+        twinClip = Resources.Load<AudioClip>("Sounds/sfx_twin");
+        chargeClip = Resources.Load<AudioClip>("Sounds/sfx_charge");
+        revealClip = Resources.Load<AudioClip>("Sounds/sfx_reveal");
+        fixedKnotClip = Resources.Load<AudioClip>("Sounds/sfx_fixed_knot");
+        blackoutClip = Resources.Load<AudioClip>("Sounds/sfx_blackout");
+        feverStartClip = Resources.Load<AudioClip>("Sounds/sfx_fever_start");
+        portalSuckClip = Resources.Load<AudioClip>("Sounds/sfx_portal_suck");
+        portalEmergeClip = Resources.Load<AudioClip>("Sounds/sfx_portal_emerge");
         ResolveRuntimeAudioClips();
         BuildBlockNoteClipMap();
         BuildMelodyPoolsIfNeeded();
@@ -1723,7 +1740,10 @@ public partial class GameManager : MonoBehaviour
         var twinLink = last.GetComponent<TwinLinkTile>();
         if (twinLink != null)
         {
+            int beforeTwin = GetTotalRemainingCount();
             twinLink.ConsumePartners(DecreaseTileAndPlayBlockNote, partner => ShouldExcludeTwinLinkPartnerFromStep(twinLink, partner, hit));
+            if (GetTotalRemainingCount() < beforeTwin)
+                PlayEventSfx(twinClip, 0.6f);
             RefreshMainUIProgress();
         }
         NotifyFixedKnotLeft(last);
@@ -1759,6 +1779,7 @@ public partial class GameManager : MonoBehaviour
 
         if (charged > 0)
         {
+            PlayEventSfx(chargeClip, 0.6f);
             IncrementBoardVersion("charge");
             RefreshMainUIProgress();
         }
@@ -1795,14 +1816,20 @@ public partial class GameManager : MonoBehaviour
         {
             blackout.OnStepped();
             if (!blackoutQuestionFlipPlayed)
+            {
                 gameplayFeedback?.Blackout(hit);
+                PlayEventSfx(blackoutClip, 0.7f);
+            }
             TriggerBlackoutQuestionFlip();
         }
         TryTriggerIgniter(hit);
         NotifyTrailTileStepped(hit);
         NotifyFixedKnotsUpdateVisual(totalPathCount);
         if (fixedKnotHit != null && fixedKnotHit.IsOrderConstraintActive)
+        {
             fixedKnotHit.OnSteppedCorrectly();
+            PlayEventSfx(fixedKnotClip, 0.6f);
+        }
         if (CheckAndHandleMissedFixedKnot(totalPathCount))
             return;
         CheckVictoryCondition(hit);
@@ -2058,7 +2085,11 @@ public partial class GameManager : MonoBehaviour
                     pendingHiddenActivations++;
         }
         if (pendingHiddenActivations > 0)
+        {
             RegisterPendingBoardMutation("hidden_relay", pendingHiddenActivations);
+            if (!instant)
+                PlayEventSfx(revealClip, 0.6f);
+        }
         if (ShouldLogVerboseStage6Debug())
         {
             List<string> hiddenSummaries = new List<string>();
@@ -6530,6 +6561,7 @@ public partial class GameManager : MonoBehaviour
         mainUI?.BeginFeverHud();
         FirebaseBootstrap.LogEvent("fever_start", new Dictionary<string, object> { { "after_stage", completedStageIndex } });
         LoadNextFeverBoard();
+        PlayEventSfx(feverStartClip, 0.8f);
     }
 
     private void LoadNextFeverBoard()
