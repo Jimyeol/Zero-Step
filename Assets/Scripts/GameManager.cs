@@ -526,6 +526,7 @@ public class GameManager : MonoBehaviour
         {
             stageHintUsed = false;
             stageRetried = false;
+            stageFailStreak = 0;
         }
         attemptStrokeCount = 0;
         attemptUsedUndo = false;
@@ -5678,7 +5679,14 @@ public class GameManager : MonoBehaviour
                 { "reason", reason }
             });
         else
+        {
             TrackStageFailed(reason);
+            stageFailStreak++;
+            // 거의 다 풀었는데 실패했으면 그걸 알려 준다(다시 해 볼 마음이 들게).
+            int remainingTiles = CountActiveTileCount();
+            if (remainingTiles > 0 && remainingTiles <= NearMissTileCount)
+                mainUI?.ShowNearMissChip(remainingTiles);
+        }
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
@@ -5815,7 +5823,15 @@ public class GameManager : MonoBehaviour
 
         gameOverFocusTile = null;
         isGameOverSequencePlaying = false;
+        // 같은 판에서 여러 번 실패하면 게임이 먼저 도와준다(2번째: 무료 힌트, 4번째: 무료 스킵).
+        if (!labActive && !feverActive)
+            mainUI?.OfferStuckHelp(currentStageIndex, stageFailStreak);
     }
+
+    // ===== 막혔을 때 먼저 도와주기 =====
+    private const int NearMissTileCount = 3;
+    private int stageFailStreak;
+    public int StageFailStreak => stageFailStreak;
 
     /// <summary>
     /// 실패 원인 설명: 원인 타일은 맥동(CheckAndHandleBoardFailure에서 시작), 나머지 타일은 어둡게.
@@ -8169,6 +8185,9 @@ public class GameManager : MonoBehaviour
     public bool AutomationGameOverPlaying => isGameOverSequencePlaying;
     public bool AutomationIsDragging => isDragging;
     public bool AutomationHasPendingMutations => pendingBoardMutationCount > 0;
+    /// <summary>테스트용: 지금 판을 실패 처리한다(하트·연출·도움 장치 모두 실제 흐름 그대로).</summary>
+    public bool AutomationForceGameOver(string reason = "automation") => BeginGameOverSequence(reason, currentStartTile);
+
     /// <summary>테스트용: 진행 위치(frontier)를 직접 정한다.</summary>
     public void AutomationSetFrontier(int stageIndex) => stageFrontier = Mathf.Clamp(stageIndex, 1, FinalEndingProgressStore.FinalStageIndex);
     public bool AutomationFeverActive => feverActive;

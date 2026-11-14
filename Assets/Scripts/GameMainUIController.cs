@@ -1490,8 +1490,15 @@ public class GameMainUIController : MonoBehaviour
         double value = FirebaseBootstrap.GetRemoteDouble(
             FirebaseBootstrap.RcIdleHintBonusDelaySeconds,
             IdleHintBonusDelaySeconds);
-        return Mathf.Max(5f, (float)value);
+        float delay = Mathf.Max(5f, (float)value);
+        // 301판부터는 판이 어려워지므로 무료 힌트를 더 빨리 준다.
+        if (currentStageIndexForUI > LateStageThreshold)
+            delay = Mathf.Min(delay, LateStageIdleHintBonusDelaySeconds);
+        return delay;
     }
+
+    private const int LateStageThreshold = 300;
+    private const float LateStageIdleHintBonusDelaySeconds = 25f;
 
     private float GetStageTransitionInterstitialCooldownElapsedSeconds()
     {
@@ -1740,6 +1747,18 @@ public class GameMainUIController : MonoBehaviour
         skipConfirmDeadline = -1f;
 
         RefillAssistChargesFromElapsedTime();
+        // 같은 판에서 4번 실패하면 그 판의 스킵은 무료다(충전·광고를 쓰지 않는다).
+        if (freeSkipStage > 0 && freeSkipStage == gm.CurrentStageIndex && !gm.IsLabActive)
+        {
+            int skippedStage = freeSkipStage;
+            if (gm.LoadNextStageImmediate())
+            {
+                freeSkipStage = 0;
+                StopSkipButtonBounce();
+                FirebaseBootstrap.LogEvent("help_free_skip_use", new Dictionary<string, object> { { "stage_index", skippedStage } });
+            }
+            return;
+        }
         if (skipCharges > 0)
         {
             if (gm.LoadNextStageImmediate())
@@ -3044,6 +3063,12 @@ public class GameMainUIController : MonoBehaviour
     {
         idleStageHintBonus = 0;
         idleHintBonusGrantedThisStage = false;
+        // 막혀서 받은 무료 힌트는 다시 시작해도 그 판에서는 남아 있다.
+        if (stuckHintStage > 0 && stuckHintStage == currentStageIndexForUI)
+        {
+            idleStageHintBonus = MaxIdleStageHintBonus;
+            idleHintBonusGrantedThisStage = true;
+        }
         idleHintBonusSuppressedUntilActivity = false;
         idleHintBonusCheckRunning = false;
         lastGameplayActivityTime = Time.unscaledTime;
@@ -3165,6 +3190,68 @@ public class GameMainUIController : MonoBehaviour
         PlayIdleHintBonusBounce();
     }
 
+    // ===== 막혔을 때 먼저 도와주기 =====
+    // 같은 판에서 2번째 실패: 무료 힌트 1개(그 판에서 쓸 때까지 남음). 4번째 실패: 그 판의 스킵이 무료.
+    private int stuckHintStage;
+    private int freeSkipStage;
+    private IVisualElementScheduledItem skipBounceItem;
+
+    public void OfferStuckHelp(int stageIndex, int failStreak)
+    {
+        if (stageIndex <= 0)
+            return;
+        if (failStreak == 2 && idleStageHintBonus <= 0)
+        {
+            stuckHintStage = stageIndex;
+            idleStageHintBonus = MaxIdleStageHintBonus;
+            idleHintBonusGrantedThisStage = true;
+            RefreshAssistButtons();
+            ShowCenterChip(T("help_free_hint"), 2.4f, true);
+            PlayIdleHintBonusBounce();
+            FirebaseBootstrap.LogEvent("help_free_hint_granted", new Dictionary<string, object> { { "stage_index", stageIndex } });
+        }
+        else if (failStreak == 4 && freeSkipStage != stageIndex)
+        {
+            freeSkipStage = stageIndex;
+            ShowCenterChip(T("help_free_skip"), 2.6f, true);
+            PlaySkipButtonBounce();
+            FirebaseBootstrap.LogEvent("help_free_skip_granted", new Dictionary<string, object> { { "stage_index", stageIndex } });
+        }
+    }
+
+    /// <summary>실패했을 때 남은 칸이 몇 개 안 되면 "거의 다 왔어요"를 알려 준다.</summary>
+    public void ShowNearMissChip(int remainingTiles)
+    {
+        ShowCenterChip(T("help_almost", ("n", remainingTiles.ToString())), 1.8f);
+    }
+
+    public bool HasFreeSkipForStage(int stageIndex) => freeSkipStage > 0 && freeSkipStage == stageIndex;
+    public bool HasStuckHintForStage(int stageIndex) => stuckHintStage > 0 && stuckHintStage == stageIndex && idleStageHintBonus > 0;
+
+    private void PlaySkipButtonBounce()
+    {
+        if (skipButton == null)
+            return;
+        StopSkipButtonBounce();
+        int beat = 0;
+        skipBounceItem = skipButton.schedule.Execute(() =>
+        {
+            if (skipButton == null)
+                return;
+            int phase = beat++ % 6;
+            float scale = phase == 0 ? 1.16f : phase == 1 ? 0.96f : 1f;
+            skipButton.style.scale = new StyleScale(new Scale(new Vector3(scale, scale, 1f)));
+        }).Every(110);
+    }
+
+    private void StopSkipButtonBounce()
+    {
+        skipBounceItem?.Pause();
+        skipBounceItem = null;
+        if (skipButton != null)
+            skipButton.style.scale = new StyleScale(new Scale(Vector3.one));
+    }
+
     private void PlayIdleHintBonusBounce()
     {
         if (hintButton == null)
@@ -3223,6 +3310,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void ConsumeIdleStageHintBonus()
     {
+        stuckHintStage = 0;
         idleStageHintBonus = Mathf.Max(0, idleStageHintBonus - 1);
         if (idleStageHintBonus <= 0)
             StopIdleHintBonusBounce();
@@ -8609,6 +8697,8 @@ public class GameMainUIController : MonoBehaviour
         StopStageSnackbarPlayback();
         ResetTransientStageClearVisuals();
         currentStageIndexForUI = Mathf.Max(1, stageIndex);
+        if (freeSkipStage != currentStageIndexForUI)
+            StopSkipButtonBounce();
         ResetIdleHintBonusForCurrentStage();
 
         // STAGE / 스테이지 번호 텍스트 갱신

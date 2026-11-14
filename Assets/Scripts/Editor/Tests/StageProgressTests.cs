@@ -212,6 +212,61 @@ public class StageProgressTests
         Assert.IsEmpty(failures, string.Join("\n", failures));
     }
 
+    [UnityTest, Timeout(600000)]
+    public IEnumerator StuckHelpGivesFreeHintThenFreeSkip()
+    {
+        if (!EditorApplication.isPlaying)
+        {
+            EditorSceneManager.OpenScene(ScenePath);
+            yield return new EnterPlayMode();
+        }
+        var gm = Object.FindFirstObjectByType<GameManager>();
+        var ui = Object.FindFirstObjectByType<GameMainUIController>();
+        Assert.IsNotNull(gm);
+        Assert.IsNotNull(ui);
+        yield return Wait(2f);
+        var failures = new List<string>();
+        gm.AutomationSetFrontier(1);
+        gm.LoadStageImmediateForDebug(330);
+        yield return Settle(gm, ui);
+        ui.ResetHeartsForNewStage();
+        const int stage = 330;
+
+        for (int fail = 1; fail <= 4; fail++)
+        {
+            Check(failures, gm.AutomationForceGameOver(), $"fail {fail}: game over did not start");
+            float wait = Time.realtimeSinceStartup;
+            while (gm.AutomationGameOverPlaying && Time.realtimeSinceStartup - wait < 8f)
+                yield return null;
+            yield return Wait(0.2f);
+            Check(failures, gm.StageFailStreak == fail, $"fail streak {gm.StageFailStreak} (expected {fail})");
+            bool hint = ui.HasStuckHintForStage(stage);
+            bool skip = ui.HasFreeSkipForStage(stage);
+            if (fail == 1)
+                Check(failures, !hint && !skip, "help given after a single fail");
+            if (fail >= 2)
+                Check(failures, hint, $"free hint missing after fail {fail}");
+            if (fail == 3)
+                Check(failures, !skip, "free skip given before the 4th fail");
+            if (fail == 4)
+                Check(failures, skip, "free skip missing after the 4th fail");
+        }
+
+        // 무료 스킵: 확인을 위해 두 번 누르면 충전을 쓰지 않고 다음 판으로.
+        var skipCharges = typeof(GameMainUIController).GetField("skipCharges", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        int chargesBefore = (int)skipCharges.GetValue(ui);
+        var onSkip = typeof(GameMainUIController).GetMethod("OnSkipClicked", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        onSkip.Invoke(ui, null);
+        onSkip.Invoke(ui, null);
+        yield return Settle(gm, ui);
+        Check(failures, gm.CurrentStageIndex == stage + 1, $"free skip did not advance (stage {gm.CurrentStageIndex})");
+        Check(failures, (int)skipCharges.GetValue(ui) == chargesBefore, "free skip used a skip charge");
+        Check(failures, gm.StageFailStreak == 0 && !ui.HasFreeSkipForStage(stage + 1) && !ui.HasStuckHintForStage(stage + 1), "help carried over to the next stage");
+
+        yield return new ExitPlayMode();
+        Assert.IsEmpty(failures, string.Join("\n", failures));
+    }
+
     /// <summary>연구소를 나갔다가 저장된 판 번호를 labStage로 바꿔 다시 들어간다.</summary>
     private static IEnumerator EnterLabAt(GameManager gm, GameMainUIController ui, int stageToReturnTo, int labStage, List<string> failures)
     {
