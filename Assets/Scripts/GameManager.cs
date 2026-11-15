@@ -349,9 +349,13 @@ public partial class GameManager : MonoBehaviour
     private AudioSource eventAudioSource;
     private AudioSource comboOctaveAudioSource;
     private AudioSource failAudioSource;
-    private AudioClip comboMilestoneClip;
+    // 콤보 5·10 등: 방금 울린 멜로디 음 위의 화음(근음+5도+옥타브)으로 울려 멜로디와 부딪치지 않게 한다.
+    private readonly Dictionary<string, AudioClip> chordClipMap = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<AudioClip, string> blockNoteKeyByClip = new Dictionary<AudioClip, string>();
+    private string lastPlayedNoteKey = "c";
+    // 피버 타임: 칸을 없앨 때 피아노 멜로디 대신 "뿅"(배경음악과 같은 가단조 5음계, 콤보가 쌓일수록 높아짐)
+    private readonly AudioClip[] feverPopClips = new AudioClip[10];
     // 특수 타일·피버·포탈 효과음(칸 소리와 같은 음계, Tools/DevScripts/make_sfx.py)
-    private AudioClip twinClip;
     private AudioClip chargeClip;
     private AudioClip revealClip;
     private AudioClip fixedKnotClip;
@@ -964,10 +968,12 @@ public partial class GameManager : MonoBehaviour
         comboOctaveAudioSource.pitch = 2f;
         comboOctaveAudioSource.playOnAwake = false;
         failAudioSource.playOnAwake = false;
-        comboMilestoneClip = Resources.Load<AudioClip>("Sounds/sfx_combo_milestone");
+        foreach (string key in new[] { "c", "cs", "d", "ds", "e", "f", "fs", "g", "gs", "a", "as", "b", "co" })
+            chordClipMap[key] = Resources.Load<AudioClip>("Sounds/sfx_chord_" + key);
+        for (int i = 0; i < feverPopClips.Length; i++)
+            feverPopClips[i] = Resources.Load<AudioClip>("Sounds/sfx_fever_pop_" + i);
         perfectClip = Resources.Load<AudioClip>("Sounds/sfx_perfect");
         moveDeniedClip = Resources.Load<AudioClip>("Sounds/sfx_move_denied");
-        twinClip = Resources.Load<AudioClip>("Sounds/sfx_twin");
         chargeClip = Resources.Load<AudioClip>("Sounds/sfx_charge");
         revealClip = Resources.Load<AudioClip>("Sounds/sfx_reveal");
         fixedKnotClip = Resources.Load<AudioClip>("Sounds/sfx_fixed_knot");
@@ -1056,7 +1062,10 @@ public partial class GameManager : MonoBehaviour
     private void RegisterBlockNoteClip(string noteKey, AudioClip clip)
     {
         if (!string.IsNullOrEmpty(noteKey) && clip != null)
+        {
             blockNoteClipMap[noteKey] = clip;
+            blockNoteKeyByClip[clip] = noteKey;
+        }
     }
 
     private void BuildMelodyPoolsIfNeeded()
@@ -1231,8 +1240,9 @@ public partial class GameManager : MonoBehaviour
             feverPops++;
             mainUI?.UpdateFeverHud(FeverSecondsLeft, feverPops, true);
         }
-        if (ClayComboPopup.IsMilestone(strokeComboPops))
-            PlayEventSfx(comboMilestoneClip, 0.75f);
+        if (ClayComboPopup.IsMilestone(strokeComboPops) && !feverActive
+            && chordClipMap.TryGetValue(lastPlayedNoteKey, out AudioClip chord))
+            PlayEventSfx(chord, 0.8f);
         gameplayFeedback?.ComboPop(tile, strokeComboPops);
     }
 
@@ -1248,6 +1258,14 @@ public partial class GameManager : MonoBehaviour
 
         string nextNoteKey = activeMelody[activeMelodyIndex];
         activeMelodyIndex = (activeMelodyIndex + 1) % activeMelody.Length;
+        // 피버 타임에는 피아노 멜로디 대신 "뿅"이 나고, 콤보가 쌓일수록 음이 올라간다.
+        if (feverActive)
+        {
+            AudioClip pop = feverPopClips[Mathf.Clamp(strokeComboPops, 0, feverPopClips.Length - 1)];
+            if (pop != null)
+                pendingBlockNoteQueue.Enqueue(pop);
+            return;
+        }
 
         if (blockNoteClipMap.TryGetValue(nextNoteKey, out AudioClip clip) && clip != null)
             pendingBlockNoteQueue.Enqueue(clip);
@@ -1266,7 +1284,9 @@ public partial class GameManager : MonoBehaviour
             if (clip == null)
                 continue;
             blockNoteAudioSource.PlayOneShot(clip, blockNoteVolume);
-            if (strokeComboPops >= ComboOctaveFrom && comboOctaveAudioSource != null)
+            if (blockNoteKeyByClip.TryGetValue(clip, out string playedKey))
+                lastPlayedNoteKey = playedKey;
+            if (!feverActive && strokeComboPops >= ComboOctaveFrom && comboOctaveAudioSource != null)
             {
                 float layer = Mathf.Min(0.12f + 0.04f * (strokeComboPops - ComboOctaveFrom), 0.4f);
                 comboOctaveAudioSource.PlayOneShot(clip, blockNoteVolume * layer);
@@ -1293,7 +1313,49 @@ public partial class GameManager : MonoBehaviour
     {
         if (clip == null || eventAudioSource == null)
             return;
+        // 같은 소리가 0.08초 안에 또 오면(폭발 연쇄 등) 하나로 합친다.
+        float now = Time.unscaledTime;
+        if (lastEventSfxTime.TryGetValue(clip, out float last) && now - last < EventSfxMergeSeconds)
+            return;
+        lastEventSfxTime[clip] = now;
         eventAudioSource.PlayOneShot(clip, Mathf.Clamp01(eventSfxVolume * volumeMultiplier));
+    }
+
+    private const float EventSfxMergeSeconds = 0.08f;
+    private readonly Dictionary<AudioClip, float> lastEventSfxTime = new Dictionary<AudioClip, float>();
+    private Coroutine melodyDuckRoutine;
+
+    /// <summary>큰 소리(실패·깜깜·포탈)가 날 때 멜로디를 잠깐 작게 해서 겹치지 않게 한다.</summary>
+    private void DuckMelody(float seconds, float level = 0.3f)
+    {
+        if (blockNoteAudioSource == null)
+            return;
+        if (melodyDuckRoutine != null)
+            StopCoroutine(melodyDuckRoutine);
+        melodyDuckRoutine = StartCoroutine(DuckMelodyRoutine(seconds, level));
+    }
+
+    private IEnumerator DuckMelodyRoutine(float seconds, float level)
+    {
+        SetMelodyVolume(level);
+        yield return new WaitForSecondsRealtime(seconds);
+        float elapsed = 0f;
+        while (elapsed < 0.2f)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            SetMelodyVolume(Mathf.Lerp(level, 1f, elapsed / 0.2f));
+            yield return null;
+        }
+        SetMelodyVolume(1f);
+        melodyDuckRoutine = null;
+    }
+
+    private void SetMelodyVolume(float v)
+    {
+        if (blockNoteAudioSource != null)
+            blockNoteAudioSource.volume = v;
+        if (comboOctaveAudioSource != null)
+            comboOctaveAudioSource.volume = v;
     }
 
     // 실패음은 원래 1.5초라 여러 번 실패하면 피곤하다. 앞부분만 들려주고 0.45~0.65초에 걸쳐 줄인다.
@@ -1311,6 +1373,7 @@ public partial class GameManager : MonoBehaviour
         }
         if (failSfxFadeRoutine != null)
             StopCoroutine(failSfxFadeRoutine);
+        DuckMelody(0.5f, 0.2f);
         failAudioSource.Stop();
         failAudioSource.clip = failClip;
         failAudioSource.volume = eventSfxVolume;
@@ -1483,6 +1546,9 @@ public partial class GameManager : MonoBehaviour
 
         if (pointerDown)
         {
+            // 포탈 직후 화면이 옮겨 가는 동안에는 새 드래그를 시작하지 않는다(손가락 아래 판이 움직인다).
+            if (portalCameraGliding)
+                return;
             Tile hit = GetTileAtScreen(screenPoint);
             if (hit != currentStartTile || !CanEnterTile(hit))
                 return;
@@ -1740,10 +1806,8 @@ public partial class GameManager : MonoBehaviour
         var twinLink = last.GetComponent<TwinLinkTile>();
         if (twinLink != null)
         {
-            int beforeTwin = GetTotalRemainingCount();
+            // 짝꿍이 같이 줄면 그 칸들의 멜로디 음이 이어서 울린다(따로 효과음을 덧붙이지 않는다).
             twinLink.ConsumePartners(DecreaseTileAndPlayBlockNote, partner => ShouldExcludeTwinLinkPartnerFromStep(twinLink, partner, hit));
-            if (GetTotalRemainingCount() < beforeTwin)
-                PlayEventSfx(twinClip, 0.6f);
             RefreshMainUIProgress();
         }
         NotifyFixedKnotLeft(last);
@@ -1819,6 +1883,7 @@ public partial class GameManager : MonoBehaviour
             {
                 gameplayFeedback?.Blackout(hit);
                 PlayEventSfx(blackoutClip, 0.7f);
+                DuckMelody(0.6f);
             }
             TriggerBlackoutQuestionFlip();
         }
@@ -6549,6 +6614,12 @@ public partial class GameManager : MonoBehaviour
     {
         currentStageIndex = AdvanceProgressAfter(completedStageIndex);
         SaveStageProgress();
+        BeginFeverRun(completedStageIndex);
+    }
+
+    /// <summary>피버 보드를 시작한다(진행도는 건드리지 않는다). 끝나면 currentStageIndex 판으로 돌아온다.</summary>
+    private void BeginFeverRun(int completedStageIndex)
+    {
         feverActive = true;
         feverEnding = false;
         feverPops = 0;
@@ -6562,6 +6633,7 @@ public partial class GameManager : MonoBehaviour
         FirebaseBootstrap.LogEvent("fever_start", new Dictionary<string, object> { { "after_stage", completedStageIndex } });
         LoadNextFeverBoard();
         PlayEventSfx(feverStartClip, 0.8f);
+        StartFeverMusic();
     }
 
     private void LoadNextFeverBoard()
@@ -6855,6 +6927,7 @@ public partial class GameManager : MonoBehaviour
         feverEnding = false;
         feverSolution = null;
         isGameOverSequencePlaying = false;
+        StopFeverMusic(0.25f);
         mainUI?.CancelFeverHud();
     }
 
@@ -6866,8 +6939,10 @@ public partial class GameManager : MonoBehaviour
         if (overlayOpen)
         {
             feverEndTime += Time.unscaledDeltaTime;
+            SetFeverMusicPaused(true);
             return;
         }
+        SetFeverMusicPaused(false);
         mainUI?.SetFeverTimeFraction((feverEndTime - Time.unscaledTime) / FeverDurationSeconds);
         int seconds = FeverSecondsLeft;
         if (seconds != feverLastShownSeconds)
@@ -6875,6 +6950,7 @@ public partial class GameManager : MonoBehaviour
             feverLastShownSeconds = seconds;
             mainUI?.UpdateFeverHud(seconds, feverPops, false);
         }
+        UpdateFeverMusic(seconds);
         if (Time.unscaledTime >= feverEndTime)
             EndFever();
     }
@@ -6888,6 +6964,7 @@ public partial class GameManager : MonoBehaviour
         ResetActiveDragState("fever_end");
         ClearHintPreview();
         int rewardHints = feverPops >= 25 ? 2 : 1;
+        StopFeverMusic();
         mainUI?.ShowFeverResult(feverPops, rewardHints);
         PlayClearSfx();
         FirebaseBootstrap.LogEvent("fever_end", new Dictionary<string, object>
@@ -8349,6 +8426,16 @@ public partial class GameManager : MonoBehaviour
     public List<Vector2Int> AutomationFeverSolution => feverSolution;
 
     /// <summary>테스트용: completedStageIndex를 깬 직후처럼 피버를 시작한다. durationSeconds로 피버 길이를 바꿀 수 있다.</summary>
+    /// <summary>디버그: 지금 판에서 바로 피버를 시작한다(진행도·별은 그대로, 끝나면 지금 판으로 돌아온다).</summary>
+    public bool DebugStartFeverNow()
+    {
+        if (feverActive || labActive || stageCleared || isGameOverSequencePlaying || portalTransitioning || tiles == null)
+            return false;
+        PrepareForStageTransition();
+        BeginFeverRun(currentStageIndex);
+        return true;
+    }
+
     public void AutomationStartFever(int completedStageIndex, float durationSeconds = FeverDurationSeconds)
     {
         StartFever(completedStageIndex);

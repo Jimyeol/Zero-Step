@@ -945,6 +945,7 @@ public class GameMainUIController : MonoBehaviour
             debugStageJumpCancelButton.clicked += HideDebugStageJumpPopup;
         if (debugStageJumpConfirmButton != null)
             debugStageJumpConfirmButton.clicked += ConfirmDebugStageJump;
+        AddDebugFeverButton();
         if (debugStageJumpInput != null)
             debugStageJumpInput.RegisterCallback<KeyDownEvent>(OnDebugStageJumpInputKeyDown);
         if (debugStageJumpOverlay != null)
@@ -2762,6 +2763,7 @@ public class GameMainUIController : MonoBehaviour
     // 10스테이지마다 오는 보너스 판. 새 요소를 끼우면 상단 배치가 밀려 하트·보드와 겹치므로 기존 자리를 빌려 쓴다:
     // STAGE 제목 → "FEVER 12"(남은 초), 큰 숫자 → 터뜨린 칸 수, 진행 막대 → 남은 시간(줄어듦).
     private int feverCounterBumpVersion;
+    private ClayFeverOverlay feverOverlay;
 
     public void BeginFeverHud()
     {
@@ -2776,10 +2778,24 @@ public class GameMainUIController : MonoBehaviour
         VisualElement root = uiDocument.rootVisualElement;
         if (root?.panel == null)
             return;
-        Rect layout = root.layout;
-        Vector2 center = new Vector2(layout.width * 0.5f, layout.height * 0.42f);
-        root.Add(new ClayComboPopup(center, T("fever_banner"), ClayComboPopup.PerfectTier));
+        // 무지개 네온 테두리 + "FEVER TIME!" 제목(가운데에서 튀어나와 상단 바 아래로 올라간다).
+        float headerTop = root.layout.height * 0.14f;
+        if (topBar != null && topBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(topBar.worldBound);
+            if (!float.IsNaN(bar.yMax) && bar.height > 1f)
+                headerTop = bar.yMax + 10f;
+        }
+        feverOverlay?.RemoveFromHierarchy();
+        feverOverlay = new ClayFeverOverlay(headerTop);
+        root.Add(feverOverlay);
         root.Add(new ClayScreenFlash(0.32f));
+    }
+
+    private void EndFeverOverlay()
+    {
+        feverOverlay?.End();
+        feverOverlay = null;
     }
 
     public void SetupFeverBoard(int totalCount, int remainingCount)
@@ -2806,6 +2822,7 @@ public class GameMainUIController : MonoBehaviour
 
     public void UpdateFeverHud(int secondsLeft, int pops, bool bump)
     {
+        feverOverlay?.SetSecondsLeft(secondsLeft);
         if (stageTitleLabel != null)
         {
             stageTitleLabel.text = T("fever_title") + " " + Mathf.Max(0, secondsLeft);
@@ -2837,6 +2854,7 @@ public class GameMainUIController : MonoBehaviour
     public void ShowFeverResult(int pops, int rewardHints)
     {
         ResetFeverHudStyle();
+        EndFeverOverlay();
         GrantBonusHints(rewardHints);
         if (uiDocument == null)
             return;
@@ -2850,6 +2868,7 @@ public class GameMainUIController : MonoBehaviour
     public void CancelFeverHud()
     {
         ResetFeverHudStyle();
+        EndFeverOverlay();
         if (stageTitleLabel != null)
             stageTitleLabel.text = T("stage_title");
     }
@@ -3495,11 +3514,64 @@ public class GameMainUIController : MonoBehaviour
         return Screen.width > 0 && Screen.width < 720;
     }
 
+    private ClaySettingsSheet claySettingsSheet;
+
+    /// <summary>
+    /// 점토 테마: 예전 네온 설정 목록(머리줄·스크롤 목록)은 숨기고 말랑한 점토 설정 카드를 같은 패널 안에 올린다.
+    /// 언어 선택·초기화 확인 창은 같은 패널의 위층이라 그대로 쓴다. 동작은 기존 함수를 그대로 부른다.
+    /// </summary>
+    private void BuildClaySettingsSheet()
+    {
+        if (!VisualTheme.IsSoftClay || settingPopupOverlay == null)
+            return;
+        VisualElement panel = settingPopupOverlay.Q<VisualElement>("SettingPopupPanel");
+        if (panel == null)
+            return;
+        VisualElement oldHeader = panel.Q<VisualElement>("SettingHeader");
+        VisualElement oldScroll = panel.Q<VisualElement>("SettingScrollView");
+        if (oldHeader != null)
+            oldHeader.style.display = DisplayStyle.None;
+        if (oldScroll != null)
+            oldScroll.style.display = DisplayStyle.None;
+        panel.style.backgroundColor = new Color(0f, 0f, 0f, 0f);
+        panel.style.borderLeftWidth = panel.style.borderRightWidth = panel.style.borderTopWidth = panel.style.borderBottomWidth = 0;
+        panel.style.paddingLeft = panel.style.paddingRight = panel.style.paddingTop = panel.style.paddingBottom = 0;
+        // 내용만큼만 높이를 잡고(빈 공간 없이), 화면이 작으면 88%까지 늘어난 뒤 스크롤한다.
+        panel.style.height = StyleKeyword.Auto;
+        panel.style.maxHeight = Length.Percent(88);
+
+        claySettingsSheet?.RemoveFromHierarchy();
+        claySettingsSheet = new ClaySettingsSheet(new ClaySettingsSheet.Actions
+        {
+            T = key => T(key),
+            SoundOn = () => isSoundOn,
+            VibrationOn = () => isVibrationOn,
+            EffectLevel = () => (int)GameplayFeedback.Level,
+            LanguageName = () => BuildLanguageOptionDisplayName(selectedLanguageCode),
+            ToggleSound = ToggleSoundSwitch,
+            ToggleVibration = ToggleVibrationSwitch,
+            SetEffectLevel = level => ApplyEffectLevelSelection((GameplayFeedback.EffectLevel)level),
+            Help = OpenHelpTutorialFromSettings,
+            Language = OpenLanguageSelectionPopup,
+            Rate = () => DevLog.Log("평가하기 클릭"),
+            Email = OpenSupportEmail,
+            RemoveAds = () => DevLog.Log("광고 제거 클릭"),
+            ResetData = ShowResetDataConfirmPopup,
+            Privacy = OpenPrivacyPolicy,
+            Terms = OpenTerms,
+            Close = HideSettingPopup,
+            Click = () => PlayUIButtonSfx(),
+            Version = Application.version
+        });
+        panel.Insert(0, claySettingsSheet);
+    }
+
     private void ShowSettingPopup()
     {
         NotifyGameplayActivity();
         if (settingPopupOverlay != null)
         {
+            BuildClaySettingsSheet();
             settingPopupOverlay.style.display = DisplayStyle.Flex;
             AnimatePopupIn(settingPopupOverlay.Q<VisualElement>("SettingPopupPanel"));
             isSettingPopupOpen = true;
@@ -6921,6 +6993,9 @@ public class GameMainUIController : MonoBehaviour
 
         StopStageSnackbarPlayback();
         ApplyLocalizationForCurrentLanguage();
+        // 설정 카드가 열려 있으면 새 언어로 다시 만든다.
+        if (isSettingPopupOpen && claySettingsSheet != null)
+            BuildClaySettingsSheet();
     }
 
     private void UpdateActiveTutorialCopyIfOpen()
@@ -7219,6 +7294,28 @@ public class GameMainUIController : MonoBehaviour
         PlayUIButtonSfx();
         ShowDebugStageJumpPopup();
         evt?.StopPropagation();
+    }
+
+    /// <summary>디버그 빌드: 스테이지 이동 창에 "피버 시작" 버튼을 붙인다(지금 판에서 바로 피버, 진행도는 그대로).</summary>
+    private void AddDebugFeverButton()
+    {
+        if (debugStageJumpConfirmButton == null || debugStageJumpConfirmButton.parent == null)
+            return;
+        VisualElement row = debugStageJumpConfirmButton.parent;
+        if (row.Q<Button>("DebugStartFeverButton") != null)
+            return;
+        var fever = new Button(() =>
+        {
+            HideDebugStageJumpPopup();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            GameManager manager = FindFirstObjectByType<GameManager>();
+            if (manager == null || !manager.DebugStartFeverNow())
+                ShowGameplaySnackbar("fever_skip_blocked");
+#endif
+        }) { name = "DebugStartFeverButton", text = "피버 시작" };
+        fever.AddToClassList("debug-stage-jump-button");
+        fever.AddToClassList("debug-stage-jump-button-confirm");
+        row.Insert(0, fever);
     }
 
     private void ShowDebugStageJumpPopup()

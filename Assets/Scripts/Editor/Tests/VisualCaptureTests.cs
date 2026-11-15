@@ -356,13 +356,48 @@ public class VisualCaptureTests
             GameManager.AutomationSetLabUnlocked(null);
         }
 
+        // ZEROSTEP_CAPTURE_SETTINGS=1: 설정 화면(위·아래로 스크롤한 모습, 언어 선택·초기화 확인 창)
+        if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_SETTINGS") == "1")
+        {
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            typeof(GameMainUIController).GetMethod("ShowSettingPopup", flags)?.Invoke(ui, null);
+            yield return WaitRealtime(0.15f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_open");
+            yield return WaitRealtime(0.8f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_top");
+            var sheet = ui.GetComponent<UnityEngine.UIElements.UIDocument>()?.rootVisualElement.Q<UnityEngine.UIElements.VisualElement>(ClaySettingsSheet.ElementName);
+            var scroll = sheet?.Q<UnityEngine.UIElements.ScrollView>();
+            if (scroll != null)
+            {
+                scroll.scrollOffset = new Vector2(0, 5000);
+                yield return WaitRealtime(0.3f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, "settings_bottom");
+            }
+            typeof(GameMainUIController).GetMethod("ToggleSoundSwitch", flags)?.Invoke(ui, null);
+            typeof(GameMainUIController).GetMethod("BuildClaySettingsSheet", flags)?.Invoke(ui, null);
+            yield return WaitRealtime(0.8f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_sound_off");
+            typeof(GameMainUIController).GetMethod("ToggleSoundSwitch", flags)?.Invoke(ui, null);
+            typeof(GameMainUIController).GetMethod("OpenLanguageSelectionPopup", flags)?.Invoke(ui, null);
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_language");
+            typeof(GameMainUIController).GetMethod("HideLanguageSelectionPopup", flags)?.Invoke(ui, null);
+            typeof(GameMainUIController).GetMethod("ShowResetDataConfirmPopup", flags)?.Invoke(ui, null);
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_reset");
+            typeof(GameMainUIController).GetMethod("HideResetDataConfirmPopup", flags)?.Invoke(ui, null);
+            typeof(GameMainUIController).GetMethod("HideSettingPopup", flags)?.Invoke(ui, null);
+        }
+
         // ZEROSTEP_CAPTURE_FEVER=1: 피버 보드 시작·진행·결과 화면
         if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_FEVER") == "1")
         {
             while (gm.AutomationGameOverPlaying)
                 yield return null;
             gm.AutomationStartFever(10, 7f);
-            yield return WaitRealtime(0.35f);
+            yield return WaitRealtime(0.25f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "fever_intro");
+            yield return WaitRealtime(1.0f);
             CaptureBoth(cam, worldRt, uiRt, outDir, "fever_start");
             yield return WaitRealtime(0.8f);
             List<Vector2Int> feverMoves = gm.AutomationFeverSolution;

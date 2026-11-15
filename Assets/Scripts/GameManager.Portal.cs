@@ -26,6 +26,8 @@ public partial class GameManager
         portalPhase = portalStageData != null ? 1 : 0;
         portalTransitioning = false;
         portalPhaseOneOneStroke = true;
+        portalGlideToken++;
+        portalCameraGliding = false;
         clayZero?.CancelSuck();
     }
 
@@ -67,11 +69,14 @@ public partial class GameManager
     }
 
     // 포탈 전환 연출 시간(초): 소용돌이가 빨라짐 → 제로가 빨려 듦 → 판 교체 → 칸이 쏟아져 나옴 → 제로 등장
-    private const float PortalSpinUpSeconds = 0.35f;
-    private const float PortalDiveSeconds = 0.25f;
-    private const float PortalSpillRingDelay = 0.06f;
-    private const float PortalTileFlightSeconds = 0.28f;
-    private const float PortalCameraGlideSeconds = 0.5f;
+    // 손가락을 떼지 않고 바로 이어 갈 수 있게 짧게 잡는다(판 교체까지 0.35초).
+    private const float PortalSpinUpSeconds = 0.15f;
+    private const float PortalDiveSeconds = 0.2f;
+    private const float PortalSpillRingDelay = 0.04f;
+    private const float PortalTileFlightSeconds = 0.22f;
+    private const float PortalCameraGlideSeconds = 0.4f;
+    private bool portalCameraGliding;
+    private int portalGlideToken;
 
     /// <summary>
     /// 포탈 전환: 2페이즈 시작 칸이 포탈이 있던 화면 자리에 그대로 나타나고, 나머지 칸이 거기서 쏟아져 나와 자리를 잡는다.
@@ -83,6 +88,7 @@ public partial class GameManager
         portalTile.GetComponent<PortalTile>()?.PlaySuck();
         gameplayFeedback?.PortalEntered(portalTile);
         PlayEventSfx(portalSuckClip, 0.85f);
+        DuckMelody(0.4f);
         StartCoroutine(FadeClaySlots(claySlotContainer, 1f, 0f, PortalSpinUpSeconds + PortalDiveSeconds));
         DevLog.Log($"[포탈] stage={currentStageIndex} 1페이즈 완료 → 2페이즈");
 
@@ -123,18 +129,49 @@ public partial class GameManager
             camTo = ClampCameraToShowBoard(new Vector3(keep.x, keep.y, camTo.z), sizeTo, camTo);
         }
         PlayEventSfx(portalEmergeClip, 0.85f);
-        StartCoroutine(GlideCamera(cam, camFrom, sizeFrom, camTo, sizeTo, PortalCameraGlideSeconds, 0.08f));
-        yield return SpillTilesFromStart(start);
-
-        if (!portalTransitioning || portalStageData != stageData)
-            yield break;
-        clayZero?.EmergeAt(currentStartTile);
+        clayZero?.EmergeAt(start);
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
         mainUI?.SetupPortalPhase(initialTileCountForUI, GetTotalRemainingCount(), 2);
-        yield return new WaitForSecondsRealtime(0.08f);
+
+        // 손가락을 떼지 않았으면 그대로 2페이즈 시작 칸에서 드래그를 이어 간다(한 획으로 이어서 풀 수 있다).
         portalTransitioning = false;
+        if (IsPointerHeld() && start != null && CanEnterTile(start))
+            ContinueDragFromPortalStart(start);
+        StartCoroutine(SpillTilesFromStart(start));
+        // 화면 이동은 드래그 중이면 손을 뗀 뒤에 한다(손가락 아래 판이 움직여 엉뚱한 칸으로 가지 않게).
+        StartCoroutine(GlideCameraWhenIdle(cam, camTo, sizeTo, ++portalGlideToken));
         SchedulePostStageStartedFailureCheck();
+    }
+
+    /// <summary>포탈 직후 손가락이 아직 눌려 있을 때: 새 시작 칸에서 드래그를 시작한 상태로 만든다(콤보는 이어진다).</summary>
+    private void ContinueDragFromPortalStart(Tile start)
+    {
+        start.ClearScaleOverride();
+        isDragging = true;
+        currentPath.Clear();
+        currentPath.Add(start);
+        lastStepFrame = Time.frameCount;
+        lastStepTime = Time.unscaledTime;
+        NotifyTrailTileStepped(start);
+        OnDragStartTrail();
+        gameplayFeedback?.DragStarted(start);
+        gameplayFeedback?.UpdatePath(currentPath);
+        DevLog.Log("[포탈] 손을 떼지 않고 2페이즈로 이어서 드래그");
+    }
+
+    private IEnumerator GlideCameraWhenIdle(Camera cam, Vector3 camTo, float sizeTo, int token)
+    {
+        if (cam == null)
+            yield break;
+        yield return new WaitForSecondsRealtime(0.05f);
+        while (isDragging && token == portalGlideToken)
+            yield return null;
+        if (token != portalGlideToken)
+            yield break;
+        if ((cam.transform.position - camTo).sqrMagnitude < 0.0001f && Mathf.Abs(cam.orthographicSize - sizeTo) < 0.001f)
+            yield break;
+        yield return GlideCamera(cam, cam.transform.position, cam.orthographicSize, camTo, sizeTo, PortalCameraGlideSeconds, 0f);
     }
 
     /// <summary>
@@ -198,6 +235,9 @@ public partial class GameManager
                 int r = ring.TryGetValue(tile, out int d) ? d : 1;
                 maxRing = Mathf.Max(maxRing, r);
                 flights.Add((tile, tile.transform.position, r * PortalSpillRingDelay));
+                // 날아가는 동안은 손가락으로 집히지 않게(시작 칸은 바로 잡을 수 있게 둔다).
+                if (tile != start)
+                    SetTileCollidersEnabled(tile, false);
                 tile.SetScaleZero();
                 tile.transform.position = origin;
             }
@@ -226,6 +266,8 @@ public partial class GameManager
                 Vector3 p = Vector3.Lerp(origin, f.home, eased);
                 p.y += Mathf.Sin(t * Mathf.PI) * tileHeight * 0.25f * Mathf.Min(1f, Vector3.Distance(origin, f.home) / Mathf.Max(0.01f, tileWidth));
                 f.tile.transform.position = p;
+                if (t >= 1f && f.tile != start)
+                    SetTileCollidersEnabled(f.tile, true);
                 if (slots.TryGetValue(SlotKey(f.home), out SpriteRenderer slot))
                     SetSpriteAlpha(slot, t);
             }
@@ -234,12 +276,20 @@ public partial class GameManager
         }
         foreach (var f in flights)
         {
-            if (f.tile != null)
-                f.tile.transform.position = f.home;
+            if (f.tile == null)
+                continue;
+            f.tile.transform.position = f.home;
+            SetTileCollidersEnabled(f.tile, true);
         }
         foreach (SpriteRenderer slot in slots.Values)
             SetSpriteAlpha(slot, 1f);
         RestoreCurrentStartMarkerVisual();
+    }
+
+    private static void SetTileCollidersEnabled(Tile tile, bool enabled)
+    {
+        foreach (Collider2D c in tile.GetComponents<Collider2D>())
+            c.enabled = enabled;
     }
 
     private static Vector2Int SlotKey(Vector3 p) => new Vector2Int(Mathf.RoundToInt(p.x * 100f), Mathf.RoundToInt(p.y * 100f));
@@ -289,6 +339,7 @@ public partial class GameManager
             yield break;
         if (delay > 0f)
             yield return new WaitForSecondsRealtime(delay);
+        portalCameraGliding = true;
         float elapsed = 0f;
         while (elapsed < duration)
         {
@@ -303,6 +354,7 @@ public partial class GameManager
         gameplayFeedback?.RestoreCameraPose();
         cam.transform.position = toPos;
         cam.orthographicSize = toSize;
+        portalCameraGliding = false;
     }
 
     /// <summary>페이즈 보드를 화면에 올린다. 스테이지 번호·별·통계는 그대로다(포탈 판은 두 페이즈가 한 스테이지).</summary>
@@ -335,6 +387,7 @@ public partial class GameManager
     {
         if (portalPhase != 2 || portalStageData == null)
             return;
+        portalGlideToken++;
         Camera cam = mainCamera != null ? mainCamera : Camera.main;
         gameplayFeedback?.RestoreCameraPose();
         Vector3 camFrom = cam != null ? cam.transform.position : Vector3.zero;

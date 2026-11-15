@@ -73,6 +73,28 @@ public static class VisualTheme
     /// <summary>숫자가 "?"로 가려진 타일의 색(어떤 숫자 색과도 다른 중립 회갈색).</summary>
     public static readonly Color ClayHiddenColor = new Color32(0xCF, 0xC8, 0xBC, 0xFF);
 
+    /// <summary>짝꿍 글자별 고정 색: A 파랑, B 분홍, C 노랑, D 청록, E 보라, F 연두. 서로 잘 구분되고 칸 숫자 색과도 겹치지 않는다.</summary>
+    private static readonly Color[] LinkLabelColors =
+    {
+        new Color32(0x2F, 0x6F, 0xD0, 0xFF),
+        new Color32(0xD0, 0x45, 0x7F, 0xFF),
+        new Color32(0xD0, 0x8A, 0x14, 0xFF),
+        new Color32(0x1F, 0x9A, 0x8A, 0xFF),
+        new Color32(0x7A, 0x4F, 0xC9, 0xFF),
+        new Color32(0x5E, 0x8F, 0x1F, 0xFF),
+    };
+
+    public static Color LinkGroupColorForLabel(string label)
+    {
+        int index = 0;
+        if (!string.IsNullOrEmpty(label))
+        {
+            char c = char.ToUpperInvariant(label[0]);
+            index = c >= 'A' && c <= 'Z' ? c - 'A' : 0;
+        }
+        return LinkLabelColors[index % LinkLabelColors.Length];
+    }
+
     public static Color LinkGroupColor(int linkId)
     {
         int index = ((linkId % LinkGroupColors.Length) + LinkGroupColors.Length) % LinkGroupColors.Length;

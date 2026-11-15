@@ -1,146 +1,81 @@
-"""Build extra sound effects from the existing block-note samples so they share the game's timbre and scale.
-usage: python3 -I Tools/DevScripts/make_sfx.py <project_root>
-Writes 48 kHz stereo 16-bit WAVs into Assets/Resources/Sounds/:
-  sfx_combo_milestone.wav  C-E-G-C' arpeggio (combo x5, x10, ...)
-  sfx_perfect.wav          C+E+G chord, then high C and G an octave up (one-stroke clear)
-  sfx_heart_pop_1..5.wav   one short high note per heart, rising C-D-E-G-C'
-  sfx_move_denied.wav      soft low thunk (move refused)
-  sfx_twin.wav             C+G an octave up together (TwinLink partners drop)
-  sfx_charge.wav           quick E-G rise an octave up (Charge adds +1)
-  sfx_reveal.wav           G-C'-E' sparkle two octaves up (Igniter opens Hidden tiles)
-  sfx_fixed_knot.wav       C+G low click (order tile entered on time)
-  sfx_blackout.wav         C'-G-E-C falling an octave down (numbers turn into ?)
-  sfx_fever_start.wav      C-E-G-C'-E'-G' rising run (fever board starts)
-  sfx_portal_suck.wav      high-to-low spiral run (Zero is sucked into the portal)
-  sfx_portal_emerge.wav    C-G-C' pop (phase-2 board appears)
+"""Build every game sound in one palette so they all belong together (see soundkit.py).
+
+usage: python3 -I Tools/DevScripts/make_sfx.py <project_root> [palette]   (palette: bubble (default) | wood | piano)
+Writes 44.1 kHz stereo 16-bit WAVs into Assets/Resources/Sounds/.
+
+Rules: only the melody (block notes) is pitched during play; tile effects are unpitched or picked samples;
+celebrations are chords built on C major; the fever pops use A-minor pentatonic like bgm_fever.
+Picked samples (samples/fcs, Gamemaster Audio "Fun Casual Sounds", purchased Asset Store pack):
+  CrossBlast = cork pop, Charge = sci-fi power-up 02 (first 0.55 s), Blackout = dark bell chime (first 1.1 s).
 """
-import os, sys, wave, struct, math
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import soundkit as sk
 
 ROOT = sys.argv[1]
+PAL = sys.argv[2] if len(sys.argv) > 2 else 'bubble'
 SND = os.path.join(ROOT, 'Assets', 'Resources', 'Sounds')
-RATE = 48000
+FCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'samples', 'fcs')
 
-def read(name):
-    with wave.open(os.path.join(SND, name)) as w:
-        ch, width, rate, n = w.getnchannels(), w.getsampwidth(), w.getframerate(), w.getnframes()
-        raw = w.readframes(n)
-    assert rate == RATE, (name, rate)
-    out = []
-    step = width * ch
-    for i in range(n):
-        frame = raw[i * step:(i + 1) * step]
-        vals = []
-        for c in range(ch):
-            b = frame[c * width:(c + 1) * width]
-            if width == 3:
-                v = int.from_bytes(b, 'little', signed=True) / 8388608.0
-            elif width == 2:
-                v = int.from_bytes(b, 'little', signed=True) / 32768.0
-            else:
-                raise ValueError(width)
-            vals.append(v)
-        out.append(sum(vals) / len(vals))   # mono mix
-    return out
 
-def resample(x, factor):
-    """factor > 1 raises the pitch (and shortens), linear interpolation."""
-    n = int(len(x) / factor)
-    out = []
-    for i in range(n):
-        p = i * factor
-        j = int(p)
-        f = p - j
-        a = x[j]
-        b = x[j + 1] if j + 1 < len(x) else 0.0
-        out.append(a + (b - a) * f)
-    return out
+def out(name, x, peak):
+    d = sk.write(os.path.join(SND, name + '.wav'), x, peak=peak)
+    print(f'  {name:24s} {d:.2f}s')
 
-def fade(x, fade_in=0.002, fade_out=0.03, length=None):
-    if length is not None:
-        x = x[:int(length * RATE)]
-    x = list(x)
-    fi, fo = int(fade_in * RATE), int(fade_out * RATE)
-    for i in range(min(fi, len(x))):
-        x[i] *= i / max(1, fi)
-    for i in range(min(fo, len(x))):
-        x[len(x) - 1 - i] *= i / max(1, fo)
-    return x
 
-def mix(parts, total):
-    buf = [0.0] * int(total * RATE)
-    for start, sig, gain in parts:
-        o = int(start * RATE)
-        for i, v in enumerate(sig):
-            if o + i < len(buf):
-                buf[o + i] += v * gain
-    return buf
+def trimmed(sample, seconds, fade):
+    x = sk.read(os.path.join(FCS, sample + '.wav'))[:int(seconds * sk.RATE)]
+    return sk.fade_out(x, fade)
 
-def normalize(x, peak=0.5):
-    m = max(1e-9, max(abs(v) for v in x))
-    return [v * peak / m for v in x]
 
-def write(name, x):
-    path = os.path.join(SND, name)
-    with wave.open(path, 'wb') as w:
-        w.setnchannels(2)
-        w.setsampwidth(2)
-        w.setframerate(RATE)
-        frames = bytearray()
-        for v in x:
-            s = max(-32767, min(32767, int(v * 32767)))
-            frames += struct.pack('<hh', s, s)
-        w.writeframes(bytes(frames))
-    print('wrote', name, f'{len(x) / RATE:.3f}s')
+def n(name, octave=0):
+    return sk.block_midi(PAL, name) + 12 * octave
 
-note = {k: read(f'block_{k}.wav') for k in ['c', 'd', 'e', 'g', 'co']}
 
-# combo milestone: quick rising arpeggio
-arp = mix([(0.000, note['c'], 1.0), (0.055, note['e'], 1.0), (0.110, note['g'], 1.0), (0.165, note['co'], 1.1)], 0.32)
-write('sfx_combo_milestone.wav', normalize(fade(arp, fade_out=0.05), 0.55))
+def notes(midis, stagger, total, gains=None, length=None):
+    parts = [(k * stagger, sk.note(PAL, m, length), (gains[k] if gains else 1.0)) for k, m in enumerate(midis)]
+    return sk.mix(parts, total)
 
-# perfect: chord, then a bright octave-up answer
-hi_c = resample(note['co'], 2.0)
-hi_g = resample(note['g'], 4.0)
-perfect = mix([(0.0, note['c'], 0.8), (0.0, note['e'], 0.8), (0.0, note['g'], 0.8),
-               (0.10, note['co'], 1.0), (0.10, hi_c, 0.6), (0.19, hi_g, 0.5)], 0.42)
-write('sfx_perfect.wav', normalize(fade(perfect, fade_out=0.08), 0.6))
 
-# heart pops: one octave up, very short, rising per heart
-for i, k in enumerate(['c', 'd', 'e', 'g', 'co'], 1):
-    pop = fade(resample(note[k], 2.0), fade_out=0.025, length=0.06)
-    write(f'sfx_heart_pop_{i}.wav', normalize(pop, 0.42))
+print('palette', PAL)
+# ---- melody: 13 block notes, and a chord on each (root + fifth + octave: consonant with that note)
+for name in sk.NOTE_NAMES:
+    m = sk.block_midi(PAL, name)
+    out(f'block_{name}', sk.note(PAL, m, 0.3), 0.55)
+    out(f'sfx_chord_{name}', sk.chord(PAL, [m, m + 7, m + 12], stagger=0.03, length=0.4), 0.55)
 
-# move denied: low, short, soft
-low = fade(resample(note['c'], 0.5), fade_out=0.06, length=0.11)
-write('sfx_move_denied.wav', normalize(low, 0.35))
+# ---- special tiles (unpitched, or the picked samples)
+out('bomb', sk.fade_out(sk.read(os.path.join(FCS, 'cork_pop_open_bottle_boing_01.wav')), 0.03), 0.7)
+out('sfx_charge', trimmed('sci-fi_power_up_02', 0.55, 0.15), 0.55)
+out('sfx_blackout', trimmed('game_over_dark_bell_chime_01', 1.1, 0.45), 0.6)
+out('sfx_reveal', sk.sparkle(0.3, grains=9), 0.45)
+out('sfx_fixed_knot', sk.click(0.07, lp_coef=0.55, decay=200, body=0.35, body_f=1600), 0.45)
+out('sfx_move_denied', sk.thump(0.12, f0=210, f1=120, sweep=35, body_decay=30, puff=0.25, puff_lp=0.1, puff_decay=40), 0.35)
 
-# --- D-2: special tiles, fever, portal
-up = {k: resample(note[k], 2.0) for k in note}
-up2 = {k: resample(note[k], 4.0) for k in note}
-down = {k: resample(note[k], 0.5) for k in note}
+# ---- progress
+out('clear', sk.mix([(0, notes([n('c'), n('e'), n('g'), n('c', 1)], 0.08, 0.9), 0.9),
+                     (0.36, sk.chord(PAL, [n('c', 1), n('e', 1), n('g', 1)], length=0.8), 0.8)], 1.2), 0.65)
+out('fail', notes([n('e'), n('c'), n('a', -1)], 0.14, 0.6, gains=[0.8, 0.75, 0.7]), 0.5)
+out('new_stage', notes([n('g'), n('c', 1)], 0.09, 0.45, gains=[0.6, 0.7]), 0.4)
+out('sfx_perfect', sk.mix([(0, sk.chord(PAL, [n('c'), n('e'), n('g')], length=0.5), 0.8),
+                           (0.12, notes([n('c', 1), n('e', 1), n('g', 1)], 0.05, 0.45), 0.7)], 0.6), 0.6)
+for i, name in enumerate(['c', 'd', 'e', 'g', 'co'], 1):
+    out(f'sfx_heart_pop_{i}', sk.note(PAL, n(name, 1), 0.12), 0.4)
 
-twin = mix([(0.0, up['c'], 0.9), (0.0, up['g'], 0.8)], 0.13)
-write('sfx_twin.wav', normalize(fade(twin, fade_out=0.04), 0.4))
+# ---- portal and fever
+out('sfx_portal_suck', notes([n('co', 1), n('g', 1), n('e', 1), n('c', 1), n('g'), n('e'), n('c')], 0.05, 0.6,
+                             gains=[1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7]), 0.5)
+out('sfx_portal_emerge', notes([n('c'), n('g'), n('c', 1)], 0.06, 0.4), 0.5)
+out('sfx_fever_start', notes([n('c'), n('e'), n('g'), n('c', 1), n('e', 1), n('g', 1)], 0.045, 0.5), 0.55)
+for i in range(10):
+    out(f'sfx_fever_pop_{i}', sk.fever_pop(i), 0.4)
+out('bgm_fever', sk.fever_bgm(PAL), None)
 
-charge = mix([(0.0, up['e'], 0.8), (0.045, up['g'], 1.0)], 0.15)
-write('sfx_charge.wav', normalize(fade(charge, fade_out=0.04), 0.4))
-
-reveal = mix([(0.0, up['g'], 0.8), (0.05, up['co'], 0.9), (0.10, up2['e'], 0.8)], 0.26)
-write('sfx_reveal.wav', normalize(fade(reveal, fade_out=0.06), 0.42))
-
-knot = mix([(0.0, note['c'], 1.0), (0.0, note['g'], 0.7)], 0.12)
-write('sfx_fixed_knot.wav', normalize(fade(knot, fade_out=0.05), 0.42))
-
-blackout = mix([(0.0, down['co'], 1.0), (0.07, down['g'], 1.0), (0.14, down['e'], 1.0), (0.21, down['c'], 1.1)], 0.42)
-write('sfx_blackout.wav', normalize(fade(blackout, fade_out=0.1), 0.5))
-
-run = [note['c'], note['e'], note['g'], note['co'], up['e'], up['g']]
-fever = mix([(0.045 * i, s, 0.9 + 0.04 * i) for i, s in enumerate(run)], 0.42)
-write('sfx_fever_start.wav', normalize(fade(fever, fade_out=0.08), 0.55))
-
-spiral = [up2['c'], up['g'], up['e'], up['c'], note['g'], note['e'], note['c'], down['g']]
-suck = mix([(0.055 * i, s, 1.0 - 0.06 * i) for i, s in enumerate(spiral)], 0.6)
-write('sfx_portal_suck.wav', normalize(fade(suck, fade_out=0.14), 0.5))
-
-emerge = mix([(0.0, note['c'], 0.8), (0.06, note['g'], 0.9), (0.12, note['co'], 1.0), (0.12, up['co'], 0.5)], 0.32)
-write('sfx_portal_emerge.wav', normalize(fade(emerge, fade_out=0.07), 0.5))
+# ---- UI
+out('click', sk.note(PAL, n('c', 1), 0.07), 0.35)
+out('ui_button', sk.note(PAL, n('g'), 0.07), 0.35)
+out('confirm', notes([n('g'), n('c', 1)], 0.06, 0.25), 0.4)
+out('cancel', notes([n('e'), n('c')], 0.06, 0.25), 0.4)
+out('snackbar', sk.chord(PAL, [n('e'), n('g')], stagger=0.04, length=0.3), 0.35)
+out('hint', sk.mix([(0, notes([n('c'), n('e'), n('g')], 0.06, 0.5), 0.8), (0.05, sk.sparkle(0.35, grains=6, seed=9), 0.5)], 0.55), 0.45)
+out('skip', notes([n('c'), n('e'), n('g'), n('c', 1)], 0.035, 0.35), 0.4)

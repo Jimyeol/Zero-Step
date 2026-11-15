@@ -356,7 +356,8 @@ public class StageProgressTests
         while (gm.AutomationPortalTransitioning && Time.realtimeSinceStartup - wait < 6f)
             yield return null;
         Check(failures, !gm.AutomationPortalTransitioning, "portal transition did not finish");
-        yield return Wait(0.3f);
+        // 칸이 쏟아져 나오고 화면이 옮겨 가는 연출(약 0.5초)이 끝날 때까지 기다린다.
+        yield return Wait(0.9f);
         if (cam != null)
         {
             foreach (Vector3 p in gm.AutomationAllTileWorldPositions())
