@@ -8364,6 +8364,24 @@ public partial class GameManager : MonoBehaviour
     }
 
     public int AutomationPortalPhase => portalPhase;
+    /// <summary>(x,y) 칸의 지금 월드 위치. 칸이 없으면 null.</summary>
+    public Vector3? AutomationTileWorldPosition(int x, int y)
+    {
+        Tile tile = GetTileAtGrid(x, y);
+        return tile != null ? tile.transform.position : (Vector3?)null;
+    }
+    /// <summary>보드의 모든 칸 월드 위치.</summary>
+    public List<Vector3> AutomationAllTileWorldPositions()
+    {
+        var list = new List<Vector3>();
+        if (tiles == null)
+            return list;
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                    list.Add(tiles[row, col].transform.position);
+        return list;
+    }
     public bool AutomationPortalTransitioning => portalTransitioning;
 
     public bool AutomationBeginDrag()

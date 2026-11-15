@@ -30,7 +30,7 @@ public class GameMainUIController : MonoBehaviour
     private const string SaveKeyCurrentHeartsMax = "CurrentHeartsMax";
     private const string SaveKeyHeartWaitRefillUnix = "HeartWaitRefillUnix";
     private const string PrivacyUrl = "https://www.naver.com";
-    private const string SupportEmailAddress = "crewoongcrewoong@gmail.com";
+    private const string SupportEmailAddress = "mazecubestudio@gmail.com";
     private const string NeonPressBaseClass = "neon-press-button";
     private const string NeonPressWarmClass = "neon-press-button-warm";
     private const string NeonPressActiveClass = "neon-press-active";

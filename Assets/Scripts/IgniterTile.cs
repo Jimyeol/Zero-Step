@@ -50,7 +50,7 @@ public class IgniterTile : MonoBehaviour
     {
         if (VisualTheme.IsSoftClay)
         {
-            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Bolt);
+            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Bolt, 0f, ClayIconMotion.Motion.Flicker);
             return;
         }
         Sprite igniterSprite = Resources.Load<Sprite>(igniterSpritePath);

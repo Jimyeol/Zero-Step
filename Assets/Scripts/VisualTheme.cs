@@ -198,9 +198,10 @@ public static class VisualTheme
 
     /// <summary>
     /// 타일 오른쪽 위 모서리에 잉크색 아이콘을 붙인다(이미 있으면 갱신). 특수 타일 표시는 이 아이콘 하나로만 한다.
-    /// rotationDegrees: 화살표 방향(0 = 오른쪽, 90 = 위).
+    /// rotationDegrees: 화살표 방향(0 = 오른쪽, 90 = 위). motion: 아이콘의 살아 있는 움직임(ClayIconMotion), flow는 Flow 방향.
     /// </summary>
-    public static SpriteRenderer AttachCornerIcon(Transform tile, Icon icon, float rotationDegrees = 0f)
+    public static SpriteRenderer AttachCornerIcon(Transform tile, Icon icon, float rotationDegrees = 0f,
+        ClayIconMotion.Motion motion = ClayIconMotion.Motion.None, Vector2 flow = default)
     {
         if (tile == null)
             return null;
@@ -233,6 +234,8 @@ public static class VisualTheme
             sr.sortingLayerID = tileRenderer.sortingLayerID;
             sr.sortingOrder = tileRenderer.sortingOrder + 2;
         }
+        if (motion != ClayIconMotion.Motion.None)
+            ClayIconMotion.Attach(sr, motion, flow);
         return sr;
     }
 

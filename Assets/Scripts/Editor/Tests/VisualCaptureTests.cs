@@ -148,6 +148,16 @@ public class VisualCaptureTests
             CloseTutorialIfOpen(ui);
             yield return WaitRealtime(0.6f);
             CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_start");
+            // ZEROSTEP_CAPTURE_MOTION=1: 특수 타일 아이콘 움직임 확인용으로 시간차를 두고 몇 장 더 찍는다.
+            if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_MOTION") == "1")
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    yield return WaitRealtime(0.17f);
+                    CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_motion{k}");
+                }
+                continue;
+            }
 
             // 힌트 미리보기(경로 화살표)
             if (gm.AutomationHintAvailableNow())
@@ -195,11 +205,16 @@ public class VisualCaptureTests
                     if (i == p1.Count - 2)
                         CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_open");
                 }
-                yield return WaitRealtime(0.15f);
+                yield return WaitRealtime(0.2f);
                 CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_suck1");
                 yield return WaitRealtime(0.25f);
                 CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_suck2");
-                yield return WaitRealtime(0.45f);
+                // 판 교체(0.6초) 직후: 시작 칸이 포탈 자리에 있고 칸들이 쏟아져 나오는 중
+                while (gm.AutomationPortalPhase != 2)
+                    yield return null;
+                yield return WaitRealtime(0.12f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_spill");
+                yield return WaitRealtime(0.15f);
                 CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_phase2a");
                 yield return WaitRealtime(0.9f);
                 CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_phase2");

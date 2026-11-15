@@ -25,9 +25,8 @@ public class ChargeTile : MonoBehaviour
         if (VisualTheme.IsSoftClay)
         {
             // 점토 테마: 선 대신 모서리 잉크색 "+" 아이콘.
-            clayIcon = VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Plus);
-            if (clayIcon != null)
-                clayIconBaseScale = clayIcon.transform.localScale;
+            clayIcon = VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Plus, 0f, ClayIconMotion.Motion.Glow);
+            clayIconMotion = clayIcon != null ? clayIcon.GetComponent<ClayIconMotion>() : null;
             return;
         }
         glyphHorizontal = CreateGlyphLine("ChargeGlyphH");
@@ -35,7 +34,7 @@ public class ChargeTile : MonoBehaviour
     }
 
     private SpriteRenderer clayIcon;
-    private Vector3 clayIconBaseScale;
+    private ClayIconMotion clayIconMotion;
 
     private LineRenderer CreateGlyphLine(string objectName)
     {
@@ -62,6 +61,7 @@ public class ChargeTile : MonoBehaviour
         if (chargedCount <= 0)
             return;
         pulseUntil = Time.unscaledTime + 0.25f * Mathf.Max(0.2f, GameplayFeedback.Intensity);
+        clayIconMotion?.Punch();
     }
 
     private void LateUpdate()
@@ -70,7 +70,6 @@ public class ChargeTile : MonoBehaviour
         if (clayIcon != null)
         {
             clayIcon.enabled = visible;
-            clayIcon.transform.localScale = clayIconBaseScale * (Time.unscaledTime < pulseUntil ? 1.3f : 1f);
             return;
         }
         if (glyphHorizontal == null || glyphVertical == null)

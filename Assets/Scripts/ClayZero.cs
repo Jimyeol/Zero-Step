@@ -140,10 +140,14 @@ public sealed class ClayZero : MonoBehaviour
     private float suckStart = -10f;
     private Vector3 suckFrom;
     private float popStart = -10f;
+    private float suckDuration = 0.6f;
+    private bool sucking;   // 포탈로 빨려 든 뒤 EmergeAt까지 숨어 있다(포탈 칸이 없어져도).
 
     /// <summary>포탈로 들어갔을 때: 소용돌이를 그리며 포탈 가운데로 빨려 들어가 사라진다. EmergeAt 전까지 보이지 않는다.</summary>
-    public void SuckInto(Tile portal)
+    public void SuckInto(Tile portal, float duration = 0.6f)
     {
+        suckDuration = Mathf.Max(0.05f, duration);
+        sucking = true;
         suckTile = portal;
         suckStart = Time.unscaledTime;
         suckFrom = position;
@@ -153,6 +157,7 @@ public sealed class ClayZero : MonoBehaviour
     /// <summary>2페이즈 보드의 시작 칸에서 퐁 하고 다시 나타난다.</summary>
     public void EmergeAt(Tile tile)
     {
+        sucking = false;
         suckTile = null;
         target = tile;
         placed = false;
@@ -160,12 +165,23 @@ public sealed class ClayZero : MonoBehaviour
         popStart = Time.unscaledTime;
     }
 
+    /// <summary>포탈 전환이 취소됐을 때(다른 판으로 이동): 숨김을 풀고 평소처럼 칸을 따라간다.</summary>
+    public void CancelSuck()
+    {
+        if (!sucking)
+            return;
+        sucking = false;
+        suckTile = null;
+        placed = false;
+        alpha = 0f;
+    }
+
     private bool UpdateSuck(float now)
     {
-        if (suckTile == null)
+        if (!sucking)
             return false;
-        float t = Mathf.Clamp01((now - suckStart) / PortalTile.SuckSeconds);
-        if (t >= 1f || !TryGetPerch(suckTile, out _, out float size, out _, out _, out SpriteRenderer tileRenderer))
+        float t = Mathf.Clamp01((now - suckStart) / suckDuration);
+        if (t >= 1f || suckTile == null || !TryGetPerch(suckTile, out _, out float size, out _, out _, out SpriteRenderer tileRenderer))
         {
             Apply(0f, position, 1f, 1f, 0f, 1f, body.sortingOrder);
             return true;

@@ -335,15 +335,40 @@ public class StageProgressTests
         }
         gm.AutomationEndDrag();
 
-        // 2) 정답대로 마지막에 들어가면 클리어가 아니라 2페이즈가 나온다.
+        // 2) 정답대로 마지막에 들어가면 클리어가 아니라 2페이즈가 나온다. 2페이즈 시작 칸은 포탈이 있던 화면 자리에 나타난다.
         gm.LoadStageImmediateForDebug(stage);
         yield return Settle(gm, ui);
+        Camera cam = Camera.main;
+        Vector3? portalWorld = gm.AutomationTileWorldPosition(portal.x, portal.y);
+        Vector3 portalScreen = cam != null && portalWorld.HasValue ? cam.WorldToScreenPoint(portalWorld.Value) : Vector3.zero;
         yield return PlayMoves(gm, phase1, "phase 1", failures);
         Check(failures, !gm.AutomationStageCleared, "portal entry cleared the stage");
         float wait = Time.realtimeSinceStartup;
-        while ((gm.AutomationPortalTransitioning || gm.AutomationPortalPhase != 2) && Time.realtimeSinceStartup - wait < 4f)
+        while (gm.AutomationPortalPhase != 2 && Time.realtimeSinceStartup - wait < 4f)
             yield return null;
+        Vector3? startWorld = gm.AutomationTileWorldPosition(start2.x, start2.y);
+        if (cam != null && startWorld.HasValue)
+        {
+            Vector3 startScreen = cam.WorldToScreenPoint(startWorld.Value);
+            float gap = Vector2.Distance(startScreen, portalScreen);
+            Check(failures, gap < 3f, $"phase 2 start appeared {gap:F1}px away from the portal");
+        }
+        while (gm.AutomationPortalTransitioning && Time.realtimeSinceStartup - wait < 6f)
+            yield return null;
+        Check(failures, !gm.AutomationPortalTransitioning, "portal transition did not finish");
         yield return Wait(0.3f);
+        if (cam != null)
+        {
+            foreach (Vector3 p in gm.AutomationAllTileWorldPositions())
+            {
+                Vector3 v = cam.WorldToViewportPoint(p);
+                if (v.x < 0f || v.x > 1f || v.y < 0f || v.y > 1f)
+                {
+                    failures.Add($"phase 2 tile at {p} is off screen after the camera glide (viewport {v})");
+                    break;
+                }
+            }
+        }
         Check(failures, gm.AutomationPortalPhase == 2, $"phase 2 did not appear (phase {gm.AutomationPortalPhase})");
         Check(failures, gm.CurrentStageIndex == stage, $"stage changed to {gm.CurrentStageIndex}");
         Check(failures, gm.AutomationCurrentCell == start2, $"phase 2 start {gm.AutomationCurrentCell} (expected {start2})");

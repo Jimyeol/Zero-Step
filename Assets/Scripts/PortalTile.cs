@@ -56,6 +56,27 @@ public class PortalTile : MonoBehaviour
         return line;
     }
 
+    /// <summary>타일 스프라이트 반 폭(월드 단위, 현재 크기 기준).</summary>
+    public float WorldHalfSize
+    {
+        get
+        {
+            float half = tileSpriteRenderer != null && tileSpriteRenderer.sprite != null ? tileSpriteRenderer.sprite.bounds.extents.x : 0.5f;
+            return half * Mathf.Abs(transform.lossyScale.x);
+        }
+    }
+
+    /// <summary>
+    /// 2페이즈 시작 칸 위에 남는 소용돌이 잔상: 포탈이 사라진 자리에서 천천히 멈추며 옅어진다(0.55초 뒤 스스로 없어진다).
+    /// </summary>
+    public static void SpawnAfterglow(Vector3 worldPosition, float worldHalfSize, SpriteRenderer sortingReference)
+    {
+        var go = new GameObject("PortalAfterglow");
+        go.transform.position = worldPosition + new Vector3(0f, 0f, -0.03f);
+        var glow = go.AddComponent<PortalAfterglow>();
+        glow.Init(worldHalfSize, sortingReference);
+    }
+
     /// <summary>포탈로 들어갔을 때: 소용돌이가 빠르게 돌며 커진다.</summary>
     public void PlaySuck()
     {
@@ -80,12 +101,12 @@ public class PortalTile : MonoBehaviour
         float half = tileSpriteRenderer != null && tileSpriteRenderer.sprite != null
             ? tileSpriteRenderer.sprite.bounds.extents.x
             : 0.5f;
-        float pulse = 1f + (IsOpen ? Mathf.Sin(Time.unscaledTime * 6f) * 0.05f : 0f);
+        float pulse = 1f + (IsOpen ? Mathf.Sin(Time.unscaledTime * 6f) * 0.08f : 0f);
         float radius = half * 0.62f * pulse * (sucking ? 1f + suck * 0.5f : 1f);
         Color color = Color.Lerp(new Color(PortalColor.r, PortalColor.g, PortalColor.b, 0.38f), PortalColor, open);
         if (sucking)
             color.a *= 1f - suck * 0.6f;
-        float width = half * Mathf.Lerp(0.07f, 0.1f, open);
+        float width = half * Mathf.Lerp(0.07f, 0.12f, open);
 
         for (int a = 0; a < arms.Length; a++)
         {
@@ -103,6 +124,73 @@ public class PortalTile : MonoBehaviour
             line.widthMultiplier = width;
             line.startColor = color;
             line.endColor = new Color(color.r, color.g, color.b, color.a * 0.4f);
+        }
+    }
+}
+
+/// <summary>포탈이 사라진 자리의 소용돌이 잔상(PortalTile.SpawnAfterglow).</summary>
+public class PortalAfterglow : MonoBehaviour
+{
+    private const float Duration = 0.55f;
+    private const int Points = 22;
+    private LineRenderer[] arms;
+    private float half;
+    private float start;
+    private float angle;
+
+    public void Init(float worldHalfSize, SpriteRenderer sortingReference)
+    {
+        half = worldHalfSize;
+        start = Time.unscaledTime;
+        arms = new LineRenderer[2];
+        for (int a = 0; a < arms.Length; a++)
+        {
+            var child = new GameObject($"Arm{a}");
+            child.transform.SetParent(transform, false);
+            var line = child.AddComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.positionCount = Points;
+            line.numCapVertices = 4;
+            line.numCornerVertices = 2;
+            line.alignment = LineAlignment.TransformZ;
+            line.widthCurve = AnimationCurve.Linear(0f, 1f, 1f, 0.35f);
+            if (sortingReference != null)
+            {
+                if (sortingReference.sharedMaterial != null)
+                    line.sharedMaterial = sortingReference.sharedMaterial;
+                line.sortingLayerID = sortingReference.sortingLayerID;
+                line.sortingOrder = sortingReference.sortingOrder + 3;
+            }
+            arms[a] = line;
+        }
+    }
+
+    private void LateUpdate()
+    {
+        float t = (Time.unscaledTime - start) / Duration;
+        if (t >= 1f || arms == null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        // 빠르게 돌던 소용돌이가 멈추며 바깥으로 퍼지고 옅어진다.
+        angle -= Mathf.Lerp(900f, 60f, t) * Time.unscaledDeltaTime;
+        float radius = half * Mathf.Lerp(0.9f, 1.25f, t);
+        Color c = PortalTile.PortalColor;
+        c.a = (1f - t) * 0.9f;
+        for (int a = 0; a < arms.Length; a++)
+        {
+            float baseAngle = angle + a * 180f;
+            for (int k = 0; k < Points; k++)
+            {
+                float u = k / (float)(Points - 1);
+                float r = radius * Mathf.Lerp(1f, 0.3f, u);
+                float rad = (baseAngle + u * 200f) * Mathf.Deg2Rad;
+                arms[a].SetPosition(k, new Vector3(Mathf.Cos(rad) * r, Mathf.Sin(rad) * r * 0.92f, 0f));
+            }
+            arms[a].widthMultiplier = half * 0.1f * (1f - t * 0.5f);
+            arms[a].startColor = c;
+            arms[a].endColor = new Color(c.r, c.g, c.b, c.a * 0.4f);
         }
     }
 }

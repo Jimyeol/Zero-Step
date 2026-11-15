@@ -76,7 +76,7 @@ public class BlindCurtainTile : MonoBehaviour
         if (VisualTheme.IsSoftClay)
         {
             // 점토 테마: 가운데 큰 눈 대신 모서리 "가린 눈" 아이콘.
-            iconRenderer = VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.EyeOff);
+            iconRenderer = VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.EyeOff, 0f, ClayIconMotion.Motion.Blink);
             iconObject = iconRenderer != null ? iconRenderer.gameObject : null;
             return;
         }

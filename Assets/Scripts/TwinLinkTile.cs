@@ -114,7 +114,7 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
             // 점토 테마: 그룹마다 고유 색(외곽선 + 둥근 글자 배지)으로 짝을 한눈에 구분하고,
             // 이 칸에 서 있으면 짝 칸까지 점선으로 이어 준다(UpdateClayLinkVisuals).
             linkColor = VisualTheme.LinkGroupColor(id);
-            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Link);
+            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Link, 0f, ClayIconMotion.Motion.Breathe);
             EnsureClayLinkRing();
         }
         groupBadgeLabel = string.IsNullOrWhiteSpace(badgeLabel) ? MakeFallbackBadgeLabel(id) : badgeLabel;

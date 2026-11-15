@@ -131,7 +131,7 @@ public class ShortCircuitTile : MonoBehaviour
         exitY = cy + dirY;
         ApplyDirectionVisualRotation();
         if (VisualTheme.IsSoftClay)
-            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Arrow, GetClayArrowRotation());
+            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Arrow, GetClayArrowRotation(), ClayIconMotion.Motion.Flow, new Vector2(dirX, dirY));
     }
 
     private void ParseDirection(string dir)
