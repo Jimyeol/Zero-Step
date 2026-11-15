@@ -1,10 +1,10 @@
 {
   "stageID": 954,
-  "width": 3,
-  "height": 5,
+  "width": 5,
+  "height": 3,
   "startPoint": {
-    "x": 0,
-    "y": 2
+    "x": 4,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -16,60 +16,78 @@
     {
       "x": 1,
       "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "count": 1,
+      "type": "TwinLink",
+      "linkID": 117,
+      "color": "#22d3ee"
+    },
+    {
+      "x": 1,
+      "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 0,
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
       "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
       "x": 0,
       "y": 2,
-      "count": 3,
-      "type": "Charge"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 3,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 3,
-      "type": "FixedKnot",
-      "targetOrder": 2,
-      "properties": {
-        "isAbsolute": true
-      }
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 3,
+      "x": 3,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 2,
       "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
+      "type": "TwinLink",
+      "linkID": 117,
+      "color": "#22d3ee"
     }
   ]
 }

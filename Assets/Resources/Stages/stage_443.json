@@ -1,9 +1,9 @@
 {
   "stageID": 443,
-  "width": 5,
-  "height": 6,
+  "width": 3,
+  "height": 4,
   "startPoint": {
-    "x": 0,
+    "x": 2,
     "y": 1
   },
   "config": {
@@ -32,104 +32,41 @@
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
       "x": 0,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 2,
-      "type": "Charge"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 4,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 5,
       "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 5,
+      "y": 1,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Left"
-    },
-    {
-      "x": 3,
-      "y": 5,
-      "count": 3,
       "type": "Normal"
     },
     {
-      "x": 4,
-      "y": 5,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FBFF"
-      }
+      "x": 0,
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "count": 2,
+      "type": "ShortCircuit",
+      "direction": "Right"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 2,
+      "type": "Normal"
     }
   ]
 }

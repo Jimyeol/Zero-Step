@@ -1,0 +1,5 @@
+Gamemaster Audio - "Fun Casual Sounds" (Unity Asset Store, purchased by the project owner; Asset Store EULA).
+Do not redistribute outside this project.
+  cork_pop_open_bottle_boing_01.wav  -> CrossBlast (sfx bomb)
+  sci-fi_power_up_02.wav             -> Charge
+  game_over_dark_bell_chime_01.wav   -> Blackout

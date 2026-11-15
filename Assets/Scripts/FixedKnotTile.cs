@@ -175,7 +175,11 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
         {
             // 점토 테마: 기본 점토 타일 + 모서리 자물쇠. 가운데 숫자는 "몇 번째 이동에 들어갈지".
             if (tileSpriteRenderer != null)
-                VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Lock);
+            {
+                SpriteRenderer lockIcon = VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Lock, 0f, ClayIconMotion.Motion.Countdown);
+                clayLockMotion = lockIcon != null ? lockIcon.GetComponent<ClayIconMotion>() : null;
+                UpdateClayLockUrgency();
+            }
             return;
         }
         if (tileSpriteRenderer == null || !EnsureLockedSprite())
@@ -184,6 +188,19 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
         tileSpriteRenderer.sprite = lockedSprite;
         if (accentRenderer != null)
             accentRenderer.sprite = lockedSprite;
+    }
+
+    private ClayIconMotion clayLockMotion;
+
+    /// <summary>점토 자물쇠 흔들림: 차례가 3수 안으로 다가오면 흔들리고, 바로 다음 이동이 차례면 가장 세게.</summary>
+    private void UpdateClayLockUrgency()
+    {
+        if (clayLockMotion == null)
+            return;
+        int remaining = displayRemaining;
+        float urgency = !IsOrderConstraintActive || remaining <= 0 ? 0f
+            : remaining == 1 ? 1f : remaining == 2 ? 0.6f : remaining == 3 ? 0.3f : 0f;
+        clayLockMotion.Urgency = urgency;
     }
 
     private void RestoreDefaultSprite()
@@ -568,6 +585,7 @@ public class FixedKnotTile : MonoBehaviour, IGameOverBlackoutVisual
             orderText.text = remaining.ToString();
 
         ApplyVisualForCurrentState();
+        UpdateClayLockUrgency();
         if (shouldSpinForCountdown)
             PlayCountDecrementSpin();
     }

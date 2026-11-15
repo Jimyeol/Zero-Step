@@ -1,10 +1,10 @@
 {
   "stageID": 725,
   "width": 3,
-  "height": 5,
+  "height": 4,
   "startPoint": {
     "x": 2,
-    "y": 0
+    "y": 3
   },
   "config": {
     "mode": "Normal",
@@ -14,92 +14,110 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 1,
       "y": 0,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 5,
-      "type": "Normal"
+      "count": 1,
+      "type": "Portal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 5,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FFFF"
-      }
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 4,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 4,
-      "type": "FixedKnot",
-      "targetOrder": 2,
-      "properties": {
-        "isAbsolute": true
-      }
-    },
-    {
-      "x": 0,
-      "y": 3,
       "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 3,
-      "count": 2,
-      "type": "Igniter",
-      "targetID": "G27"
-    },
-    {
-      "x": 0,
-      "y": 4,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Right"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
-      "y": 4,
+      "y": 3,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G27"
+      "type": "Normal"
     }
-  ]
+  ],
+  "phase2": {
+    "width": 3,
+    "height": 5,
+    "startPoint": {
+      "x": 1,
+      "y": 3
+    },
+    "cells": [
+      {
+        "x": 0,
+        "y": 0,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "count": 3,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "count": 3,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 3,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 3,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 2,
+        "y": 3,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 4,
+        "count": 1,
+        "type": "Charge"
+      },
+      {
+        "x": 2,
+        "y": 4,
+        "count": 1,
+        "type": "Normal"
+      }
+    ]
+  }
 }

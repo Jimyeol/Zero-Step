@@ -148,6 +148,16 @@ public class VisualCaptureTests
             CloseTutorialIfOpen(ui);
             yield return WaitRealtime(0.6f);
             CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_start");
+            // ZEROSTEP_CAPTURE_MOTION=1: 특수 타일 아이콘 움직임 확인용으로 시간차를 두고 몇 장 더 찍는다.
+            if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_MOTION") == "1")
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    yield return WaitRealtime(0.17f);
+                    CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_motion{k}");
+                }
+                continue;
+            }
 
             // 힌트 미리보기(경로 화살표)
             if (gm.AutomationHintAvailableNow())
@@ -155,7 +165,61 @@ public class VisualCaptureTests
                 gm.ShowHintPreview();
                 yield return WaitRealtime(0.5f);
                 CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_hint");
-                yield return WaitRealtime(0.4f);
+                // 제로가 힌트 경로를 걸어가는 중간·끝 모습
+                yield return WaitRealtime(0.75f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_hint2");
+                yield return WaitRealtime(0.7f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_hint3");
+                yield return WaitRealtime(0.2f);
+            }
+
+            // ZEROSTEP_CAPTURE_PORTAL=1: 포탈 판이면 일찍 들어가려다 막히는 모습, 빨려 들어가는 중간, 2페이즈 등장을 찍는다.
+            StageData portalData = StageManager.LoadStage(stage);
+            if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_PORTAL") == "1" && portalData != null && portalData.HasPhase2)
+            {
+                typeof(GameManager).GetMethod("ClearHintPreview", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(gm, new object[] { true });
+                List<Vector2Int> p1 = StageManager.LoadSolutionMoves(stage, 1);
+                Vector2Int portalCell = p1[p1.Count - 1];
+                // 일찍 들어가기: 정답을 따라가다 포탈 옆에 처음 닿으면 포탈로 들어가 본다(남은 칸이 있으면 막힌다).
+                gm.AutomationBeginDrag();
+                for (int i = 0; i < p1.Count - 1; i++)
+                {
+                    gm.AutomationStep(p1[i].x, p1[i].y);
+                    yield return WaitRealtime(0.12f);
+                    if (Mathf.Abs(p1[i].x - portalCell.x) + Mathf.Abs(p1[i].y - portalCell.y) == 1 && i < p1.Count - 2)
+                    {
+                        gm.AutomationStep(portalCell.x, portalCell.y);
+                        yield return WaitRealtime(0.25f);
+                        CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_denied");
+                        break;
+                    }
+                }
+                gm.AutomationEndDrag();
+                gm.LoadStageImmediateForDebug(stage);
+                yield return WaitRealtime(1.2f);
+                gm.AutomationBeginDrag();
+                for (int i = 0; i < p1.Count; i++)
+                {
+                    gm.AutomationStep(p1[i].x, p1[i].y);
+                    yield return WaitRealtime(0.12f);
+                    if (i == p1.Count - 2)
+                        CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_open");
+                }
+                yield return WaitRealtime(0.2f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_suck1");
+                yield return WaitRealtime(0.25f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_suck2");
+                // 판 교체(0.6초) 직후: 시작 칸이 포탈 자리에 있고 칸들이 쏟아져 나오는 중
+                while (gm.AutomationPortalPhase != 2)
+                    yield return null;
+                yield return WaitRealtime(0.12f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_spill");
+                yield return WaitRealtime(0.15f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_phase2a");
+                yield return WaitRealtime(0.9f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, $"stage{stage}_portal_phase2");
+                Debug.Log($"[CapturePortal] stage={stage} phase={gm.AutomationPortalPhase}");
+                continue;
             }
 
             // ZEROSTEP_CAPTURE_PLAY=1: 정답을 실제로 그리면서 드래그 중·타일이 터지는 순간·클리어 화면을 찍는다.
@@ -221,13 +285,119 @@ public class VisualCaptureTests
             }
         }
 
+        // ZEROSTEP_CAPTURE_MAP=1: 챕터 지도(일부 판을 깬 상태로 꾸며서 찍는다. 별 기록은 테스트 뒤 러너가 되돌린다)
+        if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_MAP") == "1")
+        {
+            while (gm.AutomationGameOverPlaying)
+                yield return null;
+            gm.LoadStageImmediateForDebug(54);
+            yield return WaitRealtime(1.0f);
+            CloseTutorialIfOpen(ui);
+            var random = new System.Random(7);
+            for (int s2 = 1; s2 <= 53; s2++)
+                StageStarsStore.Record(s2, 1 + random.Next(3), false);
+            StageStarsStore.Record(55, 3, true);
+            yield return WaitRealtime(0.3f);
+            Debug.Log($"[CaptureMap] open={ui.OpenStageMap()} frontier={gm.StageFrontier} current={gm.CurrentStageIndex}");
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "map_current");
+            ui.CloseStageMap();
+            gm.LoadStageFromMap(40);
+            yield return WaitRealtime(0.8f);
+            ui.OpenStageMap();
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "map_complete");
+            ui.CloseStageMap();
+            yield return WaitRealtime(0.3f);
+        }
+
+        // ZEROSTEP_CAPTURE_LAB=1: 시작 홈 화면, 무한 연구소(기본 판·변주 칩·기억 변주에서 숫자가 가려진 모습), 연구소에서 연 지도
+        if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_LAB") == "1")
+        {
+            while (gm.AutomationGameOverPlaying)
+                yield return null;
+            GameManager.AutomationSetLabUnlocked(true);
+            ui.ShowHomeScreen(true);
+            yield return WaitRealtime(0.5f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "home");
+            ui.CloseHomeScreen();
+
+            PlayerPrefs.SetInt("ZeroStep.LabStage", 1);
+            gm.StartLab();
+            yield return WaitRealtime(0.9f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_start");
+            int memoryStage = 0;
+            for (int n = 2; n < 400 && memoryStage == 0; n++)
+            {
+                GameManager.ResolveLabBoardKind(n, out GameManager.LabVariant variant, out _);
+                if (variant == GameManager.LabVariant.Memory)
+                    memoryStage = n;
+            }
+            gm.LoadStageFromMap(gm.CurrentStageIndex);
+            yield return WaitRealtime(0.6f);
+            PlayerPrefs.SetInt("ZeroStep.LabStage", memoryStage);
+            gm.StartLab();
+            yield return WaitRealtime(1.0f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_memory_shown");
+            yield return WaitRealtime(3.2f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_memory_hidden");
+            ui.OpenStageMap();
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "lab_map");
+            ui.CloseStageMap();
+            gm.ExitLabToStage();
+            yield return WaitRealtime(0.8f);
+            // 엔딩 전(잠김) 상태의 지도: 무한 연구소 버튼이 없어야 한다.
+            GameManager.AutomationSetLabUnlocked(false);
+            ui.OpenStageMap();
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "map_locked_lab");
+            ui.CloseStageMap();
+            GameManager.AutomationSetLabUnlocked(null);
+        }
+
+        // ZEROSTEP_CAPTURE_SETTINGS=1: 설정 화면(위·아래로 스크롤한 모습, 언어 선택·초기화 확인 창)
+        if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_SETTINGS") == "1")
+        {
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            typeof(GameMainUIController).GetMethod("ShowSettingPopup", flags)?.Invoke(ui, null);
+            yield return WaitRealtime(0.15f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_open");
+            yield return WaitRealtime(0.8f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_top");
+            var sheet = ui.GetComponent<UnityEngine.UIElements.UIDocument>()?.rootVisualElement.Q<UnityEngine.UIElements.VisualElement>(ClaySettingsSheet.ElementName);
+            var scroll = sheet?.Q<UnityEngine.UIElements.ScrollView>();
+            if (scroll != null)
+            {
+                scroll.scrollOffset = new Vector2(0, 5000);
+                yield return WaitRealtime(0.3f);
+                CaptureBoth(cam, worldRt, uiRt, outDir, "settings_bottom");
+            }
+            typeof(GameMainUIController).GetMethod("ToggleSoundSwitch", flags)?.Invoke(ui, null);
+            typeof(GameMainUIController).GetMethod("BuildClaySettingsSheet", flags)?.Invoke(ui, null);
+            yield return WaitRealtime(0.8f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_sound_off");
+            typeof(GameMainUIController).GetMethod("ToggleSoundSwitch", flags)?.Invoke(ui, null);
+            typeof(GameMainUIController).GetMethod("OpenLanguageSelectionPopup", flags)?.Invoke(ui, null);
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_language");
+            typeof(GameMainUIController).GetMethod("HideLanguageSelectionPopup", flags)?.Invoke(ui, null);
+            typeof(GameMainUIController).GetMethod("ShowResetDataConfirmPopup", flags)?.Invoke(ui, null);
+            yield return WaitRealtime(0.4f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "settings_reset");
+            typeof(GameMainUIController).GetMethod("HideResetDataConfirmPopup", flags)?.Invoke(ui, null);
+            typeof(GameMainUIController).GetMethod("HideSettingPopup", flags)?.Invoke(ui, null);
+        }
+
         // ZEROSTEP_CAPTURE_FEVER=1: 피버 보드 시작·진행·결과 화면
         if (Environment.GetEnvironmentVariable("ZEROSTEP_CAPTURE_FEVER") == "1")
         {
             while (gm.AutomationGameOverPlaying)
                 yield return null;
             gm.AutomationStartFever(10, 7f);
-            yield return WaitRealtime(0.35f);
+            yield return WaitRealtime(0.25f);
+            CaptureBoth(cam, worldRt, uiRt, outDir, "fever_intro");
+            yield return WaitRealtime(1.0f);
             CaptureBoth(cam, worldRt, uiRt, outDir, "fever_start");
             yield return WaitRealtime(0.8f);
             List<Vector2Int> feverMoves = gm.AutomationFeverSolution;

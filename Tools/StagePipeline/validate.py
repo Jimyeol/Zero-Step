@@ -24,6 +24,10 @@ Rules modelled (GameManager.cs semantics + the Charge spec; this content set use
   entering: Igniter ignites its group, FixedKnot first entry only on move == targetOrder; after each move a
   FixedKnot never entered with count>0 and move >= targetOrder is game over; clear when the entered tile is 1
   and the board total is 1 (plus the TwinLink-group variant present in GameManager.cs).
+Portal (count 1) may only be entered as the final move (the tile being left has count 1 and everything else
+is 0); entering it clears phase 1. A Portal stage carries a second board in `phase2` (no Portal) with its own
+startPoint and its own solution line "N:2" in solutions.json; the stage counts as cleared when phase 2 is.
+Content roles (breather / portal stages) are listed in roles.json next to mapping.csv.
 """
 import sys, os, json, csv, time, math, collections, multiprocessing as mp
 
@@ -31,11 +35,14 @@ DIRS = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 SC_DIR = {'UP': (0, 1), 'DOWN': (0, -1), 'RIGHT': (1, 0), 'LEFT': (-1, 0)}
 CHARGEABLE = {'Normal', 'ShortCircuit', 'CrossBlast', 'TwinLink', 'BlindCurtain', 'Blackout', 'Charge'}
 KNOWN = {'Normal', 'ShortCircuit', 'CrossBlast', 'FixedKnot', 'TwinLink', 'Igniter', 'Hidden',
-         'BlindCurtain', 'Blackout', 'Charge'}
+         'BlindCurtain', 'Blackout', 'Charge', 'Portal'}
+PORTAL_INTRO = 451
 RULE_TYPES = {'ShortCircuit', 'CrossBlast', 'FixedKnot', 'TwinLink', 'Igniter', 'Charge'}
 INTRO = {'ShortCircuit': 21, 'CrossBlast': 51, 'FixedKnot': 101, 'TwinLink': 151, 'Igniter': 201,
          'BlindCurtain': 251, 'Blackout': 301, 'Charge': 401}
 STAGE_KEYS = ['stageID', 'width', 'height', 'startPoint', 'config', 'cells']
+PORTAL_STAGE_KEYS = STAGE_KEYS + ['phase2']
+PHASE2_KEYS = ['width', 'height', 'startPoint', 'cells']
 STATE_LIMIT = 2_000_000
 ABL_LIMIT = 4_000_000
 
@@ -44,6 +51,27 @@ ABL_LIMIT = 4_000_000
 def ttype(c):
     t = c.get('type') or 'Normal'
     return t if t in KNOWN else 'Normal'
+
+
+def portal_enterable(cnt_cur, total, cnt_portal):
+    return cnt_cur == 1 and total == cnt_cur + cnt_portal
+
+
+def phase2_stage(s):
+    p2 = s.get('phase2')
+    if not p2:
+        return None
+    return {'stageID': s.get('stageID', 0), 'width': p2['width'], 'height': p2['height'],
+            'startPoint': p2['startPoint'], 'config': s.get('config'), 'cells': p2['cells']}
+
+
+def boards(i, s):
+    """(label, board) for every board of stage i: the stage itself and, for Portal stages, its phase 2."""
+    out = [(str(i), s)]
+    p2 = phase2_stage(s)
+    if p2 is not None:
+        out.append((f'{i}:2', p2))
+    return out
 
 
 def replay(s, strokes):
@@ -94,6 +122,8 @@ def replay(s, strokes):
                 order = order if order > 0 else 1
                 if step != order:
                     return {'ok': False, 'reason': f'move {step}: FixedKnot only enterable on move {order}'}
+            if ttype(tc) == 'Portal' and not portal_enterable(cnt[cur], sum(cnt.values()), cnt[nxt]):
+                return {'ok': False, 'reason': f'move {step}: Portal entered before the final move'}
             # ---- leave effects
             cnt[cur] -= 1
             if ttype(cc) == 'TwinLink':
@@ -139,7 +169,7 @@ def replay(s, strokes):
             if win:
                 if step != total_moves:
                     return {'ok': False, 'reason': f'cleared at move {step} before the end of the solution'}
-                return {'ok': True, 'moves': step, 'blackout_step': blackout_step, 'plain': total == 1}
+                return {'ok': True, 'moves': step, 'blackout_step': blackout_step, 'plain': total == 1, 'portal': ttype(tc) == 'Portal'}
     return {'ok': False, 'reason': 'solution ended without clearing', 'remaining': sum(cnt.values())}
 
 
@@ -199,6 +229,7 @@ class Stage:
         self.charge = [t == 'Charge' for t in self.type]
         self.chargeable = [t in CHARGEABLE for t in self.type]
         self.remote = [i for i in range(self.n) if self.type[i] in ('CrossBlast', 'TwinLink', 'Charge')]
+        self.portal = [t == 'Portal' for t in self.type]
 
     def legal(self, st):
         cur, prev, cnt, trig, fks, step = st
@@ -211,6 +242,8 @@ class Stage:
             if self.sc_exit[cur] is not None and self.sc_exit[cur] != n:
                 continue
             if n in self.fk_bit and not (fks & self.fk_bit[n]) and step + 1 != self.fk_order[n]:
+                continue
+            if self.portal[n] and not portal_enterable(cnt[cur], sum(cnt), cnt[n]):
                 continue
             res.append(n)
         return res
@@ -452,11 +485,8 @@ def matters(kind, orig, ab, s, a, orig_strokes):
     return False
 
 
-def work(args):
-    i, s, strokes, do_solve, do_abl = args
-    r = {'id': i}
-    t0 = time.time()
-    r['replay'] = replay(s, strokes)
+def work_board(s, strokes, do_solve, do_abl):
+    r = {'replay': replay(s, strokes) if strokes else {'ok': False, 'reason': 'no solution'}}
     if do_solve:
         a = solve(s)
         r['solve'] = a
@@ -473,6 +503,50 @@ def work(args):
                     x = solve(abl_stage, limit=ABL_LIMIT)
                     ab.append((label, matters(kind, a, x, s, abl_stage, strokes)))
                 r['ablation'] = ab
+    return r
+
+
+def combine_solves(a, b):
+    """Metrics of a two-phase stage: both phases must be won; random play wins with p1*p2."""
+    if not (a.get('complete') and b.get('complete')):
+        return {'complete': False, 'states': a.get('states', 0) + b.get('states', 0)}
+    solvable = a['solvable'] and b['solvable']
+    out = {'complete': True, 'states': a['states'] + b['states'], 'solvable': solvable,
+           'solutions': a['solutions'] * b['solutions'], 'p_random': a['p_random'] * b['p_random']}
+    if solvable:
+        la, lb = a['min_len'], b['min_len']
+        out['crit_steps'] = a['crit_steps'] + b['crit_steps']
+        out['forced_ratio'] = (a['forced_ratio'] * la + b['forced_ratio'] * lb) / (la + lb)
+        out['min_len'] = la + lb
+    return out
+
+
+def work(args):
+    i, s, sols_i, do_solve, do_abl = args
+    t0 = time.time()
+    p2 = phase2_stage(s)
+    if p2 is None:
+        r = work_board(s, sols_i.get(str(i)), do_solve, do_abl)
+    else:
+        r1 = work_board(s, sols_i.get(str(i)), do_solve, False)
+        r2 = work_board(p2, sols_i.get(f'{i}:2'), do_solve, do_abl)
+        rp1, rp2 = r1['replay'], r2['replay']
+        if rp1['ok'] and not rp1.get('portal'):
+            rp1 = {'ok': False, 'reason': 'phase 1 must end by entering the Portal'}
+        if not rp1['ok']:
+            replay_r = {'ok': False, 'reason': 'phase 1: ' + rp1.get('reason', '')}
+        elif not rp2['ok']:
+            replay_r = {'ok': False, 'reason': 'phase 2: ' + rp2.get('reason', '')}
+        else:
+            replay_r = {'ok': True, 'moves': rp1['moves'] + rp2['moves'], 'plain': rp2.get('plain'), 'blackout_step': rp2.get('blackout_step')}
+        r = {'replay': replay_r, 'phases': 2}
+        if do_solve:
+            r['solve'] = combine_solves(r1['solve'], r2['solve'])
+            if 'blackout_ok' in r2:
+                r['blackout_ok'] = r2['blackout_ok']
+            if 'ablation' in r2:
+                r['ablation'] = [('phase2 ' + l, v) for l, v in r2['ablation']]
+    r['id'] = i
     r['time'] = round(time.time() - t0, 2)
     return r
 
@@ -586,55 +660,82 @@ def main():
     mapping = {int(r['stage']): r for r in csv.DictReader(open(os.path.join(out, 'mapping.csv'), encoding='utf-8'))}
     R.check('mapping.csv has a row per stage', [i for i in range(1, 1001) if i not in mapping], 1000)
     R.check('solutions.json has a solution per stage', [i for i in range(1, 1001) if str(i) not in sols], 1000)
+    rp_path = os.path.join(out, 'roles.json')
+    roles = json.load(open(rp_path, encoding='utf-8')) if os.path.exists(rp_path) else {}
+    breathers = set(roles.get('breathers', []))
+    portals = set(roles.get('portals', []))
+    has_p2 = {i for i, s in stages.items() if s.get('phase2')}
+    R.check('roles.json portal stages == stages with a phase 2', sorted(portals ^ has_p2), None, f'{len(portals)} portal, {len(breathers)} breather stages')
+    R.check('every Portal stage has a phase-2 solution ("N:2")', [i for i in sorted(has_p2) if f'{i}:2' not in sols], len(has_p2))
 
     # ---------------- static checks
-    fmt, lim, struct, walled = [], [], [], []
-    for i, s in stages.items():
-        if s.get('stageID') != i:
+    fmt, lim, struct, walled, portal_bad = [], [], [], [], []
+    for i, s0 in stages.items():
+        if s0.get('stageID') != i:
             fmt.append((i, 'stageID'))
-        if list(s.keys()) != STAGE_KEYS:
+        if list(s0.keys()) != (PORTAL_STAGE_KEYS if 'phase2' in s0 else STAGE_KEYS):
             fmt.append((i, 'keys'))
-        if 'walls' in s:
+        if 'phase2' in s0 and list(s0['phase2'].keys()) != PHASE2_KEYS:
+            fmt.append((i, 'phase2 keys'))
+        if 'walls' in s0 or 'walls' in (s0.get('phase2') or {}):
             walled.append(i)
-        cells = [c for c in s['cells'] if c.get('count', 0) > 0]
-        xs = [c['x'] for c in cells]; ys = [c['y'] for c in cells]
-        w, h = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
-        if s['width'] > 7 or s['height'] > 8 or w > 7 or h > 8 or max(c['count'] for c in cells) > 6 or sum(c['count'] for c in cells) > 48:
-            lim.append(i)
-        pos_ = {(c['x'], c['y']): c for c in cells}
-        if len(pos_) != len(cells) or any(not (0 <= c['x'] < s['width'] and 0 <= c['y'] < s['height']) for c in cells):
-            struct.append((i, 'cell coords'))
-        sp = (s['startPoint']['x'], s['startPoint']['y'])
-        if sp not in pos_ or ttype(pos_[sp]) in ('Hidden', 'FixedKnot'):
-            struct.append((i, 'start'))
-        for c in cells:
-            t = ttype(c)
-            if (c.get('type') or 'Normal') not in KNOWN:
-                struct.append((i, 'unknown type'))
-            if t == 'ShortCircuit' and (c.get('direction') or '').upper() not in SC_DIR:
-                struct.append((i, 'SC direction'))
-            if t == 'FixedKnot' and not (c.get('targetOrder') or 0) > 0:
-                struct.append((i, 'FK order'))
-            if t == 'Charge':
-                for dx, dy in DIRS:
-                    q = pos_.get((c['x'] + dx, c['y'] + dy))
-                    if q is not None and ttype(q) in ('FixedKnot', 'Igniter', 'Hidden', 'Charge'):
-                        struct.append((i, 'Charge adjacent to FixedKnot/Igniter/Hidden/Charge'))
-        tl = collections.Counter(c.get('linkID') or 101 for c in cells if ttype(c) == 'TwinLink')
-        if any(v < 2 for v in tl.values()):
-            struct.append((i, 'TwinLink group of 1'))
-        hid = {c.get('groupID') or 'default' for c in cells if ttype(c) == 'Hidden'}
-        ign = {c.get('targetID') for c in cells if ttype(c) == 'Igniter'}
-        if hid - ign or ign - hid:
-            struct.append((i, 'Igniter/Hidden group mismatch'))
+        p1_types = [ttype(c) for c in s0['cells'] if c.get('count', 0) > 0]
+        n_portal = p1_types.count('Portal')
+        if 'phase2' in s0:
+            pc = [c for c in s0['cells'] if c.get('count', 0) > 0 and ttype(c) == 'Portal']
+            sp0 = (s0['startPoint']['x'], s0['startPoint']['y'])
+            if n_portal != 1 or pc[0]['count'] != 1 or (pc[0]['x'], pc[0]['y']) == sp0:
+                portal_bad.append((i, 'phase 1 needs exactly one Portal (count 1, not the start)'))
+            if any(t not in ('Normal', 'Portal') for t in p1_types):
+                portal_bad.append((i, 'phase 1 may only use Normal tiles besides the Portal'))
+            if any(ttype(c) == 'Portal' for c in s0['phase2']['cells']):
+                portal_bad.append((i, 'Portal inside phase 2'))
+        elif n_portal:
+            portal_bad.append((i, 'Portal without phase 2'))
+        for label, s in boards(i, s0):
+            cells = [c for c in s['cells'] if c.get('count', 0) > 0]
+            xs = [c['x'] for c in cells]; ys = [c['y'] for c in cells]
+            w, h = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+            if s['width'] > 7 or s['height'] > 8 or w > 7 or h > 8 or max(c['count'] for c in cells) > 6 or sum(c['count'] for c in cells) > 48:
+                lim.append(i)
+            pos_ = {(c['x'], c['y']): c for c in cells}
+            if len(pos_) != len(cells) or any(not (0 <= c['x'] < s['width'] and 0 <= c['y'] < s['height']) for c in cells):
+                struct.append((i, 'cell coords'))
+            sp = (s['startPoint']['x'], s['startPoint']['y'])
+            if sp not in pos_ or ttype(pos_[sp]) in ('Hidden', 'FixedKnot'):
+                struct.append((i, 'start'))
+            for c in cells:
+                t = ttype(c)
+                if (c.get('type') or 'Normal') not in KNOWN:
+                    struct.append((i, 'unknown type'))
+                if t == 'ShortCircuit' and (c.get('direction') or '').upper() not in SC_DIR:
+                    struct.append((i, 'SC direction'))
+                if t == 'FixedKnot' and not (c.get('targetOrder') or 0) > 0:
+                    struct.append((i, 'FK order'))
+                if t == 'Charge':
+                    for dx, dy in DIRS:
+                        q = pos_.get((c['x'] + dx, c['y'] + dy))
+                        if q is not None and ttype(q) in ('FixedKnot', 'Igniter', 'Hidden', 'Charge'):
+                            struct.append((i, 'Charge adjacent to FixedKnot/Igniter/Hidden/Charge'))
+            tl = collections.Counter(c.get('linkID') or 101 for c in cells if ttype(c) == 'TwinLink')
+            if any(v < 2 for v in tl.values()):
+                struct.append((i, 'TwinLink group of 1'))
+            hid = {c.get('groupID') or 'default' for c in cells if ttype(c) == 'Hidden'}
+            ign = {c.get('targetID') for c in cells if ttype(c) == 'Igniter'}
+            if hid - ign or ign - hid:
+                struct.append((i, 'Igniter/Hidden group mismatch'))
     R.check('no stage contains walls (no `walls` field anywhere)', walled, 1000)
     R.check('stageID == file number, same JSON layout (stageID,width,height,startPoint,config,cells)', fmt, 1000)
     R.check('size limits (w<=7, h<=8, count<=6, sum<=48)', lim, 1000)
     R.check('structural sanity (start, params, Charge adjacency, groups)', struct, 1000)
+    R.check('Portal stages: one Portal (count 1, not the start) on a Normal-only phase 1, none in phase 2', portal_bad, len(has_p2))
 
     # mechanic schedule
     def mechs(s):
-        ts = {ttype(c) for c in s['cells'] if c.get('count', 0) > 0}
+        ts = set()
+        for _, b in boards(0, s):
+            ts |= {ttype(c) for c in b['cells'] if c.get('count', 0) > 0}
+        ts.discard('Portal')
         if 'Hidden' in ts:
             ts.add('Igniter')
         return ts
@@ -648,8 +749,11 @@ def main():
     R.check('intro stages are tiny (<=3x3) and contain the mechanic', tiny, len(INTRO))
     focus = [(m, j) for m, at in INTRO.items() for j in range(at + 1, at + 11) if m not in mechs(stages[j])]
     R.check('10 stages after each intro focus on the new mechanic', focus, 10 * len(INTRO))
-    multi = [i for i in range(451, 1001) if len(mechs(stages[i]) & RULE_TYPES) >= 2]
-    R.check('from 451 on most stages combine >=2 rule-changing mechanics (>=75%)', [] if len(multi) >= 0.75 * 550 else ['too few'], None, f'{len(multi)}/550 = {len(multi) / 5.5:.1f}%')
+    regular = [i for i in range(451, 1001) if i not in breathers and i not in portals]
+    multi = [i for i in regular if len(mechs(stages[i]) & RULE_TYPES) >= 2]
+    R.check('from 451 on most regular stages (not breather/portal) combine >=2 rule-changing mechanics (>=75%)', [] if len(multi) >= 0.75 * len(regular) else ['too few'], None, f'{len(multi)}/{len(regular)} = {100.0 * len(multi) / max(1, len(regular)):.1f}%')
+    first_portal = min(has_p2) if has_p2 else None
+    R.check('Portal first appears at its intro stage', [] if not has_p2 or first_portal == PORTAL_INTRO else [first_portal], None, f'first = {first_portal}')
     fin = mechs(stages[1000])
     R.check('stage 1000 uses every mechanic', sorted((RULE_TYPES | {'BlindCurtain', 'Blackout'}) - fin), None, f"{stages[1000]['width']}x{stages[1000]['height']}: {sorted(fin - {'Normal'})}")
 
@@ -661,6 +765,11 @@ def main():
     smap = {(e.get('tileType') if e.get('tileType') != 'BlackOut' else 'Blackout'): (e['stageIndex'], e['targetStageIndex']) for e in sn['entries']}
     st_ = [(m, smap.get(m)) for m, at in INTRO.items() if smap.get(m) != (at - 2, at)]
     ids = [e['id'] for e in tut['entries']] + [e['id'] for e in sn['entries']]
+    if has_p2:
+        if tmap.get('Portal') != PORTAL_INTRO:
+            tt.append(('Portal', tmap.get('Portal'), PORTAL_INTRO))
+        if smap.get('Portal') != (PORTAL_INTRO - 2, PORTAL_INTRO):
+            st_.append(('Portal', smap.get('Portal')))
     R.check('help tutorial entries at intro stages', tt, len(INTRO))
     R.check('snackbar teasers 2 stages before each intro', st_, len(INTRO))
     R.check('tutorial/snackbar ids unique', [x for x, c in collections.Counter(ids).items() if c > 1])
@@ -668,12 +777,17 @@ def main():
     R.check('no Wall tutorial/snackbar entries', wall_t)
 
     # duplicates / shapes
-    keys = collections.defaultdict(list)
+    all_boards = {}
     for i, s in stages.items():
-        keys[board_key(s)].append(i)
+        for label, b in boards(i, s):
+            all_boards[label] = b
+    keys = collections.defaultdict(list)
+    for label, b in all_boards.items():
+        keys[board_key(b)].append(label)
     dups = [v for v in keys.values() if len(v) > 1]
-    R.check('no duplicate boards (rotation/mirror, any start)', dups)
+    R.check('no duplicate boards (rotation/mirror, any start; phase-2 boards included)', dups)
     outl = {i: outline(s) for i, s in stages.items()}
+    board_outl = {label: outline(b) for label, b in all_boards.items()}
 
     def cmap(s, sw, sx, sy):
         cs = [c for c in s['cells'] if c.get('count', 0) > 0]
@@ -681,18 +795,18 @@ def main():
         mx, my = min(p[0] for p in q), min(p[1] for p in q)
         return {(p[0] - mx, p[1] - my): (c['count'], ttype(c)) for c, p in zip(cs, q)}
     byo = collections.defaultdict(list)
-    for i in range(1, 1001):
-        byo[outl[i]].append(i)
+    for label in all_boards:
+        byo[board_outl[label]].append(label)
     near = []
     for v in byo.values():
         for a_i in range(len(v)):
             for b_i in range(a_i + 1, len(v)):
                 a, b = v[a_i], v[b_i]
-                da = cmap(stages[a], False, 1, 1)
+                da = cmap(all_boards[a], False, 1, 1)
                 for sw in (False, True):
                     for sx in (1, -1):
                         for sy in (1, -1):
-                            db = cmap(stages[b], sw, sx, sy)
+                            db = cmap(all_boards[b], sw, sx, sy)
                             if set(db) == set(da) and sum(1 for p in da if da[p] != db[p]) <= 2 and (a, b) not in near:
                                 near.append((a, b))
     R.check('no near-duplicates (same outline, <= 2 cells differ in count/type)', near)
@@ -702,8 +816,10 @@ def main():
     R.check('>=40% non-rectangular outlines after stage 100', [] if len(nonrect) >= 0.4 * 900 else ['too few'], None, f'{len(nonrect)}/900 = {len(nonrect) / 9:.1f}%')
 
     # ---------------- replay + solver (parallel)
-    tasks = [(i, stages[i], sols.get(str(i)), not quick, not quick and not no_abl) for i in range(1, 1001)]
-    tasks.sort(key=lambda t: -sum(c['count'] for c in t[1]['cells']))
+    def stage_sols(i):
+        return {k: sols[k] for k in (str(i), f'{i}:2') if k in sols}
+    tasks = [(i, stages[i], stage_sols(i), not quick, not quick and not no_abl) for i in range(1, 1001)]
+    tasks.sort(key=lambda t: -sum(c['count'] for _, b in boards(t[0], t[1]) for c in b['cells']))
     res = {}
     print(f'running replay{" + exhaustive solver" if not quick else ""}{" + ablation" if not quick and not no_abl else ""} on {jobs} workers ...', flush=True)
     with mp.Pool(jobs) as pool:
@@ -751,7 +867,7 @@ def main():
     for c0 in range(0, 1000, 50):
         for k in (1, 2, 3):
             roles.setdefault(c0 + k, 'warm-up')
-    bad_easy = [i for i in easy if i not in roles and not (i - 1 in D and D[i] < D[i - 1])]
+    bad_easy = [i for i in easy if i not in roles and i not in breathers and not (i - 1 in D and D[i] < D[i - 1])]
     spaced = [i for i in easy if any(j in easy for j in range(i - 5, i))]
     R.check('after 30: p_random>=0.5 only on intro/warm-up/breather stages, max 1 per 6', bad_easy + spaced, None, f'{len(easy)} such stages: {easy}')
     fc = min([i for i in range(1, 1001) if (C.get(i) or 0) >= 2] or [9999])
@@ -775,6 +891,20 @@ def main():
             f'chapter-level rho={rho_ch:.3f}; stage-level rho(-log10 p)={rho_st:.3f}, rho(crit_steps)={rho_cr:.3f}')
     bosses = [c * 50 + 50 for c in range(20) if D[c * 50 + 50] < max(D[i] for i in range(c * 50 + 1, c * 50 + 51)) - 1e-9]
     R.check('chapter stage 50 is the hardest of its chapter', bosses, 20)
+    # breathing room: from 301 on, every few stages are easy (breather) so the game does not grind
+    gap, worst, run_ = 0, 0, 0
+    for i in range(301, 1001):
+        run_ = 0 if (i in breathers or i in portals) else run_ + 1
+        worst = max(worst, run_)
+    R.check('from 301: at most 6 stages in a row without a breather/portal stage', [] if not breathers or worst <= 6 else [worst], None, f'longest run = {worst}')
+    hard_breathers = [(i, round(D[i], 2)) for i in sorted(breathers) if D.get(i, 99) > 0.8]
+    R.check('breather stages are easy (-log10 p <= 0.8)', hard_breathers, len(breathers))
+    regular_d = collections.defaultdict(list)
+    for i in range(1, 1001):
+        if i not in breathers and i not in portals and i in D:
+            regular_d[(i - 1) // 50].append(D[i])
+    hard_portals = [(i, round(D[i], 2)) for i in sorted(portals) if i in D and D[i] > sorted(regular_d[(i - 1) // 50])[len(regular_d[(i - 1) // 50]) // 2] + 1e-9]
+    R.check('Portal stages (both phases together) are not harder than their chapter median', hard_portals, len(portals))
     summarize(R, t0)
 
 

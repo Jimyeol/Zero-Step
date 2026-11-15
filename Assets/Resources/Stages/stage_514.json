@@ -3,7 +3,7 @@
   "width": 4,
   "height": 4,
   "startPoint": {
-    "x": 1,
+    "x": 2,
     "y": 0
   },
   "config": {
@@ -14,82 +14,90 @@
   },
   "cells": [
     {
-      "x": 1,
+      "x": 0,
       "y": 0,
-      "count": 2,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#34d399"
-      }
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 2,
-      "type": "ShortCircuit",
-      "direction": "Up"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 1,
-      "y": 1,
-      "count": 4,
+      "y": 0,
+      "count": 1,
       "type": "TwinLink",
-      "linkID": 406,
-      "color": "#22d3ee"
+      "linkID": 393,
+      "color": "#a78bfa"
     },
     {
       "x": 2,
-      "y": 1,
-      "count": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "count": 1,
       "type": "FixedKnot",
-      "targetOrder": 2,
+      "targetOrder": 11,
       "properties": {
         "isAbsolute": true
       }
     },
     {
       "x": 0,
-      "y": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
       "count": 2,
-      "type": "Igniter",
-      "targetID": "G35"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 406,
-      "color": "#22d3ee"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 6,
-      "type": "TwinLink",
-      "linkID": 406,
-      "color": "#22d3ee"
+      "count": 3,
+      "type": "Normal"
     },
     {
       "x": 3,
       "y": 2,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G35"
+      "count": 4,
+      "type": "Normal"
     },
     {
-      "x": 0,
+      "x": 2,
       "y": 3,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G35"
+      "type": "TwinLink",
+      "linkID": 393,
+      "color": "#a78bfa"
     },
     {
       "x": 3,
       "y": 3,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G35"
+      "count": 2,
+      "type": "Normal"
     }
   ]
 }

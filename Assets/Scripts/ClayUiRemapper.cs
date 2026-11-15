@@ -13,7 +13,7 @@ public static class ClayUiRemapper
     private static readonly Color AccentText = new Color32(0xC0, 0x60, 0x3E, 0xFF);
     private static readonly Color WarmDim = new Color(0.24f, 0.2f, 0.16f, 0.45f);
 
-    private static readonly string[] SkippedNames = { "TopBar", "BottomBar", "RuntimeSplashOverlay", "NeonIntro" };
+    private static readonly string[] SkippedNames = { "TopBar", "BottomBar", "RuntimeSplashOverlay", "NeonIntro", ClayStageMap.ElementName, ClayHomeScreen.ElementName, ClaySettingsSheet.ElementName };
 
     public static void Apply(VisualElement root)
     {

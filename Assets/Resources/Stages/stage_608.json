@@ -1,9 +1,9 @@
 {
   "stageID": 608,
-  "width": 4,
+  "width": 3,
   "height": 3,
   "startPoint": {
-    "x": 1,
+    "x": 0,
     "y": 0
   },
   "config": {
@@ -22,7 +22,7 @@
     {
       "x": 1,
       "y": 0,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -32,26 +32,20 @@
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 0,
+      "x": 0,
+      "y": 1,
       "count": 1,
-      "type": "CrossBlast",
+      "type": "FixedKnot",
+      "targetOrder": 11,
       "properties": {
-        "beamColor": "#38bdf8"
+        "isAbsolute": true
       }
     },
     {
-      "x": 0,
+      "x": 1,
       "y": 1,
       "count": 3,
       "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G8"
     },
     {
       "x": 2,
@@ -60,36 +54,22 @@
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
       "x": 0,
       "y": 2,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G8"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Down"
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
       "count": 1,
       "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 1,
-      "type": "Charge"
     }
   ]
 }

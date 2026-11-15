@@ -120,7 +120,7 @@ public class CrossBlastTile : MonoBehaviour
             return;
         if (VisualTheme.IsSoftClay)
         {
-            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Burst);
+            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Burst, 0f, ClayIconMotion.Motion.Heartbeat);
             return;
         }
 

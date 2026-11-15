@@ -3,7 +3,7 @@
   "width": 5,
   "height": 4,
   "startPoint": {
-    "x": 2,
+    "x": 1,
     "y": 0
   },
   "config": {
@@ -14,110 +14,65 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 1,
-      "y": 1,
+      "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
       "x": 0,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
+      "y": 1,
       "count": 1,
       "type": "FixedKnot",
-      "targetOrder": 8,
+      "targetOrder": 2,
       "properties": {
         "isAbsolute": true
       }
     },
     {
-      "x": 0,
-      "y": 3,
+      "x": 1,
+      "y": 1,
       "count": 2,
       "type": "Normal"
     },
     {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
       "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#22d3ee"
-      }
+      "y": 2,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 2,
+      "y": 2,
+      "count": 2,
+      "type": "BlindCurtain"
+    },
+    {
+      "x": 1,
       "y": 3,
       "count": 1,
       "type": "ShortCircuit",
       "direction": "Right"
     },
     {
+      "x": 2,
+      "y": 3,
+      "count": 2,
+      "type": "Blackout"
+    },
+    {
       "x": 3,
       "y": 3,
       "count": 2,
@@ -126,7 +81,7 @@
     {
       "x": 4,
       "y": 3,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     }
   ]

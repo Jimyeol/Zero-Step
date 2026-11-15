@@ -25,7 +25,7 @@ public sealed class ClayClearCard : VisualElement
     private float dismissTime = -1f;
     private IVisualElementScheduledItem ticker;
 
-    public ClayClearCard(string title, string subtitle, string tapHint, int stars)
+    public ClayClearCard(string title, string subtitle, string tapHint, int stars, bool subtitleMuted = false)
     {
         this.stars = Mathf.Clamp(stars, 0, 3);
         startTime = Time.unscaledTime;
@@ -61,7 +61,7 @@ public sealed class ClayClearCard : VisualElement
         starRow.generateVisualContent += DrawStars;
         card.Add(starRow);
 
-        subtitleLabel = MakeLabel(subtitle, 32f, VisualTheme.Accent);
+        subtitleLabel = MakeLabel(subtitle, 32f, subtitleMuted ? VisualTheme.InkSoft : VisualTheme.Accent);
         subtitleLabel.style.marginTop = 10f;
         subtitleLabel.style.display = string.IsNullOrEmpty(subtitle) ? DisplayStyle.None : DisplayStyle.Flex;
         card.Add(subtitleLabel);

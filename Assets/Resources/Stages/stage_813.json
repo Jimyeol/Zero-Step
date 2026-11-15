@@ -1,10 +1,10 @@
 {
   "stageID": 813,
-  "width": 4,
-  "height": 5,
+  "width": 5,
+  "height": 2,
   "startPoint": {
-    "x": 2,
-    "y": 2
+    "x": 0,
+    "y": 1
   },
   "config": {
     "mode": "Normal",
@@ -16,14 +16,14 @@
     {
       "x": 0,
       "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 3,
-      "type": "Charge"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 2,
@@ -38,71 +38,40 @@
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
+      "x": 4,
+      "y": 0,
       "count": 2,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 2,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 3,
-      "type": "Charge"
-    },
-    {
-      "x": 0,
-      "y": 3,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 3,
       "type": "Normal"
     },
     {
       "x": 0,
-      "y": 4,
+      "y": 1,
       "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Down"
+      "type": "Normal"
     },
     {
       "x": 1,
-      "y": 4,
-      "count": 1,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 2,
-      "y": 4,
+      "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 4,
+      "x": 2,
+      "y": 1,
       "count": 2,
-      "type": "BlindCurtain"
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "count": 1,
+      "type": "Normal"
     }
   ]
 }

@@ -53,6 +53,12 @@ public static class VisualTheme
     /// <summary>점토 타일 윗면 둘레에 맞춘 흰 외곽선(색을 입혀 시작점·짝꿍 그룹 표시에 쓴다).</summary>
     public static Sprite RingSprite => ringSprite != null ? ringSprite : (ringSprite = Resources.Load<Sprite>(SpriteFolder + "clay_ring"));
 
+    private static Sprite zeroBodySprite;
+    private static Sprite zeroFaceSprite;
+    /// <summary>마스코트 "제로"의 몸통(회색조, 색을 입혀 쓴다)과 얼굴.</summary>
+    public static Sprite ZeroBodySprite => zeroBodySprite != null ? zeroBodySprite : (zeroBodySprite = Resources.Load<Sprite>(SpriteFolder + "zero_body"));
+    public static Sprite ZeroFaceSprite => zeroFaceSprite != null ? zeroFaceSprite : (zeroFaceSprite = Resources.Load<Sprite>(SpriteFolder + "zero_face"));
+
     /// <summary>짝꿍(TwinLink) 그룹 색: 타일 점토색·시작점 테라코타와 겹치지 않는 진한 색(청록, 자두, 황토, 남색, 올리브, 숲초록).</summary>
     private static readonly Color[] LinkGroupColors =
     {
@@ -63,6 +69,31 @@ public static class VisualTheme
         new Color32(0x6B, 0x7F, 0x2A, 0xFF),
         new Color32(0x2F, 0x6B, 0x4F, 0xFF),
     };
+
+    /// <summary>숫자가 "?"로 가려진 타일의 색(어떤 숫자 색과도 다른 중립 회갈색).</summary>
+    public static readonly Color ClayHiddenColor = new Color32(0xCF, 0xC8, 0xBC, 0xFF);
+
+    /// <summary>짝꿍 글자별 고정 색: A 파랑, B 분홍, C 노랑, D 청록, E 보라, F 연두. 서로 잘 구분되고 칸 숫자 색과도 겹치지 않는다.</summary>
+    private static readonly Color[] LinkLabelColors =
+    {
+        new Color32(0x2F, 0x6F, 0xD0, 0xFF),
+        new Color32(0xD0, 0x45, 0x7F, 0xFF),
+        new Color32(0xD0, 0x8A, 0x14, 0xFF),
+        new Color32(0x1F, 0x9A, 0x8A, 0xFF),
+        new Color32(0x7A, 0x4F, 0xC9, 0xFF),
+        new Color32(0x5E, 0x8F, 0x1F, 0xFF),
+    };
+
+    public static Color LinkGroupColorForLabel(string label)
+    {
+        int index = 0;
+        if (!string.IsNullOrEmpty(label))
+        {
+            char c = char.ToUpperInvariant(label[0]);
+            index = c >= 'A' && c <= 'Z' ? c - 'A' : 0;
+        }
+        return LinkLabelColors[index % LinkLabelColors.Length];
+    }
 
     public static Color LinkGroupColor(int linkId)
     {
@@ -97,10 +128,102 @@ public static class VisualTheme
     private const string CornerIconName = "ClayCornerIcon";
 
     /// <summary>
-    /// 타일 오른쪽 위 모서리에 잉크색 아이콘을 붙인다(이미 있으면 갱신). 특수 타일 표시는 이 아이콘 하나로만 한다.
-    /// rotationDegrees: 화살표 방향(0 = 오른쪽, 90 = 위).
+    /// 도전 목표 "별 칸에서 끝내기"의 별 표시를 타일 왼쪽 아래 모서리에 붙인다(특수 타일 아이콘·짝꿍 배지와 겹치지 않는 자리).
     /// </summary>
-    public static SpriteRenderer AttachCornerIcon(Transform tile, Icon icon, float rotationDegrees = 0f)
+    public static void AttachGoalStar(Transform tile)
+    {
+        if (tile == null || tile.Find(GoalStarName) != null)
+            return;
+        var go = new GameObject(GoalStarName);
+        go.transform.SetParent(tile, false);
+        SpriteRenderer tileRenderer = tile.GetComponent<SpriteRenderer>();
+        Vector2 tileSize = tileRenderer != null && tileRenderer.sprite != null ? (Vector2)tileRenderer.sprite.bounds.size : new Vector2(5.12f, 5.12f);
+        go.transform.localPosition = new Vector3(-tileSize.x * 0.25f, -tileSize.y * 0.185f, -0.01f);
+        Sprite sprite = StarSprite;
+        float iconWorld = tileSize.x * 0.22f;
+        go.transform.localScale = Vector3.one * (iconWorld / Mathf.Max(0.0001f, sprite.bounds.size.x));
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = sprite;
+        sr.color = Accent;
+        go.AddComponent<ClayCornerIcon>();
+        if (tileRenderer != null)
+        {
+            sr.sortingLayerID = tileRenderer.sortingLayerID;
+            sr.sortingOrder = tileRenderer.sortingOrder + 2;
+        }
+    }
+
+    public static void RemoveGoalStar(Transform tile)
+    {
+        Transform existing = tile != null ? tile.Find(GoalStarName) : null;
+        if (existing != null)
+            Object.Destroy(existing.gameObject);
+    }
+
+    private const string GoalStarName = "ClayGoalStar";
+    private static Sprite starSprite;
+
+    /// <summary>흰 별 스프라이트(색은 SpriteRenderer.color로 입힌다). 코드로 그려 한 번만 만든다.</summary>
+    public static Sprite StarSprite
+    {
+        get
+        {
+            if (starSprite != null)
+                return starSprite;
+            const int size = 128;
+            const int samples = 4;
+            var points = new Vector2[10];
+            for (int k = 0; k < 10; k++)
+            {
+                float angle = Mathf.PI * 0.5f + k * Mathf.PI / 5f;
+                float radius = (k % 2 == 0 ? 0.47f : 0.22f) * size;
+                points[k] = new Vector2(size * 0.5f + Mathf.Cos(angle) * radius, size * 0.48f + Mathf.Sin(angle) * radius);
+            }
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    int inside = 0;
+                    for (int sy = 0; sy < samples; sy++)
+                    {
+                        for (int sx = 0; sx < samples; sx++)
+                        {
+                            if (PointInPolygon(points, x + (sx + 0.5f) / samples, y + (sy + 0.5f) / samples))
+                                inside++;
+                        }
+                    }
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(255 * inside / (samples * samples)));
+                }
+            }
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "ClayStar", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            starSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+            starSprite.name = "ClayStar";
+            return starSprite;
+        }
+    }
+
+    private static bool PointInPolygon(Vector2[] polygon, float px, float py)
+    {
+        bool inside = false;
+        for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+        {
+            Vector2 a = polygon[i];
+            Vector2 b = polygon[j];
+            if ((a.y > py) != (b.y > py) && px < (b.x - a.x) * (py - a.y) / (b.y - a.y) + a.x)
+                inside = !inside;
+        }
+        return inside;
+    }
+
+    /// <summary>
+    /// 타일 오른쪽 위 모서리에 잉크색 아이콘을 붙인다(이미 있으면 갱신). 특수 타일 표시는 이 아이콘 하나로만 한다.
+    /// rotationDegrees: 화살표 방향(0 = 오른쪽, 90 = 위). motion: 아이콘의 살아 있는 움직임(ClayIconMotion), flow는 Flow 방향.
+    /// </summary>
+    public static SpriteRenderer AttachCornerIcon(Transform tile, Icon icon, float rotationDegrees = 0f,
+        ClayIconMotion.Motion motion = ClayIconMotion.Motion.None, Vector2 flow = default)
     {
         if (tile == null)
             return null;
@@ -133,6 +256,8 @@ public static class VisualTheme
             sr.sortingLayerID = tileRenderer.sortingLayerID;
             sr.sortingOrder = tileRenderer.sortingOrder + 2;
         }
+        if (motion != ClayIconMotion.Motion.None)
+            ClayIconMotion.Attach(sr, motion, flow);
         return sr;
     }
 

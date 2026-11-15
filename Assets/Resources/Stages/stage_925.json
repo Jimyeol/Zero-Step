@@ -1,7 +1,7 @@
 {
   "stageID": 925,
-  "width": 5,
-  "height": 4,
+  "width": 3,
+  "height": 3,
   "startPoint": {
     "x": 1,
     "y": 2
@@ -14,62 +14,39 @@
   },
   "cells": [
     {
-      "x": 1,
+      "x": 0,
       "y": 0,
-      "count": 4,
-      "type": "TwinLink",
-      "linkID": 966,
-      "color": "#a78bfa"
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "count": 2,
+      "count": 1,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 1,
       "y": 0,
-      "count": 2,
-      "type": "ShortCircuit",
-      "direction": "Up"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 4,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 1,
-      "count": 4,
-      "type": "TwinLink",
-      "linkID": 966,
-      "color": "#a78bfa"
+      "count": 1,
+      "type": "Portal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
@@ -77,37 +54,92 @@
       "y": 2,
       "count": 2,
       "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "Charge"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Down"
     }
-  ]
+  ],
+  "phase2": {
+    "width": 4,
+    "height": 3,
+    "startPoint": {
+      "x": 0,
+      "y": 1
+    },
+    "cells": [
+      {
+        "x": 0,
+        "y": 0,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "count": 3,
+        "type": "Normal"
+      },
+      {
+        "x": 2,
+        "y": 0,
+        "count": 2,
+        "type": "ShortCircuit",
+        "direction": "Right"
+      },
+      {
+        "x": 3,
+        "y": 0,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 1,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "count": 1,
+        "type": "Igniter",
+        "targetID": "G36"
+      },
+      {
+        "x": 3,
+        "y": 1,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "count": 1,
+        "type": "Hidden",
+        "groupID": "G36"
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "count": 1,
+        "type": "Hidden",
+        "groupID": "G36"
+      },
+      {
+        "x": 2,
+        "y": 2,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 3,
+        "y": 2,
+        "count": 1,
+        "type": "Normal"
+      }
+    ]
+  }
 }

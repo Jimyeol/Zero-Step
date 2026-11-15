@@ -24,6 +24,8 @@ public static class BoardGenerator
         public static Settings Small => new Settings { maxWidth = 4, maxHeight = 4, totalCount = 12, maxCount = 2, minCells = 7 };
         public static Settings Medium => new Settings { maxWidth = 5, maxHeight = 6, totalCount = 22, maxCount = 3, minCells = 12 };
         public static Settings Large => new Settings { maxWidth = 6, maxHeight = 7, totalCount = 34, maxCount = 3, minCells = 18 };
+        /// <summary>연구소 "무거운 판": 좁은 보드에 큰 숫자. 같은 칸을 여러 번 오가야 한다.</summary>
+        public static Settings Heavy => new Settings { maxWidth = 3, maxHeight = 4, totalCount = 26, maxCount = 5, minCells = 8 };
         /// <summary>피버 보드: 넓고 숫자가 낮아 한 획으로 시원하게 쓸어 담기 좋다.</summary>
         public static Settings Fever => new Settings { maxWidth = 6, maxHeight = 7, totalCount = 40, maxCount = 2, minCells = 26 };
     }

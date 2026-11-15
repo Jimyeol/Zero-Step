@@ -1,9 +1,9 @@
 {
   "stageID": 868,
-  "width": 3,
-  "height": 6,
+  "width": 5,
+  "height": 4,
   "startPoint": {
-    "x": 2,
+    "x": 4,
     "y": 3
   },
   "config": {
@@ -14,68 +14,37 @@
   },
   "cells": [
     {
-      "x": 0,
-      "y": 0,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 243,
-      "color": "#f59e0b"
-    },
-    {
-      "x": 1,
+      "x": 2,
       "y": 0,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 0,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
-    },
-    {
-      "x": 0,
-      "y": 1,
-      "count": 2,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#00FBFF"
-      }
-    },
-    {
       "x": 1,
       "y": 1,
-      "count": 4,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 1,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Left"
+      "count": 2,
+      "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 2,
-      "count": 3,
-      "type": "FixedKnot",
-      "targetOrder": 7,
-      "properties": {
-        "isAbsolute": true
-      }
+      "x": 3,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 2,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 243,
-      "color": "#f59e0b"
+      "count": 1,
+      "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 3,
       "y": 2,
       "count": 2,
       "type": "Normal"
@@ -87,44 +56,28 @@
       "type": "Normal"
     },
     {
-      "x": 2,
+      "x": 1,
       "y": 3,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 0,
-      "y": 4,
+      "x": 2,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
+      "y": 3,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 4,
+      "x": 4,
+      "y": 3,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 2,
-      "type": "Hidden",
-      "groupID": "G83"
-    },
-    {
-      "x": 0,
-      "y": 5,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G83"
-    },
-    {
-      "x": 2,
-      "y": 5,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
+      "type": "Normal"
     }
   ]
 }

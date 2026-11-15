@@ -1,10 +1,10 @@
 {
   "stageID": 428,
-  "width": 4,
+  "width": 3,
   "height": 4,
   "startPoint": {
-    "x": 1,
-    "y": 1
+    "x": 2,
+    "y": 2
   },
   "config": {
     "mode": "Normal",
@@ -14,72 +14,52 @@
   },
   "cells": [
     {
-      "x": 3,
+      "x": 1,
       "y": 0,
-      "count": 4,
-      "type": "TwinLink",
-      "linkID": 231,
-      "color": "#f59e0b"
-    },
-    {
-      "x": 0,
-      "y": 1,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 1,
-      "count": 1,
-      "type": "TwinLink",
-      "linkID": 213,
-      "color": "#00FBFF"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 0,
-      "y": 2,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 3,
       "type": "Normal"
     },
     {
       "x": 2,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
       "y": 2,
       "count": 2,
       "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 2,
       "y": 2,
-      "count": 3,
+      "count": 1,
       "type": "Charge"
     },
     {
       "x": 1,
       "y": 3,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 231,
-      "color": "#f59e0b"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 213,
-      "color": "#00FBFF"
+      "type": "Normal"
     }
   ]
 }

@@ -1,9 +1,9 @@
 {
   "stageID": 318,
-  "width": 5,
-  "height": 5,
+  "width": 3,
+  "height": 3,
   "startPoint": {
-    "x": 4,
+    "x": 2,
     "y": 0
   },
   "config": {
@@ -17,13 +17,14 @@
       "x": 0,
       "y": 0,
       "count": 1,
-      "type": "BlindCurtain"
+      "type": "Hidden",
+      "groupID": "G10"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 2,
-      "type": "BlindCurtain"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 2,
@@ -32,20 +33,27 @@
       "type": "Normal"
     },
     {
-      "x": 3,
-      "y": 0,
+      "x": 0,
+      "y": 1,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 1,
-      "type": "BlindCurtain"
+      "type": "Hidden",
+      "groupID": "G10"
     },
     {
       "x": 2,
       "y": 1,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
       "count": 1,
       "type": "Normal"
     },
@@ -53,43 +61,8 @@
       "x": 2,
       "y": 2,
       "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "Blackout"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 1,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 2,
-      "y": 4,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "count": 3,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 4,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
+      "type": "Igniter",
+      "targetID": "G10"
     }
   ]
 }

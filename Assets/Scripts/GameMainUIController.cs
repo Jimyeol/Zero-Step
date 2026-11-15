@@ -30,7 +30,7 @@ public class GameMainUIController : MonoBehaviour
     private const string SaveKeyCurrentHeartsMax = "CurrentHeartsMax";
     private const string SaveKeyHeartWaitRefillUnix = "HeartWaitRefillUnix";
     private const string PrivacyUrl = "https://www.naver.com";
-    private const string SupportEmailAddress = "crewoongcrewoong@gmail.com";
+    private const string SupportEmailAddress = "mazecubestudio@gmail.com";
     private const string NeonPressBaseClass = "neon-press-button";
     private const string NeonPressWarmClass = "neon-press-button-warm";
     private const string NeonPressActiveClass = "neon-press-active";
@@ -125,6 +125,7 @@ public class GameMainUIController : MonoBehaviour
     private const string TutorialTypeBlindCurtain = "BlindCurtain";
     private const string TutorialTypeBlackout = "Blackout";
     private const string TutorialTypeCharge = "Charge";
+    private const string TutorialTypePortal = "Portal";
     private const string TutorialTypeBlackOutAlias = "BlackOut";
     private const string ShortCircuitTutorialDemoDirection = "Right";
     private const float TutorialHandFallbackSize = 100f;
@@ -928,7 +929,13 @@ public class GameMainUIController : MonoBehaviour
         if (stageContainer != null)
         {
             stageContainer.EnableInClassList("top-stage-panel-debug-jump", isDebugBuildCached);
-            if (isDebugBuildCached)
+            // 점토 테마: STAGE를 누르면 챕터 지도가 열린다(디버그 이동은 지도 안의 DBG 버튼). 네온 테마는 예전처럼 디버그 빌드에서만 이동 창.
+            if (VisualTheme.IsSoftClay)
+            {
+                stageContainer.RegisterCallback<ClickEvent>(OnStageContainerClickedForMap);
+                AddStageMapHintIcon();
+            }
+            else if (isDebugBuildCached)
                 stageContainer.RegisterCallback<ClickEvent>(OnDebugStageContainerClicked);
         }
 
@@ -938,6 +945,7 @@ public class GameMainUIController : MonoBehaviour
             debugStageJumpCancelButton.clicked += HideDebugStageJumpPopup;
         if (debugStageJumpConfirmButton != null)
             debugStageJumpConfirmButton.clicked += ConfirmDebugStageJump;
+        AddDebugFeverButton();
         if (debugStageJumpInput != null)
             debugStageJumpInput.RegisterCallback<KeyDownEvent>(OnDebugStageJumpInputKeyDown);
         if (debugStageJumpOverlay != null)
@@ -1090,6 +1098,8 @@ public class GameMainUIController : MonoBehaviour
     private void Update()
     {
         UpdateClayUiRemap();
+        UpdatePendingChallengeChip();
+        UpdatePendingHomeScreen();
 #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
         if (pendingBannerLoadFromInitialize)
         {
@@ -1482,8 +1492,15 @@ public class GameMainUIController : MonoBehaviour
         double value = FirebaseBootstrap.GetRemoteDouble(
             FirebaseBootstrap.RcIdleHintBonusDelaySeconds,
             IdleHintBonusDelaySeconds);
-        return Mathf.Max(5f, (float)value);
+        float delay = Mathf.Max(5f, (float)value);
+        // 301판부터는 판이 어려워지므로 무료 힌트를 더 빨리 준다.
+        if (currentStageIndexForUI > LateStageThreshold)
+            delay = Mathf.Min(delay, LateStageIdleHintBonusDelaySeconds);
+        return delay;
     }
+
+    private const int LateStageThreshold = 300;
+    private const float LateStageIdleHintBonusDelaySeconds = 25f;
 
     private float GetStageTransitionInterstitialCooldownElapsedSeconds()
     {
@@ -1715,6 +1732,7 @@ public class GameMainUIController : MonoBehaviour
             ShowFeverSkipBlocked();
             return;
         }
+        // 무한 연구소의 스킵은 메인과 같은 규칙이다(충전분 → 광고). 넘기는 처리는 GameManager.LoadNextStageImmediate가 한다.
         if (gm.IsOnFinalStage)
         {
             ShowGameplaySnackbar("snackbar_skip_final_stage");
@@ -1731,6 +1749,18 @@ public class GameMainUIController : MonoBehaviour
         skipConfirmDeadline = -1f;
 
         RefillAssistChargesFromElapsedTime();
+        // 같은 판에서 4번 실패하면 그 판의 스킵은 무료다(충전·광고를 쓰지 않는다).
+        if (freeSkipStage > 0 && freeSkipStage == gm.CurrentStageIndex && !gm.IsLabActive)
+        {
+            int skippedStage = freeSkipStage;
+            if (gm.LoadNextStageImmediate())
+            {
+                freeSkipStage = 0;
+                StopSkipButtonBounce();
+                FirebaseBootstrap.LogEvent("help_free_skip_use", new Dictionary<string, object> { { "stage_index", skippedStage } });
+            }
+            return;
+        }
         if (skipCharges > 0)
         {
             if (gm.LoadNextStageImmediate())
@@ -2264,6 +2294,9 @@ public class GameMainUIController : MonoBehaviour
         HideFinalCreditsOverlay();
         GameManager gm = finalEndingGameManager != null ? finalEndingGameManager : FindFirstObjectByType<GameManager>();
         gm?.ReturnToFirstStageFromFinalEnding();
+        // 엔딩을 보고 돌아오면 무한 연구소가 열렸다는 걸 홈 화면으로 알린다.
+        pendingHomeScreen = true;
+        pendingHomeScreenIsNewUnlock = true;
     }
 
     private void OnFinalCreditsReplayClicked()
@@ -2503,7 +2536,10 @@ public class GameMainUIController : MonoBehaviour
             // 연출 도중 하트를 잃었다면(드문 경우) 그 칸은 채우지 않는다.
             int heartIndex = heartIndices[index];
             if (heartIndex < currentHearts)
+            {
                 PopHeartFilled(GetHeartImageByIndex(heartIndex));
+                PlayHeartPopSfx(heartIndex);
+            }
         }, () => card != null && card.panel != null ? card.CardRectIn(root) : Rect.zero);
         root.Add(activeStarFlight);
     }
@@ -2533,10 +2569,201 @@ public class GameMainUIController : MonoBehaviour
             root.Add(new ClayScreenFlash(combo >= 10 ? 0.26f : 0.18f));
     }
 
+    private ClayToastChip activeChallengeChip;
+
+    /// <summary>점토 테마: 스테이지를 시작할 때 이 판의 도전 목표(세 번째 별 조건)를 상단 바 바로 아래에 잠깐 보여준다.</summary>
+    public void ShowStageChallengeChip(StageChallengeKind kind)
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null)
+            return;
+        // 인트로·튜토리얼·설정 창이 떠 있으면 닫힌 뒤에 보여준다(UpdateClayUiRemap에서 확인).
+        if (IsModalOverlayOpen)
+        {
+            pendingChallengeChip = kind;
+            return;
+        }
+        pendingChallengeChip = null;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return;
+        activeChallengeChip?.RemoveFromHierarchy();
+        float top = root.layout.height * 0.14f;
+        if (topBar != null && topBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(topBar.worldBound);
+            if (!float.IsNaN(bar.yMax) && bar.height > 1f)
+                top = bar.yMax + 14f;
+        }
+        string text = T("challenge_label") + " · " + T(StageChallenge.LocalizationKey(kind));
+        activeChallengeChip = new ClayToastChip(new Vector2(root.layout.width * 0.5f, top), text, true, 2.2f, activeClearCard != null ? 0.45f : 0.1f);
+        root.Add(activeChallengeChip);
+    }
+
+    private StageChallengeKind? pendingChallengeChip;
+
+    private void UpdatePendingChallengeChip()
+    {
+        if (pendingChallengeChip.HasValue && !IsModalOverlayOpen)
+            ShowStageChallengeChip(pendingChallengeChip.Value);
+    }
+
+    public void HideStageChallengeChip()
+    {
+        pendingChallengeChip = null;
+        activeChallengeChip?.RemoveFromHierarchy();
+        activeChallengeChip = null;
+    }
+
+    // ===== 무한 연구소 HUD =====
+    // 상단 STAGE 자리를 빌린다: 제목 → "LAB", 큰 숫자 → 판 번호. 변주가 붙은 판만 시작할 때 칩으로 알린다.
+    public void SetupLabBoard(int totalCount, int labStage, GameManager.LabVariant variant, bool announce)
+    {
+        ResetTransientStageClearVisuals();
+        DismissClearCard();
+        if (stageTitleLabel != null)
+            stageTitleLabel.text = T("lab_title");
+        if (stageNumberLabel != null)
+            stageNumberLabel.text = Mathf.Max(1, labStage).ToString("D2");
+        initialTileCount = Mathf.Max(1, totalCount);
+        UpdateProgress(totalCount);
+        if (announce && variant != GameManager.LabVariant.Normal)
+            ShowCenterChip(T(LabVariantKey(variant)), 2.4f);
+    }
+
+    private static string LabVariantKey(GameManager.LabVariant variant)
+    {
+        switch (variant)
+        {
+            case GameManager.LabVariant.OneStroke: return "lab_variant_one_stroke";
+            case GameManager.LabVariant.Heavy: return "lab_variant_heavy";
+            case GameManager.LabVariant.Memory: return "lab_variant_memory";
+            default: return "lab_variant_normal";
+        }
+    }
+
+    public void ShowLabBoardResult(int clearedLabStage)
+    {
+        ShowCenterChip(T("lab_clear", ("n", clearedLabStage.ToString())), 0.9f, true);
+    }
+
+    /// <summary>한붓 변주에서 손을 떼어 실패했을 때 이유를 알려 준다.</summary>
+    public void ShowLabRetry(bool lifted)
+    {
+        if (lifted)
+            ShowCenterChip(T("lab_retry_lifted"), 1.2f);
+    }
+
+    // ===== 시작 홈 화면 =====
+    // 1000판 엔딩을 본 유저에게만 인트로 뒤에 뜬다. 아직 다 깨지 못했으면 홈 화면 없이 바로 게임이 시작된다.
+    private ClayHomeScreen activeHomeScreen;
+    private bool isHomeScreenOpen;
+    private bool homeScreenChecked;
+    private bool pendingHomeScreen;
+    private bool pendingHomeScreenIsNewUnlock;
+
+    public bool IsHomeScreenOpen => isHomeScreenOpen;
+
+    private void UpdatePendingHomeScreen()
+    {
+        if (!VisualTheme.IsSoftClay || isSplashActive)
+            return;
+        if (!homeScreenChecked)
+        {
+            homeScreenChecked = true;
+            pendingHomeScreen = pendingHomeScreen || GameManager.HasSeenFinalEnding;
+        }
+        if (!pendingHomeScreen || IsModalOverlayOpen)
+            return;
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm == null || !gm.CanOpenStageMap || gm.IsLabActive)
+            return;
+        ShowHomeScreen(pendingHomeScreenIsNewUnlock);
+    }
+
+    public bool ShowHomeScreen(bool newUnlock)
+    {
+        pendingHomeScreen = false;
+        pendingHomeScreenIsNewUnlock = false;
+        if (!VisualTheme.IsSoftClay || uiDocument == null || isHomeScreenOpen)
+            return false;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return false;
+        HideStageChallengeChip();
+        var texts = new ClayHomeScreen.Texts
+        {
+            title = T("home_title"),
+            subtitle = T(newUnlock ? "home_subtitle_new" : "home_subtitle"),
+            labButton = T("home_lab_button"),
+            labProgress = T("lab_title") + " " + GameManager.SavedLabStage,
+            stageButton = T("home_stage_button")
+        };
+        activeHomeScreen = new ClayHomeScreen(texts, root.layout,
+            () =>
+            {
+                PlayUIButtonSfx();
+                CloseHomeScreen();
+                GameManager manager = FindFirstObjectByType<GameManager>();
+                if (manager != null)
+                    manager.StartLab();
+            },
+            () =>
+            {
+                PlayUIButtonSfx();
+                CloseHomeScreen();
+            });
+        root.Add(activeHomeScreen);
+        isHomeScreenOpen = true;
+        FirebaseBootstrap.LogEvent("home_screen_open", new Dictionary<string, object>
+        {
+            { "new_unlock", newUnlock ? 1 : 0 },
+            { "lab_stage", GameManager.SavedLabStage }
+        });
+        return true;
+    }
+
+    public void CloseHomeScreen()
+    {
+        activeHomeScreen?.RemoveFromHierarchy();
+        activeHomeScreen = null;
+        isHomeScreenOpen = false;
+        NotifyGameplayActivity();
+    }
+
+    public void EndLabHud()
+    {
+        activeChallengeChip?.RemoveFromHierarchy();
+        activeChallengeChip = null;
+        if (stageTitleLabel != null)
+            stageTitleLabel.text = T("stage_title");
+    }
+
+    /// <summary>상단 바 바로 아래에 한 줄 안내 칩을 띄운다(도전 목표 칩과 같은 자리, 하나만 보인다).</summary>
+    private void ShowCenterChip(string text, float holdSeconds, bool showStar = false)
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null)
+            return;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return;
+        pendingChallengeChip = null;
+        activeChallengeChip?.RemoveFromHierarchy();
+        float top = root.layout.height * 0.14f;
+        if (topBar != null && topBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(topBar.worldBound);
+            if (!float.IsNaN(bar.yMax) && bar.height > 1f)
+                top = bar.yMax + 14f;
+        }
+        activeChallengeChip = new ClayToastChip(new Vector2(root.layout.width * 0.5f, top), text, showStar, holdSeconds);
+        root.Add(activeChallengeChip);
+    }
+
     // ===== 피버 보드 HUD =====
     // 10스테이지마다 오는 보너스 판. 새 요소를 끼우면 상단 배치가 밀려 하트·보드와 겹치므로 기존 자리를 빌려 쓴다:
     // STAGE 제목 → "FEVER 12"(남은 초), 큰 숫자 → 터뜨린 칸 수, 진행 막대 → 남은 시간(줄어듦).
     private int feverCounterBumpVersion;
+    private ClayFeverOverlay feverOverlay;
 
     public void BeginFeverHud()
     {
@@ -2551,10 +2778,24 @@ public class GameMainUIController : MonoBehaviour
         VisualElement root = uiDocument.rootVisualElement;
         if (root?.panel == null)
             return;
-        Rect layout = root.layout;
-        Vector2 center = new Vector2(layout.width * 0.5f, layout.height * 0.42f);
-        root.Add(new ClayComboPopup(center, T("fever_banner"), ClayComboPopup.PerfectTier));
+        // 무지개 네온 테두리 + "FEVER TIME!" 제목(가운데에서 튀어나와 상단 바 아래로 올라간다).
+        float headerTop = root.layout.height * 0.14f;
+        if (topBar != null && topBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(topBar.worldBound);
+            if (!float.IsNaN(bar.yMax) && bar.height > 1f)
+                headerTop = bar.yMax + 10f;
+        }
+        feverOverlay?.RemoveFromHierarchy();
+        feverOverlay = new ClayFeverOverlay(headerTop);
+        root.Add(feverOverlay);
         root.Add(new ClayScreenFlash(0.32f));
+    }
+
+    private void EndFeverOverlay()
+    {
+        feverOverlay?.End();
+        feverOverlay = null;
     }
 
     public void SetupFeverBoard(int totalCount, int remainingCount)
@@ -2581,6 +2822,7 @@ public class GameMainUIController : MonoBehaviour
 
     public void UpdateFeverHud(int secondsLeft, int pops, bool bump)
     {
+        feverOverlay?.SetSecondsLeft(secondsLeft);
         if (stageTitleLabel != null)
         {
             stageTitleLabel.text = T("fever_title") + " " + Mathf.Max(0, secondsLeft);
@@ -2612,6 +2854,7 @@ public class GameMainUIController : MonoBehaviour
     public void ShowFeverResult(int pops, int rewardHints)
     {
         ResetFeverHudStyle();
+        EndFeverOverlay();
         GrantBonusHints(rewardHints);
         if (uiDocument == null)
             return;
@@ -2625,6 +2868,7 @@ public class GameMainUIController : MonoBehaviour
     public void CancelFeverHud()
     {
         ResetFeverHudStyle();
+        EndFeverOverlay();
         if (stageTitleLabel != null)
             stageTitleLabel.text = T("stage_title");
     }
@@ -2677,6 +2921,24 @@ public class GameMainUIController : MonoBehaviour
         root.Add(new ClayScreenFlash(0.3f));
     }
 
+    // 별이 하트에 닿을 때: 하트마다 한 음씩 올라가는 짧은 소리(도-레-미-솔-높은 도).
+    private AudioClip[] heartPopClips;
+
+    private void PlayHeartPopSfx(int heartIndex)
+    {
+        if (uiButtonSfxAudioSource == null)
+            return;
+        if (heartPopClips == null)
+        {
+            heartPopClips = new AudioClip[MaxHearts];
+            for (int i = 0; i < MaxHearts; i++)
+                heartPopClips[i] = Resources.Load<AudioClip>("Sounds/sfx_heart_pop_" + (i + 1));
+        }
+        AudioClip clip = heartPopClips[Mathf.Clamp(heartIndex, 0, MaxHearts - 1)];
+        if (clip != null)
+            uiButtonSfxAudioSource.PlayOneShot(clip, GetUISfxVolume() * 0.8f);
+    }
+
     private void PopHeartFilled(Image heartImage)
     {
         if (heartImage == null)
@@ -2693,14 +2955,15 @@ public class GameMainUIController : MonoBehaviour
         }).StartingIn(120);
     }
 
-    public void ShowStageClearResult(int stars, bool oneStroke, bool improved)
+    public void ShowStageClearResult(int stars, bool oneStroke, bool improved, StageChallengeKind challenge, bool challengeMet)
     {
         if (VisualTheme.IsSoftClay && uiDocument != null)
         {
-            // 점토 테마: 한 줄 스낵바 대신 가운데 클리어 카드(별이 하나씩 펑 채워짐).
+            // 점토 테마: 한 줄 스낵바 대신 가운데 클리어 카드(별이 하나씩 펑 채워짐). 아래 줄에 이 판의 도전 목표와 달성 여부.
             DismissClearCard();
-            string subtitle = oneStroke ? T("clear_card_one_stroke") : (improved ? T("clear_card_best") : string.Empty);
-            activeClearCard = new ClayClearCard(T("clear_card_title"), subtitle, T("clear_card_tap"), Mathf.Clamp(stars, 1, 3));
+            string goal = T(StageChallenge.LocalizationKey(challenge));
+            string subtitle = challengeMet ? T("challenge_done") + " · " + goal : T("challenge_label") + " · " + goal;
+            activeClearCard = new ClayClearCard(T("clear_card_title"), subtitle, T("clear_card_tap"), Mathf.Clamp(stars, 1, 3), !challengeMet);
             uiDocument.rootVisualElement.Add(activeClearCard);
             return;
         }
@@ -2841,6 +3104,12 @@ public class GameMainUIController : MonoBehaviour
     {
         idleStageHintBonus = 0;
         idleHintBonusGrantedThisStage = false;
+        // 막혀서 받은 무료 힌트는 다시 시작해도 그 판에서는 남아 있다.
+        if (stuckHintStage > 0 && stuckHintStage == currentStageIndexForUI)
+        {
+            idleStageHintBonus = MaxIdleStageHintBonus;
+            idleHintBonusGrantedThisStage = true;
+        }
         idleHintBonusSuppressedUntilActivity = false;
         idleHintBonusCheckRunning = false;
         lastGameplayActivityTime = Time.unscaledTime;
@@ -2865,7 +3134,7 @@ public class GameMainUIController : MonoBehaviour
             return;
         }
 
-        if (isSplashActive || isSettingPopupOpen || isDebugStageJumpPopupOpen || isLanguageSelectionPopupOpen || isTutorialPopupOpen || isWaitingForHeartRefill || isHintLoadingVisible)
+        if (isStageMapOpen || isHomeScreenOpen || isSplashActive || isSettingPopupOpen || isDebugStageJumpPopupOpen || isLanguageSelectionPopupOpen || isTutorialPopupOpen || isWaitingForHeartRefill || isHintLoadingVisible)
         {
             LogIdleHintBonusBlocked(GetIdleHintBonusModalBlockReason(), idleSeconds, idleHintBonusDelaySeconds, null);
             return;
@@ -2875,6 +3144,13 @@ public class GameMainUIController : MonoBehaviour
         if (gm == null)
         {
             LogIdleHintBonusBlocked("game_manager_missing", idleSeconds, idleHintBonusDelaySeconds, null);
+            return;
+        }
+
+        // 방치 힌트 보너스는 스테이지에서만 준다. 연구소·피버는 하트도 쓰지 않는 자유 플레이라 알림(효과음)만 거슬린다.
+        if (gm.IsLabActive || gm.IsFeverActive)
+        {
+            lastGameplayActivityTime = Time.unscaledTime;
             return;
         }
 
@@ -2955,6 +3231,77 @@ public class GameMainUIController : MonoBehaviour
         PlayIdleHintBonusBounce();
     }
 
+    // ===== 막혔을 때 먼저 도와주기 =====
+    // 같은 판에서 2번째 실패: 무료 힌트 1개(그 판에서 쓸 때까지 남음). 4번째 실패: 그 판의 스킵이 무료.
+    private int stuckHintStage;
+    private int freeSkipStage;
+    private IVisualElementScheduledItem skipBounceItem;
+
+    public void OfferStuckHelp(int stageIndex, int failStreak)
+    {
+        if (stageIndex <= 0)
+            return;
+        if (failStreak == 2 && idleStageHintBonus <= 0)
+        {
+            stuckHintStage = stageIndex;
+            idleStageHintBonus = MaxIdleStageHintBonus;
+            idleHintBonusGrantedThisStage = true;
+            RefreshAssistButtons();
+            ShowCenterChip(T("help_free_hint"), 2.4f, true);
+            PlayIdleHintBonusBounce();
+            FirebaseBootstrap.LogEvent("help_free_hint_granted", new Dictionary<string, object> { { "stage_index", stageIndex } });
+        }
+        else if (failStreak == 4 && freeSkipStage != stageIndex)
+        {
+            freeSkipStage = stageIndex;
+            ShowCenterChip(T("help_free_skip"), 2.6f, true);
+            PlaySkipButtonBounce();
+            FirebaseBootstrap.LogEvent("help_free_skip_granted", new Dictionary<string, object> { { "stage_index", stageIndex } });
+        }
+    }
+
+    /// <summary>실패했을 때 남은 칸이 몇 개 안 되면 "거의 다 왔어요"를 알려 준다.</summary>
+    /// <summary>포탈 판에서 페이즈가 바뀌었을 때: 진행 바를 새 보드 기준으로 맞추고 "2페이즈" 칩을 띄운다.</summary>
+    public void SetupPortalPhase(int totalCount, int remainingCount, int phase)
+    {
+        initialTileCount = Mathf.Max(1, totalCount);
+        UpdateProgress(remainingCount);
+        if (phase >= 2)
+            ShowCenterChip(T("portal_phase_chip"), 1.4f);
+    }
+
+    public void ShowNearMissChip(int remainingTiles)
+    {
+        ShowCenterChip(T("help_almost", ("n", remainingTiles.ToString())), 1.8f);
+    }
+
+    public bool HasFreeSkipForStage(int stageIndex) => freeSkipStage > 0 && freeSkipStage == stageIndex;
+    public bool HasStuckHintForStage(int stageIndex) => stuckHintStage > 0 && stuckHintStage == stageIndex && idleStageHintBonus > 0;
+
+    private void PlaySkipButtonBounce()
+    {
+        if (skipButton == null)
+            return;
+        StopSkipButtonBounce();
+        int beat = 0;
+        skipBounceItem = skipButton.schedule.Execute(() =>
+        {
+            if (skipButton == null)
+                return;
+            int phase = beat++ % 6;
+            float scale = phase == 0 ? 1.16f : phase == 1 ? 0.96f : 1f;
+            skipButton.style.scale = new StyleScale(new Scale(new Vector3(scale, scale, 1f)));
+        }).Every(110);
+    }
+
+    private void StopSkipButtonBounce()
+    {
+        skipBounceItem?.Pause();
+        skipBounceItem = null;
+        if (skipButton != null)
+            skipButton.style.scale = new StyleScale(new Scale(Vector3.one));
+    }
+
     private void PlayIdleHintBonusBounce()
     {
         if (hintButton == null)
@@ -3013,6 +3360,7 @@ public class GameMainUIController : MonoBehaviour
 
     private void ConsumeIdleStageHintBonus()
     {
+        stuckHintStage = 0;
         idleStageHintBonus = Mathf.Max(0, idleStageHintBonus - 1);
         if (idleStageHintBonus <= 0)
             StopIdleHintBonusBounce();
@@ -3166,11 +3514,64 @@ public class GameMainUIController : MonoBehaviour
         return Screen.width > 0 && Screen.width < 720;
     }
 
+    private ClaySettingsSheet claySettingsSheet;
+
+    /// <summary>
+    /// 점토 테마: 예전 네온 설정 목록(머리줄·스크롤 목록)은 숨기고 말랑한 점토 설정 카드를 같은 패널 안에 올린다.
+    /// 언어 선택·초기화 확인 창은 같은 패널의 위층이라 그대로 쓴다. 동작은 기존 함수를 그대로 부른다.
+    /// </summary>
+    private void BuildClaySettingsSheet()
+    {
+        if (!VisualTheme.IsSoftClay || settingPopupOverlay == null)
+            return;
+        VisualElement panel = settingPopupOverlay.Q<VisualElement>("SettingPopupPanel");
+        if (panel == null)
+            return;
+        VisualElement oldHeader = panel.Q<VisualElement>("SettingHeader");
+        VisualElement oldScroll = panel.Q<VisualElement>("SettingScrollView");
+        if (oldHeader != null)
+            oldHeader.style.display = DisplayStyle.None;
+        if (oldScroll != null)
+            oldScroll.style.display = DisplayStyle.None;
+        panel.style.backgroundColor = new Color(0f, 0f, 0f, 0f);
+        panel.style.borderLeftWidth = panel.style.borderRightWidth = panel.style.borderTopWidth = panel.style.borderBottomWidth = 0;
+        panel.style.paddingLeft = panel.style.paddingRight = panel.style.paddingTop = panel.style.paddingBottom = 0;
+        // 내용만큼만 높이를 잡고(빈 공간 없이), 화면이 작으면 88%까지 늘어난 뒤 스크롤한다.
+        panel.style.height = StyleKeyword.Auto;
+        panel.style.maxHeight = Length.Percent(88);
+
+        claySettingsSheet?.RemoveFromHierarchy();
+        claySettingsSheet = new ClaySettingsSheet(new ClaySettingsSheet.Actions
+        {
+            T = key => T(key),
+            SoundOn = () => isSoundOn,
+            VibrationOn = () => isVibrationOn,
+            EffectLevel = () => (int)GameplayFeedback.Level,
+            LanguageName = () => BuildLanguageOptionDisplayName(selectedLanguageCode),
+            ToggleSound = ToggleSoundSwitch,
+            ToggleVibration = ToggleVibrationSwitch,
+            SetEffectLevel = level => ApplyEffectLevelSelection((GameplayFeedback.EffectLevel)level),
+            Help = OpenHelpTutorialFromSettings,
+            Language = OpenLanguageSelectionPopup,
+            Rate = () => DevLog.Log("평가하기 클릭"),
+            Email = OpenSupportEmail,
+            RemoveAds = () => DevLog.Log("광고 제거 클릭"),
+            ResetData = ShowResetDataConfirmPopup,
+            Privacy = OpenPrivacyPolicy,
+            Terms = OpenTerms,
+            Close = HideSettingPopup,
+            Click = () => PlayUIButtonSfx(),
+            Version = Application.version
+        });
+        panel.Insert(0, claySettingsSheet);
+    }
+
     private void ShowSettingPopup()
     {
         NotifyGameplayActivity();
         if (settingPopupOverlay != null)
         {
+            BuildClaySettingsSheet();
             settingPopupOverlay.style.display = DisplayStyle.Flex;
             AnimatePopupIn(settingPopupOverlay.Q<VisualElement>("SettingPopupPanel"));
             isSettingPopupOpen = true;
@@ -3223,6 +3624,8 @@ public class GameMainUIController : MonoBehaviour
     public bool IsSplashActive => isSplashActive;
     public bool IsEndingOverlayOpen => isEndingOverlayOpen;
     public bool IsModalOverlayOpen =>
+        isStageMapOpen ||
+        isHomeScreenOpen ||
         isSettingPopupOpen ||
         isDebugStageJumpPopupOpen ||
         isLanguageSelectionPopupOpen ||
@@ -4686,6 +5089,11 @@ public class GameMainUIController : MonoBehaviour
             tutorialAnimationVersion++;
             tutorialAnimationRoutine = StartCoroutine(PlayFourPhaseTutorialLoop(tutorialAnimationVersion, ApplyChargeTutorialState, new[] { 3, 4, 5, 1 }));
         }
+        else if (string.Equals(tutorialType, TutorialTypePortal, StringComparison.OrdinalIgnoreCase))
+        {
+            tutorialAnimationVersion++;
+            tutorialAnimationRoutine = StartCoroutine(PlayFourPhaseTutorialLoop(tutorialAnimationVersion, ApplyPortalTutorialState, new[] { 3, 4, 5, 1 }));
+        }
         else
         {
             tutorialAnimationVersion++;
@@ -4716,6 +5124,8 @@ public class GameMainUIController : MonoBehaviour
             return TutorialTypeBlindCurtain;
         if (string.Equals(tutorialType, TutorialTypeCharge, StringComparison.OrdinalIgnoreCase))
             return TutorialTypeCharge;
+        if (string.Equals(tutorialType, TutorialTypePortal, StringComparison.OrdinalIgnoreCase))
+            return TutorialTypePortal;
         if (string.Equals(tutorialType, TutorialTypeBasicPath, StringComparison.OrdinalIgnoreCase))
             return TutorialTypeBasicPath;
 
@@ -4731,7 +5141,8 @@ public class GameMainUIController : MonoBehaviour
             string.Equals(normalized, TutorialTypeIgniter, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, TutorialTypeBlindCurtain, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, TutorialTypeBlackout, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, TutorialTypeCharge, StringComparison.OrdinalIgnoreCase);
+            string.Equals(normalized, TutorialTypeCharge, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, TutorialTypePortal, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsBasicTutorialEntry(HelpTutorialEntryData entry)
@@ -5283,6 +5694,41 @@ public class GameMainUIController : MonoBehaviour
             phase == 1 ? "tutorial_charge_step_enter" :
             phase == 2 ? "tutorial_charge_step_charge" :
             "tutorial_charge_step_return";
+        SetSpecialHint(T(hintKey));
+    }
+
+    /// <summary>포탈: 1-1을 지운 뒤 마지막으로 포탈(◎)에 들어가면 새 판이 나온다.</summary>
+    private void ApplyPortalTutorialState(int phase)
+    {
+        ResetSpecialTutorialBoard();
+
+        Color trail = new Color(0.75f, 0.9f, 1f, 0.82f);
+        Color portal = PortalTile.PortalColor;
+        if (phase < 3)
+        {
+            SetSpecialCell(3, phase >= 1 ? "0" : "1", null, string.Empty, active: true);
+            SetSpecialCell(4, phase >= 2 ? "0" : "1", null, string.Empty, active: true, pulse: phase == 1);
+            SetSpecialCell(5, "1", null, string.Empty, active: phase >= 1, pulse: phase == 2, badge: "◎");
+            if (phase >= 1)
+                ShowSpecialLineBetween(tutorialSpecialTrailA, 3, 4, trail, pulse: phase == 1);
+            if (phase >= 2)
+            {
+                ShowSpecialLineBetween(tutorialSpecialTrailB, 4, 5, portal, pulse: true);
+                ShowSpecialPulseAtCell(tutorialSpecialRevealPulseA, 5, portal, true);
+            }
+        }
+        else
+        {
+            SetSpecialCell(0, "2", null, string.Empty, active: true, pulse: true);
+            SetSpecialCell(1, "1", null, string.Empty, active: true, pulse: true);
+            SetSpecialCell(2, "1", null, string.Empty, active: true, pulse: true);
+            SetSpecialCell(4, "1", null, string.Empty, active: true, pulse: true);
+        }
+
+        string hintKey = phase == 0 ? "tutorial_portal_step_intro" :
+            phase == 1 ? "tutorial_portal_step_clear" :
+            phase == 2 ? "tutorial_portal_step_enter" :
+            "tutorial_portal_step_phase2";
         SetSpecialHint(T(hintKey));
     }
 
@@ -6547,6 +6993,9 @@ public class GameMainUIController : MonoBehaviour
 
         StopStageSnackbarPlayback();
         ApplyLocalizationForCurrentLanguage();
+        // 설정 카드가 열려 있으면 새 언어로 다시 만든다.
+        if (isSettingPopupOpen && claySettingsSheet != null)
+            BuildClaySettingsSheet();
     }
 
     private void UpdateActiveTutorialCopyIfOpen()
@@ -6695,6 +7144,148 @@ public class GameMainUIController : MonoBehaviour
         AudioListener.volume = isSoundOn ? 1f : 0f;
     }
 
+    // ===== 챕터 지도 =====
+    private ClayStageMap activeStageMap;
+    private bool isStageMapOpen;
+
+    /// <summary>STAGE 글자 오른쪽 위에 작은 격자 아이콘을 달아 "누르면 지도가 열린다"는 걸 알린다(배치에는 영향 없음).</summary>
+    private void AddStageMapHintIcon()
+    {
+        if (stageContainer == null || stageContainer.Q<VisualElement>("StageMapHintIcon") != null)
+            return;
+        var icon = new VisualElement { name = "StageMapHintIcon", pickingMode = PickingMode.Ignore };
+        icon.style.position = Position.Absolute;
+        icon.style.width = 26f;
+        icon.style.height = 26f;
+        icon.style.right = -38f;
+        icon.style.top = 2f;
+        icon.generateVisualContent += ctx =>
+        {
+            Rect r = ctx.visualElement.contentRect;
+            if (r.width <= 1f)
+                return;
+            Painter2D painter = ctx.painter2D;
+            painter.fillColor = VisualTheme.InkSoft;
+            float cell = r.width * 0.42f;
+            float step = r.width - cell;
+            for (int k = 0; k < 4; k++)
+            {
+                float x = (k % 2) * step;
+                float y = (k / 2) * step;
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(x, y));
+                painter.LineTo(new Vector2(x + cell, y));
+                painter.LineTo(new Vector2(x + cell, y + cell));
+                painter.LineTo(new Vector2(x, y + cell));
+                painter.ClosePath();
+                painter.Fill();
+            }
+        };
+        stageContainer.Add(icon);
+    }
+
+    private void OnStageContainerClickedForMap(ClickEvent evt)
+    {
+        evt?.StopPropagation();
+        OpenStageMap();
+    }
+
+    public bool OpenStageMap()
+    {
+        if (!VisualTheme.IsSoftClay || uiDocument == null || IsModalOverlayOpen)
+            return false;
+        GameManager gm = FindFirstObjectByType<GameManager>();
+        if (gm == null || !gm.CanOpenStageMap)
+            return false;
+        VisualElement root = uiDocument.rootVisualElement;
+        if (root?.panel == null)
+            return false;
+
+        PlayUIButtonSfx();
+        NotifyGameplayActivity();
+        HideStageChallengeChip();
+        Rect panel = root.layout;
+        float topInset = 0f;
+        float bottomInset = 0f;
+        if (topBar != null && topBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(topBar.worldBound);
+            if (!float.IsNaN(bar.y))
+                topInset = Mathf.Max(0f, bar.y);
+        }
+        if (bottomBar != null && bottomBar.panel != null)
+        {
+            Rect bar = root.WorldToLocal(bottomBar.worldBound);
+            if (!float.IsNaN(bar.yMax) && bar.height > 1f)
+                bottomInset = Mathf.Max(0f, panel.height - bar.yMax);
+        }
+
+        var texts = new ClayStageMap.Texts
+        {
+            chapter = T("map_chapter"),
+            complete = T("map_complete"),
+            continuePlay = T("map_continue"),
+            latest = T("map_latest"),
+            lab = T("map_lab"),
+            backToStage = T("map_back_to_stage")
+        };
+        Action onDebug = null;
+        if (isDebugBuildCached)
+        {
+            onDebug = () =>
+            {
+                CloseStageMap();
+                ShowDebugStageJumpPopup();
+            };
+        }
+        activeStageMap = new ClayStageMap(
+            texts, panel, topInset, bottomInset,
+            gm.CurrentStageIndex, gm.StageFrontier, FinalEndingProgressStore.FinalStageIndex,
+            gm.IsStageUnlocked,
+            stage =>
+            {
+                PlayUIButtonSfx();
+                CloseStageMap();
+                GameManager manager = FindFirstObjectByType<GameManager>();
+                if (manager != null)
+                    manager.LoadStageFromMap(stage);
+            },
+            () =>
+            {
+                PlayUIButtonSfx();
+                CloseStageMap();
+            },
+            gm.IsLabActive || !GameManager.IsLabUnlocked ? (Action)null : () =>
+            {
+                PlayUIButtonSfx();
+                CloseStageMap();
+                GameManager manager = FindFirstObjectByType<GameManager>();
+                if (manager != null)
+                    manager.StartLab();
+            },
+            onDebug,
+            gm.IsLabActive);
+        root.Add(activeStageMap);
+        isStageMapOpen = true;
+        FirebaseBootstrap.LogEvent("stage_map_open", new Dictionary<string, object>
+        {
+            { "stage_index", gm.CurrentStageIndex },
+            { "frontier", gm.StageFrontier }
+        });
+        return true;
+    }
+
+    public void CloseStageMap()
+    {
+        activeStageMap?.RemoveFromHierarchy();
+        activeStageMap = null;
+        isStageMapOpen = false;
+        // 지도를 보던 시간은 "멈춰 있던 시간"으로 치지 않는다(닫자마자 방치 힌트가 울리지 않게).
+        NotifyGameplayActivity();
+    }
+
+    public bool IsStageMapOpen => isStageMapOpen;
+
     private void OnDebugStageContainerClicked(ClickEvent evt)
     {
         if (!isDebugBuildCached)
@@ -6703,6 +7294,28 @@ public class GameMainUIController : MonoBehaviour
         PlayUIButtonSfx();
         ShowDebugStageJumpPopup();
         evt?.StopPropagation();
+    }
+
+    /// <summary>디버그 빌드: 스테이지 이동 창에 "피버 시작" 버튼을 붙인다(지금 판에서 바로 피버, 진행도는 그대로).</summary>
+    private void AddDebugFeverButton()
+    {
+        if (debugStageJumpConfirmButton == null || debugStageJumpConfirmButton.parent == null)
+            return;
+        VisualElement row = debugStageJumpConfirmButton.parent;
+        if (row.Q<Button>("DebugStartFeverButton") != null)
+            return;
+        var fever = new Button(() =>
+        {
+            HideDebugStageJumpPopup();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            GameManager manager = FindFirstObjectByType<GameManager>();
+            if (manager == null || !manager.DebugStartFeverNow())
+                ShowGameplaySnackbar("fever_skip_blocked");
+#endif
+        }) { name = "DebugStartFeverButton", text = "피버 시작" };
+        fever.AddToClassList("debug-stage-jump-button");
+        fever.AddToClassList("debug-stage-jump-button-confirm");
+        row.Insert(0, fever);
     }
 
     private void ShowDebugStageJumpPopup()
@@ -8255,6 +8868,8 @@ public class GameMainUIController : MonoBehaviour
         StopStageSnackbarPlayback();
         ResetTransientStageClearVisuals();
         currentStageIndexForUI = Mathf.Max(1, stageIndex);
+        if (freeSkipStage != currentStageIndexForUI)
+            StopSkipButtonBounce();
         ResetIdleHintBonusForCurrentStage();
 
         // STAGE / 스테이지 번호 텍스트 갱신

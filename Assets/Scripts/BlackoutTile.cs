@@ -161,6 +161,7 @@ public class BlackoutTile : MonoBehaviour, IGameOverBlackoutVisual
         ink.a = 0.82f;
         coverRenderer.color = ink;
         coverObject.AddComponent<ClayCornerIcon>();
+        ClayIconMotion.Attach(coverRenderer, ClayIconMotion.Motion.Sway);
     }
 
     private void CreateNoiseOverlay()

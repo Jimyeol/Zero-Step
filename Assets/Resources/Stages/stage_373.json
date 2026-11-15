@@ -1,9 +1,9 @@
 {
   "stageID": 373,
-  "width": 4,
-  "height": 4,
+  "width": 3,
+  "height": 3,
   "startPoint": {
-    "x": 1,
+    "x": 2,
     "y": 1
   },
   "config": {
@@ -14,12 +14,22 @@
   },
   "cells": [
     {
+      "x": 0,
+      "y": 0,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "count": 2,
+      "type": "Normal"
+    },
+    {
       "x": 2,
       "y": 0,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 796,
-      "color": "#f59e0b"
+      "type": "Normal"
     },
     {
       "x": 0,
@@ -30,54 +40,30 @@
     {
       "x": 1,
       "y": 1,
-      "count": 3,
-      "type": "BlindCurtain"
+      "count": 1,
+      "type": "FixedKnot",
+      "targetOrder": 5,
+      "properties": {
+        "isAbsolute": true
+      }
     },
     {
       "x": 2,
       "y": 1,
-      "count": 3,
-      "type": "Hidden",
-      "groupID": "G10"
-    },
-    {
-      "x": 3,
-      "y": 1,
-      "count": 1,
+      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 2,
-      "count": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 2,
       "y": 2,
-      "count": 3,
-      "type": "BlindCurtain"
-    },
-    {
-      "x": 3,
-      "y": 2,
       "count": 1,
-      "type": "TwinLink",
-      "linkID": 796,
-      "color": "#f59e0b"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "Igniter",
-      "targetID": "G10"
+      "type": "Normal"
     }
   ]
 }

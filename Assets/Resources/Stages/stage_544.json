@@ -1,7 +1,7 @@
 {
   "stageID": 544,
-  "width": 3,
-  "height": 6,
+  "width": 5,
+  "height": 5,
   "startPoint": {
     "x": 1,
     "y": 1
@@ -16,39 +16,43 @@
     {
       "x": 0,
       "y": 0,
-      "count": 3,
+      "count": 1,
       "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 2,
-      "type": "BlindCurtain"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 0,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
+      "type": "ShortCircuit",
+      "direction": "Left"
     },
     {
       "x": 0,
       "y": 1,
       "count": 2,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#38bdf8"
-      }
+      "type": "Igniter",
+      "targetID": "G55"
     },
     {
       "x": 1,
       "y": 1,
-      "count": 2,
+      "count": 3,
       "type": "Normal"
     },
     {
       "x": 2,
+      "y": 1,
+      "count": 3,
+      "type": "Normal"
+    },
+    {
+      "x": 3,
       "y": 1,
       "count": 1,
       "type": "Normal"
@@ -56,48 +60,53 @@
     {
       "x": 0,
       "y": 2,
-      "count": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "count": 1,
+      "type": "Hidden",
+      "groupID": "G55"
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "count": 1,
+      "type": "Normal"
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "count": 3,
       "type": "FixedKnot",
-      "targetOrder": 4,
+      "targetOrder": 15,
       "properties": {
         "isAbsolute": true
       }
     },
     {
-      "x": 2,
-      "y": 2,
-      "count": 1,
+      "x": 3,
+      "y": 3,
+      "count": 3,
       "type": "Normal"
     },
     {
-      "x": 0,
+      "x": 4,
       "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 3,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
-    },
-    {
-      "x": 2,
-      "y": 3,
-      "count": 1,
-      "type": "ShortCircuit",
-      "direction": "Down"
-    },
-    {
-      "x": 0,
-      "y": 4,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 1,
-      "y": 4,
       "count": 2,
       "type": "Normal"
     },
@@ -105,19 +114,17 @@
       "x": 2,
       "y": 4,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G83"
+      "type": "Normal"
     },
     {
-      "x": 1,
-      "y": 5,
+      "x": 3,
+      "y": 4,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G83"
+      "type": "Normal"
     },
     {
-      "x": 2,
-      "y": 5,
+      "x": 4,
+      "y": 4,
       "count": 1,
       "type": "Normal"
     }

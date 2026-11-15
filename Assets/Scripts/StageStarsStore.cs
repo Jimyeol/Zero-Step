@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// 스테이지별 최고 기록(별 0~3개 + 한붓 클리어 여부)을 한 줄 문자열로 저장한다.
-/// 별: 1 = 클리어, 2 = 힌트 없이, 3 = 힌트·실패·리셋 없이. 한붓 = 손가락을 한 번도 떼지 않고 클리어.
+/// 별: 1 = 클리어, 2 = 힌트 없이, 3 = 그 판의 도전 목표(StageChallenge) 달성. 한붓 = 손가락을 한 번도 떼지 않고 클리어.
 /// </summary>
 public static class StageStarsStore
 {

@@ -17,7 +17,7 @@ using UnityEditor;
 /// <summary>
 /// 네온 퍼즐 게임 매니저: JSON 스테이지 로드, 그리드 생성(count==0 스킵), 드래그 경로, Line Renderer, Stage Clear 시 다음 스테이지.
 /// </summary>
-public class GameManager : MonoBehaviour
+public partial class GameManager : MonoBehaviour
 {
     private const float TallStageBottomGameplayBoostMaxNormalized = 0.04f;
     private const float TallStageAspectBoostStart = 1.15f;
@@ -161,6 +161,7 @@ public class GameManager : MonoBehaviour
 
     /// <summary>Easy Save 3 진행도 저장 키. 앱 재실행 시 이 스테이지부터 시작.</summary>
     private const string SaveKeyStage = "StageProgress";
+    private const string SaveKeyFrontier = "StageFrontier";
     private const string StageClearTypeAllTilesZero = "all_tiles_zero";
     private const string StageClearTypeLastTileRule = "last_tile_rule";
     private const string StageFailReasonNoLegalMove = "deadlock_no_legal_move";
@@ -346,6 +347,27 @@ public class GameManager : MonoBehaviour
 
     private AudioSource blockNoteAudioSource;
     private AudioSource eventAudioSource;
+    private AudioSource comboOctaveAudioSource;
+    private AudioSource failAudioSource;
+    // 콤보 5·10 등: 방금 울린 멜로디 음 위의 화음(근음+5도+옥타브)으로 울려 멜로디와 부딪치지 않게 한다.
+    private readonly Dictionary<string, AudioClip> chordClipMap = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<AudioClip, string> blockNoteKeyByClip = new Dictionary<AudioClip, string>();
+    private string lastPlayedNoteKey = "c";
+    // 피버 타임: 칸을 없앨 때 피아노 멜로디 대신 "뿅"(배경음악과 같은 가단조 5음계, 콤보가 쌓일수록 높아짐)
+    private readonly AudioClip[] feverPopClips = new AudioClip[10];
+    // 특수 타일·피버·포탈 효과음(칸 소리와 같은 음계, Tools/DevScripts/make_sfx.py)
+    private AudioClip chargeClip;
+    private AudioClip revealClip;
+    private AudioClip fixedKnotClip;
+    private AudioClip blackoutClip;
+    private AudioClip feverStartClip;
+    private AudioClip portalSuckClip;
+    private AudioClip portalEmergeClip;
+    private AudioClip perfectClip;
+    private AudioClip moveDeniedClip;
+    private float lastClearSfxTime = -10f;
+    private float lastMoveDeniedSfxTime = -10f;
+    private Coroutine failSfxFadeRoutine;
     private readonly Queue<AudioClip> pendingBlockNoteQueue = new Queue<AudioClip>();
     private readonly Queue<int> pendingSessionFreeHeartRefillMinutes = new Queue<int>();
     private readonly Dictionary<string, AudioClip> blockNoteClipMap = new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
@@ -401,7 +423,7 @@ public class GameManager : MonoBehaviour
     public LinkSystem GetLinkSystem() => linkSystem;
     /// <summary>Spotlight 모드: 현재 드래그 중인지.</summary>
     public bool IsDragging => isDragging;
-    public bool CanCheckIdleHintBonus => !stageCleared && !isGameOverSequencePlaying && !isDragging && tiles != null && currentStartTile != null && !isHintPreviewRequestRunning;
+    public bool CanCheckIdleHintBonus => !stageCleared && !isGameOverSequencePlaying && !portalTransitioning && !isDragging && tiles != null && currentStartTile != null && !isHintPreviewRequestRunning;
     public string IdleHintBonusBlockState => $"cleared={stageCleared} gameOver={isGameOverSequencePlaying} dragging={isDragging} hasTiles={tiles != null} hasStart={currentStartTile != null} hintRequest={isHintPreviewRequestRunning}";
     public string LastHintSolverStatus => cachedHintSolverStatus;
     public bool WasLastHintSolverBudgetExhausted => IsHintSolverBudgetExhaustedStatus();
@@ -474,6 +496,7 @@ public class GameManager : MonoBehaviour
 
         // 저장된 진행도가 있으면 해당 스테이지부터, 없으면 startStageIndex부터
         currentStageIndex = endingState == FinalEndingState.CompletedReplayable ? 1 : LoadSavedStageIndex();
+        stageFrontier = LoadSavedFrontier(endingState == FinalEndingState.CompletedReplayable ? FinalEndingProgressStore.FinalStageIndex : currentStageIndex);
         hasLoadedStageProgress = true;
         totalStepsCommitted = 0;
         StageData data = StageManager.LoadStage(currentStageIndex);
@@ -507,6 +530,12 @@ public class GameManager : MonoBehaviour
 
     private void HandleStageStarted(string entryType)
     {
+        // 피버·연구소의 즉석 보드는 스테이지 통계·도전 목표·초반 가이드와 무관하다(리셋했을 때 이 경로로 들어온다).
+        if (feverActive || labActive)
+        {
+            HandleGeneratedBoardRestarted();
+            return;
+        }
         ResetUndoHistory();
         attemptMoves.Clear();
         bool isRestart = entryType == "auto_restart_after_fail" || entryType == "manual_reset";
@@ -518,6 +547,7 @@ public class GameManager : MonoBehaviour
         {
             stageHintUsed = false;
             stageRetried = false;
+            stageFailStreak = 0;
         }
         attemptStrokeCount = 0;
         attemptUsedUndo = false;
@@ -526,6 +556,7 @@ public class GameManager : MonoBehaviour
         RandomizeBackgroundGridFlow();
         if (ShouldPlayStageStartVisual(entryType))
             PlayStageStartVisuals();
+        SetupStageChallenge(announce: entryType != "auto_restart_after_fail");
         TrackStageStarted(entryType);
         SchedulePostStageStartedFailureCheck();
         ScheduleEarlyStageGuide();
@@ -670,12 +701,14 @@ public class GameManager : MonoBehaviour
         LoadNextStageImmediate();
     }
 
-    public bool IsOnFinalStage => FinalEndingProgressStore.IsFinalStageIndex(currentStageIndex);
+    public bool IsOnFinalStage => !labActive && FinalEndingProgressStore.IsFinalStageIndex(currentStageIndex);
 
     public bool LoadNextStageImmediate()
     {
         if (isGameOverSequencePlaying)
             return false;
+        if (labActive)
+            return LabSkipBoard();
         // 최종 스테이지는 스킵으로 넘길 수 없다. 엔딩은 정상 클리어 경로에서만 열린다.
         if (IsOnFinalStage)
             return false;
@@ -706,6 +739,9 @@ public class GameManager : MonoBehaviour
         int previousStageIndex = currentStageIndex;
         PrepareForStageTransition();
         currentStageIndex = stageIndex;
+        // 디버그 이동은 진행 위치도 함께 옮긴다(이동한 판 다음부터 이어서 진행되도록).
+        if (stageIndex > StageFrontier)
+            stageFrontier = stageIndex;
         ApplyLoadedStageData(data, "debug_stage_jump");
 
         FirebaseBootstrap.LogEvent("stage_debug_jump", new Dictionary<string, object>
@@ -721,6 +757,7 @@ public class GameManager : MonoBehaviour
     public void ResetProgressAndRestartToFirstStage()
     {
         CancelFever();
+        CancelLab();
         if (isGameOverSequencePlaying)
             return;
 
@@ -740,6 +777,7 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
         totalStepsCommitted = 0;
         currentStageIndex = 1;
+        stageFrontier = 1;
 
         StageData data = StageManager.LoadStage(1);
         UpdateVerboseStage6DebugState(data);
@@ -804,12 +842,14 @@ public class GameManager : MonoBehaviour
     }
 
     private ClayStartMarker clayStartMarker;
+    private ClayZero clayZero;
 
     private void LateUpdate()
     {
         if (hintHaloPairs.Count > 0)
             SyncHintHalos();
         UpdateClayFocus();
+        UpdatePortalOpenState();
     }
 
     /// <summary>점토 테마: 지금 시작할 칸에 외곽선·물결 표시를 붙이고, 짝꿍 연결 표시용 현재 칸을 알린다.</summary>
@@ -818,12 +858,21 @@ public class GameManager : MonoBehaviour
         if (!VisualTheme.IsSoftClay)
             return;
         Tile head = isDragging && currentPath.Count > 0 ? currentPath[currentPath.Count - 1] : currentStartTile;
-        VisualTheme.FocusTile = stageCleared || isGameOverSequencePlaying ? null : head;
+        VisualTheme.FocusTile = stageCleared || isGameOverSequencePlaying || portalTransitioning ? null : head;
 
         if (clayStartMarker == null)
             clayStartMarker = ClayStartMarker.Create(transform);
-        bool idle = !isDragging && !stageCleared && !isGameOverSequencePlaying;
+        bool idle = !isDragging && !stageCleared && !isGameOverSequencePlaying && !portalTransitioning;
         clayStartMarker.SetTarget(idle ? currentStartTile : null);
+
+        // 마스코트는 지금 있는 칸(드래그 중이면 길의 머리)에 앉는다. 클리어 직후에는 마지막 칸에서 환호하도록 그대로 둔다.
+        if (clayZero == null)
+            clayZero = ClayZero.Create(transform);
+        // 힌트가 보이는 동안에는 제로가 힌트 경로를 걸어서 보여준다(UpdateClayHintWalk). 끝나면 지금 칸으로 돌아온다.
+        if (activeHintPreviewLineCount <= 0)
+            clayZero.ClearGuide();
+        if (!stageCleared)
+            clayZero.SetTarget(head);
     }
 
     private void Update()
@@ -837,7 +886,7 @@ public class GameManager : MonoBehaviour
         ProcessPendingBlockNoteQueue();
         UpdateSessionHeartRefillProgress(overlayOpen);
         UpdateFeverTimer(overlayOpen);
-        if (stageCleared || isGameOverSequencePlaying)
+        if (stageCleared || isGameOverSequencePlaying || portalTransitioning)
             return;
 
         CaptureUndoSnapshotIfNeeded();
@@ -913,6 +962,25 @@ public class GameManager : MonoBehaviour
     {
         EnsureAudioSource(ref blockNoteAudioSource, "BlockNoteAudioSource");
         EnsureAudioSource(ref eventAudioSource, "EventSfxAudioSource");
+        EnsureAudioSource(ref comboOctaveAudioSource, "ComboOctaveAudioSource");
+        EnsureAudioSource(ref failAudioSource, "FailSfxAudioSource");
+        // 콤보 장식음: 같은 음을 한 옥타브 위(재생 속도 2배)로 작게 겹친다.
+        comboOctaveAudioSource.pitch = 2f;
+        comboOctaveAudioSource.playOnAwake = false;
+        failAudioSource.playOnAwake = false;
+        foreach (string key in new[] { "c", "cs", "d", "ds", "e", "f", "fs", "g", "gs", "a", "as", "b", "co" })
+            chordClipMap[key] = Resources.Load<AudioClip>("Sounds/sfx_chord_" + key);
+        for (int i = 0; i < feverPopClips.Length; i++)
+            feverPopClips[i] = Resources.Load<AudioClip>("Sounds/sfx_fever_pop_" + i);
+        perfectClip = Resources.Load<AudioClip>("Sounds/sfx_perfect");
+        moveDeniedClip = Resources.Load<AudioClip>("Sounds/sfx_move_denied");
+        chargeClip = Resources.Load<AudioClip>("Sounds/sfx_charge");
+        revealClip = Resources.Load<AudioClip>("Sounds/sfx_reveal");
+        fixedKnotClip = Resources.Load<AudioClip>("Sounds/sfx_fixed_knot");
+        blackoutClip = Resources.Load<AudioClip>("Sounds/sfx_blackout");
+        feverStartClip = Resources.Load<AudioClip>("Sounds/sfx_fever_start");
+        portalSuckClip = Resources.Load<AudioClip>("Sounds/sfx_portal_suck");
+        portalEmergeClip = Resources.Load<AudioClip>("Sounds/sfx_portal_emerge");
         ResolveRuntimeAudioClips();
         BuildBlockNoteClipMap();
         BuildMelodyPoolsIfNeeded();
@@ -994,7 +1062,10 @@ public class GameManager : MonoBehaviour
     private void RegisterBlockNoteClip(string noteKey, AudioClip clip)
     {
         if (!string.IsNullOrEmpty(noteKey) && clip != null)
+        {
             blockNoteClipMap[noteKey] = clip;
+            blockNoteKeyByClip[clip] = noteKey;
+        }
     }
 
     private void BuildMelodyPoolsIfNeeded()
@@ -1156,9 +1227,10 @@ public class GameManager : MonoBehaviour
     }
 
     // 콤보: 한 획(누르고 뗄 때까지, 뗀 직후 마지막 칸 소비 포함) 안에서 0이 되어 터진 칸 수.
-    // 터질 때마다 멜로디를 반음씩 올려(최대 완전5도) 긴 한붓일수록 점점 신나게 들리게 한다.
+    // 멜로디는 그대로 두고(음높이를 바꾸면 멜로디가 어긋난다), 콤보 3부터 같은 음을 한 옥타브 위로 작게 겹쳐
+    // 길게 이을수록 점점 화려하게 들리게 한다. 5·10·15… 이정표에서는 짧은 상승 아르페지오.
     private int strokeComboPops;
-    private const int ComboMaxSemitones = 7;
+    private const int ComboOctaveFrom = 3;
 
     private void RegisterComboPop(Tile tile)
     {
@@ -1168,16 +1240,15 @@ public class GameManager : MonoBehaviour
             feverPops++;
             mainUI?.UpdateFeverHud(FeverSecondsLeft, feverPops, true);
         }
-        if (blockNoteAudioSource != null)
-            blockNoteAudioSource.pitch = Mathf.Pow(2f, Mathf.Min(strokeComboPops - 1, ComboMaxSemitones) / 12f);
+        if (ClayComboPopup.IsMilestone(strokeComboPops) && !feverActive
+            && chordClipMap.TryGetValue(lastPlayedNoteKey, out AudioClip chord))
+            PlayEventSfx(chord, 0.8f);
         gameplayFeedback?.ComboPop(tile, strokeComboPops);
     }
 
     private void ResetStrokeCombo()
     {
         strokeComboPops = 0;
-        if (blockNoteAudioSource != null)
-            blockNoteAudioSource.pitch = 1f;
     }
 
     private void QueueNextMelodyBlockNote()
@@ -1187,6 +1258,14 @@ public class GameManager : MonoBehaviour
 
         string nextNoteKey = activeMelody[activeMelodyIndex];
         activeMelodyIndex = (activeMelodyIndex + 1) % activeMelody.Length;
+        // 피버 타임에는 피아노 멜로디 대신 "뿅"이 나고, 콤보가 쌓일수록 음이 올라간다.
+        if (feverActive)
+        {
+            AudioClip pop = feverPopClips[Mathf.Clamp(strokeComboPops, 0, feverPopClips.Length - 1)];
+            if (pop != null)
+                pendingBlockNoteQueue.Enqueue(pop);
+            return;
+        }
 
         if (blockNoteClipMap.TryGetValue(nextNoteKey, out AudioClip clip) && clip != null)
             pendingBlockNoteQueue.Enqueue(clip);
@@ -1205,6 +1284,13 @@ public class GameManager : MonoBehaviour
             if (clip == null)
                 continue;
             blockNoteAudioSource.PlayOneShot(clip, blockNoteVolume);
+            if (blockNoteKeyByClip.TryGetValue(clip, out string playedKey))
+                lastPlayedNoteKey = playedKey;
+            if (!feverActive && strokeComboPops >= ComboOctaveFrom && comboOctaveAudioSource != null)
+            {
+                float layer = Mathf.Min(0.12f + 0.04f * (strokeComboPops - ComboOctaveFrom), 0.4f);
+                comboOctaveAudioSource.PlayOneShot(clip, blockNoteVolume * layer);
+            }
             nextQueuedBlockNoteTime = Time.unscaledTime + Mathf.Max(0.01f, blockNoteInterval);
             return;
         }
@@ -1227,20 +1313,121 @@ public class GameManager : MonoBehaviour
     {
         if (clip == null || eventAudioSource == null)
             return;
+        // 같은 소리가 0.08초 안에 또 오면(폭발 연쇄 등) 하나로 합친다.
+        float now = Time.unscaledTime;
+        if (lastEventSfxTime.TryGetValue(clip, out float last) && now - last < EventSfxMergeSeconds)
+            return;
+        lastEventSfxTime[clip] = now;
         eventAudioSource.PlayOneShot(clip, Mathf.Clamp01(eventSfxVolume * volumeMultiplier));
     }
 
-    private void PlayFailSfx() => PlayEventSfx(failClip);
+    private const float EventSfxMergeSeconds = 0.08f;
+    private readonly Dictionary<AudioClip, float> lastEventSfxTime = new Dictionary<AudioClip, float>();
+    private Coroutine melodyDuckRoutine;
+
+    /// <summary>큰 소리(실패·깜깜·포탈)가 날 때 멜로디를 잠깐 작게 해서 겹치지 않게 한다.</summary>
+    private void DuckMelody(float seconds, float level = 0.3f)
+    {
+        if (blockNoteAudioSource == null)
+            return;
+        if (melodyDuckRoutine != null)
+            StopCoroutine(melodyDuckRoutine);
+        melodyDuckRoutine = StartCoroutine(DuckMelodyRoutine(seconds, level));
+    }
+
+    private IEnumerator DuckMelodyRoutine(float seconds, float level)
+    {
+        SetMelodyVolume(level);
+        yield return new WaitForSecondsRealtime(seconds);
+        float elapsed = 0f;
+        while (elapsed < 0.2f)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            SetMelodyVolume(Mathf.Lerp(level, 1f, elapsed / 0.2f));
+            yield return null;
+        }
+        SetMelodyVolume(1f);
+        melodyDuckRoutine = null;
+    }
+
+    private void SetMelodyVolume(float v)
+    {
+        if (blockNoteAudioSource != null)
+            blockNoteAudioSource.volume = v;
+        if (comboOctaveAudioSource != null)
+            comboOctaveAudioSource.volume = v;
+    }
+
+    // 실패음은 원래 1.5초라 여러 번 실패하면 피곤하다. 앞부분만 들려주고 0.45~0.65초에 걸쳐 줄인다.
+    private const float FailSfxHoldSeconds = 0.45f;
+    private const float FailSfxFadeSeconds = 0.2f;
+
+    private void PlayFailSfx()
+    {
+        if (failClip == null)
+            return;
+        if (failAudioSource == null)
+        {
+            PlayEventSfx(failClip);
+            return;
+        }
+        if (failSfxFadeRoutine != null)
+            StopCoroutine(failSfxFadeRoutine);
+        DuckMelody(0.5f, 0.2f);
+        failAudioSource.Stop();
+        failAudioSource.clip = failClip;
+        failAudioSource.volume = eventSfxVolume;
+        failAudioSource.Play();
+        failSfxFadeRoutine = StartCoroutine(FadeOutFailSfx());
+    }
+
+    private IEnumerator FadeOutFailSfx()
+    {
+        yield return new WaitForSecondsRealtime(FailSfxHoldSeconds);
+        float start = failAudioSource.volume;
+        float t = 0f;
+        while (t < FailSfxFadeSeconds && failAudioSource != null && failAudioSource.isPlaying)
+        {
+            t += Time.unscaledDeltaTime;
+            failAudioSource.volume = Mathf.Lerp(start, 0f, t / FailSfxFadeSeconds);
+            yield return null;
+        }
+        if (failAudioSource != null)
+            failAudioSource.Stop();
+        failSfxFadeRoutine = null;
+    }
+
+    private IEnumerator PlayDelayedEventSfx(AudioClip clip, float delay, float volumeMultiplier)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        PlayEventSfx(clip, volumeMultiplier);
+    }
+
+    /// <summary>막힌 이동: 낮고 짧은 소리. 연달아 막혀도 0.3초에 한 번만.</summary>
+    private void PlayMoveDeniedSfx()
+    {
+        if (Time.unscaledTime - lastMoveDeniedSfxTime < 0.3f)
+            return;
+        lastMoveDeniedSfxTime = Time.unscaledTime;
+        PlayEventSfx(moveDeniedClip, 0.7f);
+    }
     private void PlayBombSfx() => PlayEventSfx(bombClip, bombSfxVolumeMultiplier);
     private void PlayNewStageSfx()
     {
+        // 클리어 소리(2초)가 아직 울리는 중이면 새 판 소리를 겹치지 않는다.
+        if (Time.unscaledTime - lastClearSfxTime < 1.9f)
+            return;
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
         if (mainUI != null && mainUI.IsSplashActive)
             return;
         PlayEventSfx(newStageClip);
     }
-    private void PlayClearSfx() => PlayEventSfx(clearClip);
+    private void PlayClearSfx()
+    {
+        lastClearSfxTime = Time.unscaledTime;
+        PlayEventSfx(clearClip);
+    }
     private void PlayStageClearHaptic()
     {
         if (!GameMainUIController.IsVibrationEnabled)
@@ -1359,6 +1546,9 @@ public class GameManager : MonoBehaviour
 
         if (pointerDown)
         {
+            // 포탈 직후 화면이 옮겨 가는 동안에는 새 드래그를 시작하지 않는다(손가락 아래 판이 움직인다).
+            if (portalCameraGliding)
+                return;
             Tile hit = GetTileAtScreen(screenPoint);
             if (hit != currentStartTile || !CanEnterTile(hit))
                 return;
@@ -1462,6 +1652,7 @@ public class GameManager : MonoBehaviour
             gameplayFeedback?.DragReleased(currentPath.Count > 0 ? currentPath[currentPath.Count - 1] : currentStartTile);
             gameplayFeedback?.ReleasePath();
             ClearMoveRuleSnackbarState();
+            bool movedThisStroke = isDragging && currentPath.Count > 1;
             isDragging = false;
             ResetTrail();
             CommitPathAndSetCurrentPosition();
@@ -1470,6 +1661,8 @@ public class GameManager : MonoBehaviour
             CheckStageClear();
             if (!stageCleared && CheckAndHandleBoardFailure(currentStartTile))
             { /* 실패 판정이면 GameOver 연출은 CheckAndHandleBoardFailure 내부에서 시작 */ }
+            else
+                CheckLabOneStrokeLifted(movedThisStroke);
         }
 
         if (isDragging)
@@ -1558,6 +1751,7 @@ public class GameManager : MonoBehaviour
         if (blockReason == LegalMoveBlockReason.ShortCircuitBlocked && shortCircuitHit != null && last != null && shortCircuitHit.IsBlockedEntryFrom(last.X, last.Y))
         {
             gameplayFeedback?.MoveDenied(hit);
+            PlayMoveDeniedSfx();
             ShowMoveRuleSnackbar(
                 $"short_circuit_entry:{hit.X}:{hit.Y}:{shortCircuitHit.DirectionLocalizationKey}",
                 "snackbar_short_circuit_blocked_entry",
@@ -1571,6 +1765,7 @@ public class GameManager : MonoBehaviour
         if (blockReason == LegalMoveBlockReason.ShortCircuitBlocked && shortCircuitLast != null && hit != null && !shortCircuitLast.IsExitCell(hit.X, hit.Y))
         {
             gameplayFeedback?.MoveDenied(last);
+            PlayMoveDeniedSfx();
             ShowMoveRuleSnackbar(
                 $"short_circuit:{last.X}:{last.Y}:{shortCircuitLast.DirectionLocalizationKey}",
                 "snackbar_short_circuit_only_direction",
@@ -1592,6 +1787,14 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
+        if (blockReason == LegalMoveBlockReason.PortalNotLast && hit != null)
+        {
+            gameplayFeedback?.MoveDenied(hit);
+            PlayMoveDeniedSfx();
+            ShowMoveRuleSnackbar($"portal:{hit.X}:{hit.Y}", "snackbar_portal_last");
+            return false;
+        }
+
         if (ShouldLogVerboseStage6Debug())
             DevLog.Log($"[Stage6 이동 거부] reason={blockReason} last={DescribeTileForDebug(last)} hit={DescribeTileForDebug(hit)} nextStep={nextStepNumber}");
         return false;
@@ -1603,6 +1806,7 @@ public class GameManager : MonoBehaviour
         var twinLink = last.GetComponent<TwinLinkTile>();
         if (twinLink != null)
         {
+            // 짝꿍이 같이 줄면 그 칸들의 멜로디 음이 이어서 울린다(따로 효과음을 덧붙이지 않는다).
             twinLink.ConsumePartners(DecreaseTileAndPlayBlockNote, partner => ShouldExcludeTwinLinkPartnerFromStep(twinLink, partner, hit));
             RefreshMainUIProgress();
         }
@@ -1639,6 +1843,7 @@ public class GameManager : MonoBehaviour
 
         if (charged > 0)
         {
+            PlayEventSfx(chargeClip, 0.6f);
             IncrementBoardVersion("charge");
             RefreshMainUIProgress();
         }
@@ -1675,14 +1880,21 @@ public class GameManager : MonoBehaviour
         {
             blackout.OnStepped();
             if (!blackoutQuestionFlipPlayed)
+            {
                 gameplayFeedback?.Blackout(hit);
+                PlayEventSfx(blackoutClip, 0.7f);
+                DuckMelody(0.6f);
+            }
             TriggerBlackoutQuestionFlip();
         }
         TryTriggerIgniter(hit);
         NotifyTrailTileStepped(hit);
         NotifyFixedKnotsUpdateVisual(totalPathCount);
         if (fixedKnotHit != null && fixedKnotHit.IsOrderConstraintActive)
+        {
             fixedKnotHit.OnSteppedCorrectly();
+            PlayEventSfx(fixedKnotClip, 0.6f);
+        }
         if (CheckAndHandleMissedFixedKnot(totalPathCount))
             return;
         CheckVictoryCondition(hit);
@@ -1938,7 +2150,11 @@ public class GameManager : MonoBehaviour
                     pendingHiddenActivations++;
         }
         if (pendingHiddenActivations > 0)
+        {
             RegisterPendingBoardMutation("hidden_relay", pendingHiddenActivations);
+            if (!instant)
+                PlayEventSfx(revealClip, 0.6f);
+        }
         if (ShouldLogVerboseStage6Debug())
         {
             List<string> hiddenSummaries = new List<string>();
@@ -2282,7 +2498,7 @@ public class GameManager : MonoBehaviour
 
     private bool TryBuildHintFromStoredSolution(HintSearchState initialState, int targetMoveCount)
     {
-        List<Vector2Int> solution = feverActive ? feverSolution : StageManager.LoadSolutionMoves(currentStageIndex);
+        List<Vector2Int> solution = feverActive ? feverSolution : labActive ? labBoard?.solution : StageManager.LoadSolutionMoves(currentStageIndex, portalPhase == 2 ? 2 : 1);
         int done = attemptMoves.Count;
         if (solution == null || done >= solution.Count || isDragging)
             return false;
@@ -3049,6 +3265,13 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
+        // 포탈: 떠나는 칸이 1이고 포탈 말고는 그 칸만 남았을 때(=마지막 이동)만 들어갈 수 있다.
+        if (to.GetComponent<PortalTile>() != null && !CanEnterPortalKernel(from, to, getRemainingCount))
+        {
+            blockReason = LegalMoveBlockReason.PortalNotLast;
+            return false;
+        }
+
         if (!ignoreTwinLinkPartners)
         {
             var twinLinkFrom = from.GetComponent<TwinLinkTile>();
@@ -3094,8 +3317,9 @@ public class GameManager : MonoBehaviour
         int segmentCount = path.Count - 1;
         EnsureHintPreviewPool(segmentCount);
         float width = Mathf.Max(0.05f, Mathf.Min(tileWidth, tileHeight) * Mathf.Max(0.01f, hintPreviewLineWidthScale));
+        // 점토 테마: 숫자가 선 위에 그려지므로 굵을 필요가 없다. 띠가 아니라 "선"으로 보이게 조금 가늘게.
         if (VisualTheme.IsSoftClay)
-            width *= 1.3f;
+            width *= 0.85f;
         Color baseColor = GetHintPreviewColor(hintPreviewMaxAlpha * HintBaseAlphaMultiplier, false);
 
         activeHintPreviewPoints.Clear();
@@ -3112,6 +3336,8 @@ public class GameManager : MonoBehaviour
         EnsureHintSegmentArrowPool(segmentCount);
         float tileSizeForOffset = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
         var edgeVisits = new Dictionary<long, int>();
+        hintSegmentStarts.Clear();
+        hintSegmentEnds.Clear();
         for (int i = 0; i < hintPreviewLines.Length; i++)
         {
             LineRenderer line = hintPreviewLines[i];
@@ -3136,8 +3362,6 @@ public class GameManager : MonoBehaviour
                 b += side * offset;
             }
 
-            if (VisualTheme.IsSoftClay)
-                TrimHintSegment(ref a, ref b, tileSizeForOffset);
             line.positionCount = 2;
             line.SetPosition(0, a);
             line.SetPosition(1, b);
@@ -3145,39 +3369,130 @@ public class GameManager : MonoBehaviour
             line.startColor = baseColor;
             line.endColor = baseColor;
             PlaceHintSegmentArrow(i, a, b, baseColor, width);
+            hintSegmentStarts.Add(a);
+            hintSegmentEnds.Add(b);
         }
 
         activeHintPreviewLineCount = segmentCount;
+        hintWalkProgress = 0f;
+        hintWalkPauseTimer = 0f;
+        LiftHintPathNumbers(path);
         ConfigureHintPreviewFlowLine(width);
         if (hintPreviewRoutine != null)
             StopCoroutine(hintPreviewRoutine);
         hintPreviewRoutine = StartCoroutine(HintPreviewLifetimeRoutine());
     }
 
-    /// <summary>
-    /// 점토 테마: 힌트 선을 칸 중심에서 중심까지가 아니라 칸 가장자리 사이(틈)만 잇게 줄여 숫자를 가리지 않는다.
-    /// </summary>
-    private static void TrimHintSegment(ref Vector3 a, ref Vector3 b, float tileSize)
+    // ===== 점토 테마 힌트: 칸 가운데를 잇는 선을 숫자 "아래"에 그린다 =====
+    // 선은 다른 타일·시작 표시보다 위에 그려야 보이는데, 그러면 숫자를 덮는다. 그래서 힌트가 보이는 동안
+    // 경로에 있는 칸의 숫자만 선보다 위로 올린다(선은 쭉 이어지고 숫자는 그대로 읽힌다).
+    private readonly List<Tile> hintLiftedNumberTiles = new List<Tile>(HintPreviewMaxMoves + 1);
+
+    private void LiftHintPathNumbers(List<Tile> path)
     {
-        Vector3 dir = b - a;
-        float length = dir.magnitude;
-        if (length < 0.0001f)
+        RestoreHintPathNumbers();
+        if (!VisualTheme.IsSoftClay || path == null)
             return;
-        dir /= length;
-        float trim = Mathf.Min(tileSize * HintClayTrimRatio, length * 0.42f);
-        a += dir * trim;
-        b -= dir * trim;
+        for (int i = 0; i < path.Count; i++)
+        {
+            Tile tile = path[i];
+            if (tile == null || hintLiftedNumberTiles.Contains(tile))
+                continue;
+            tile.SetNumberAboveHint(true);
+            hintLiftedNumberTiles.Add(tile);
+        }
     }
 
-    private const float HintClayTrimRatio = 0.4f;
-    // 점토 테마: 칸 사이 틈이 짧아 흐르는 화살촉도 작게 그린다.
-    private const float HintClayFlowArrowLengthScale = 0.15f;
-    private const float HintClayFlowArrowWidthScale = 0.11f;
+    // ===== 점토 테마 힌트: 제로가 먼저 걸어서 보여준다 =====
+    // 선 전체를 한꺼번에 보여주면 외워서 옮겨야 하고, 오가는 경로는 순서가 헷갈린다. 그래서 마스코트가 지금 위치에서
+    // 다음 몇 수(HintClayWindowMoves)를 한 칸씩 천천히 걸어가고, 지나간 자리에만 선이 그려진다. 끝까지 가면 잠깐 멈췄다가
+    // 처음부터 되풀이한다. 플레이어가 따라오면 지나온 선은 지워지고 그다음 수가 이어서 나온다.
+    private const int HintClayWindowMoves = 4;
+    private const float HintClayStepSeconds = 0.42f;
+    private const float HintClayLoopPauseSeconds = 0.7f;
+    private readonly List<Vector3> hintSegmentStarts = new List<Vector3>(HintPreviewMaxMoves);
+    private readonly List<Vector3> hintSegmentEnds = new List<Vector3>(HintPreviewMaxMoves);
+    private float hintWalkProgress;
+    private float hintWalkPauseTimer;
 
-    private float HintFlowArrowLength()
+    private void UpdateClayHintWalk(float deltaTime)
     {
-        float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
-        return Mathf.Max(0.04f, tileSize * (VisualTheme.IsSoftClay ? HintClayFlowArrowLengthScale : Mathf.Max(0.01f, hintPreviewArrowLengthScale)));
+        int count = Mathf.Min(activeHintPreviewLineCount, hintSegmentStarts.Count);
+        if (count <= 0 || hintPreviewLines == null || activeHintPreviewTiles.Count <= count)
+            return;
+
+        int first = Mathf.Clamp(hintPreviewFollowIndex, 0, count - 1);
+        int last = Mathf.Min(count, first + HintClayWindowMoves);
+        // 플레이어가 걷는 제로를 앞질렀으면 플레이어 위치에서 다시 시작한다.
+        if (hintWalkProgress < first)
+        {
+            hintWalkProgress = first;
+            hintWalkPauseTimer = 0f;
+        }
+
+        bool animate = GameplayFeedback.Intensity > 0f;
+        if (!animate)
+        {
+            // 효과 최소 설정: 움직임 없이 이번에 보여줄 구간을 한 번에 그린다.
+            hintWalkProgress = last;
+        }
+        else if (hintWalkPauseTimer > 0f)
+        {
+            hintWalkPauseTimer -= deltaTime;
+            if (hintWalkPauseTimer <= 0f)
+                hintWalkProgress = first;
+        }
+        else
+        {
+            hintWalkProgress += deltaTime / HintClayStepSeconds;
+            if (hintWalkProgress >= last)
+            {
+                hintWalkProgress = last;
+                hintWalkPauseTimer = HintClayLoopPauseSeconds;
+            }
+        }
+
+        Color baseColor = GetHintPreviewColor(hintPreviewMaxAlpha * HintBaseAlphaMultiplier, false);
+        for (int i = 0; i < count && i < hintPreviewLines.Length; i++)
+        {
+            LineRenderer line = hintPreviewLines[i];
+            if (line == null)
+                continue;
+            float drawn = i >= first && i < last ? Mathf.Clamp01(hintWalkProgress - i) : 0f;
+            bool visible = drawn > 0.001f;
+            line.enabled = visible;
+            // 화살촉은 그 칸까지 다 걸어간 뒤에 나타난다.
+            SetHintSegmentArrowEnabled(i, visible && drawn >= 0.999f);
+            if (!visible)
+                continue;
+            line.SetPosition(0, hintSegmentStarts[i]);
+            line.SetPosition(1, Vector3.Lerp(hintSegmentStarts[i], hintSegmentEnds[i], drawn));
+            line.startColor = baseColor;
+            line.endColor = baseColor;
+        }
+        if (hintPreviewFlowLine != null)
+            hintPreviewFlowLine.enabled = false;
+        if (hintPreviewArrowLeftLine != null)
+            hintPreviewArrowLeftLine.enabled = false;
+        if (hintPreviewArrowRightLine != null)
+            hintPreviewArrowRightLine.enabled = false;
+
+        if (clayZero != null && animate)
+        {
+            int segment = Mathf.Clamp(Mathf.FloorToInt(hintWalkProgress), first, last - 1);
+            float t = Mathf.Clamp01(hintWalkProgress - segment);
+            clayZero.SetGuide(activeHintPreviewTiles[segment], activeHintPreviewTiles[segment + 1], t);
+        }
+    }
+
+    private void RestoreHintPathNumbers()
+    {
+        for (int i = 0; i < hintLiftedNumberTiles.Count; i++)
+        {
+            if (hintLiftedNumberTiles[i] != null)
+                hintLiftedNumberTiles[i].SetNumberAboveHint(false);
+        }
+        hintLiftedNumberTiles.Clear();
     }
 
     private void EnsureHintPreviewPool(int requiredSegmentCount = HintPreviewMaxMoves)
@@ -3335,6 +3650,12 @@ public class GameManager : MonoBehaviour
         while (true)
         {
             elapsed += Time.deltaTime;
+            if (VisualTheme.IsSoftClay)
+            {
+                UpdateClayHintWalk(Time.unscaledDeltaTime);
+                yield return null;
+                continue;
+            }
             float pulse = 0.9f + 0.1f * GameplayFeedback.Intensity * Mathf.Sin((elapsed / pulseDuration) * Mathf.PI * 2f);
             SetHintPreviewAlpha(hintPreviewMaxAlpha * pulse);
             UpdateHintPreviewFlow(elapsed, 1f);
@@ -3375,16 +3696,7 @@ public class GameManager : MonoBehaviour
 
         Vector3 start = activeHintPreviewPoints[segmentIndex];
         Vector3 end = activeHintPreviewPoints[segmentIndex + 1];
-        float minT = 0.06f;
-        if (VisualTheme.IsSoftClay)
-        {
-            TrimHintSegment(ref start, ref end, Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight)));
-            // 짧아진 구간에서 화살촉 날개가 뒤 칸 숫자로 넘어가지 않게 촉을 구간 안쪽에서 시작한다.
-            float segmentLength = Vector3.Distance(start, end);
-            if (segmentLength > 0.0001f)
-                minT = Mathf.Clamp(HintFlowArrowLength() / segmentLength, 0.06f, 0.9f);
-        }
-        Vector3 head = Vector3.Lerp(start, end, Mathf.Max(t, minT));
+        Vector3 head = Vector3.Lerp(start, end, Mathf.Max(t, 0.06f));
         Vector3 direction = end - start;
 
         hintPreviewFlowLine.enabled = true;
@@ -3408,8 +3720,8 @@ public class GameManager : MonoBehaviour
         Vector3 dir = direction.normalized;
         Vector3 side = new Vector3(-dir.y, dir.x, 0f);
         float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
-        float arrowLength = HintFlowArrowLength();
-        float arrowWidth = Mathf.Max(0.03f, tileSize * (VisualTheme.IsSoftClay ? HintClayFlowArrowWidthScale : Mathf.Max(0.01f, hintPreviewArrowWidthScale)));
+        float arrowLength = Mathf.Max(0.04f, tileSize * Mathf.Max(0.01f, hintPreviewArrowLengthScale));
+        float arrowWidth = Mathf.Max(0.03f, tileSize * Mathf.Max(0.01f, hintPreviewArrowWidthScale));
         Vector3 back = head - dir * arrowLength;
         Vector3 left = back + side * arrowWidth;
         Vector3 right = back - side * arrowWidth;
@@ -3506,7 +3818,7 @@ public class GameManager : MonoBehaviour
         Vector3 dir = direction.normalized;
         Vector3 side = new Vector3(-dir.y, dir.x, 0f);
         float tileSize = Mathf.Max(0.01f, Mathf.Min(tileWidth, tileHeight));
-        Vector3 head = Vector3.Lerp(from, to, VisualTheme.IsSoftClay ? 0.78f : 0.62f);
+        Vector3 head = Vector3.Lerp(from, to, 0.62f);
         Vector3 back = head - dir * tileSize * 0.14f;
         for (int k = 0; k < 2; k++)
         {
@@ -3524,10 +3836,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // 점토 테마 힌트: 진한 테라코타(바탕 선은 조금 더 진하게) + 종이색 헤일로.
-    private static readonly Color HintClayLineColor = new Color32(0xB8, 0x4E, 0x2C, 0xFF);
-    private static readonly Color HintClayFlowColor = new Color32(0xE0, 0x6A, 0x3E, 0xFF);
-    private float HintBaseAlphaMultiplier => VisualTheme.IsSoftClay ? 0.9f : hintPreviewBaseAlphaMultiplier;
+    // 점토 테마 힌트: 숫자가 선 위에 그려지므로 바탕 선은 잉크색 숫자가 잘 읽히는 밝은 테라코타, 흐르는 선은 진한 테라코타. 종이색 헤일로.
+    private static readonly Color HintClayLineColor = new Color32(0xE8, 0x9A, 0x7B, 0xFF);
+    private static readonly Color HintClayFlowColor = new Color32(0xD2, 0x55, 0x2B, 0xFF);
+    // 점토 테마의 바탕 선은 불투명하게: 구간이 만나는 곳에서 겹쳐 진해지는 얼룩이 생기지 않는다.
+    private float HintBaseAlphaMultiplier => VisualTheme.IsSoftClay ? 1.05f : hintPreviewBaseAlphaMultiplier;
 
     private Color GetHintPreviewColor(float alpha, bool flow)
     {
@@ -3548,6 +3861,7 @@ public class GameManager : MonoBehaviour
         activeHintPreviewPoints.Clear();
         activeHintPreviewTiles.Clear();
         hintPreviewFollowIndex = 0;
+        RestoreHintPathNumbers();
         if (hintSegmentArrowLines != null)
         {
             for (int i = 0; i < hintSegmentArrowLines.Length; i++)
@@ -4085,6 +4399,9 @@ public class GameManager : MonoBehaviour
         {
             if (totalRemaining == 1)
             {
+                // 포탈 판 1페이즈: 포탈에 들어가면 클리어 대신 2페이즈 보드가 나온다.
+                if (portalPhase == 1 && currentTile.GetComponent<PortalTile>() != null)
+                    return TryBeginPortalTransition(currentTile);
                 DecreaseTileAndPlayBlockNote(currentTile);
                 RefreshMainUIProgress();
                 BeginStageClear(StageClearTypeLastTileRule, currentTile);
@@ -4115,6 +4432,25 @@ public class GameManager : MonoBehaviour
             return;
 
         stageCleared = true;
+        mainUI?.HideStageChallengeChip();
+        if (clayZero != null)
+        {
+            clayZero.SetTarget(referenceTile);
+            clayZero.Cheer();
+        }
+        if (labActive)
+        {
+            ResetActiveDragState("lab_clear");
+            ClearHintPreview();
+            PlayClearSfx();
+            PlayStageClearHaptic();
+            PlayStageClearVisuals(referenceTile);
+            gameplayFeedback?.Cleared(referenceTile);
+            // 판을 깨면 메인처럼 별이 날아가 하트가 다시 찬다.
+            PlayClearStarsToHearts(referenceTile);
+            OnLabBoardCleared(referenceTile);
+            return;
+        }
         if (feverActive)
         {
             ResetActiveDragState("fever_clear");
@@ -4124,7 +4460,7 @@ public class GameManager : MonoBehaviour
             OnFeverBoardFinished(true);
             return;
         }
-        RecordStageStars();
+        RecordStageStars(referenceTile);
         ResetActiveDragState("stage_clear");
         DevLog.Log("Clear");
         ClearHintPreview();
@@ -4134,7 +4470,10 @@ public class GameManager : MonoBehaviour
         gameplayFeedback?.Cleared(referenceTile);
         PlayClearStarsToHearts(referenceTile);
         if (lastClearWasOneStroke && referenceTile != null)
+        {
             mainUI?.ShowPerfectPopup(referenceTile.transform.position, mainCamera != null ? mainCamera : Camera.main);
+            StartCoroutine(PlayDelayedEventSfx(perfectClip, 0.28f, 0.8f));
+        }
         TrackStageCleared(clearType);
         if (FinalEndingProgressStore.IsFinalStageIndex(currentStageIndex))
         {
@@ -4184,23 +4523,65 @@ public class GameManager : MonoBehaviour
         mainUI.PlayClearStarsToHearts(sources, cam);
     }
 
-    private void RecordStageStars()
+    // 별: 1 = 클리어, 2 = 힌트 없이, 3 = 이 판의 도전 목표(StageChallenge) 달성.
+    private void RecordStageStars(Tile finalTile)
     {
         // 클리어가 드래그 도중에 일어나면 그 드래그도 한 획으로 센다.
         int strokes = attemptStrokeCount + (isDragging && currentPath.Count > 1 ? 1 : 0);
-        bool oneStroke = strokes == 1 && !attemptUsedUndo;
+        bool oneStroke = strokes == 1 && !attemptUsedUndo && (portalPhase != 2 || portalPhaseOneOneStroke);
         lastClearWasOneStroke = oneStroke;
-        int stars = 1 + (stageHintUsed ? 0 : 1) + (!stageHintUsed && !stageRetried ? 1 : 0);
+        StageChallengeKind challenge = StageChallenge.KindFor(currentStageIndex);
+        bool challengeMet = IsStageChallengeMet(challenge, oneStroke, finalTile);
+        int stars = 1 + (stageHintUsed ? 0 : 1) + (challengeMet ? 1 : 0);
+        lastClearWasFirstClear = StageStarsStore.GetStars(currentStageIndex) == 0;
         bool improved = StageStarsStore.Record(currentStageIndex, stars, oneStroke);
         if (mainUI == null)
             mainUI = FindFirstObjectByType<GameMainUIController>();
-        mainUI?.ShowStageClearResult(stars, oneStroke, improved);
+        mainUI?.ShowStageClearResult(stars, oneStroke, improved, challenge, challengeMet);
         FirebaseBootstrap.LogEvent("stage_stars", new Dictionary<string, object>
         {
             { "stage_index", currentStageIndex },
             { "stars", stars },
-            { "one_stroke", oneStroke ? 1 : 0 }
+            { "one_stroke", oneStroke ? 1 : 0 },
+            { "challenge", challenge.ToString() },
+            { "challenge_met", challengeMet ? 1 : 0 }
         });
+    }
+
+    private bool lastClearWasFirstClear;
+
+    private bool IsStageChallengeMet(StageChallengeKind challenge, bool oneStroke, Tile finalTile)
+    {
+        switch (challenge)
+        {
+            case StageChallengeKind.OneStroke:
+                return oneStroke;
+            case StageChallengeKind.EndOnMarked:
+                return finalTile != null
+                    && StageChallenge.TryGetEndCell(currentStageIndex, out Vector2Int cell)
+                    && finalTile.X == cell.x && finalTile.Y == cell.y;
+            default:
+                return !stageRetried && !attemptUsedUndo;
+        }
+    }
+
+    /// <summary>스테이지 시작 때: 도전 목표를 잠깐 알려주고, "별 칸에서 끝내기"면 그 칸에 별을 붙인다.</summary>
+    private void SetupStageChallenge(bool announce)
+    {
+        if (!VisualTheme.IsSoftClay)
+            return;
+        StageChallengeKind challenge = StageChallenge.KindFor(currentStageIndex);
+        if (challenge == StageChallengeKind.EndOnMarked && StageChallenge.TryGetEndCell(currentStageIndex, out Vector2Int cell))
+        {
+            Tile target = GetTileAtGrid(cell.x, cell.y);
+            if (target != null)
+                VisualTheme.AttachGoalStar(target.transform);
+        }
+        if (!announce)
+            return;
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        mainUI?.ShowStageChallengeChip(challenge);
     }
 
     /// <summary>FixedKnot 화면 갱신. totalStepsCommitted + currentPath 기준 Count 전달.</summary>
@@ -4406,7 +4787,8 @@ public class GameManager : MonoBehaviour
         HiddenLocked,
         ShortCircuitBlocked,
         FixedKnotOrder,
-        TwinLinkPartner
+        TwinLinkPartner,
+        PortalNotLast
     }
 
     private struct BoardFailureAnalysisResult
@@ -4673,7 +5055,7 @@ public class GameManager : MonoBehaviour
 
     private bool CheckAndHandleBoardFailure(Tile clearReferenceTile = null)
     {
-        if (stageCleared || isGameOverSequencePlaying || tiles == null)
+        if (stageCleared || isGameOverSequencePlaying || portalTransitioning || tiles == null)
             return false;
         if (isDragging)
         {
@@ -5021,6 +5403,9 @@ public class GameManager : MonoBehaviour
             return false;
         }
         if (!IsAdjacent(from, to))
+            return false;
+        // 포탈은 마지막 칸이라 거기서 다른 칸으로 나갈 수 없다.
+        if (from.GetComponent<PortalTile>() != null)
             return false;
 
         var shortCircuitHit = to.GetComponent<ShortCircuitTile>();
@@ -5416,7 +5801,7 @@ public class GameManager : MonoBehaviour
 
     private bool CheckAndHandleMissedFixedKnot(int totalPathCount)
     {
-        if (stageCleared || isGameOverSequencePlaying || tiles == null)
+        if (stageCleared || isGameOverSequencePlaying || portalTransitioning || tiles == null)
             return false;
 
         // CrossBlast 감소는 연출 때문에 0.07초 늦게 적용된다. 그 감소로 순서 타일이 지워질 수 있으므로
@@ -5481,13 +5866,30 @@ public class GameManager : MonoBehaviour
             currentPath.Clear();
             isDragging = false;
             gameplayFeedback?.Failed(failFocusTile != null ? failFocusTile : currentStartTile);
+            clayZero?.Shake();
             PlayFailSfx();
             OnFeverBoardFinished(false);
             return true;
         }
 
         DevLog.Log("Game Over");
-        TrackStageFailed(reason);
+        // 무한 연구소의 실패는 하트·연출은 메인과 같지만 스테이지 통계·업적에는 넣지 않는다.
+        if (labActive)
+            FirebaseBootstrap.LogEvent("lab_board_fail", new Dictionary<string, object>
+            {
+                { "lab_stage", labStage },
+                { "variant", labVariant.ToString() },
+                { "reason", reason }
+            });
+        else
+        {
+            TrackStageFailed(reason);
+            stageFailStreak++;
+            // 거의 다 풀었는데 실패했으면 그걸 알려 준다(다시 해 볼 마음이 들게).
+            int remainingTiles = CountActiveTileCount();
+            if (remainingTiles > 0 && remainingTiles <= NearMissTileCount)
+                mainUI?.ShowNearMissChip(remainingTiles);
+        }
         if (pathLitClearRoutine != null)
         {
             StopCoroutine(pathLitClearRoutine);
@@ -5513,6 +5915,7 @@ public class GameManager : MonoBehaviour
         ResetBoardFailureTracking();
         StopBoardTransientVisuals();
         gameplayFeedback?.Failed(gameOverFocusTile != null ? gameOverFocusTile : currentStartTile);
+        clayZero?.Shake();
         ClearHintPreview();
         totalStepsCommitted = 0;
         blackoutQuestionFlipPlayed = false;
@@ -5575,6 +5978,8 @@ public class GameManager : MonoBehaviour
         if (mainUI != null && mainUI.IsWaitingForHeartRefill)
             yield return new WaitUntil(() => mainUI == null || !mainUI.IsWaitingForHeartRefill);
 
+        // 포탈 판 2페이즈에서 실패·리셋하면 1페이즈 보드부터 다시 한다.
+        RestorePortalPhaseOneIfNeeded();
         for (int row = 0; row < stageHeight; row++)
         {
             for (int col = 0; col < stageWidth; col++)
@@ -5607,7 +6012,15 @@ public class GameManager : MonoBehaviour
             linkSystem.CreateLinksForCrossBlastOnly(tiles, stageWidth, stageHeight);
 
         // 게임오버 후 리셋이 끝나면 진행도/스테이지 UI도 초기 상태로 복원
-        RefreshMainUIForStage();
+        if (labActive)
+        {
+            initialTileCountForUI = Mathf.Max(1, GetTotalRemainingCount());
+            mainUI?.SetupLabBoard(initialTileCountForUI, labStage, labVariant, false);
+        }
+        else
+        {
+            RefreshMainUIForStage();
+        }
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
         IncrementBoardVersion("auto_restart_after_fail");
@@ -5615,7 +6028,15 @@ public class GameManager : MonoBehaviour
 
         gameOverFocusTile = null;
         isGameOverSequencePlaying = false;
+        // 같은 판에서 여러 번 실패하면 게임이 먼저 도와준다(2번째: 무료 힌트, 4번째: 무료 스킵).
+        if (!labActive && !feverActive)
+            mainUI?.OfferStuckHelp(currentStageIndex, stageFailStreak);
     }
+
+    // ===== 막혔을 때 먼저 도와주기 =====
+    private const int NearMissTileCount = 3;
+    private int stageFailStreak;
+    public int StageFailStreak => stageFailStreak;
 
     /// <summary>
     /// 실패 원인 설명: 원인 타일은 맥동(CheckAndHandleBoardFailure에서 시작), 나머지 타일은 어둡게.
@@ -5861,6 +6282,12 @@ public class GameManager : MonoBehaviour
         undoHistory.RemoveRange(targetIndex + 1, undoHistory.Count - targetIndex - 1);
         ApplyUndoSnapshot(snapshot);
         lastUndoSnapshotStepCount = snapshot.StepCount;
+        // 연구소 기억 변주: 되돌려도 가려진 숫자는 다시 보이지 않는다.
+        if (labActive && labMemoryHidden)
+        {
+            blackoutQuestionFlipPlayed = true;
+            SetAllTilesDisplayAsQuestion(true);
+        }
 
         FirebaseBootstrap.LogEvent("stage_undo", new Dictionary<string, object>
         {
@@ -5943,9 +6370,13 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void ResetCurrentStage()
     {
-        if (isGameOverSequencePlaying || tiles == null) return;
-        bool consumedRetryHeart = ConsumeHeartForManualRetryIfNeeded();
-        TrackStageReset(consumedRetryHeart ? "manual_reset_retry_penalty" : "manual_reset");
+        if (isGameOverSequencePlaying || portalTransitioning || tiles == null) return;
+        // 피버·연구소의 즉석 보드 리셋은 하트·스테이지 통계와 무관하다.
+        if (!feverActive && !labActive)
+        {
+            bool consumedRetryHeart = ConsumeHeartForManualRetryIfNeeded();
+            TrackStageReset(consumedRetryHeart ? "manual_reset_retry_penalty" : "manual_reset");
+        }
         isGameOverSequencePlaying = true;
         StartCoroutine(ResetCurrentStageRoutine());
     }
@@ -6027,6 +6458,8 @@ public class GameManager : MonoBehaviour
         isDragging = false;
         SetNeonTrailEmitting(false);
 
+        // 포탈 판 2페이즈에서 실패·리셋하면 1페이즈 보드부터 다시 한다.
+        RestorePortalPhaseOneIfNeeded();
         for (int row = 0; row < stageHeight; row++)
         {
             for (int col = 0; col < stageWidth; col++)
@@ -6167,7 +6600,9 @@ public class GameManager : MonoBehaviour
 
     private bool ShouldStartFeverAfter(int completedStageIndex)
     {
+        // 처음 깬 판에서만 온다(지도에서 10번째 판을 되풀이해 힌트를 모으는 걸 막는다).
         return VisualTheme.IsSoftClay
+            && lastClearWasFirstClear
             && completedStageIndex >= FeverEveryStages
             && completedStageIndex % FeverEveryStages == 0
             && !FinalEndingProgressStore.IsFinalStageIndex(completedStageIndex)
@@ -6177,8 +6612,14 @@ public class GameManager : MonoBehaviour
 
     private void StartFever(int completedStageIndex)
     {
-        currentStageIndex = completedStageIndex + 1;
+        currentStageIndex = AdvanceProgressAfter(completedStageIndex);
         SaveStageProgress();
+        BeginFeverRun(completedStageIndex);
+    }
+
+    /// <summary>피버 보드를 시작한다(진행도는 건드리지 않는다). 끝나면 currentStageIndex 판으로 돌아온다.</summary>
+    private void BeginFeverRun(int completedStageIndex)
+    {
         feverActive = true;
         feverEnding = false;
         feverPops = 0;
@@ -6191,6 +6632,8 @@ public class GameManager : MonoBehaviour
         mainUI?.BeginFeverHud();
         FirebaseBootstrap.LogEvent("fever_start", new Dictionary<string, object> { { "after_stage", completedStageIndex } });
         LoadNextFeverBoard();
+        PlayEventSfx(feverStartClip, 0.8f);
+        StartFeverMusic();
     }
 
     private void LoadNextFeverBoard()
@@ -6203,9 +6646,16 @@ public class GameManager : MonoBehaviour
             return;
         }
         feverSolution = result.solution;
-        StageData data = result.stage;
+        LoadGeneratedBoard(result.stage, "fever_board");
+        mainUI?.SetupFeverBoard(initialTileCountForUI, initialTileCountForUI);
+        mainUI?.UpdateFeverHud(FeverSecondsLeft, feverPops, false);
+    }
 
-        ResetActiveDragState("fever_board");
+    /// <summary>즉석 생성 보드(피버·연구소)를 화면에 올린다. 스테이지 번호·저장·별·통계는 건드리지 않는다.</summary>
+    private void LoadGeneratedBoard(StageData data, string reason)
+    {
+        SetupPortalForLoadedStage(null);
+        ResetActiveDragState(reason);
         totalStepsCommitted = 0;
         ClearTiles();
         CreateGridFromStageData(data);
@@ -6215,13 +6665,10 @@ public class GameManager : MonoBehaviour
         stageCleared = false;
         isGameOverSequencePlaying = false;
 
-        int total = GetTotalRemainingCount();
-        initialTileCountForUI = Mathf.Max(1, total);
-        mainUI?.SetupFeverBoard(initialTileCountForUI, total);
-        mainUI?.UpdateFeverHud(FeverSecondsLeft, feverPops, false);
+        initialTileCountForUI = Mathf.Max(1, GetTotalRemainingCount());
         SetupMelodyForCurrentStage();
         PlayNewStageSfx();
-        IncrementBoardVersion("fever_board");
+        IncrementBoardVersion(reason);
 
         ResetUndoHistory();
         attemptMoves.Clear();
@@ -6229,6 +6676,226 @@ public class GameManager : MonoBehaviour
         attemptUsedUndo = false;
         gameplayFeedback?.BeginStage(Mathf.Min(tileWidth, tileHeight));
         PlayStageStartVisuals();
+    }
+
+    /// <summary>즉석 보드에서 리셋 버튼을 눌러 처음 상태로 돌아왔을 때.</summary>
+    private void HandleGeneratedBoardRestarted()
+    {
+        ResetUndoHistory();
+        attemptMoves.Clear();
+        attemptStrokeCount = 0;
+        attemptUsedUndo = false;
+        gameplayFeedback?.BeginStage(Mathf.Min(tileWidth, tileHeight));
+        if (labActive)
+            ArmLabMemoryHide();
+    }
+
+    // ===== 무한 연구소(Lab) =====
+    // 1000판 엔딩을 본 뒤에 열리는 끝없는 모드. 판은 번호(LAB 1, 2, 3…)로 이어지고 번호는 저장된다.
+    // 판은 번호로 정해져 즉석에서 만들어진다(BoardGenerator: 같은 번호면 누구나 같은 판, 항상 풀림).
+    // 크기는 판마다 무작위(작은 35% / 중간 45% / 큰 20%)라 난이도가 뒤죽박죽이고, 5판에 한 번쯤 변주가 붙는다.
+    // 하트·힌트·스킵·전면 광고는 메인 스테이지와 같은 규칙이다. 스테이지 번호·별·업적·통계는 건드리지 않는다.
+    public enum LabVariant { Normal, OneStroke, Heavy, Memory }
+    private const float LabNextBoardDelay = 0.9f;
+    private const float LabMemoryRevealSeconds = 2.6f;
+    private const string LabStageKey = "ZeroStep.LabStage";
+    private const string LabFailReasonLifted = "lab_one_stroke_lifted";
+    private bool labActive;
+    private int labStage = 1;
+    private LabVariant labVariant;
+    private BoardGenerator.Result labBoard;
+    private Coroutine labMemoryRoutine;
+    private bool labMemoryHidden;
+    private static bool? labUnlockOverride;
+
+    public bool IsLabActive => labActive;
+    /// <summary>저장된 무한 연구소 판 번호(1부터).</summary>
+    public static int SavedLabStage => Mathf.Max(1, PlayerPrefs.GetInt(LabStageKey, 1));
+
+    /// <summary>무한 연구소는 1000판 엔딩을 본 뒤에 열린다. 디버그 빌드에서는 테스트할 수 있게 항상 열려 있다.</summary>
+    public static bool IsLabUnlocked
+    {
+        get
+        {
+            if (labUnlockOverride.HasValue)
+                return labUnlockOverride.Value;
+            return Debug.isDebugBuild || HasSeenFinalEnding;
+        }
+    }
+
+    public static bool HasSeenFinalEnding => FinalEndingProgressStore.LoadEndingState() == FinalEndingState.CompletedReplayable;
+
+    public bool StartLab()
+    {
+        if (!CanOpenStageMap || labActive || !VisualTheme.IsSoftClay || !IsLabUnlocked)
+            return false;
+        PrepareForStageTransition();
+        labStage = SavedLabStage;
+        labActive = true;
+        if (earlyStageGuideRoutine != null)
+        {
+            StopCoroutine(earlyStageGuideRoutine);
+            earlyStageGuideRoutine = null;
+        }
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        FirebaseBootstrap.LogEvent("lab_start", new Dictionary<string, object> { { "lab_stage", labStage } });
+        LoadLabBoard(newBoard: true);
+        return true;
+    }
+
+    /// <summary>판 번호로 변주와 보드 크기를 정한다(같은 번호면 항상 같은 결과).</summary>
+    public static void ResolveLabBoardKind(int stage, out LabVariant variant, out BoardGenerator.Settings settings)
+    {
+        var random = new System.Random(unchecked(stage * 92821 + 17));
+        int sizeRoll = random.Next(100);
+        // 첫 판은 기본 판. 그 뒤로는 5판에 한 번쯤 변주.
+        bool hasVariant = stage > 1 && random.Next(5) == 0;
+        variant = hasVariant ? (LabVariant)(1 + random.Next(3)) : LabVariant.Normal;
+
+        if (variant == LabVariant.Heavy)
+            settings = BoardGenerator.Settings.Heavy;
+        else if (variant == LabVariant.Memory || sizeRoll < 35)
+            settings = BoardGenerator.Settings.Small;   // 기억 변주는 외울 수 있게 작은 판에서만
+        else if (sizeRoll < 80 || variant == LabVariant.OneStroke)
+            settings = BoardGenerator.Settings.Medium;  // 한붓 변주는 큰 판을 피한다
+        else
+            settings = BoardGenerator.Settings.Large;
+    }
+
+    private void LoadLabBoard(bool newBoard)
+    {
+        if (newBoard || labBoard == null)
+        {
+            ResolveLabBoardKind(labStage, out labVariant, out BoardGenerator.Settings settings);
+            labBoard = BoardGenerator.Generate(settings, unchecked(labStage * 7919 + 101));
+        }
+        if (labBoard == null)
+        {
+            ExitLabToStage();
+            return;
+        }
+
+        LoadGeneratedBoard(labBoard.stage, "lab_board");
+        mainUI?.SetupLabBoard(initialTileCountForUI, labStage, labVariant, newBoard);
+        ArmLabMemoryHide();
+    }
+
+    /// <summary>기억 변주: 숫자를 잠깐 보여준 뒤 전부 "?"로 가린다.</summary>
+    private void ArmLabMemoryHide()
+    {
+        if (labMemoryRoutine != null)
+        {
+            StopCoroutine(labMemoryRoutine);
+            labMemoryRoutine = null;
+        }
+        labMemoryHidden = false;
+        if (labActive && labVariant == LabVariant.Memory)
+            labMemoryRoutine = StartCoroutine(LabMemoryHideRoutine(tiles));
+    }
+
+    private IEnumerator LabMemoryHideRoutine(Tile[,] board)
+    {
+        yield return new WaitForSecondsRealtime(LabMemoryRevealSeconds);
+        labMemoryRoutine = null;
+        if (!labActive || labVariant != LabVariant.Memory || tiles != board || stageCleared || isGameOverSequencePlaying)
+            yield break;
+        labMemoryHidden = true;
+        TriggerBlackoutQuestionFlip();
+    }
+
+    private void OnLabBoardCleared(Tile referenceTile)
+    {
+        int clearedStage = labStage;
+        labStage++;
+        PlayerPrefs.SetInt(LabStageKey, labStage);
+        mainUI?.ShowLabBoardResult(clearedStage);
+        FirebaseBootstrap.LogEvent("lab_board_clear", new Dictionary<string, object>
+        {
+            { "lab_stage", clearedStage },
+            { "variant", labVariant.ToString() }
+        });
+        StartCoroutine(LabNextBoardRoutine(clearedStage));
+    }
+
+    private IEnumerator LabNextBoardRoutine(int clearedStage)
+    {
+        // 클리어 연출을 기다리되, 잠시 뒤부터는 화면을 탭하면 바로 넘어간다(메인 스테이지와 같다).
+        float elapsed = 0f;
+        while (elapsed < LabNextBoardDelay)
+        {
+            yield return null;
+            elapsed += Time.unscaledDeltaTime;
+            if (elapsed >= StageClearTapToAdvanceAfterSeconds && IsPointerDown())
+                break;
+        }
+        if (!labActive)
+            yield break;
+
+        if (mainUI == null)
+            mainUI = FindFirstObjectByType<GameMainUIController>();
+        if (mainUI == null)
+        {
+            LoadLabBoard(newBoard: true);
+            yield break;
+        }
+        // 전면 광고 규칙은 메인과 같다. 판 번호는 1000판 뒤에 이어 붙여 간격 계산이 맞게 한다.
+        mainUI.ShowStageTransitionInterstitialIfNeeded(FinalEndingProgressStore.FinalStageIndex + clearedStage, () =>
+        {
+            if (this != null && labActive)
+                LoadLabBoard(newBoard: true);
+        });
+    }
+
+    /// <summary>스킵(충전분·광고는 UI가 처리한 뒤 불린다): 이 판을 넘기고 다음 판으로.</summary>
+    public bool LabSkipBoard()
+    {
+        if (!labActive || isGameOverSequencePlaying || stageCleared)
+            return false;
+        FirebaseBootstrap.LogEvent("lab_board_skip", new Dictionary<string, object> { { "lab_stage", labStage } });
+        labStage++;
+        PlayerPrefs.SetInt(LabStageKey, labStage);
+        ResetActiveDragState("lab_skip");
+        ClearHintPreview();
+        LoadLabBoard(newBoard: true);
+        return true;
+    }
+
+    /// <summary>한붓 변주: 다 깨기 전에 손을 떼면 실패(메인과 같은 실패 처리: 하트 1개).</summary>
+    private bool CheckLabOneStrokeLifted(bool movedThisStroke)
+    {
+        if (!labActive || labVariant != LabVariant.OneStroke || stageCleared || isGameOverSequencePlaying || !movedThisStroke)
+            return false;
+        mainUI?.ShowLabRetry(true);
+        return BeginGameOverSequence(LabFailReasonLifted, currentStartTile);
+    }
+
+    private void CancelLab()
+    {
+        if (!labActive)
+            return;
+        labActive = false;
+        labBoard = null;
+        labMemoryHidden = false;
+        if (labMemoryRoutine != null)
+        {
+            StopCoroutine(labMemoryRoutine);
+            labMemoryRoutine = null;
+        }
+        mainUI?.EndLabHud();
+    }
+
+    /// <summary>연구소를 나와 하던 스테이지로 돌아간다.</summary>
+    public void ExitLabToStage()
+    {
+        if (!labActive)
+            return;
+        PrepareForStageTransition();
+        StageData data = StageManager.LoadStage(currentStageIndex) ?? StageManager.LoadStage(1);
+        if (data == null)
+            return;
+        ApplyLoadedStageData(data, "lab_exit", resetHeartsForNewStage: false);
+        HandleStageStarted("lab_exit");
     }
 
     private void OnFeverBoardFinished(bool cleared)
@@ -6260,6 +6927,7 @@ public class GameManager : MonoBehaviour
         feverEnding = false;
         feverSolution = null;
         isGameOverSequencePlaying = false;
+        StopFeverMusic(0.25f);
         mainUI?.CancelFeverHud();
     }
 
@@ -6271,8 +6939,10 @@ public class GameManager : MonoBehaviour
         if (overlayOpen)
         {
             feverEndTime += Time.unscaledDeltaTime;
+            SetFeverMusicPaused(true);
             return;
         }
+        SetFeverMusicPaused(false);
         mainUI?.SetFeverTimeFraction((feverEndTime - Time.unscaledTime) / FeverDurationSeconds);
         int seconds = FeverSecondsLeft;
         if (seconds != feverLastShownSeconds)
@@ -6280,6 +6950,7 @@ public class GameManager : MonoBehaviour
             feverLastShownSeconds = seconds;
             mainUI?.UpdateFeverHud(seconds, feverPops, false);
         }
+        UpdateFeverMusic(seconds);
         if (Time.unscaledTime >= feverEndTime)
             EndFever();
     }
@@ -6293,6 +6964,7 @@ public class GameManager : MonoBehaviour
         ResetActiveDragState("fever_end");
         ClearHintPreview();
         int rewardHints = feverPops >= 25 ? 2 : 1;
+        StopFeverMusic();
         mainUI?.ShowFeverResult(feverPops, rewardHints);
         PlayClearSfx();
         FirebaseBootstrap.LogEvent("fever_end", new Dictionary<string, object>
@@ -6357,6 +7029,7 @@ public class GameManager : MonoBehaviour
     private void PrepareForStageTransition()
     {
         CancelFever();
+        CancelLab();
         StopBlackoutQuestionFlip();
         ResetBoardFailureTracking();
         StopBoardTransientVisuals();
@@ -6543,13 +7216,14 @@ public class GameManager : MonoBehaviour
         if (IsOnFinalStage)
             return false;
 
-        currentStageIndex++;
+        currentStageIndex = AdvanceProgressAfter(currentStageIndex);
         StageData data = StageManager.LoadStage(currentStageIndex);
         if (data == null)
         {
             // 데이터 누락 시 안전장치. 최종 스테이지 이후로는 위에서 막는다.
             Debug.LogError($"[GameManager] Missing stage data for stage {currentStageIndex}. Falling back to stage 1.");
             currentStageIndex = 1;
+            stageFrontier = 1;
             data = StageManager.LoadStage(1);
             if (data == null)
             {
@@ -6565,6 +7239,7 @@ public class GameManager : MonoBehaviour
     private void ApplyLoadedStageData(StageData data, string boardVersionReason, bool resetHeartsForNewStage = true)
     {
         UpdateVerboseStage6DebugState(data);
+        SetupPortalForLoadedStage(data);
 
         ResetActiveDragState(boardVersionReason);
         totalStepsCommitted = 0;
@@ -6611,6 +7286,8 @@ public class GameManager : MonoBehaviour
         try
         {
             ES3.Save(SaveKeyStage, currentStageIndex);
+            if (stageFrontier >= 1)
+                ES3.Save(SaveKeyFrontier, stageFrontier);
         }
         catch (Exception e)
         {
@@ -6626,6 +7303,8 @@ public class GameManager : MonoBehaviour
         {
             if (ES3.KeyExists(SaveKeyStage))
                 ES3.DeleteKey(SaveKeyStage);
+            if (ES3.KeyExists(SaveKeyFrontier))
+                ES3.DeleteKey(SaveKeyFrontier);
         }
         catch (Exception e)
         {
@@ -6641,6 +7320,105 @@ public class GameManager : MonoBehaviour
     private bool hasLoadedStageProgress;
 
     private static bool IsValidStageIndex(int index) => index >= 1 && index <= FinalEndingProgressStore.FinalStageIndex;
+
+    // ===== 진행 위치(frontier)와 지금 하는 판(currentStageIndex) =====
+    // frontier = 아직 깨지(또는 스킵하지) 않은 가장 앞 스테이지. 지도에서는 frontier부터 세 판까지 골라 할 수 있어(갈래 길)
+    // 한 판에 막혀도 다른 판을 먼저 할 수 있다. 이미 지나온 판은 언제든 다시 할 수 있다.
+    private const int StageUnlockWindow = 3;
+    private int stageFrontier;
+
+    public int CurrentStageIndex => currentStageIndex;
+    public int StageFrontier => Mathf.Max(1, stageFrontier);
+    /// <summary>지도를 열어 다른 판으로 옮겨도 되는 상태인지(클리어 연출·실패 연출·피버·연구소 전환 중에는 안 됨).</summary>
+    public bool CanOpenStageMap => !stageCleared && !isGameOverSequencePlaying && !feverActive && tiles != null;
+
+    public bool IsStageUnlocked(int stageIndex)
+    {
+        if (!IsValidStageIndex(stageIndex))
+            return false;
+        int frontier = StageFrontier;
+        if (stageIndex <= frontier)
+            return true;
+        // 마지막 스테이지(엔딩)는 건너뛰어 열 수 없다.
+        if (FinalEndingProgressStore.IsFinalStageIndex(stageIndex))
+            return false;
+        return stageIndex < frontier + StageUnlockWindow;
+    }
+
+    private int LoadSavedFrontier(int fallback)
+    {
+        int frontier = fallback;
+        try
+        {
+            if (ES3.KeyExists(SaveKeyFrontier))
+            {
+                int saved = ES3.Load<int>(SaveKeyFrontier);
+                if (IsValidStageIndex(saved))
+                    frontier = saved;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[GameManager] 진행 위치 로드 실패: {e.Message}");
+            FirebaseBootstrap.LogNonFatalException(e, "LoadSavedFrontier failed");
+        }
+        // 예전 저장(진행 위치 없음)이나 어긋난 값: 지금 하는 판이 열려 있도록 맞춘다.
+        if (currentStageIndex >= frontier + StageUnlockWindow)
+            frontier = currentStageIndex;
+        return Mathf.Clamp(frontier, 1, FinalEndingProgressStore.FinalStageIndex);
+    }
+
+    /// <summary>stageIndex를 깨거나 스킵한 뒤: 그 판이 frontier였으면 다음 안 깬 판까지 frontier를 민다.</summary>
+    private void AdvanceFrontierPast(int stageIndex)
+    {
+        if (stageIndex != StageFrontier)
+            return;
+        int final = FinalEndingProgressStore.FinalStageIndex;
+        int next = Mathf.Min(final, stageIndex + 1);
+        while (next < final && StageStarsStore.GetStars(next) > 0)
+            next++;
+        stageFrontier = next;
+    }
+
+    /// <summary>
+    /// stageIndex를 깨거나 스킵한 뒤 진행 위치를 갱신하고 다음에 할 판을 돌려준다.
+    /// 맨 앞 판(frontier)을 끝냈으면 새 frontier(이미 깬 판은 건너뜀), 지나온 판을 다시 한 거면 바로 다음 판,
+    /// 앞질러 한 판이면 다음 판이 열려 있을 때만 그 판이고 아니면 frontier로 돌아온다.
+    /// </summary>
+    private int AdvanceProgressAfter(int stageIndex)
+    {
+        bool wasFrontier = stageIndex == StageFrontier;
+        AdvanceFrontierPast(stageIndex);
+        if (wasFrontier)
+            return StageFrontier;
+        int next = stageIndex + 1;
+        return IsStageUnlocked(next) ? next : StageFrontier;
+    }
+
+    /// <summary>지도에서 고른 판으로 옮긴다. 하트는 그대로 둔다(판을 바꿔 하트를 채우는 걸 막기 위해).</summary>
+    public bool LoadStageFromMap(int stageIndex)
+    {
+        if (!CanOpenStageMap || !IsStageUnlocked(stageIndex))
+            return false;
+        bool fromLab = labActive;
+        StageData data = StageManager.LoadStage(stageIndex);
+        if (data == null)
+            return false;
+
+        int previousStageIndex = currentStageIndex;
+        PrepareForStageTransition();
+        currentStageIndex = stageIndex;
+        ApplyLoadedStageData(data, "map_select", resetHeartsForNewStage: false);
+        FirebaseBootstrap.LogEvent("stage_map_select", new Dictionary<string, object>
+        {
+            { "from_lab", fromLab ? 1 : 0 },
+            { "from_stage_index", previousStageIndex },
+            { "to_stage_index", currentStageIndex },
+            { "frontier", StageFrontier }
+        });
+        HandleStageStarted("map_select");
+        return true;
+    }
 
     /// <summary>진행도 값이 망가졌을 때(0 등) 업적 기록에 남은 현재 스테이지로 되살린다.</summary>
     private static int RecoverStageIndexFromAchievementRecord()
@@ -7297,6 +8075,8 @@ public class GameManager : MonoBehaviour
                 }
                 if (cell.type == "Charge")
                     tileObj.AddComponent<ChargeTile>();
+                if (cell.type == "Portal")
+                    activePortal = tileObj.AddComponent<PortalTile>();
                 tile.SetNumber(cell.count);
                 if (pendingFixedKnot != null)
                     pendingFixedKnot.Setup(pendingFixedKnotTargetOrder, pendingFixedKnotIsAbsolute);
@@ -7629,12 +8409,33 @@ public class GameManager : MonoBehaviour
     public bool AutomationGameOverPlaying => isGameOverSequencePlaying;
     public bool AutomationIsDragging => isDragging;
     public bool AutomationHasPendingMutations => pendingBoardMutationCount > 0;
+    /// <summary>테스트용: 지금 판을 실패 처리한다(하트·연출·도움 장치 모두 실제 흐름 그대로).</summary>
+    public bool AutomationForceGameOver(string reason = "automation") => BeginGameOverSequence(reason, currentStartTile);
+
+    /// <summary>테스트용: 진행 위치(frontier)를 직접 정한다.</summary>
+    public void AutomationSetFrontier(int stageIndex) => stageFrontier = Mathf.Clamp(stageIndex, 1, FinalEndingProgressStore.FinalStageIndex);
     public bool AutomationFeverActive => feverActive;
+    public List<Vector2Int> AutomationLabSolution => labBoard?.solution;
+    public LabVariant AutomationLabVariant => labVariant;
+    public int AutomationLabStage => labStage;
+    public bool AutomationLabMemoryHidden => labMemoryHidden;
+    /// <summary>테스트용: 무한 연구소 잠금 여부를 강제한다(null이면 실제 조건).</summary>
+    public static void AutomationSetLabUnlocked(bool? unlocked) => labUnlockOverride = unlocked;
     public int AutomationFeverBoards => feverBoards;
     public int AutomationFeverPops => feverPops;
     public List<Vector2Int> AutomationFeverSolution => feverSolution;
 
     /// <summary>테스트용: completedStageIndex를 깬 직후처럼 피버를 시작한다. durationSeconds로 피버 길이를 바꿀 수 있다.</summary>
+    /// <summary>디버그: 지금 판에서 바로 피버를 시작한다(진행도·별은 그대로, 끝나면 지금 판으로 돌아온다).</summary>
+    public bool DebugStartFeverNow()
+    {
+        if (feverActive || labActive || stageCleared || isGameOverSequencePlaying || portalTransitioning || tiles == null)
+            return false;
+        PrepareForStageTransition();
+        BeginFeverRun(currentStageIndex);
+        return true;
+    }
+
     public void AutomationStartFever(int completedStageIndex, float durationSeconds = FeverDurationSeconds)
     {
         StartFever(completedStageIndex);
@@ -7649,9 +8450,30 @@ public class GameManager : MonoBehaviour
         return tile != null ? tile.CurrentNumber : -1;
     }
 
+    public int AutomationPortalPhase => portalPhase;
+    /// <summary>(x,y) 칸의 지금 월드 위치. 칸이 없으면 null.</summary>
+    public Vector3? AutomationTileWorldPosition(int x, int y)
+    {
+        Tile tile = GetTileAtGrid(x, y);
+        return tile != null ? tile.transform.position : (Vector3?)null;
+    }
+    /// <summary>보드의 모든 칸 월드 위치.</summary>
+    public List<Vector3> AutomationAllTileWorldPositions()
+    {
+        var list = new List<Vector3>();
+        if (tiles == null)
+            return list;
+        for (int row = 0; row < stageHeight; row++)
+            for (int col = 0; col < stageWidth; col++)
+                if (tiles[row, col] != null)
+                    list.Add(tiles[row, col].transform.position);
+        return list;
+    }
+    public bool AutomationPortalTransitioning => portalTransitioning;
+
     public bool AutomationBeginDrag()
     {
-        if (stageCleared || isGameOverSequencePlaying || currentStartTile == null || !CanEnterTile(currentStartTile))
+        if (stageCleared || isGameOverSequencePlaying || portalTransitioning || currentStartTile == null || !CanEnterTile(currentStartTile))
             return false;
 
         ClearMoveRuleSnackbarState();
@@ -7691,13 +8513,14 @@ public class GameManager : MonoBehaviour
         gameplayFeedback?.DragReleased(currentPath.Count > 0 ? currentPath[currentPath.Count - 1] : currentStartTile);
         gameplayFeedback?.ReleasePath();
         ClearMoveRuleSnackbarState();
+        bool movedThisStroke = isDragging && currentPath.Count > 1;
         isDragging = false;
         ResetTrail();
         CommitPathAndSetCurrentPosition();
         CheckVictoryCondition(currentStartTile);
         CheckStageClear();
-        if (!stageCleared)
-            CheckAndHandleBoardFailure(currentStartTile);
+        if (!stageCleared && !CheckAndHandleBoardFailure(currentStartTile))
+            CheckLabOneStrokeLifted(movedThisStroke);
     }
 
     public bool AutomationHintAvailableNow()

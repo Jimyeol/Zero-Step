@@ -68,22 +68,33 @@ public static class StageManager
 
     // ===== 검증된 정답 경로 =====
     // Resources/Stages/solutions.txt 한 줄 형식: N|x,y;x,y;...|x,y;...  ('|' 구간 = 손을 떼지 않는 한 번의 드래그)
+    // 포탈 판은 2페이즈 정답이 한 줄 더 있다: N:2|...
     // 힌트가 정답 경로를 따라가는 동안에는 탐색 없이 즉시 힌트를 보여주는 데 쓴다.
     private const string SolutionsPath = "Stages/solutions";
     private static Dictionary<int, string> solutionLines;
+    private static Dictionary<int, string> phase2SolutionLines;
     private static readonly Dictionary<int, List<Vector2Int>> solutionMoveCache = new Dictionary<int, List<Vector2Int>>();
+    private static readonly Dictionary<int, List<Vector2Int>> phase2SolutionMoveCache = new Dictionary<int, List<Vector2Int>>();
 
-    /// <summary>시작 칸 다음부터 끝까지 이어지는 정답 이동 칸 목록. 없으면 null.</summary>
+    /// <summary>시작 칸 다음부터 끝까지 이어지는 정답 이동 칸 목록. 없으면 null. 포탈 판이면 1페이즈(포탈로 끝난다).</summary>
     public static List<Vector2Int> LoadSolutionMoves(int stageNumber)
     {
-        if (solutionMoveCache.TryGetValue(stageNumber, out List<Vector2Int> cached))
+        return LoadSolutionMoves(stageNumber, 1);
+    }
+
+    /// <summary>페이즈별 정답 이동 칸 목록(phase 2는 포탈 판의 2페이즈). 없으면 null.</summary>
+    public static List<Vector2Int> LoadSolutionMoves(int stageNumber, int phase)
+    {
+        Dictionary<int, List<Vector2Int>> cache = phase == 2 ? phase2SolutionMoveCache : solutionMoveCache;
+        if (cache.TryGetValue(stageNumber, out List<Vector2Int> cached))
             return cached;
 
         EnsureSolutionLines();
+        Dictionary<int, string> lines = phase == 2 ? phase2SolutionLines : solutionLines;
         List<Vector2Int> moves = null;
-        if (solutionLines != null && solutionLines.TryGetValue(stageNumber, out string line))
+        if (lines != null && lines.TryGetValue(stageNumber, out string line))
             moves = ParseSolutionMoves(line);
-        solutionMoveCache[stageNumber] = moves;
+        cache[stageNumber] = moves;
         return moves;
     }
 
@@ -93,6 +104,7 @@ public static class StageManager
             return;
 
         solutionLines = new Dictionary<int, string>();
+        phase2SolutionLines = new Dictionary<int, string>();
         TextAsset asset = Resources.Load<TextAsset>(SolutionsPath);
         if (asset == null)
             return;
@@ -103,8 +115,12 @@ public static class StageManager
             int bar = line.IndexOf('|');
             if (bar <= 0)
                 continue;
-            if (int.TryParse(line.Substring(0, bar), out int stage))
-                solutionLines[stage] = line.Substring(bar + 1);
+            string key = line.Substring(0, bar);
+            bool phase2 = key.EndsWith(":2", System.StringComparison.Ordinal);
+            if (phase2)
+                key = key.Substring(0, key.Length - 2);
+            if (int.TryParse(key, out int stage))
+                (phase2 ? phase2SolutionLines : solutionLines)[stage] = line.Substring(bar + 1);
         }
         Resources.UnloadAsset(asset);
     }

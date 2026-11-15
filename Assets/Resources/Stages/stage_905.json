@@ -1,10 +1,10 @@
 {
   "stageID": 905,
-  "width": 7,
-  "height": 5,
+  "width": 3,
+  "height": 4,
   "startPoint": {
-    "x": 6,
-    "y": 1
+    "x": 2,
+    "y": 0
   },
   "config": {
     "mode": "Normal",
@@ -17,111 +17,46 @@
       "x": 0,
       "y": 0,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G19"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 0,
-      "count": 2,
-      "type": "TwinLink",
-      "linkID": 926,
-      "color": "#a78bfa"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 2,
       "y": 0,
       "count": 1,
-      "type": "Igniter",
-      "targetID": "G19"
-    },
-    {
-      "x": 3,
-      "y": 0,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 0,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
-      "y": 0,
-      "count": 3,
-      "type": "CrossBlast",
-      "properties": {
-        "beamColor": "#34d399"
-      }
-    },
-    {
-      "x": 6,
-      "y": 0,
-      "count": 2,
       "type": "Normal"
     },
     {
       "x": 0,
       "y": 1,
       "count": 1,
-      "type": "Hidden",
-      "groupID": "G19"
+      "type": "Normal"
     },
     {
       "x": 1,
       "y": 1,
       "count": 2,
-      "type": "Hidden",
-      "groupID": "G19"
+      "type": "Normal"
     },
     {
-      "x": 3,
+      "x": 2,
       "y": 1,
       "count": 1,
       "type": "Normal"
     },
     {
-      "x": 5,
-      "y": 1,
-      "count": 3,
-      "type": "Normal"
-    },
-    {
-      "x": 6,
-      "y": 1,
-      "count": 2,
-      "type": "Charge"
-    },
-    {
       "x": 1,
       "y": 2,
-      "count": 3,
-      "type": "TwinLink",
-      "linkID": 926,
-      "color": "#a78bfa"
+      "count": 1,
+      "type": "Normal"
     },
     {
       "x": 2,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 3,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 2,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 5,
       "y": 2,
       "count": 1,
       "type": "Normal"
@@ -129,31 +64,76 @@
     {
       "x": 2,
       "y": 3,
-      "count": 2,
-      "type": "Charge"
-    },
-    {
-      "x": 3,
-      "y": 3,
-      "count": 2,
-      "type": "Normal"
-    },
-    {
-      "x": 4,
-      "y": 3,
       "count": 1,
-      "type": "FixedKnot",
-      "targetOrder": 28,
-      "properties": {
-        "isAbsolute": true
-      }
-    },
-    {
-      "x": 3,
-      "y": 4,
-      "count": 1,
-      "type": "Hidden",
-      "groupID": "G19"
+      "type": "Portal"
     }
-  ]
+  ],
+  "phase2": {
+    "width": 3,
+    "height": 4,
+    "startPoint": {
+      "x": 0,
+      "y": 1
+    },
+    "cells": [
+      {
+        "x": 0,
+        "y": 0,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "count": 3,
+        "type": "Normal"
+      },
+      {
+        "x": 2,
+        "y": 0,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 1,
+        "count": 1,
+        "type": "Normal"
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "count": 2,
+        "type": "Normal"
+      },
+      {
+        "x": 2,
+        "y": 2,
+        "count": 1,
+        "type": "FixedKnot",
+        "targetOrder": 7,
+        "properties": {
+          "isAbsolute": true
+        }
+      },
+      {
+        "x": 0,
+        "y": 3,
+        "count": 1,
+        "type": "Normal"
+      }
+    ]
+  }
 }

@@ -109,15 +109,15 @@ public class TwinLinkTile : MonoBehaviour, IGameOverBlackoutVisual
     {
         linkID = id;
         linkColor = assignedColor;
+        groupBadgeLabel = string.IsNullOrWhiteSpace(badgeLabel) ? MakeFallbackBadgeLabel(id) : badgeLabel;
         if (VisualTheme.IsSoftClay)
         {
-            // 점토 테마: 그룹마다 고유 색(외곽선 + 둥근 글자 배지)으로 짝을 한눈에 구분하고,
-            // 이 칸에 서 있으면 짝 칸까지 점선으로 이어 준다(UpdateClayLinkVisuals).
-            linkColor = VisualTheme.LinkGroupColor(id);
-            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Link);
+            // 점토 테마: 글자마다 정해진 색(A 파랑, B 분홍, C 노랑…)으로 외곽선·글자 배지·연결 점선을 모두 칠한다.
+            // 판이 바뀌어도 같은 글자는 늘 같은 색이라 헷갈리지 않는다.
+            linkColor = VisualTheme.LinkGroupColorForLabel(groupBadgeLabel);
+            VisualTheme.AttachCornerIcon(transform, VisualTheme.Icon.Link, 0f, ClayIconMotion.Motion.Breathe);
             EnsureClayLinkRing();
         }
-        groupBadgeLabel = string.IsNullOrWhiteSpace(badgeLabel) ? MakeFallbackBadgeLabel(id) : badgeLabel;
 
         if (tile != null)
             tile.SetNumberColorOverride(linkColor);
